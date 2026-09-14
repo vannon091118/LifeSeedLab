@@ -14,6 +14,8 @@ export interface PlantStats {
   range: number;
   cooldown: number;
   cost: number;
+  /** EFFECT ids (source-driven for bases, genome-derived for bred — B6). */
+  effects: string[];
 }
 
 export type PlaceResult =
@@ -28,7 +30,7 @@ export function resolvePlantStats(state: SimState, variantId: string): PlantStat
 export function getPlantStats(variantId: string, bred?: Record<string, PlantStats>): PlantStats | null {
   const base = (PLANTS_SOURCE as Record<string, PlantSource>)[variantId];
   if (base) {
-    return { ...base.stats, cost: base.cost };
+    return { ...base.stats, cost: base.cost, effects: base.effects };
   }
   return bred?.[variantId] ?? null;
 }

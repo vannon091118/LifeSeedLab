@@ -24,6 +24,12 @@ export interface EnemyEntity {
   damage: number;   // lives lost when leaking past the path end
   reward: number;
   scoreValue: number;
+  /** Status effects (deterministic expiry ticks). Owned by EnemySystem. */
+  slowUntil: number;
+  burnTicks: number;
+  poisonTicks: number;
+  /** Last combat damage source (for kill attribution / chain — B6). */
+  lastHitByPlantId: string | null;
 }
 
 export interface ProjectileEntity {
@@ -36,12 +42,16 @@ export interface ProjectileEntity {
   damage: number;
   remainingPierce: number;
   plantId: string;
+  /** Effect riding the projectile — drives combat + observer FX (B6). */
+  effectId: string | null;
 }
 
 export type RunPhase = 'prep' | 'wave' | 'gameover';
 
 export interface SimState {
   seed: number;
+  /** Authoritative run identity (mirrors MetaSave.runId at run start — B1). */
+  runId: number;
   clock: ClockState;
   phase: RunPhase;
   wave: {
@@ -65,8 +75,11 @@ export interface SimState {
   score: number;
   combo: { count: number; timer: number; multiplier: number; highest: number };
   nektarEarned: number;
+  /** DEPRECATED alias of runId (kept one release for save compat). */
   runCounter: number;
   counters: { enemy: number; plant: number; projectile: number };
-  /** Stats of bred (non-source) variants, keyed by variant id. */
-  bredStats?: Record<string, { hp: number; damage: number; range: number; cooldown: number; cost: number }>;
+  /** Variants the player carried in via loadout (placeable bred plants — B1). */
+  loadout: string[];
+  /** Stats of bred (non-source) variants, keyed by variant id (incl. effect tags — B6). */
+  bredStats?: Record<string, { hp: number; damage: number; range: number; cooldown: number; cost: number; effects: string[] }>;
 }

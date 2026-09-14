@@ -9,7 +9,7 @@ export class ScoreSystem {
 
   constructor(private emit: (e: GameEvent) => void) {}
 
-  /** Called by SimulationRoot when ENEMY_DIED fires. */
+  /** Called by SimulationRoot when ENEMY_DIED fires. scoreValue arrives combo-multiplied (B6). */
   onEnemyDied(state: SimState, enemyId: string, reward: number, scoreValue: number, px: number, py: number): void {
     state.score += scoreValue;
     state.resources.energy += reward;
@@ -24,12 +24,10 @@ export class ScoreSystem {
     void px; void py; // position available for reward-flight observers later (Phase 10.6)
   }
 
-  /** Wave completion bonus (called by WaveSystem via root wiring). */
+  /** Wave completion bonus (called by WaveSystem via root wiring). Energy only —
+   *  score is combat result, so NO SCORE_CHANGED here (Defect A4-3: HUD delta must not lie). */
   grantWaveReward(state: SimState, wave: number, reward: number): void {
     state.resources.energy += reward;
-    this.emit(makeEvent(state.clock.tick, 'SCORE_CHANGED', 'system:score', ++this.seq, {
-      score: state.score, delta: reward,
-    }));
     this.emit(makeEvent(state.clock.tick, 'REWARD_GRANTED', `system:wave:${wave}`, ++this.seq, {
       energy: reward, sourceId: `wave-${wave}`,
     }));

@@ -51,7 +51,7 @@ describe('Phase 3.1/3.2 EventBus + contract', () => {
     let hits = 0;
     bus.subscribe('PROJECTILE_HIT', () => hits++);
     bus.publish(makeEvent(5, 'PROJECTILE_FIRED', 'plant-0001', 1, {
-      projectileId: 'proj-0001', plantId: 'plant-0001', targetId: 'enemy-0001', damage: 10,
+      projectileId: 'proj-0001', plantId: 'plant-0001', targetId: 'enemy-0001', damage: 10, effectId: null,
     }));
     expect(hits).toBe(0);
   });

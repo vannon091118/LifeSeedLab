@@ -1,5 +1,6 @@
 // Owner: ParticleSystemObserver. LOC ≤ 400.
 // Pool-based: acquire/update/release. Burst seeds from event+entity+index (Phase 11.3).
+// Alle in EFFECTS_SOURCE referenzierten Profile existieren (Gate: sources.test.ts, A7).
 
 import { makeRng } from '../core/rng';
 
@@ -30,13 +31,29 @@ export interface ParticleProfile {
   spawnShape: 'point' | 'ring' | 'cone';
 }
 
+// Kernprofile (Observer-Matrix B5) + alle EFFECTS_SOURCE-Referenzen (B6/FX-Grammatik).
 export const PARTICLE_PROFILES: Record<string, ParticleProfile> = {
-  impact_ring: { kind: 'RING',    count: 8,  lifetime: 18, size: [0.08, 0.16], velocity: [0.02, 0.06], gravity: 0,     rotationSpeed: 0,   alphaCurve: 'easeOut',   spawnShape: 'ring' },
-  death_pop:   { kind: 'SPARK',   count: 12, lifetime: 24, size: [0.06, 0.14], velocity: [0.04, 0.10], gravity: 0.004, rotationSpeed: 0.2, alphaCurve: 'linear',    spawnShape: 'ring' },
-  dust_puff:   { kind: 'DUST',    count: 6,  lifetime: 20, size: [0.10, 0.20], velocity: [0.01, 0.03], gravity: -0.001,rotationSpeed: 0.1, alphaCurve: 'fadeInOut', spawnShape: 'point' },
-  frost_mist:  { kind: 'SMOKE',   count: 8,  lifetime: 30, size: [0.08, 0.18], velocity: [0.01, 0.04], gravity: -0.002,rotationSpeed: 0.05, alphaCurve: 'fadeInOut', spawnShape: 'ring' },
-  ember_burst: { kind: 'GLOW',    count: 10, lifetime: 22, size: [0.05, 0.12], velocity: [0.03, 0.09], gravity: -0.003,rotationSpeed: 0.3, alphaCurve: 'easeOut',   spawnShape: 'ring' },
-  reward_flight:{ kind: 'GLOW',   count: 5,  lifetime: 26, size: [0.05, 0.10], velocity: [0.02, 0.05], gravity: -0.004,rotationSpeed: 0,   alphaCurve: 'easeOut',   spawnShape: 'point' },
+  // ── Observer-Kern ──
+  impact_ring:  { kind: 'RING',    count: 8,  lifetime: 18, size: [0.08, 0.16], velocity: [0.02, 0.06], gravity: 0,     rotationSpeed: 0,   alphaCurve: 'easeOut',   spawnShape: 'ring' },
+  death_pop:    { kind: 'SPARK',   count: 12, lifetime: 24, size: [0.06, 0.14], velocity: [0.04, 0.10], gravity: 0.004, rotationSpeed: 0.2, alphaCurve: 'linear',    spawnShape: 'ring' },
+  dust_puff:    { kind: 'DUST',    count: 6,  lifetime: 20, size: [0.10, 0.20], velocity: [0.01, 0.03], gravity: -0.001,rotationSpeed: 0.1, alphaCurve: 'fadeInOut', spawnShape: 'point' },
+  frost_mist:   { kind: 'SMOKE',   count: 8,  lifetime: 30, size: [0.08, 0.18], velocity: [0.01, 0.04], gravity: -0.002,rotationSpeed: 0.05, alphaCurve: 'fadeInOut', spawnShape: 'ring' },
+  ember_burst:  { kind: 'GLOW',    count: 10, lifetime: 22, size: [0.05, 0.12], velocity: [0.03, 0.09], gravity: -0.003,rotationSpeed: 0.3, alphaCurve: 'easeOut',   spawnShape: 'ring' },
+  reward_flight:{ kind: 'GLOW',    count: 5,  lifetime: 26, size: [0.05, 0.10], velocity: [0.02, 0.05], gravity: -0.004,rotationSpeed: 0,   alphaCurve: 'easeOut',   spawnShape: 'point' },
+  burst_star:   { kind: 'SPARK',   count: 16, lifetime: 20, size: [0.06, 0.15], velocity: [0.05, 0.12], gravity: 0.002, rotationSpeed: 0.35,alphaCurve: 'easeOut',   spawnShape: 'ring' },
+  spawn_spore:  { kind: 'SPORE',   count: 6,  lifetime: 34, size: [0.04, 0.09], velocity: [0.005, 0.02],gravity: -0.002,rotationSpeed: 0.05,alphaCurve: 'fadeInOut', spawnShape: 'ring' },
+  warn_pulse:   { kind: 'RING',    count: 4,  lifetime: 26, size: [0.10, 0.22], velocity: [0.01, 0.03], gravity: 0,     rotationSpeed: 0,   alphaCurve: 'fadeInOut', spawnShape: 'ring' },
+  muzzle_puff:  { kind: 'DUST',    count: 4,  lifetime: 10, size: [0.04, 0.09], velocity: [0.02, 0.05], gravity: -0.001,rotationSpeed: 0.1, alphaCurve: 'easeOut',   spawnShape: 'cone' },
+  confetti_leaf:{ kind: 'LEAF',    count: 10, lifetime: 44, size: [0.07, 0.14], velocity: [0.02, 0.06], gravity: 0.003, rotationSpeed: 0.25,alphaCurve: 'fadeInOut', spawnShape: 'ring' },
+  chain_arc:    { kind: 'SPARK',   count: 7,  lifetime: 12, size: [0.04, 0.08], velocity: [0.08, 0.14], gravity: 0,     rotationSpeed: 0.4, alphaCurve: 'linear',    spawnShape: 'ring' },
+  // ── EFFECTS_SOURCE-Referenzen ──
+  spark_line:   { kind: 'SPARK',   count: 6,  lifetime: 12, size: [0.03, 0.07], velocity: [0.10, 0.18], gravity: 0,     rotationSpeed: 0,   alphaCurve: 'linear',    spawnShape: 'cone' },
+  ring_metal:   { kind: 'RING',    count: 6,  lifetime: 16, size: [0.08, 0.15], velocity: [0.02, 0.05], gravity: 0,     rotationSpeed: 0,   alphaCurve: 'easeOut',   spawnShape: 'ring' },
+  glow_rise:    { kind: 'GLOW',    count: 8,  lifetime: 30, size: [0.04, 0.10], velocity: [0.005, 0.02],gravity: -0.004,rotationSpeed: 0.1, alphaCurve: 'fadeInOut', spawnShape: 'ring' },
+  bubble_pop:   { kind: 'BUBBLE',  count: 8,  lifetime: 22, size: [0.04, 0.10], velocity: [0.01, 0.03], gravity: -0.003,rotationSpeed: 0.05,alphaCurve: 'fadeInOut', spawnShape: 'ring' },
+  ring_soft:    { kind: 'RING',    count: 5,  lifetime: 24, size: [0.10, 0.20], velocity: [0.01, 0.02], gravity: 0,     rotationSpeed: 0,   alphaCurve: 'fadeInOut', spawnShape: 'ring' },
+  trail_fast:   { kind: 'DUST',    count: 5,  lifetime: 14, size: [0.03, 0.07], velocity: [0.01, 0.03], gravity: 0,     rotationSpeed: 0.2, alphaCurve: 'easeOut',   spawnShape: 'point' },
+  arc_jump:     { kind: 'SPARK',   count: 8,  lifetime: 10, size: [0.03, 0.07], velocity: [0.10, 0.16], gravity: 0,     rotationSpeed: 0.5, alphaCurve: 'linear',    spawnShape: 'ring' },
 };
 
 // FX budget (Phase 11.4)
@@ -48,17 +65,11 @@ export class ParticlePool {
   private free: Particle[] = [];
   private budget: FxBudget = 'NORMAL';
 
-  setBudget(b: FxBudget): void {
-    this.budget = b;
-  }
+  setBudget(b: FxBudget): void { this.budget = b; }
 
-  get cap(): number {
-    return BUDGET_CAPS[this.budget];
-  }
+  get cap(): number { return BUDGET_CAPS[this.budget]; }
 
-  get activeCount(): number {
-    return this.pool.length - this.free.length;
-  }
+  get activeCount(): number { return this.pool.length - this.free.length; }
 
   private acquire(): Particle | null {
     const free = this.free.pop();
@@ -81,7 +92,6 @@ export class ParticlePool {
     const rng = makeRng('particle', (eventSeed | 0) >>> 0);
     const count = Math.max(1, Math.round(profile.count * intensityScale));
 
-    // budget: ambient effects degrade first (Phase 11.4 order)
     for (let i = 0; i < count; i++) {
       const p = this.acquire();
       if (!p) return; // cap reached
@@ -120,7 +130,6 @@ export class ParticlePool {
     }
   }
 
-  /** Active particles for rendering. */
   forEachActive(fn: (p: Particle) => void): void {
     for (const p of this.pool) {
       if (p.active) fn(p);

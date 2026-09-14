@@ -20,6 +20,11 @@ function AppInner() {
     setMeta(loadMeta());
   }, []);
 
+  // ALL hooks must run before any early return (React #310: hook count may never differ)
+  const handleExitRun = useCallback(() => {
+    setScreen('menu');
+  }, []);
+
   if (!meta) {
     return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}>…</div>;
   }
@@ -32,17 +37,12 @@ function AppInner() {
     setScreen('run');
   };
 
-  // deterministic per-run seed from master seed + run counter
-  const runSeed = deriveSeed(GAME_SEED, 'world', 'run', meta.runs + runKey, 1);
-
-  const handleExitRun = useCallback(() => {
-    setScreen('menu');
-  }, []);
-
   const handleMenuBack = () => setScreen('start');
 
   switch (screen) {
-    case 'run':
+    case 'run': {
+      // deterministic per-run seed from master seed + run counter
+      const runSeed = deriveSeed(GAME_SEED, 'world', 'run', meta.runs + runKey, 1);
       return (
         <GameView
           key={runKey}
@@ -50,6 +50,7 @@ function AppInner() {
           onExit={handleExitRun}
         />
       );
+    }
     case 'menu':
       return (
         <MainMenu

@@ -8,10 +8,12 @@ import { hashState, type HashableState } from '../core/hash';
 import { saveRun, loadRun, clearRun } from '../persistence/runSave';
 import { Renderer } from '../render/renderer';
 import { Camera } from '../render/camera';
+import { FeedbackLayer } from '../render/layers/feedback';
 import { VisualObserver } from '../observers/visualObserver';
 import { ParticlePool } from '../observers/particles';
 import { useI18n } from '../i18n';
 import { PLANTS_SOURCE } from '../config/plants.source';
+import { recordRunEnd, advanceCrossMaturation } from '../meta';
 
 interface Props {
   seed: number;
@@ -40,6 +42,7 @@ export function GameView({ seed, onExit }: Props) {
   const observerRef = useRef<VisualObserver | null>(null);
   const particlesRef = useRef<ParticlePool | null>(null);
   const selectedRef = useRef<string | null>(null);
+  const runEndedRef = useRef(false);
 
   const [selected, setSelected] = useState<string | null>(null);
   const [hud, setHud] = useState<DebugInfo | null>(null);
@@ -53,22 +56,25 @@ export function GameView({ seed, onExit }: Props) {
     if (!canvas) return;
 
     // simulation
-    const root = new SimulationRoot({ seed });
+    const root = new SimulationRoot({ seed, runId: 0 });
     rootRef.current = root;
-    const eventOffset = 0;
 
     // presentation
     const renderer = new Renderer(canvas);
     rendererRef.current = renderer;
+    // WHITE-SCREEN FIX: pre-baked terrain must be prepared once per run seed —
+    // without this call layer 1 stays null and the world renders as blank paper.
+    renderer.prepareTerrain(seed);
     const camera = new Camera();
     cameraRef.current = camera;
     const observer = new VisualObserver(camera, true);
     observerRef.current = observer;
     const particles = new ParticlePool();
     particlesRef.current = particles;
+    const feedback = new FeedbackLayer();
 
     // events → observer (read-only pipeline)
-    for (const type of ['PROJECTILE_HIT', 'ENEMY_DIED', 'PLANT_PLACED', 'WAVE_COMPLETED', 'GAME_OVER', 'CRITICAL_HIT', 'PLACEMENT_REJECTED'] as const) {
+    for (const type of ['PROJECTILE_HIT', 'ENEMY_DIED', 'PLANT_PLACED', 'WAVE_COMPLETED', 'GAME_OVER', 'CRITICAL_HIT', 'PLACEMENT_REJECTED', 'DAMAGE_DEALT', 'WAVE_STARTED', 'NIGHT_STARTED', 'DAY_STARTED'] as const) {
       root.bus.subscribe(type, e => observer.observe(e));
     }
 
@@ -86,26 +92,36 @@ export function GameView({ seed, onExit }: Props) {
 
       root.advance(dt);
 
-      // observers + particles
+      // observers + particles (ALL 7 command types get an executor — A5 fix)
       for (const c of observer.drain()) {
         if (c.type === 'SpawnParticleBurst') {
           const profileColor = c.profile === 'impact_ring' ? '#fde68a' : c.profile === 'death_pop' ? '#f87171' : '#e2e8f0';
           particles.burst(c.profile, c.x, c.y, profileColor, c.seed, c.intensity / 2);
         } else if (c.type === 'CameraShake') {
           camera.shake(c.intensity);
+        } else {
+          feedback.exec(c); // FloatingNumber / MangaText / ScreenFlash / Punch / Animation
         }
       }
       particles.update();
+      feedback.update();
       camera.update();
 
-      // render
-      renderer.render(root.getSnapshot(), particles);
+      // render (terrain pre-baked above; shake + feedback layers consumed)
+      const camState = camera.get();
+      renderer.render(root.getSnapshot(), particles, feedback, camState.shakeOffset.x, camState.shakeOffset.y);
 
       // HUD throttled (10 Hz)
       saveAccum += dt;
       if (saveAccum > 100) {
         saveAccum = 0;
         const s = root.getSnapshot();
+        // GAME_OVER → Meta-Banken (genau einmal; roguelike loop + Reifung, B1/B7.5)
+        if (s.phase === 'gameover' && !runEndedRef.current) {
+          runEndedRef.current = true;
+          recordRunEnd(s.wave.number, s.nektarEarned);
+          advanceCrossMaturation(s.wave.number);
+        }
         setHud({
           hash: hashState(hashInputOf(s)),
           tick: s.clock.tick,

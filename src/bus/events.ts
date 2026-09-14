@@ -37,10 +37,10 @@ export interface EventPayloads {
   PLANT_PLACED: { plantId: string; variantId: string; gx: number; gy: number };
   PLANT_REMOVED: { plantId: string; refund: number };
   PLANT_ATTACKED: { plantId: string; targetId: string | null };
-  PROJECTILE_FIRED: { projectileId: string; plantId: string; targetId: string; damage: number };
-  PROJECTILE_HIT: { projectileId: string; enemyId: string; damage: number; critical: boolean; px: number; py: number };
-  DAMAGE_DEALT: { enemyId: string; amount: number; critical: boolean; hp: number };
-  CRITICAL_HIT: { enemyId: string; amount: number };
+  PROJECTILE_FIRED: { projectileId: string; plantId: string; targetId: string; damage: number; effectId: string | null };
+  PROJECTILE_HIT: { projectileId: string; enemyId: string; damage: number; critical: boolean; px: number; py: number; effectId: string | null };
+  DAMAGE_DEALT: { enemyId: string; amount: number; critical: boolean; hp: number; px: number; py: number };
+  CRITICAL_HIT: { enemyId: string; amount: number; px: number; py: number };
   ENEMY_DIED: { enemyId: string; px: number; py: number; reward: number; killerPlantId: string | null };
   SCORE_CHANGED: { score: number; delta: number };
   COMBO_CHANGED: { count: number; multiplier: number };

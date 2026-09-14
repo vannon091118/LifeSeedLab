@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { useI18n } from '../i18n';
-import type { MetaSave, PlantVariant, CrossResult, GameMode } from '../types';
-import { generateCrossResults } from '../genome';
-import { addNektar, registerVariant } from '../meta';
-import { BreedingLab } from './BreedingLab';
+import type { MetaSave, PlantVariant, GameMode } from '../types';
+import { createBaseVariants } from '../genome';
+import { Greenhouse } from './Greenhouse';
 
-export const BREED_NEKTAR_COST = 30;
+// Owner: UI (MainMenu screen). LOC ≤ 400.
+// Basis der Sammlung = createBaseVariants (eine Quelle — Dublette gelöscht, A2).
+// Gacha: Gewächshaus = Samen-Shop + Aussaat; keine Elternwahl.
+
+export const BREED_NEKTAR_COST = 40; // Anzeige Legacy; Preise kommen aus economy.source
 
 type Props = {
   meta: MetaSave;
@@ -17,36 +20,10 @@ type Props = {
 export function MainMenu({ meta, onMetaChange, onStartRun, onBack }: Props) {
   const { t } = useI18n();
   const [showGreenhouse, setShowGreenhouse] = useState(false);
-  const [crossResults, setCrossResults] = useState<CrossResult[] | null>(null);
-  const [parentA, setParentA] = useState<PlantVariant | null>(null);
-  const [parentB, setParentB] = useState<PlantVariant | null>(null);
-  const [crossGen, setCrossGen] = useState(0);
 
-  const allVariants: PlantVariant[] = [
-    ...createBaseVariantsSafe(),
-    ...meta.savedVariants,
-  ];
-
+  const bases: PlantVariant[] = createBaseVariants();
+  const allVariants = [...bases, ...meta.savedVariants];
   const ownedVariants = allVariants.filter(v => (meta.variantCounts[v.id] || 0) > 0);
-
-  const handleCross = () => {
-    if (!parentA || !parentB) return;
-    if (meta.nektar < BREED_NEKTAR_COST) return;
-
-    // deterministic: parents + generation counter, persisted so re-runs differ
-    const gen = crossGen + 1;
-    const results = generateCrossResults(parentA, parentB, gen, 3);
-    setCrossResults(results);
-    setCrossGen(gen);
-  };
-
-  const handleKeep = (child: PlantVariant) => {
-    const m = registerVariant(child);
-    onMetaChange(m);
-    setCrossResults(null);
-  };
-
-  const canAfford = meta.nektar >= BREED_NEKTAR_COST;
 
   return (
     <div style={styles.wrap}>
@@ -69,8 +46,7 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onBack }: Props) {
           <ModeCard
             icon="🌱"
             title={t('menu.greenhouse')}
-            desc={t('menu.greenhouseDesc')}
-            cost={`🍯 ${BREED_NEKTAR_COST}`}
+            desc={t('shop.desc')}
             onClick={() => setShowGreenhouse(true)}
             disabled={ownedVariants.length < 2}
           />
@@ -108,45 +84,14 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onBack }: Props) {
       </div>
 
       {showGreenhouse && (
-        <BreedingLab
-          labels={{
-            title: t('breed.title'),
-            parentA: t('breed.parentA'),
-            parentB: t('breed.parentB'),
-            cross: t('breed.cross'),
-            offspring: t('breed.offspring'),
-            keep: t('breed.keep'),
-            new: t('breed.new'),
-            chance: t('breed.chance'),
-            collection: t('breed.collection'),
-            cost: `${t('breed.cost')}: 🍯 ${BREED_NEKTAR_COST}`,
-            needTwo: t('breed.needTwo'),
-          }}
-          nektar={meta.nektar}
-          allVariants={allVariants}
-          variantCounts={meta.variantCounts}
-          onCross={handleCross}
-          canCross={canAfford}
-          onKeep={handleKeep}
-          onClose={() => { setShowGreenhouse(false); setCrossResults(null); }}
-          results={crossResults}
-          parentA={parentA}
-          parentB={parentB}
-          setParentA={setParentA}
-          setParentB={setParentB}
+        <Greenhouse
+          meta={meta}
+          onMetaChange={onMetaChange}
+          onClose={() => setShowGreenhouse(false)}
         />
       )}
     </div>
   );
-}
-
-function createBaseVariantsSafe(): PlantVariant[] {
-  // inlined to avoid circular import; mirrors genome.createBaseVariants
-  return [
-    { id: 'base_shooter', name: 'Sprout', type: 'shooter', genome: [{ id: 'rapid', power: 0.5, dominant: true }, { id: 'pierce', power: 0.3, dominant: true }], traits: ['rapid fire', 'pierce'], cost: 50, stats: { hp: 100, damage: 15, range: 3, cooldown: 30, special: null }, color: '#4ade80', discovered: true },
-    { id: 'base_wall', name: 'Rootwall', type: 'wall', genome: [{ id: 'shield', power: 0.7, dominant: true }, { id: 'thorns', power: 0.4, dominant: true }], traits: ['shield', 'thorns'], cost: 40, stats: { hp: 300, damage: 5, range: 0.5, cooldown: 60, special: 'reflect' }, color: '#a3734a', discovered: true },
-    { id: 'base_support', name: 'Mycelia', type: 'support', genome: [{ id: 'heal', power: 0.6, dominant: false }, { id: 'aura', power: 0.3, dominant: false }], traits: ['heal', 'aura'], cost: 60, stats: { hp: 80, damage: 0, range: 2, cooldown: 45, special: 'heal_aura' }, color: '#c084fc', discovered: true },
-  ];
 }
 
 function StatBox({ label, value }: { label: string; value: number }) {
@@ -158,8 +103,8 @@ function StatBox({ label, value }: { label: string; value: number }) {
   );
 }
 
-function ModeCard({ icon, title, desc, cost, onClick, disabled, highlight }: {
-  icon: string; title: string; desc: string; cost?: string;
+function ModeCard({ icon, title, desc, onClick, disabled, highlight }: {
+  icon: string; title: string; desc: string;
   onClick: () => void; disabled?: boolean; highlight?: boolean;
 }) {
   return (
@@ -171,7 +116,6 @@ function ModeCard({ icon, title, desc, cost, onClick, disabled, highlight }: {
       <div style={styles.modeIcon}>{icon}</div>
       <div style={styles.modeTitle}>{title}</div>
       <div style={styles.modeDesc}>{desc}</div>
-      {cost && <div style={styles.modeCost}>{cost}</div>}
     </button>
   );
 }
@@ -289,12 +233,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     color: '#6b7280',
     lineHeight: 1.4,
-  },
-  modeCost: {
-    marginTop: 8,
-    fontSize: 12,
-    color: '#fbbf24',
-    fontWeight: 600,
   },
   collectionSection: {
     marginTop: 4,

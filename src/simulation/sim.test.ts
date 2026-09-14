@@ -104,7 +104,7 @@ describe('Phase 4 gate: deterministic simulation', () => {
       r2.commands.push(makeCommand(0, 'PLACE_PLANT', 10 + i, { variantId: 'sprout', gx: i % 12, gy: Math.floor(i / 12) + 6 }));
       r2.stepOnce();
     }
-    expect(r2.getSnapshot().plants.length).toBe(2); // only 2 sprouts in starting inventory
+    expect(r2.getSnapshot().plants.length).toBe(1); // gacha economy: exactly 2 starter plants total = 1 sprout + 1 rootwall
   });
 
   it('enemy leaking reduces lives', () => {

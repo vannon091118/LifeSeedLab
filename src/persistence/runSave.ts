@@ -1,67 +1,59 @@
-// Owner: PersistenceSystem. LOC ≤ 200.
-// Saves authoritative run state only (Phase 17 MVP). Never saves presentation.
-
 import type { SimState } from '../simulation/state';
+import { idbSet, idbGet, idbRemove } from './storage';
 
-const RUN_KEY = 'lifegamelab_run_v1';
+// Owner: PersistenceSystem (run schema adapter). LOC ≤ 200.
+// Run-Snapshot v2 mit RESUME-VERTRAG (QUALITY_SPEC B2):
+// Gespeichert werden nur deterministisch rekonstruierbare Felder.
+// enemies/projectiles/schedule werden bewusst NICHT gespeichert —
+// Resume startet in 'prep', das nächste Schedule regeneriert aus (seed, waveNumber+1).
+
+const RUN_KEY = 'run';
+const RUN_VERSION = 2;
 
 export interface RunSave {
-  version: 1;
+  version: 2;
+  runId: number;
   seed: number;
   tick: number;
-  phase: SimState['phase'];
   waveNumber: number;
   energy: number;
   lives: number;
   score: number;
   combo: SimState['combo'];
   plants: SimState['plants'];
-  enemies: SimState['enemies'];
-  projectiles: SimState['projectiles'];
   inventory: Record<string, number>;
+  discoveredVariants: string[];
+  bredStats: NonNullable<SimState['bredStats']>;
   nektarEarned: number;
 }
 
 export function saveRun(state: SimState): void {
+  if (state.phase === 'gameover') return; // game over runs are not resumable
   const s: RunSave = {
-    version: 1,
+    version: 2,
+    runId: state.runCounter,
     seed: state.seed,
-    tick: state.clock.tick,
-    phase: state.phase,
+    tick: 0, // resume starts prep at tick 0 of the prep window — honest contract
     waveNumber: state.wave.number,
     energy: state.resources.energy,
     lives: state.lives,
     score: state.score,
     combo: state.combo,
     plants: state.plants,
-    enemies: state.enemies,
-    projectiles: state.projectiles,
     inventory: state.inventory,
+    discoveredVariants: state.discoveredVariants,
+    bredStats: state.bredStats ?? {},
     nektarEarned: state.nektarEarned,
   };
-  try {
-    localStorage.setItem(RUN_KEY, JSON.stringify(s));
-  } catch {
-    // storage unavailable — skip silently
-  }
+  void idbSet(RUN_KEY, s, RUN_VERSION);
 }
 
-export function loadRun(): RunSave | null {
-  try {
-    const raw = localStorage.getItem(RUN_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as RunSave;
-    if (parsed.version !== 1) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
+export async function loadRun(): Promise<RunSave | null> {
+  const opts = { version: RUN_VERSION, fallback: () => null };
+  const result = await idbGet<RunSave | null>(RUN_KEY, opts);
+  return result ?? null;
 }
 
-export function clearRun(): void {
-  try {
-    localStorage.removeItem(RUN_KEY);
-  } catch {
-    // ignore
-  }
+export async function clearRun(): Promise<void> {
+  await idbRemove(RUN_KEY);
 }

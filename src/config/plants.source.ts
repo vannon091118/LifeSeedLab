@@ -56,11 +56,13 @@ export const PLANTS_SOURCE: Record<PlantTypeId, PlantSource> = {
 
 export const PLANT_IDS = Object.keys(PLANTS_SOURCE) as PlantTypeId[];
 
-/** Starting inventory for a fresh run (source-driven). */
+/** Starting inventory for a fresh run (source-driven). *
+ * Gacha-Regel: der Run-Inventar spiegelt den Meta-Besitz (loadout) — Basen sind
+ * Fallback für alte Saves. Der Spieler startet mit GENAU dem, was er besitzt. */
 export const STARTING_INVENTORY: Record<PlantTypeId, number> = {
-  sprout: 2,
-  rootwall: 2,
-  mycelia: 2,
+  sprout: 1,
+  rootwall: 1,
+  mycelia: 0,
 };
 
 /** Breeding machine parameters (source-driven economy). */
