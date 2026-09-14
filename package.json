@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "vitest run",
+    "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {
     "react": "^19.0.0",

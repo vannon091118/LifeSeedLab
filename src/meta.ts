@@ -8,7 +8,8 @@ export function defaultMeta(): MetaSave {
     nektar: 100,
     bestWave: 0,
     runs: 0,
-    variantCounts: {},
+    // base variants owned so the greenhouse is usable from the start
+    variantCounts: { base_shooter: 2, base_wall: 2, base_support: 2 },
     savedVariants: [],
     language: 'en',
     pvpPayouts: 0,

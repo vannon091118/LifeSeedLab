@@ -26,3 +26,6 @@ Thumbs.db
 
 # Test caches
 .vitest/
+node_modules/
+package-lock.json
+bun.lock
