@@ -21,13 +21,16 @@ export type PlaceResult =
   | { ok: false; reason: 'occupied' | 'on_path' | 'no_inventory' | 'no_energy' };
 
 export function resolvePlantStats(state: SimState, variantId: string): PlantStats | null {
+  return getPlantStats(variantId, state.bredStats);
+}
+
+/** State-independent stats lookup (used by renderer observers too). */
+export function getPlantStats(variantId: string, bred?: Record<string, PlantStats>): PlantStats | null {
   const base = (PLANTS_SOURCE as Record<string, PlantSource>)[variantId];
   if (base) {
     return { ...base.stats, cost: base.cost };
   }
-  const bred = state.bredStats?.[variantId];
-  if (bred) return bred;
-  return null;
+  return bred?.[variantId] ?? null;
 }
 
 export class PlantSystem {

@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import type { MetaSave, GameMode } from './types';
 import { loadMeta } from './meta';
 import { I18nProvider, detectLangFromMeta } from './i18n';
+import { deriveSeed } from './core/rng';
+import { GAME_SEED } from './config';
 import { StartScreen } from './components/StartScreen';
 import { MainMenu } from './components/MainMenu';
-import { GameScreen } from './components/GameScreen';
+import { GameView } from './components/GameView';
 
 type Screen = 'start' | 'menu' | 'run';
 
@@ -30,6 +32,9 @@ function AppInner() {
     setScreen('run');
   };
 
+  // deterministic per-run seed from master seed + run counter
+  const runSeed = deriveSeed(GAME_SEED, 'world', 'run', meta.runs + runKey, 1);
+
   const handleExitRun = useCallback(() => {
     setScreen('menu');
   }, []);
@@ -39,10 +44,9 @@ function AppInner() {
   switch (screen) {
     case 'run':
       return (
-        <GameScreen
+        <GameView
           key={runKey}
-          mode={runMode}
-          loadout={[]}
+          seed={runSeed}
           onExit={handleExitRun}
         />
       );

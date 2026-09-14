@@ -1,0 +1,53 @@
+import { describe, it, expect } from 'vitest';
+import { BASES_SOURCE, BASE_IDS } from './bases.source';
+import { EXTRAS_SOURCE, EXTRA_IDS, isValidExtra } from './extras.source';
+import { EFFECTS_SOURCE, EFFECT_IDS, isValidEffect } from './effects.source';
+
+describe('Phase 5 gate: source validation', () => {
+  it('exactly 10 effects / extras / bases exist', () => {
+    expect(EFFECT_IDS).toHaveLength(10);
+    expect(EXTRA_IDS).toHaveLength(10);
+    expect(BASE_IDS).toHaveLength(10);
+  });
+
+  it('every base.allowedEffects references a valid EFFECT id', () => {
+    for (const base of Object.values(BASES_SOURCE)) {
+      for (const eff of base.allowedEffects) {
+        expect(isValidEffect(eff), `${base.id} → ${eff}`).toBe(true);
+      }
+    }
+  });
+
+  it('every base.allowedExtras references a valid EXTRA id', () => {
+    for (const base of Object.values(BASES_SOURCE)) {
+      for (const ext of base.allowedExtras) {
+        expect(isValidExtra(ext), `${base.id} → ${ext}`).toBe(true);
+      }
+    }
+  });
+
+  it('every extra.compatibility references valid base ids or "*"', () => {
+    for (const extra of Object.values(EXTRAS_SOURCE)) {
+      for (const c of extra.compatibility) {
+        if (c === '*') continue;
+        expect(BASES_SOURCE).toHaveProperty(c);
+      }
+    }
+  });
+
+  it('every base has at least one allowed effect and extra', () => {
+    for (const base of Object.values(BASES_SOURCE)) {
+      expect(base.allowedEffects.length, base.id).toBeGreaterThan(0);
+      expect(base.allowedExtras.length, base.id).toBeGreaterThan(0);
+    }
+  });
+
+  it('compat resolution: every base can pick at least one extra and one effect', () => {
+    for (const base of Object.values(BASES_SOURCE)) {
+      const extras = EXTRA_IDS.filter(id =>
+        EXTRAS_SOURCE[id].compatibility.includes('*') || EXTRAS_SOURCE[id].compatibility.includes(base.id)
+      );
+      expect(extras.length, base.id).toBeGreaterThan(0);
+    }
+  });
+});
