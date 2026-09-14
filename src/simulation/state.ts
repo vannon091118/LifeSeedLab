@@ -75,8 +75,6 @@ export interface SimState {
   score: number;
   combo: { count: number; timer: number; multiplier: number; highest: number };
   nektarEarned: number;
-  /** DEPRECATED alias of runId (kept one release for save compat). */
-  runCounter: number;
   counters: { enemy: number; plant: number; projectile: number };
   /** Variants the player carried in via loadout (placeable bred plants — B1). */
   loadout: string[];

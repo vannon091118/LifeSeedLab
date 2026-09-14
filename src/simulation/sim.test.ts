@@ -73,6 +73,23 @@ describe('Phase 4 gate: deterministic simulation', () => {
     expect(root.bus.publishCount).toBeGreaterThan(0);
   });
 
+  it('RootInit übernimmt autoritative Run-ID und Loadout in den SimState', () => {
+    const root = new SimulationRoot({
+      seed: SEED,
+      runId: 17,
+      loadout: ['cross_seedling'],
+      bredStats: {
+        cross_seedling: { hp: 120, damage: 18, range: 3, cooldown: 28, cost: 45, effects: ['EFFECT_CRIT'] },
+      },
+    });
+    const state = root.getSnapshot();
+    expect(state.runId).toBe(17);
+    expect(state.loadout).toEqual(['cross_seedling']);
+    expect(state.inventory.cross_seedling).toBe(2);
+    expect(state.discoveredVariants).toContain('cross_seedling');
+    expect(state.bredStats?.cross_seedling.effects).toEqual(['EFFECT_CRIT']);
+  });
+
   it('START_WAVE transitions prep → wave deterministically', () => {
     const root = new SimulationRoot({ seed: SEED });
     root.commands.push(makeCommand(0, 'START_WAVE', 1, {}));

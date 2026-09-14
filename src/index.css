@@ -1,3 +1,15 @@
+:root{
+  --paper:#f5efdc;
+  --paper-dim:#e8dfc8;
+  --paper-warm:#fbf6e9;
+  --ink:#2b2b26;
+  --leaf:#5a8f4e;
+  --leaf-dark:#2e4a2a;
+  --bloom:#c96f8e;
+  --nektar:#d9a441;
+  --danger:#a94438;
+  --night:#1c222b;
+}
 * {
   margin: 0;
   padding: 0;
@@ -11,18 +23,18 @@ html, body, #root {
 }
 
 body {
-  background: #0a0a0f;
-  color: #e0e0e0;
+  background: var(--paper);
+  color: var(--ink);
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 button:hover {
-  opacity: 0.9;
+  opacity: 0.92;
 }
 
 button:active {
-  transform: scale(0.97);
+  transform: translateY(1px);
 }
 
 ::-webkit-scrollbar {
@@ -30,10 +42,10 @@ button:active {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: var(--paper-dim);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #c9bd9e;
   border-radius: 3px;
 }

@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="docs/banner.svg" alt="LifeGamePlant Banner" width="100%"/>
+<img src="docs/banner.svg" alt="LifeSeedLab Banner" width="100%"/>
 
-# LifeGamePlant
+# LifeSeedLab
 
 **PvZ × Isaac — deine Kreuzungen sind deine Türme.**
 

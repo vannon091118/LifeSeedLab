@@ -35,6 +35,7 @@ export function defaultMeta(): MetaSave {
     seedStash: 0,
     pendingCrosses: [],
     totalWavesSurvived: 0,
+    bredStats: {},
   };
 }
 
@@ -146,16 +147,26 @@ export function advanceCrossMaturation(waveReached: number): number[] {
   return ready;
 }
 
-/** Run-Ende: Nektar banken, Bestwelle/Runzähler/RunId fortschreiben (B1 — genau einmal). */
-export function recordRunEnd(waveReached: number, nektarEarned: number): MetaSave {
-  const meta = loadMeta();
-  const next: MetaSave = {
+export function reserveRunId(meta: MetaSave): MetaSave {
+  const runId = Math.max(meta.runId, meta.runs) + 1;
+  return { ...meta, runId };
+}
+
+export function applyRunEnd(meta: MetaSave, waveReached: number, nektarEarned: number): MetaSave {
+  return {
     ...meta,
     nektar: meta.nektar + nektarEarned,
     bestWave: Math.max(meta.bestWave, waveReached),
     runs: meta.runs + 1,
-    runId: meta.runId + 1,
+    // runId wurde beim Start reserviert und bleibt die Identität dieses Runs.
+    runId: meta.runId,
   };
+}
+
+/** Run-Ende: Nektar banken und Run-Statistiken fortschreiben (B1 — genau einmal). */
+export function recordRunEnd(waveReached: number, nektarEarned: number): MetaSave {
+  const meta = loadMeta();
+  const next = applyRunEnd(meta, waveReached, nektarEarned);
   persistMeta(next);
   return next;
 }

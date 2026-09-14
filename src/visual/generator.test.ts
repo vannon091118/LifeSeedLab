@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { resolveVisual, generateVisualForBase, type VisualInput } from './generator';
+import { resolveVisual, generateVisualForBase, resolveBredVisuals, type VisualInput } from './generator';
+import { createBaseVariants } from '../genome';
 import { BASE_IDS } from '../config/bases.source';
 import { EXTRA_IDS } from '../config/extras.source';
 
@@ -45,9 +46,14 @@ describe('Phase 6 gate: visual determinism', () => {
     expect(v.extraIds).not.toContain('EXTRA_SPIKE');
   });
 
-  it('layer count = base layers + extras + effect tint', () => {
-    const v = resolveVisual(input);
-    // BASE_FLOWER has 3 layers + 2 compatible extras + 1 effect tint
-    expect(v.layers.length).toBe(3 + 2 + 1);
+  it('gespeicherte Bred-Variante erhält deterministisches ResolvedVisual', () => {
+    const variant = { ...createBaseVariants()[0], id: 'cross_seedling' };
+    const first = resolveBredVisuals([variant], 583921);
+    const second = resolveBredVisuals([variant], 583921);
+    expect(first.get('cross_seedling')).toBeDefined();
+    expect(first.get('cross_seedling')).toEqual(second.get('cross_seedling'));
+    expect(first.get('cross_seedling')!.variantKey).not.toContain('base_shooter');
   });
+
+
 });

@@ -31,7 +31,7 @@ export function saveRun(state: SimState): void {
   if (state.phase === 'gameover') return; // game over runs are not resumable
   const s: RunSave = {
     version: 2,
-    runId: state.runCounter,
+    runId: state.runId,
     seed: state.seed,
     tick: 0, // resume starts prep at tick 0 of the prep window — honest contract
     waveNumber: state.wave.number,

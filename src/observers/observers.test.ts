@@ -4,6 +4,8 @@ import { ParticlePool } from './particles';
 import { Camera } from '../render/camera';
 import { makeEvent } from '../bus/events';
 import { SimulationRoot, makeCommand } from '../simulation/root';
+import { executeVisualCommand } from './visualExecutor';
+import { FeedbackLayer } from '../render/layers/feedback';
 
 describe('Phase 8: Visual Observer purity', () => {
   it('observer never mutates gameplay state (Test G light)', () => {
@@ -49,6 +51,25 @@ describe('Phase 8: Visual Observer purity', () => {
 });
 
 describe('Phase 11: Particle pool', () => {
+  it('Executor reicht die Observer-Farbe unverändert an den ParticlePool weiter', () => {
+    const pool = new ParticlePool();
+    const command = {
+      type: 'SpawnParticleBurst' as const,
+      profile: 'dust_puff',
+      x: 2,
+      y: 3,
+      seed: 123,
+      intensity: 1,
+      color: '#custom-effect',
+    };
+    executeVisualCommand(command, pool, new Camera(), new FeedbackLayer());
+
+    const colors: string[] = [];
+    pool.forEachActive(p => colors.push(p.color));
+    expect(colors.length).toBeGreaterThan(0);
+    expect(new Set(colors)).toEqual(new Set(['#custom-effect']));
+  });
+
   it('same event seed = identical burst (Phase 11.3)', () => {
     const a = new ParticlePool();
     const b = new ParticlePool();

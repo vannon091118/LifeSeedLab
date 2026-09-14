@@ -44,7 +44,7 @@
   </g>
 
   <!-- title -->
-  <text x="330" y="150" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="72" font-weight="800" fill="url(#title)" letter-spacing="2">LifeGamePlant</text>
+  <text x="330" y="150" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="72" font-weight="800" fill="url(#title)" letter-spacing="2">LifeSeedLab</text>
 
   <!-- tagline -->
   <text x="332" y="200" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="26" fill="#9ca3af">PvZ × Isaac — deine Kreuzungen sind deine Türme.</text>

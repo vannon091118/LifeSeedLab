@@ -242,7 +242,7 @@ export class Renderer {
     toPx: (x: number) => number, toPy: (y: number) => number, cell: number,
     feedback?: FeedbackLayer
   ): void {
-    const v = this.plantVisual(plant, state.runId);
+    const v = this.plantVisual(plant, state.seed);
     const cx = toPx(plant.gx + 0.5);
     const cy = toPy(plant.gy + 0.5);
     const tick = state.clock.tick;

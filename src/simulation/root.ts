@@ -236,7 +236,6 @@ export class SimulationRoot {
       score: 0,
       combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
       nektarEarned: 0,
-      runCounter: init.runId ?? 0,
       counters: { enemy: 0, plant: 0, projectile: 0 },
     };
   }

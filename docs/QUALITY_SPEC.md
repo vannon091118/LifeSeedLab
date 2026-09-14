@@ -1,4 +1,4 @@
-# LifegamePlant — Forensic Quality-Gap Scan + Asset/Render Specification
+# LifeSeedLab — Forensic Quality-Gap Scan + Asset/Render Specification
 
 Status baseline at scan: **52/52 tests green, tsc clean.** Every finding below was verified by reading
 the current source, not by assumption. This document is the work order: Part A classifies, Part B specifies.
@@ -110,6 +110,8 @@ Missing gates: combo×score integration; effect-profile cross-reference gate (`E
 4. **390×844 first.** Every screen composed portrait-mobile-first, then widened. No interaction depends on hover.
 5. **Determinism:** all jitter/asymmetry from `visual`/`cosmetic` namespaces via `deriveSeed`. FX toggles never touch gameplay state.
 6. **No:** emoji as final art, random gradients, stock icons, photo textures, mixed styles, particle floods replacing animation.
+7. **Paper + Pop (LifeSeedLab-Identität):** Die Welt ist haptisch papercraft — Hintergrund/Wege als aufgeklebte Papierstreifen mit Drop-Shadow, Fineliner-Raster, ausgefransten Kanten, Papierkorn (einmal gebacken, `visual`-Namespace). UI sind Notizzettel/Post-its/Pappschilder mit Büroklammern (Tokens `--paper`/`--paper-dim`/`--ink`, kein Blur-Glass). Pflanzen/Gegner brechen bewusst aus der matten Welt aus: satt, plastisch, mit Farbverläufen + Specular-Highlights à la Nintendo — wie aufgeklebte, lebendig gewordene Figuren. Squash & Stretch, Konfetti aus Papierschnipseln, Idle-Atmen. Diese Sprache ist verbindlich; generische Mobile-TD-Kompositionen mit dunkler HUD-Leiste + leerer Canvas + Kartenmeer sind damit ausgeschlossen.
+8. **Keine zweite Wahrheit:** Visuelle Identität entsteht ausschließlich aus der Pipeline `SOURCE → GENOME → TRAITS → GAMEPLAY PHENOTYPE → VISUAL PHENOTYPE → SIMULATION → EVENT → OBSERVER → RENDER`. Screenshots dürfen nicht „hübsch erfunden" sein; jede Silhouette/Palette/Tint ist aus dem Genom ableitbar (`genomeToVisualInput` → `ResolvedVisual` → `variantKey`). Ein Menücontainer ohne Domänenbedeutung (Gewächshaus = Genom/Breeding, Archiv = Herbarium, Run = Schlachtfeld, Chronik = Feldnotizen) ist ein Defect.
 
 ## B1. Run identity & loadout (repair: App.tsx, meta, root.ts)
 

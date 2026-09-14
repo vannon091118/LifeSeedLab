@@ -1,4 +1,4 @@
-# LifegamePlant — Architecture Contract
+# LifeSeedLab — Architecture Contract
 
 Status: BINDING from Phase 1 onward. Every new/changed file must satisfy Phase 28 questions:
 one responsibility, one owner, defined read/write surface, events in/out, public API, LOC within cap.

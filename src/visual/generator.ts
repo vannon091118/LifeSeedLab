@@ -3,7 +3,7 @@
 // namespace RNG. Never reads or advances gameplay RNG (contract Phase 6.6).
 
 import { makeRng, deriveSeed } from '../core/rng';
-import { BASES_SOURCE, BASE_IDS, type BaseId, type BaseSource } from '../config/bases.source';
+import { BASES_SOURCE, type BaseId, type BaseSource } from '../config/bases.source';
 import { EXTRAS_SOURCE, type ExtraId, type ExtraSource } from '../config/extras.source';
 import { EFFECTS_SOURCE, type EffectId } from '../config/effects.source';
 
@@ -198,7 +198,6 @@ export function generateVisualForBase(baseId: BaseId, visualSeed: number): Resol
   const rng = makeRng('visual', deriveSeed(visualSeed, 'visual', 'compose', baseId, 1));
   const base = BASES_SOURCE[baseId];
   if (!base) throw new Error(`Unknown base ${baseId}`);
-  void BASE_IDS; // keeps BASE_IDS import for API completeness
 
   // deterministic candidate selection
   const extraCount = rng.nextInt(0, 2);
@@ -248,7 +247,7 @@ const TYPE_BASES: Record<PlantVariant['type'], BaseId[]> = {
 
 export function genomeToVisualInput(variant: PlantVariant, rootSeed: number): VisualInput {
   // type → base, deterministic pick among role-appropriate bases via genome hash
-  const geneHash = variant.genome.reduce((h, g) => h ^ strHash(`${g.id}:${g.power.toFixed(3)}`), 0);
+  const geneHash = variant.genome.reduce((h, g) => h ^ strHash(`${g.id}:${g.power.toFixed(3)}`), 0) >>> 0;
   const bases = TYPE_BASES[variant.type];
   const baseId = bases[geneHash % bases.length];
 
@@ -271,6 +270,14 @@ export function genomeToVisualInput(variant: PlantVariant, rootSeed: number): Vi
     effectIds: effectId ? [effectId] : [],
     visualSeed,
   };
+}
+
+export function resolveBredVisuals(variants: readonly PlantVariant[], rootSeed: number): Map<string, ResolvedVisual> {
+  const visuals = new Map<string, ResolvedVisual>();
+  for (const variant of variants) {
+    visuals.set(variant.id, resolveVisual(genomeToVisualInput(variant, rootSeed)));
+  }
+  return visuals;
 }
 
 import { strHash } from '../core/rng';

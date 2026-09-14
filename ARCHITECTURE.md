@@ -1,4 +1,4 @@
-# ARCHITECTURE.md — LifegamePlant
+# ARCHITECTURE.md — LifeSeedLab
 
 > Sprache: Deutsch (Regel 1). Dieser Text beschreibt die **technische Architektur** (das „Wie").
 > Der rechtsverbindliche Vertrag steht in [`ARCHITECTURE_CONTRACT.md`](ARCHITECTURE_CONTRACT.md),
@@ -58,6 +58,30 @@ STATE  + EVENTS + VISUAL SOURCE + VISUAL SEED = DETERMINISTIC PRESENTATION
 - `deriveSeed(rootSeed, namespace, entityId, eventId, version)` ist der einzige Ableitungsweg.
 - Kein `Math.random`, kein `Date.now` in Spiellogik; `performance.now` nur im Frame-Timing.
 - Beweis im Test: gleicher Seed + gleiche Commands = gleicher Hash, gleiche Entity-ID-Sequenz; FX ON/OFF = bit-identischer Gameplay-State.
+
+## 3.1 Visuelle Pipeline — keine zweite Wahrheit (verbindlich)
+
+Grafik besitzt **keine eigene Wahrheit**. Jede sichtbare Pflanze ist eine abgeleitete Darstellung derselben Ursache:
+
+```
+SOURCE → GENOME → TRAITS → GAMEPLAY PHENOTYPE → VISUAL PHENOTYPE → SIMULATION → EVENT → OBSERVER → RENDER
+```
+
+- `SOURCE` (`config/*.source.ts`) liefert Basen, Extras, Effects.
+- `GENOME` (`genome.ts`) + `SEED` ergeben `PlantVariant` (deterministisch über `deriveSeed`).
+- `genomeToVisualInput(variant, rootSeed)` → `VisualInput` (einzige Genome→Visual-Eingabe).
+- `visualSeed + Source = ResolvedVisual` (`visual/generator.ts`, nur `visual`-Namespace).
+- `ResolvedVisual` wird über `bredStats`/`loadout` in `SimulationRoot` geführt und vom Renderer **nur gezeichnet**, nie erfunden (`Renderer.setBredVisuals`, `plantVisual`).
+- `EVENT → OBSERVER` trägt Farbe/Intensität bereits im Payload; UI/Renderer entscheiden keine Farben.
+- Ein Screenshot darf deshalb nie „hübsch erfunden" sein — jede Silhouette, Palette und Tint ist aus dem Genom ableitbar und per `variantKey` test-locked.
+
+## 3.2 Art Direction — LifeSeedLab = Forschungsbuch + Papercraft-Welt (verbindlich)
+
+- **Welt = Papierfläche.** Hintergrund: Kraftpapier (`--paper`) mit Korn/Noise (einmalig gebacken, `visual`-Namespace). Wege: aufgeklebte, leicht gewölbte Papierstreifen mit Drop-Shadow, ausgefranste Kanten, Fineliner-Rasterpunkte statt Grid-Linien.
+- **UI = Notizen.** Menükarten, Panels, HUD-Chips wirken wie Post-its/Pappschilder mit Büroklammern — `#f5efdc` Fill, `#2b2b26` Ink-Border 2 px, 3 px Offset-Hard-Shadow, keine Blur-Glass-Ästhetik.
+- **Kontrast = Nintendo-Pop.** Auf matter Papierwelt stehen satte, plastische Pflanzen/Gegner (kräftige Fills, feine Verläufe, Specular-Highlights, Ink-Contour 2+ px). Sie wirken wie aufgeklebte, lebendig gewordene Figuren — sofort unterscheidbar, auch in Graustufen.
+- **Animation = Papier-Juice.** Squash & Stretch bei Schuss/Treffer, Konfetti aus Papierschnipseln/Blättern, Idle-Atmen/Schwanken — alles über `FeedbackLayer`/`MangaLayer`/`ParticlePool`, nie über Gameplay-State.
+- **Skala:** 390×844 Portrait-first; alle Touch-Targets ≥ 44 px; kein Hover als Pflicht.
 
 ---
 
