@@ -1,6 +1,7 @@
 // Owner: UI (Greenhouse screen). LOC ≤ 400.
 // Gacha-Zucht: keine Elternwahl. Samen kaufen → Aussaat würfelt Elternpaar + Kind
 // deterministisch (rollGachaCross). Kreuzung reift X überlebte Wellen (economy.source).
+// Jede gekeimte Pflanze schreibt einen Discovery-Chain-Eintrag (hash-linked).
 
 import { useMemo, useState } from 'react';
 import type { MetaSave, PlantVariant } from '../types';
@@ -21,6 +22,7 @@ type Props = {
 export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
   const { t } = useI18n();
   const [lastRoll, setLastRoll] = useState<GachaRoll | null>(null);
+  const [shareNote, setShareNote] = useState<string | null>(null);
 
   const owned: PlantVariant[] = useMemo(() => {
     return Object.keys(meta.variantCounts)
@@ -49,12 +51,47 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
     onMetaChange(m);
   };
 
-  const handleKeep = (roll: GachaRoll) => {
+  const handleKeep = async (roll: GachaRoll) => {
     // Reifungs-Vertrag: behalten erst nach X überlebten Wellen (economy.source)
     if (!crossReady(meta, roll.crossIndex)) return;
     const m = registerVariant(roll.child);
     onMetaChange(m);
     setLastRoll(null);
+    // Discovery-Chain: append-only, hash-linked, lokale Deduplizierung
+    try {
+      const { appendDiscovery } = await import('../discovery/codex');
+      const { hashGenome } = await import('../discovery/chain');
+      const res = appendDiscovery({
+        genome: roll.child.genome,
+        parents: [roll.parentA.id, roll.parentB.id],
+        seed: deriveGachaSeed(roll.crossIndex),
+        generation: roll.crossIndex,
+      });
+      if (res.appended) setShareNote(`${t('discovery.appended')}: ${hashGenome(roll.child.genome)}`);
+      else if (res.reason) setShareNote(t('discovery.duplicate'));
+      setTimeout(() => setShareNote(null), 2200);
+    } catch {
+      // discovery is additive — never block the claim
+    }
+  };
+
+  const handleShareSeed = async (roll: GachaRoll) => {
+    const { appendDiscovery, seedShareText } = await import('../discovery/codex');
+    // ensure entry exists before sharing (idempotent due to tryAppend)
+    appendDiscovery({
+      genome: roll.child.genome,
+      parents: [roll.parentA.id, roll.parentB.id],
+      seed: deriveGachaSeed(roll.crossIndex),
+      generation: roll.crossIndex,
+    });
+    const text = seedShareText(deriveGachaSeed(roll.crossIndex), roll.crossIndex, roll.child.genome);
+    try {
+      await navigator.clipboard.writeText(text);
+      setShareNote(t('codex.copied'));
+    } catch {
+      setShareNote(text);
+    }
+    setTimeout(() => setShareNote(null), 1800);
   };
 
   const offers = useMemo(() => buildOffers(meta), [meta]);
@@ -71,6 +108,7 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
           </div>
         </div>
         <p style={styles.desc}>{t('shop.desc')}</p>
+        {shareNote && <div style={styles.shareNote}>{shareNote}</div>}
 
         {/* Shop-Angebote (deterministisch) */}
         <div style={styles.offersRow}>
@@ -108,13 +146,16 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
             <div style={styles.maturationLine}>
               {wavesToUnlockFor(lastRoll.crossIndex)} — {t('shop.maturing').replace('{n}', String(wavesToUnlockFor(lastRoll.crossIndex)))}
             </div>
-            <button
-              onClick={() => handleKeep(lastRoll)}
-              style={{ ...styles.claimBtn, opacity: crossReady(meta, lastRoll.crossIndex) ? 1 : 0.45 }}
-              disabled={!crossReady(meta, lastRoll.crossIndex)}
-            >
-              {crossReady(meta, lastRoll.crossIndex) ? t('shop.ready') : t('shop.maturing').replace('{n}', String(wavesToUnlockFor(lastRoll.crossIndex)))}
-            </button>
+            <div style={styles.resultActions}>
+              <button
+                onClick={() => handleKeep(lastRoll)}
+                style={{ ...styles.claimBtn, opacity: crossReady(meta, lastRoll.crossIndex) ? 1 : 0.45 }}
+                disabled={!crossReady(meta, lastRoll.crossIndex)}
+              >
+                {crossReady(meta, lastRoll.crossIndex) ? t('shop.ready') : t('shop.maturing').replace('{n}', String(wavesToUnlockFor(lastRoll.crossIndex)))}
+              </button>
+              <button onClick={() => handleShareSeed(lastRoll)} style={styles.shareBtn}>⧉ {t('codex.share')}</button>
+            </div>
           </div>
         )}
 
@@ -180,6 +221,7 @@ const styles: Record<string, React.CSSProperties> = {
   stash: { padding: '6px 12px', background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 8, color: '#4ade80', fontSize: 13 },
   closeBtn: { width: 32, height: 32, background: '#1f2937', border: '1px solid #374151', borderRadius: 8, color: '#9ca3af', cursor: 'pointer' },
   desc: { fontSize: 12, color: '#6b7280', margin: '0 0 14px' },
+  shareNote: { marginBottom: 10, padding: '8px 10px', background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.28)', borderRadius: 8, color: '#c4b5fd', fontSize: 12, wordBreak: 'break-all' as const },
   offersRow: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 },
   offerCard: { display: 'flex', flexDirection: 'column', gap: 6, padding: 14, background: '#0f172a', border: '1px solid #1e293b', borderRadius: 12, cursor: 'pointer', color: '#e5e7eb' },
   rarity: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, color: '#a78bfa' },
@@ -195,7 +237,9 @@ const styles: Record<string, React.CSSProperties> = {
   traitTag: { fontSize: 10, background: '#1e293b', color: '#94a3b8', padding: '2px 8px', borderRadius: 99 },
   parentsLine: { fontSize: 12, color: '#6b7280', margin: '10px 0 4px' },
   maturationLine: { fontSize: 12, color: '#fbbf24', marginBottom: 10 },
-  claimBtn: { width: '100%', padding: 10, background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#a78bfa', cursor: 'pointer', fontSize: 13 },
+  resultActions: { display: 'flex', gap: 8 },
+  claimBtn: { flex: 1, padding: 10, background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#a78bfa', cursor: 'pointer', fontSize: 13 },
+  shareBtn: { padding: '10px 14px', background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, color: '#94a3b8', cursor: 'pointer', fontSize: 12, fontWeight: 600 },
   pendingRow: { display: 'flex', flexDirection: 'column', gap: 6 },
   sectionTitle: { fontSize: 12, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 1 },
   pendingItem: { fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#0f172a', borderRadius: 8 },

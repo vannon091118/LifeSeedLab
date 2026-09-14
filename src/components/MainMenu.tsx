@@ -3,8 +3,10 @@ import { useI18n } from '../i18n';
 import type { MetaSave, PlantVariant, GameMode } from '../types';
 import { createBaseVariants } from '../genome';
 import { Greenhouse } from './Greenhouse';
+import { Codex } from './Codex';
 
 // Owner: UI (MainMenu screen). LOC ≤ 400.
+// B9/§40: Papier-Panels mit Büroklammer, trashig selbstironische Kopie, keine Blur-Glass-Karten.
 // Basis der Sammlung = createBaseVariants (eine Quelle — Dublette gelöscht, A2).
 // Gacha: Gewächshaus = Samen-Shop + Aussaat; keine Elternwahl.
 
@@ -20,6 +22,7 @@ type Props = {
 export function MainMenu({ meta, onMetaChange, onStartRun, onBack }: Props) {
   const { t } = useI18n();
   const [showGreenhouse, setShowGreenhouse] = useState(false);
+  const [showCodex, setShowCodex] = useState(false);
 
   const bases: PlantVariant[] = createBaseVariants();
   const allVariants = [...bases, ...meta.savedVariants];
@@ -28,12 +31,17 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onBack }: Props) {
   return (
     <div style={styles.wrap}>
       <div style={styles.panel}>
+        <div style={styles.clip} aria-hidden />
         <div style={styles.header}>
           <button onClick={onBack} style={styles.backBtn}>←</button>
           <h1 style={styles.title}>{t('menu.title')}</h1>
           <div style={styles.nektarBadge}>
-            🍯 {t('menu.nektar')}: <strong>{meta.nektar}</strong>
+            {t('menu.nektar')}: <strong>{meta.nektar}</strong>
           </div>
+        </div>
+
+        <div style={styles.marquee} aria-hidden>
+          *** WILLKOMMEN IM LABOR *** DEIN GENOM, DEIN GLUECK *** KEINE HAFTUNG FUER MUTATIONEN ***
         </div>
 
         <div style={styles.statsRow}>
@@ -44,21 +52,27 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onBack }: Props) {
 
         <div style={styles.modes}>
           <ModeCard
-            icon="🌱"
+            icon={<SproutIcon />}
             title={t('menu.greenhouse')}
             desc={t('shop.desc')}
             onClick={() => setShowGreenhouse(true)}
             disabled={ownedVariants.length < 2}
           />
           <ModeCard
-            icon="🌊"
+            icon={<WaveIcon />}
             title={t('menu.endless')}
             desc={t('menu.endlessDesc')}
             onClick={() => onStartRun('endless')}
             highlight
           />
           <ModeCard
-            icon="⚔️"
+            icon={<BookIcon />}
+            title={t('codex.title')}
+            desc={t('codex.subtitle')}
+            onClick={() => setShowCodex(true)}
+          />
+          <ModeCard
+            icon={<SwordIcon />}
             title={t('menu.pvp')}
             desc={t('menu.pvpDesc')}
             onClick={() => {}}
@@ -81,6 +95,10 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onBack }: Props) {
             )}
           </div>
         </div>
+
+        <p style={styles.footer} aria-hidden>
+          LifeSeedLab v0.1 — hier wurde nicht gespart, hier wurde gesparst. popup-blocker empfohlen.
+        </p>
       </div>
 
       {showGreenhouse && (
@@ -90,7 +108,45 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onBack }: Props) {
           onClose={() => setShowGreenhouse(false)}
         />
       )}
+      {showCodex && <Codex onClose={() => setShowCodex(false)} />}
     </div>
+  );
+}
+
+// SVG-Icons (B9: keine Emoji-Finalkunst) — 24px, ink stroke, paper fill
+function SproutIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M12 21v-8" stroke="#2b2b26" strokeWidth="2" strokeLinecap="round" />
+      <path d="M12 13C12 9 9 6 4 6c0 5 3 8 8 7Z" fill="#5a8f4e" stroke="#2b2b26" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M12 13c0-4 3-7 8-7 0 5-3 8-8 7Z" fill="#7fb069" stroke="#2b2b26" strokeWidth="2" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function WaveIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M2 14q3-5 6 0t6 0 6 0" stroke="#2b2b26" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+      <path d="M2 19q3-5 6 0t6 0 6 0" stroke="#2b2b26" strokeWidth="1.4" strokeLinecap="round" fill="none" opacity="0.5" />
+    </svg>
+  );
+}
+function BookIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M4 4h7v16H6a2 2 0 01-2-2V4Z" fill="#d9a441" stroke="#2b2b26" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M20 4h-7v16h5a2 2 0 002-2V4Z" fill="#f5efdc" stroke="#2b2b26" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M11 4h2v16h-2z" fill="#2b2b26" />
+    </svg>
+  );
+}
+function SwordIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M5 19L16 8" stroke="#2b2b26" strokeWidth="2.4" strokeLinecap="round" />
+      <path d="M14 4l6 6-3 1-4-4 1-3Z" fill="#9ca3af" stroke="#2b2b26" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M4 16l4 4-2 1-3-3 1-2Z" fill="#a94438" stroke="#2b2b26" strokeWidth="1.6" strokeLinejoin="round" />
+    </svg>
   );
 }
 
@@ -104,7 +160,7 @@ function StatBox({ label, value }: { label: string; value: number }) {
 }
 
 function ModeCard({ icon, title, desc, onClick, disabled, highlight }: {
-  icon: string; title: string; desc: string;
+  icon: React.ReactNode; title: string; desc: string;
   onClick: () => void; disabled?: boolean; highlight?: boolean;
 }) {
   return (
@@ -125,124 +181,167 @@ const styles: Record<string, React.CSSProperties> = {
     width: '100%',
     height: '100%',
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'center',
-    background: 'radial-gradient(ellipse at 70% 30%, #1a1f2f 0%, #0a0a0f 60%)',
+    background: 'var(--paper)',
+    backgroundImage:
+      'repeating-linear-gradient(0deg, rgba(43,43,38,0.025) 0 1px, transparent 1px 3px), radial-gradient(ellipse at 70% 10%, rgba(217,164,65,0.10), transparent 55%)',
     overflow: 'auto',
   },
   panel: {
+    position: 'relative',
     width: '92vw',
     maxWidth: 860,
-    padding: 28,
-    background: 'rgba(15, 23, 42, 0.7)',
-    border: '1px solid #1e293b',
-    borderRadius: 20,
-    backdropFilter: 'blur(12px)',
-    margin: '20px 0',
+    padding: 26,
+    background: 'var(--paper-warm)',
+    border: '2.5px solid var(--ink)',
+    borderRadius: 6,
+    boxShadow: '6px 6px 0 var(--ink)',
+    margin: '20px 0 28px',
+  },
+  clip: {
+    position: 'absolute',
+    top: -14,
+    left: 40,
+    width: 44,
+    height: 26,
+    border: '3px solid #8a8a80',
+    borderTop: 'none',
+    borderRadius: '0 0 22px 22px',
+    background: 'transparent',
+    boxShadow: 'inset 0 -2px 0 rgba(43,43,38,0.25)',
   },
   header: {
     display: 'flex',
     alignItems: 'center',
-    gap: 16,
-    marginBottom: 20,
+    gap: 14,
+    marginBottom: 12,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    background: '#1f2937',
-    border: '1px solid #374151',
+    width: 40,
+    height: 40,
+    background: '#fff',
+    border: '2px solid var(--ink)',
     borderRadius: 8,
-    color: '#9ca3af',
-    fontSize: 16,
+    color: 'var(--ink)',
+    fontSize: 18,
+    fontWeight: 800,
     cursor: 'pointer',
+    boxShadow: '2px 2px 0 var(--ink)',
   },
   title: {
     flex: 1,
-    fontSize: 26,
-    fontWeight: 700,
+    fontSize: 24,
+    fontWeight: 800,
     margin: 0,
-    color: '#e5e7eb',
+    color: 'var(--ink)',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   nektarBadge: {
-    padding: '8px 16px',
-    background: 'rgba(251, 191, 36, 0.1)',
-    border: '1px solid rgba(251, 191, 36, 0.3)',
-    borderRadius: 10,
-    color: '#fbbf24',
+    padding: '8px 14px',
+    background: '#fff',
+    border: '2px solid var(--ink)',
+    borderRadius: 8,
+    boxShadow: '2px 2px 0 var(--ink)',
+    color: 'var(--ink)',
     fontSize: 14,
+    fontWeight: 600,
+  },
+  marquee: {
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
+    background: 'var(--ink)',
+    color: 'var(--nektar)',
+    fontFamily: 'ui-monospace, Menlo, monospace',
+    fontSize: 11,
+    letterSpacing: 1,
+    padding: '5px 8px',
+    borderRadius: 4,
+    marginBottom: 18,
+    textOverflow: 'ellipsis',
   },
   statsRow: {
     display: 'flex',
     gap: 12,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   statBox: {
     flex: 1,
-    padding: '12px 16px',
-    background: '#0f172a',
-    border: '1px solid #1e293b',
-    borderRadius: 10,
+    padding: '10px 14px',
+    background: '#fff',
+    border: '2px solid var(--ink)',
+    borderRadius: 8,
+    boxShadow: '3px 3px 0 var(--ink)',
     textAlign: 'center',
+    transform: 'rotate(-0.4deg)',
   },
   statValue: {
     fontSize: 22,
-    fontWeight: 700,
-    color: '#4ade80',
+    fontWeight: 800,
+    color: 'var(--leaf-dark)',
   },
   statLabel: {
     fontSize: 11,
-    color: '#6b7280',
+    color: '#6b6250',
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginTop: 2,
+    fontWeight: 700,
   },
   modes: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
     gap: 14,
-    marginBottom: 24,
+    marginBottom: 22,
   },
   modeCard: {
+    position: 'relative',
     textAlign: 'left',
-    padding: 18,
-    background: '#0f172a',
-    border: '1px solid #1e293b',
-    borderRadius: 14,
+    padding: 16,
+    background: '#fff',
+    border: '2.5px solid var(--ink)',
+    borderRadius: 6,
+    boxShadow: '4px 4px 0 var(--ink)',
     cursor: 'pointer',
-    transition: 'all 0.15s',
-    color: '#e5e7eb',
+    transition: 'transform 0.08s',
+    color: 'var(--ink)',
+    minHeight: 44,
   },
   modeCardHighlight: {
-    borderColor: '#4ade80',
-    background: 'rgba(74, 222, 128, 0.06)',
+    background: '#eef7e6',
+    borderColor: 'var(--leaf-dark)',
+    boxShadow: '4px 4px 0 var(--leaf-dark)',
+    transform: 'rotate(0.4deg)',
   },
   modeCardDisabled: {
     opacity: 0.45,
     cursor: 'not-allowed',
   },
   modeIcon: {
-    fontSize: 28,
     marginBottom: 8,
   },
   modeTitle: {
     fontSize: 15,
-    fontWeight: 700,
+    fontWeight: 800,
     marginBottom: 4,
   },
   modeDesc: {
     fontSize: 12,
-    color: '#6b7280',
+    color: '#6b6250',
     lineHeight: 1.4,
+    fontWeight: 600,
   },
   collectionSection: {
     marginTop: 4,
   },
   sectionTitle: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: '#6b6250',
     textTransform: 'uppercase',
     letterSpacing: 1.5,
     marginBottom: 10,
+    fontWeight: 800,
   },
   collectionGrid: {
     display: 'grid',
@@ -254,31 +353,44 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     gap: 8,
     padding: '8px 12px',
-    background: '#0f172a',
-    border: '1px solid #1e293b',
-    borderRadius: 8,
+    background: '#fff',
+    border: '2px solid var(--ink)',
+    borderRadius: 6,
+    boxShadow: '2px 2px 0 var(--ink)',
     fontSize: 12,
+    color: 'var(--ink)',
+    fontWeight: 600,
   },
   preview: {
     width: 18,
     height: 18,
     borderRadius: 5,
+    border: '1.5px solid var(--ink)',
     flexShrink: 0,
   },
   name: {
     flex: 1,
-    color: '#d1d5db',
+    color: 'var(--ink)',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
   count: {
-    color: '#6b7280',
+    color: '#6b6250',
     fontSize: 11,
+    fontWeight: 800,
   },
   empty: {
-    color: '#475569',
+    color: '#6b6250',
     fontSize: 13,
     padding: 12,
+  },
+  footer: {
+    marginTop: 18,
+    paddingTop: 10,
+    borderTop: '1.5px dashed #b7ab8d',
+    fontSize: 11,
+    color: '#8a8065',
+    fontStyle: 'italic',
   },
 };

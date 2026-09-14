@@ -23,6 +23,17 @@ export function peekIdCount(kind: EntityKind): number {
   return counters[kind] ?? 0;
 }
 
+/** Phase E — Run-/Match-Kontext für deterministische IDs ohne UUID/Zufall.
+ *  Gleicher (runId|matchId, kind, seq) ⇒ gleiche ID, über Namespace getrennt. */
+export function nextScopedId(runOrMatchId: number, kind: EntityKind, seq: number): string {
+  // deterministisch via FNV über (matchId, kind, seq) — kein Counter, kein Math.random
+  let h = 2166136261 >>> 0;
+  const s = `${runOrMatchId}:${kind}:${seq}`;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  const base = (h >>> 0) % 9000 + 1;
+  return `${PREFIX[kind]}-${String(base).padStart(4, '0')}`;
+}
+
 /** Test/isolation helper: resets all counters so identical runs produce identical sequences. */
 export function resetIds(): void {
   for (const k of Object.keys(counters)) delete counters[k];

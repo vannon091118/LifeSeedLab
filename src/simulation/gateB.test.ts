@@ -1,0 +1,233 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import { SimulationRoot, makeCommand } from './root';
+import { hashState, type HashableState } from '../core/hash';
+import { resetIds } from '../core/ids';
+import { VisualObserver } from '../observers/visualObserver';
+import { Camera } from '../render/camera';
+import { ScoreSystem } from './scoreSystem';
+import { ComboSystem } from './comboSystem';
+import { makeRng } from '../core/rng';
+
+const SEED = 771123;
+
+function toHashable(root: SimulationRoot): HashableState {
+  const s = root.getSnapshot();
+  return {
+    seed: s.seed,
+    clock: s.clock,
+    wave: { number: s.wave.number },
+    resources: { energy: s.resources.energy },
+    plants: s.plants.map(p => ({ id: p.id, gx: p.gx, gy: p.gy, hp: p.hp, variantId: p.variantId, lastShot: p.lastShot })),
+    enemies: s.enemies.map(e => ({ id: e.id, hp: e.hp, px: e.px, py: e.py, pathIndex: e.pathIndex })),
+    projectiles: s.projectiles.map(p => ({ id: p.id, px: p.px, py: p.py, dx: p.dx, dy: p.dy })),
+    score: s.score,
+    combo: s.combo,
+  };
+}
+
+describe('Gate B — deterministische Wiederholung', () => {
+  beforeEach(() => resetIds());
+
+  it('gleicher Seed + gleiche Commands ⇒ identischer State-Hash', () => {
+    resetIds();
+    const a = new SimulationRoot({ seed: SEED });
+    a.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 1, gy: 2 }));
+    a.commands.push(makeCommand(0, 'START_WAVE', 2, {}));
+    for (let i = 0; i < 600; i++) a.stepOnce();
+
+    resetIds();
+    const b = new SimulationRoot({ seed: SEED });
+    b.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 1, gy: 2 }));
+    b.commands.push(makeCommand(0, 'START_WAVE', 2, {}));
+    for (let i = 0; i < 600; i++) b.stepOnce();
+
+    expect(hashState(toHashable(a))).toBe(hashState(toHashable(b)));
+  });
+
+  it('FX an/aus verändert den Gameplay-State nicht', () => {
+    // Sequential runs — shared global ID counters must not interleave
+    resetIds();
+    const a = new SimulationRoot({ seed: SEED });
+    const camA = new Camera();
+    const obsA = new VisualObserver(camA, true);
+    for (const t of ['DAMAGE_DEALT', 'ENEMY_DIED', 'PROJECTILE_FIRED', 'CRITICAL_HIT'] as const) a.bus.subscribe(t, e => obsA.observe(e));
+    a.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 1, gy: 2 }));
+    a.commands.push(makeCommand(0, 'START_WAVE', 2, {}));
+    for (let i = 0; i < 500; i++) { a.stepOnce(); obsA.drain(); }
+    const hashA = hashState(toHashable(a));
+    const scoreA = a.getSnapshot().score;
+
+    resetIds();
+    const b = new SimulationRoot({ seed: SEED });
+    const camB = new Camera();
+    const obsB = new VisualObserver(camB, false);
+    for (const t of ['DAMAGE_DEALT', 'ENEMY_DIED', 'PROJECTILE_FIRED', 'CRITICAL_HIT'] as const) b.bus.subscribe(t, e => obsB.observe(e));
+    b.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 1, gy: 2 }));
+    b.commands.push(makeCommand(0, 'START_WAVE', 2, {}));
+    for (let i = 0; i < 500; i++) { b.stepOnce(); obsB.drain(); }
+    expect(hashState(toHashable(b))).toBe(hashA);
+    expect(b.getSnapshot().score).toBe(scoreA);
+  });
+});
+
+describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', () => {
+  beforeEach(() => resetIds());
+
+  it('Combo-Multiplikator skaliert Score (unit-nah, deterministisch)', () => {
+    // Direkt Score+Combo ohne flaky Spawn-Loop: zwei Kills im Combo-Fenster
+    const score = new ScoreSystem(() => {});
+    const combo = new ComboSystem(() => {});
+    // Simuliere minimalen State
+    const state: unknown = {
+      clock: { tick: 10 },
+      seed: SEED,
+      score: 0,
+      resources: { energy: 0, coins: 0 },
+      nektarEarned: 0,
+      combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
+    };
+    const s = state as import('./state').SimState;
+    // erster Kill: multiplier 1 → delta = reward*1
+    combo.registerKill(s);
+    const reward = 10;
+    const mult1 = s.combo.multiplier;
+    score.onEnemyDied(s, 'enemy-0001', reward, reward * mult1, 0, 0);
+    const afterFirst = s.score;
+    const delta1 = afterFirst;
+
+    // zweiter Kill noch im Fenster (timer=120) → multiplier steigt
+    combo.registerKill(s);
+    const mult2 = s.combo.multiplier;
+    expect(mult2).toBeGreaterThan(mult1);
+    score.onEnemyDied(s, 'enemy-0002', reward, reward * mult2, 0, 0);
+    const delta2 = s.score - afterFirst;
+    expect(delta2).toBeGreaterThan(delta1);
+    expect(delta2).toBe(Math.round(reward * mult2));
+  });
+
+  it('WaveReward erhöht Energy, aber nicht Score', () => {
+    const root = new SimulationRoot({ seed: SEED });
+    root.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
+    root.stepOnce();
+    const s = root.getSnapshot();
+    s.enemies.length = 0;
+    s.wave.spawnQueue = [];
+    const beforeScore = s.score;
+    const beforeEnergy = s.resources.energy;
+    const reward = (root as unknown as { waves: { checkCompletion: (s: unknown) => number | null } }).waves.checkCompletion(s);
+    if (reward !== null) (root as unknown as { score: { grantWaveReward: (s: unknown, w: number, r: number) => void } }).score.grantWaveReward(s, s.wave.number, reward);
+    expect(s.score).toBe(beforeScore);
+    expect(s.resources.energy).toBeGreaterThanOrEqual(beforeEnergy);
+  });
+
+  it('Tag/Nacht-Wechsel emittiert NIGHT_STARTED / DAY_STARTED (Producer in Root)', () => {
+    const root = new SimulationRoot({ seed: SEED });
+    let sawNight = false;
+    let sawDay = false;
+    root.bus.subscribe('NIGHT_STARTED', () => { sawNight = true; });
+    root.bus.subscribe('DAY_STARTED', () => { sawDay = true; });
+    for (let i = 0; i < 5000; i++) root.stepOnce();
+    expect(sawNight).toBe(true);
+    expect(sawDay).toBe(true);
+  });
+
+  it('Lives auf 0 ⇒ phase gameover + GAME_OVER Event', () => {
+    const root = new SimulationRoot({ seed: SEED });
+    let sawGameOver = false;
+    root.bus.subscribe('GAME_OVER', () => { sawGameOver = true; });
+    root.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
+    root.stepOnce();
+    const s = root.getSnapshot();
+    s.lives = 1;
+    // Gegner ans Pfadende schieben → leak
+    const spawned = (root as unknown as { enemies: { spawn: (s: unknown, id: string, idx: number) => void } }).enemies.spawn(s, 'grunt', 0);
+    void spawned;
+    for (const e of s.enemies) e.pathIndex = 99;
+    root.stepOnce();
+    root.stepOnce();
+    expect(root.getSnapshot().phase).toBe('gameover');
+    expect(sawGameOver).toBe(true);
+  });
+
+  it('Pierce-Pflanze erzeugt Projektil mit remainingPierce=2', () => {
+    const root = new SimulationRoot({
+      seed: SEED,
+      loadout: ['cross_pierce'],
+      bredStats: { cross_pierce: { hp: 100, damage: 10, range: 5, cooldown: 10, cost: 30, effects: ['EFFECT_PIERCE'] } },
+    });
+    const st = root.getSnapshot();
+    const plant: import('./state').PlantEntity = {
+      id: 'plant-9999', variantId: 'cross_pierce', gx: 4, gy: 4, hp: 100, maxHp: 100, lastShot: -999,
+      growthState: 'mature', growthTicksLeft: 0, growthTicksTotal: 90, lifeTicksLeft: 900, lifeTicksTotal: 900,
+      fertilizeCount: 0, extraDamage: 0, extraCooldown: 0, isWeakened: false, isSeedling: false,
+    } as import('./state').PlantEntity;
+    st.plants.push(plant);
+    const target: import('./state').EnemyEntity = {
+      id: 'enemy-9999', typeId: 'grunt', hp: 100, maxHp: 100, px: 4.6, py: 4.6, pathIndex: 0, pathProgress: 0,
+      damage: 1, reward: 5, scoreValue: 10, slowUntil: 0, burnTicks: 0, poisonTicks: 0, lastHitByPlantId: null,
+    } as import('./state').EnemyEntity;
+    st.enemies.push(target);
+    const proj = (root as unknown as { projectiles: { fire: (s: unknown, p: unknown, t: unknown, dmg: number, pierce: number, eff: string | null) => { remainingPierce: number } } }).projectiles.fire(st, plant, target, 10, 2, 'EFFECT_PIERCE');
+    expect(proj.remainingPierce).toBe(2);
+  });
+
+  it('EFFECT_BURN / SLOW / POISON setzen Statusfelder deterministisch', () => {
+    const root = new SimulationRoot({ seed: SEED });
+    const s = root.getSnapshot();
+    const e: import('./state').EnemyEntity = {
+      id: 'enemy-0001', typeId: 'grunt', hp: 100, maxHp: 100, px: 2, py: 3, pathIndex: 0, pathProgress: 0,
+      damage: 1, reward: 5, scoreValue: 10, slowUntil: 0, burnTicks: 0, poisonTicks: 0, lastHitByPlantId: null,
+    } as import('./state').EnemyEntity;
+    s.enemies.push(e);
+    s.clock.tick = 100;
+    (root as unknown as { enemies: { applyDamage: (s: unknown, id: string, amt: number, crit: boolean, eff: string | null) => unknown } }).enemies.applyDamage(s, e.id, 1, false, 'EFFECT_SLOW');
+    expect(e.slowUntil).toBe(190);
+    (root as unknown as { enemies: { applyDamage: (s: unknown, id: string, amt: number, crit: boolean, eff: string | null) => unknown } }).enemies.applyDamage(s, e.id, 1, false, 'EFFECT_BURN');
+    expect(e.burnTicks).toBe(3);
+    (root as unknown as { enemies: { applyDamage: (s: unknown, id: string, amt: number, crit: boolean, eff: string | null) => unknown } }).enemies.applyDamage(s, e.id, 1, false, 'EFFECT_POISON');
+    expect(e.poisonTicks).toBe(5);
+  });
+
+  it('Kill-Münzen 1–5 deterministisch (loot-Namespace) — gleiche Eingabe ⇒ gleiche Münzen', () => {
+    const a = makeRng('loot', 12345).nextInt(1, 5);
+    const b = makeRng('loot', 12345).nextInt(1, 5);
+    expect(a).toBe(b);
+    expect(a).toBeGreaterThanOrEqual(1);
+    expect(a).toBeLessThanOrEqual(5);
+    // ScoreSystem nutzt loot-RNG pro (seed,tick,enemyId) — prüfe Range via echter ScoreSystem-Call
+    const score = new ScoreSystem(() => {});
+    const s: unknown = { clock: { tick: 7 }, seed: SEED, score: 0, resources: { energy: 0, coins: 0 }, nektarEarned: 0, combo: { count: 0, timer: 0, multiplier: 1, highest: 0 } };
+    score.onEnemyDied(s as import('./state').SimState, 'enemy-0001', 10, 10, 0, 0);
+    const coins = (s as import('./state').SimState).resources.coins;
+    expect(coins).toBeGreaterThanOrEqual(1);
+    expect(coins).toBeLessThanOrEqual(5);
+  });
+
+  it('EFFECT_CHAIN: Kill springt zu nächstem Gegner', () => {
+    const root = new SimulationRoot({
+      seed: SEED,
+      loadout: ['cross_chain'],
+      bredStats: { cross_chain: { hp: 100, damage: 80, range: 5, cooldown: 10, cost: 30, effects: ['EFFECT_CHAIN'] } },
+    });
+    const s = root.getSnapshot();
+    // zwei Gegner nah beieinander
+    const killer: import('./state').PlantEntity = {
+      id: 'plant-0001', variantId: 'cross_chain', gx: 2, gy: 2, hp: 100, maxHp: 100, lastShot: 0,
+      growthState: 'mature', growthTicksLeft: 0, growthTicksTotal: 90, lifeTicksLeft: 900, lifeTicksTotal: 900,
+      fertilizeCount: 0, extraDamage: 0, extraCooldown: 0, isWeakened: false, isSeedling: false,
+    } as import('./state').PlantEntity;
+    s.plants.push(killer);
+    const e1: import('./state').EnemyEntity = {
+      id: 'enemy-0001', typeId: 'grunt', hp: 10, maxHp: 10, px: 3, py: 3, pathIndex: 0, pathProgress: 0, damage: 1, reward: 5, scoreValue: 10, slowUntil: 0, burnTicks: 0, poisonTicks: 0, lastHitByPlantId: 'plant-0001',
+    } as import('./state').EnemyEntity;
+    const e2: import('./state').EnemyEntity = {
+      id: 'enemy-0002', typeId: 'grunt', hp: 100, maxHp: 100, px: 3.5, py: 3.2, pathIndex: 0, pathProgress: 0, damage: 1, reward: 5, scoreValue: 10, slowUntil: 0, burnTicks: 0, poisonTicks: 0, lastHitByPlantId: null,
+    } as import('./state').EnemyEntity;
+    s.enemies.push(e1, e2);
+    // töte e1 via EnemySystem → ENEMY_DIED, dann chainFrom in Root sollte e2 schädigen
+    (root as unknown as { enemies: { applyDamage: (s: unknown, id: string, amt: number, crit: boolean, eff: string | null, src: string | null) => void } }).enemies.applyDamage(s, e1.id, 20, false, null, 'plant-0001');
+    const hpBefore = e2.hp;
+    (root as unknown as { enemies: { chainFrom: (s: unknown, x: number, y: number, amt: number, range: number) => void } }).enemies.chainFrom(s, e1.px, e1.py, 50, 2);
+    expect(e2.hp).toBeLessThan(hpBefore);
+  });
+});

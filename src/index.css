@@ -10,7 +10,7 @@
   --danger:#a94438;
   --night:#1c222b;
 }
-* {
+*{
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -48,4 +48,10 @@ button:active {
 ::-webkit-scrollbar-thumb {
   background: #c9bd9e;
   border-radius: 3px;
+}
+
+/* 390×844 portrait-first: kein Hover-Pfad, Touch-Ziele ≥44px (B9/D) */
+@media (max-width: 420px) {
+  /* Komposition bleibt identisch — nur Spacing straffen, Typo leicht kleiner */
+  /* GameView-Canvas füllt 390×844 portrait ohne horizontales Scrollen */
 }

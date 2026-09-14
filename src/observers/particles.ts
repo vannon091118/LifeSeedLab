@@ -69,6 +69,9 @@ export class ParticlePool {
 
   get cap(): number { return BUDGET_CAPS[this.budget]; }
 
+  /** DevGate (B12): lesbarer Budget-Name für das Perf-Panel. */
+  get budgetName(): FxBudget { return this.budget; }
+
   get activeCount(): number { return this.pool.length - this.free.length; }
 
   private acquire(): Particle | null {

@@ -18,6 +18,7 @@
 | Audio | **Web Audio API als zweiter Observer** (`observers/audioObserver`, Cap 250 LOC) | **fest** | Tone.js/Howler sind Overkill oder gameplay-gekoppelt. Lazy `AudioContext` beim ersten User-Gesture (iOS-Unlock-Pflicht). SFX **synthetisiert** aus Oszillator + Noise-Buffer, verschlüsselt über `soundProfile` (burn = gefiltertes Noise-Crackle, heal = Sinus-Arpeggio, crit = geschichteter Thump …). Keine Audio-Assets, keine Ladezeit. Der Observer subskribiert den Bus, emittiert nichts, erzeugt kein RNG — die FX-ON/OFF-Determinismus-Garantie gilt damit automatisch auch für Sound. |
 | Tests | Vitest | **behalten** | läuft, 52+ Tests |
 | Async-PvP-Backend | **Convex — aufgeschoben** | **Schema jetzt, Einbau später** | Vercel-as-Backend abgelehnt (Deploys laufen bereits auf managed Freebuff-Hosting; eine zweite Plattform kauft nichts). Convex passt zu Build-Sharing: kleine JSON-Dokumente, kein Server-Betrieb, TS-SDK, Free Tier, Auth slotting später sauber ein. **Was jetzt passiert, ist nur der Schema-Vertrag:** Das Export-Format eines geteilten Builds ist fix als `{ genomePair, rootSeed, commandLogHash, variantKey, createdAt, version }`. Dasselbe JSON, das heute in den Run-Save geht, POSTet später unverändert an Convex — Gameplay-Code erfährt nie, dass ein Backend existiert; es kommt hinter genau einem `bus/remote`-Adapter an. |
+| Discovery-Chain | **Supabase + SHA256-lite, lokal-first** | **Schema jetzt, Sync später** | Kein Token/Blockchain: `genome_hash` aus RNG ist der Beweis, `prev_hash`-Kette ist die Verkettung. Lokal `UNIQUE(genome_hash)`, public read, `supabase/migrations/001_discoveries.sql`. |
 | Abgelehnt | Game Engines (LOC-Caps + Purity-Vertrag), neue State-Manager (React-State + Refs genügen), Playwright (aufgeschoben bis Mobile-e2e), **jede Änderung an `vite.config.ts`** | — | |
 
 ---
@@ -36,7 +37,8 @@ src/
 │   └── layers/  [geplant] Terrain/EntityDraw/Feedback/Manga — Split bei > 400 LOC
 ├── observers/   visualObserver (Events→7 Visual-Commands) · ParticlePool (Budget)
 │                audioObserver [geplant] · FeedbackLayer-Ausführung [geplant]
-├── persistence/ storage.ts [geplant, §4] · meta.ts · runSave.ts
+├── persistence/ storage.ts (§4) · meta.ts · runSave.ts · codex (discovery chain, §4.1)
+├── discovery/   chain.ts (genome_hash, hash-chain) · codex.ts (local-first) + Supabase-Spiegel
 ├── components/  Screens (Start/Menu/GameView/Breeding/ErrorBoundary)
 ├── i18n.tsx     DE/EN, Context-Provider, persisted in Meta
 └── types.ts     Meta-/Breeding-Typen (Legacy-Entity-Typen werden gelöscht — QUALITY_SPEC A1)
@@ -105,6 +107,15 @@ save(key, value): void                            // schreibt mit Checksumme
 **Resume-Vertrag (fix):** Run-Save enthält `{version, runId, seed, tick, waveNumber, phase:'prep', energy, lives, score, combo, plants[], inventory, nektarEarned}` — **keine** enemies/projectiles/schedule. Resume baut den State in `prep` wieder auf; der nächste Wave-Start regeneriert das Schedule deterministisch aus `(seed, waveNumber+1)`. Begründung: fortlaufende Gegner exakt wiederherstellen hieße Event-Log-Replay — out of scope; ein Wellen-Neustart ist der ehrliche, testbare Vertrag.
 
 `meta.ts` und `runSave.ts` werden zu dünnen Schema-Adaptern über `storage.ts` — kein direktes `localStorage` mehr außerhalb des Owners.
+
+### 4.1 Discovery-Chain — Blockchain-lite ohne Blockchain (neu)
+
+- **Prinzip:** append-only, hash-linked, lokal-first. Gleiche Eltern + gleicher Seed ⇒ gleicher `genome_hash` ⇒ deterministische Verifikation ohne externen Konsens.
+- **Hash:** FNV-1a über kanonisches Genom (`id:power:4f:dominant` sortiert). `entry_hash` über stabil serialisierte Felder; `prev_hash` verkettet.
+- **Eintrag:** `{ player_id, genome_hash, parents[2], seed, generation, timestamp, prev_hash, entry_hash }` — vgl. `src/discovery/chain.ts`.
+- **UNIQUE(genome_hash)** lokal in `tryAppend` und remote in Supabase (`discoveries.genome_hash UNIQUE`) — erste Entdeckung gewinnt dauerhaft.
+- **Teilen:** `lifeseed:<seed>:<gen>:<genome_hash>` — jeder kann die Zeile laden und exakt dieselbe Pflanze sehen (Seed ist die Zahl).
+- **Supabase-Spiegel:** `supabase/migrations/001_discoveries.sql` — public read, insert via `syncEntryStub` (heute Stub, morgen echter INSERT). Kein Wallet, kein Token, keine Energie.
 
 ---
 

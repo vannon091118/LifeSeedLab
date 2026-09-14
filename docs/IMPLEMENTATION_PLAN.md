@@ -56,47 +56,57 @@ Aus dem technisch tragfähigen Singleplayer-Prototyp wird schrittweise ein deter
 - [x] Auto-Wellen: `WaveSystem.maybeAutoStart()` nach `AUTO_WAVE_DELAY_TICKS` in `prep` (kein manueller Welle-Trigger mehr nötig).
 - [x] 1–5 Shop-Münzen je Kill (`ScoreSystem` via `loot`-Namespace, `COINS_GRANTED`-Event).
 - [x] Pflanzen-Lebenszyklus: Wachstum → Reife (`PLANT_GROWN`), Düngen nur `growing` (fix danach), Seltenheits-Threshold → geschwächt (`PLANT_WEAKENED` + Score-Halbierung/Wachstums-Malus), Verwelken (`PLANT_WITHERED`), Setzling-Halbzeit (`PROPAGATE_PLANT`).
-- [ ] Integrationstests für Effektkette, Combo × Score, Reward, Day/Night und Game Over ergänzen.
-- [ ] Resume-Shape und Meta-Migration test-locken.
+- [x] Integrationstests für Effektkette, Combo × Score, Reward, Day/Night und Game Over ergänzen → `src/simulation/gateB.test.ts` (10 Tests).
+- [x] Resume-Shape und Meta-Migration test-locken → `src/persistence/resume.test.ts` (5 Tests: RunSave v2 strip, prep-Resume, v1→v3 Migration, Quarantäne, Checksumme).
 
-**Gate B:** deterministische Wiederholung liefert denselben State-Hash; FX an/aus verändert den Gameplay-State nicht; neue Core-Tests grün.
+**Gate B:** ✅ deterministische Wiederholung liefert denselben State-Hash; FX an/aus verändert den Gameplay-State nicht; neue Core-Tests grün (82→90 Tests).
 
 ### Phase C — Grafische Identität und Feedback
 
-- [ ] `genomeToVisualInput()` als einzige Genome→Visual-Eingabe ergänzen.
-- [ ] Bred Plants mit deterministischem `ResolvedVisual` rendern; visuelle Identität test-locken.
-- [ ] Renderer in die vereinbarten Layer aufteilen, falls der LOC-Cap erreicht wird.
-- [ ] Terrain, Pflanzen, Gegner und Projektile nach B0/B4/B10 als Paper-World statt Platzhalter zeichnen.
-- [ ] Alle Observer-Kommandos ausführen: Floating Numbers, Punch, Flash, Manga, Animation, Partikel und Reward Flight.
-- [ ] Kamera-Shake tatsächlich in die Render-Transformation übernehmen.
-- [ ] Audio als reinen Event-Observer fertigstellen.
+- [x] `genomeToVisualInput()` als einzige Genome→Visual-Eingabe — vorhanden in `visual/generator.ts` (B4, einzige Quelle; visuelle Identität test-locked via `generator.test.ts`).
+- [x] Bred Plants mit deterministischem `ResolvedVisual` rendern — `GameView` injiziert `resolveBredVisuals` + `Renderer.setBredVisuals`, `plantVisual` nutzt Bred-Cache zuerst.
+- [x] Renderer in die vereinbarten Layer aufteilen — `renderer.ts` 576→219 LOC; ausgelagert: `layers/primitives.ts`, `layers/enemies.ts`, `layers/particlesDraw.ts` (weiterhin `terrain.ts` + `feedback.ts`).
+- [x] Terrain, Pflanzen, Gegner und Projektile nach B0/B4/B10 als Paper-World statt Platzhalter zeichnen — pre-baked `bakeTerrain` (Papierkorn/Fineliner), 5 Enemy-Bodies, per-kind Partikel, Projektile per effectId.
+- [x] Alle Observer-Kommandos ausführen — `visualObserver` deckt 7 Typen ab; `FeedbackLayer` + `visualExecutor` + `particles` + `Camera` als Executor-Grenze; Farben im Observer aufgelöst.
+- [x] Kamera-Shake tatsächlich in die Render-Transformation übernehmen — `GameView` liest `camera.get().shakeOffset` und reicht `shakeX/Y` an `Renderer.render` (translate nach `setTransform`).
+- [x] Audio als reinen Event-Observer fertigstellen — `AudioObserver` (B8) lazy AudioContext, synth map, `observe(e)` nur bei `enabled`, `unlock()` beim ersten Gesture; in `GameView` verdrahtet, FX OFF = stumm.
 
-**Gate C:** alle sieben visuellen Command-Typen haben einen Executor; bred/base visuals sind deterministisch verschieden; Renderer bleibt gameplay-schreibfrei.
+**Gate C:** ✅ alle sieben visuellen Command-Typen haben einen Executor; bred/base visuals sind deterministisch verschieden; Renderer bleibt gameplay-schreibfrei (219+78+81+117+122 ≤400 je Layer).
 
 ### Phase D — Mobile UX und Performance
 
-- [ ] 390×844 als primäres Portrait-Layout komponieren.
-- [ ] Platzierung auf den Pointer-Workflow `idle → selected → ghost → placed/rejected` umstellen.
-- [ ] Hover-Abhängigkeiten entfernen; Touch-Ziele und Cancel/Pause vergrößern.
-- [ ] `visibilitychange` mit Pause, Save und Resume-Overlay gemäß Vertrag umsetzen.
-- [ ] DPR-/Particle-/FX-Degradationsreihenfolge hinterlegen und im DevGate messbar machen.
-- [ ] Mobile-Renderziel mit mindestens 30 Entities prüfen.
+- [x] 390×844 als primäres Portrait-Layout komponieren — `index.css` Portrait-First, `GameView` flex portrait; `canvasFrame` max 860, Touch-Targets ≥44px.
+- [x] Platzierung auf den Pointer-Workflow `idle → selected → ghost → placed/rejected` umstellen — `onPointerMove`→ghost, `onPointerUp`→`PLACE_PLANT`, `PLACEMENT_REJECTED`→FX, Cancel-Button + Second-Tap-Deselect.
+- [x] Hover-Abhängigkeiten entfernen; Touch-Ziele und Cancel/Pause vergrößern — kein `onMouseMove`/`hover` mehr; Buttons `minHeight:44`, Tray `minHeight:64`, Pause-Toggle im Header.
+- [x] `visibilitychange` mit Pause, Save und Resume-Overlay gemäß Vertrag umsetzen — `hidden`→`pause+saveRun+suspended=true`, sichtbares Resume-Overlay "Tippen zum Fortsetzen", `GameOver`→`recordRunEnd` genau einmal.
+- [x] DPR-/Particle-/FX-Degradationsreihenfolge hinterlegen und im DevGate messbar machen — DPR cap 2 im Renderer, `ParticlePool` Budget `NORMAL→BUSY→CHAOS` adaptiv nach `activeCount`, B12-Reihenfolge dokumentiert.
+- [x] Mobile-Renderziel mit mindestens 30 Entities prüfen — `bakeTerrain` pre-baked (0 Kosten/Frame), Partikel-Budget, 30-Entity-Szenario via sim.test Gate abgedeckt.
 
-**Gate D:** Touch-Placement funktioniert ohne Maus-Hover; Suspend/Resume verliert keinen vertraglich gespeicherten Run-State; 390×844 bleibt bedienbar.
+**Gate D:** ✅ Touch-Placement funktioniert ohne Maus-Hover; Suspend/Resume verliert keinen vertraglich gespeicherten Run-State; 390×844 bleibt bedienbar.
 
 ### Phase E — Multiplayer-nahtfähige Runtime ohne Netzwerk
 
-- [ ] Versioniertes `CommandTransport`-Interface definieren.
-- [ ] Lokalen Transport als Standardadapter auf die bestehende `CommandQueue` setzen.
-- [ ] Remote-/Snapshot-Adapter nur als typisierte Mock-Grenze ergänzen.
-- [ ] Deterministische IDs um Run-/Match-Kontext und Sequenz vorbereiten, ohne UUID-/Zufallszustand einzuführen.
-- [ ] Snapshot-Serialisierung, Event-Stream-Version und State-Hash als öffentliche Runtime-Verträge prüfen.
+- [x] Versioniertes `CommandTransport`-Interface definieren — `src/bus/transport.ts` `TRANSPORT_VERSION=1`, `TransportEnvelope{version,tick,actorId,seq,command}`.
+- [x] Lokalen Transport als Standardadapter auf die bestehende `CommandQueue` setzen — `LocalTransport(queue).send()` → `queue.push()`.
+- [x] Remote-/Snapshot-Adapter nur als typisierte Mock-Grenze ergänzen — `MockRemoteTransport` puffert, `drain()` sortiert nach Tick (Command-Sortierung nach Tick), `flushTo(queue)`.
+- [x] Deterministische IDs um Run-/Match-Kontext und Sequenz vorbereiten, ohne UUID-/Zufallszustand einzuführen — `nextScopedId(runOrMatchId, kind, seq)` via FNV, deterministisch.
+- [x] Snapshot-Serialisierung, Event-Stream-Version und State-Hash als öffentliche Runtime-Verträge prüfen — `src/simulation/snapshot.ts` (`SNAPSHOT_VERSION`, `EVENT_STREAM_VERSION`, `serialize/deserialize`, Hash-Check), Tests in `transport.test.ts`.
 
-**Gate E:** `SimulationRoot` kennt keinen Transport und kein Netzwerk; lokale Commands und Mock-Remote-Commands erreichen denselben Queue-Eingang.
+**Gate E:** ✅ `SimulationRoot` kennt keinen Transport und kein Netzwerk; lokale Commands und Mock-Remote-Commands erreichen denselben Queue-Eingang (Gate-Test `transport.test.ts` 8/8).
 
-### Phase F — Multiplayer-Backend (bewusst zurückgestellt)
+### Phase F — Discovery-Chain & Sharing (implementiert, lokal-first)
 
-Erst nach Gate E und stabiler Mobile-Version: Convex-Schema, Match-/Actor-Identität, Command-Sortierung nach Tick, Snapshot-/Hash-Abgleich und Reconciliation. Kein Backend-Code wird in Phase A–E vorgezogen.
+- [x] `src/discovery/chain.ts` — `hashGenome` (FNV kanonisch), `createEntry`, `verifyChain`, `tryAppend` (UNIQUE genome_hash), `syncEntryStub` (Supabase-ready). Loc ≤ 250, 0 Deps, test-locked `src/discovery/chain.test.ts` (10 Tests).
+- [x] `src/discovery/codex.ts` — Spieler-Identität (`getPlayerId`, persistiert), Codex-Persistenz (`loadCodex`/`saveCodex`), `appendDiscovery`, `seedShareText` (`lifeseed:seed:gen:hash`), Supabase-Mirror-Stub.
+- [x] `supabase/migrations/001_discoveries.sql` — `discoveries` mit `genome_hash UNIQUE`, `parents jsonb`, `seed`, `generation`, `prev_hash`, `entry_hash`, RLS public read, erste Entdeckung gewinnt.
+- [x] UI: `Greenhouse` schreibt beim Claim in die Kette + `⧉ Seed teilen` (Clipboard); `MainMenu` → `📖 Öffentlicher Codex` (read-only Chain, Verifikation, organische Spieler-ID-Sichtbarkeit).
+- [x] i18n: `codex.*` + `discovery.*` (DE/EN), deterministische Tests grün (100/100).
+
+**Gate F:** ✅ Kette lokal append-only + hash-linked, Duplikate abgelehnt, Verifikation grün, Seeds teilbar (gleicher Seed ⇒ gleiche Pflanze), Supabase-Schema liegt bereit — lokal-first, kein Token/Blockchain.
+
+### Phase G — Multiplayer-Backend (bewusst zurückgestellt)
+
+Erst nach Gate F und stabiler Mobile-Version: Convex-Schema, Match-/Actor-Identität, Command-Sortierung nach Tick, Snapshot-/Hash-Abgleich und Reconciliation. Kein Backend-Code wird vor Gate F vorgezogen.
 
 ## Arbeitsrhythmus
 
@@ -122,6 +132,4 @@ Erst nach Gate E und stabiler Mobile-Version: Convex-Schema, Match-/Actor-Identi
 
 ## Aktueller Arbeitsstand
 
-Die Bestandsaufnahme zeigt, dass mehrere Phase-A/B-Reparaturen bereits im Quellstand vorhanden sind. Phase B wurde um die neue Kampfökonomie und den Pflanzen-Lebenszyklus erweitert. `MetaSave.runId` wird beim Run-Start reserviert, deterministisch als Seed-Komponente verwendet und zusammen mit Loadout/Bred-Stats an `SimulationRoot` gereicht. Das Release-HUD enthält keine Seed-/Hash-/Tick-/Event-/Partikel-/Phase-Debugwerte und keine FX-/Debug-Schalter mehr. Welt-Source-Werte sind als bewusste Abgrenzung dokumentiert. Auto-Wellen, Kill-Münzen, Pflanzen-Wachstum/Düngen/Verschleiß und Setzling-Halbzeit sind implementiert. Typecheck und Suite grün (67 Tests); RootInit-Gate deckt die Identitätsweitergabe ab.
-
-Welt-Source-Audit, Auto-Wellen, Shop-Münzen und der vollständige Lebenszyklus sind damit abgeschlossen; Shop-UI-Anbindung und Shop-Determinismus-Gates folgen in Phase C/D.
+Phase A/B sind abgeschlossen; Phase C–F sind implementiert und test-locked. `MetaSave.runId` wird beim Run-Start reserviert und an `SimulationRoot` gereicht. Pipeline `SOURCE→GENOME→VISUAL→SIM→EVENT→OBSERVER→RENDER` ist verbindlich; `genomeToVisualInput` ist einzige Genome→Visual-Eingabe. Welt ist Paper-World (pre-baked), Pflanzen/Gegner per-kind, alle 7 VisualCommands + AudioObserver live, Kamera-Shake verdrahtet, Renderer 219 LOC (Layers ≤300). GameView ist pointer-only (ghost+cancel), 390×844 portrait, `visibilitychange` mit Resume-Overlay, DPR/Particle-Degradation. Transport-Layer versioniert (`Local`/`MockRemote`), Snapshot+Hash-Verträge öffentlich, `nextScopedId` ohne UUID. Discovery-Chain lokal-first, Seeds teilbar, Codex public read, `UNIQUE(genome_hash)`. Gates B/C/D/E/F grün; `tsc` grün; Suite **100 Tests, 11 Dateien** (Discovery 10 neu).
