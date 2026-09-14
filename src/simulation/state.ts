@@ -62,6 +62,9 @@ export interface ProjectileEntity {
 
 export type RunPhase = 'prep' | 'wave' | 'gameover';
 
+/** Spieler-platzierte Map-Tiles (P5). Owner: MapSystem. Key "gx,gy". */
+export type MapTiles = Record<string, string>;
+
 export interface SimState {
   seed: number;
   /** Authoritative run identity (mirrors MetaSave.runId at run start — B1). */
@@ -81,6 +84,8 @@ export interface SimState {
     prepStartTick: number | null;
   };
   resources: { energy: number; coins: number };
+  /** Map-Slice (P5): vom Spieler platzierte Tiles. Owner: MapSystem. */
+  mapTiles: MapTiles;
   /** Player lives. Owned by SimulationRoot (run state); reduced only via leak events. */
   lives: number;
   inventory: Record<string, number>;
@@ -96,4 +101,27 @@ export interface SimState {
   loadout: string[];
   /** Stats of bred (non-source) variants, keyed by variant id (incl. effect tags — B6). */
   bredStats?: Record<string, { hp: number; damage: number; range: number; cooldown: number; cost: number; effects: string[] }>;
+  /** P6 Käferzucht: eingesetzter Brutling (allierter Kämpfer). Owner: EnemySystem. */
+  deployedBeetle: {
+    id: string;
+    specimenId: string;
+    name: string;
+    hp: number;
+    maxHp: number;
+    attack: number;
+    speed: number;
+    taunt: boolean;
+    deathSpawnX: number;
+    color: string;
+    px: number;
+    py: number;
+    targetId: string | null;
+    biteCooldown: number;
+    freezeTicksLeft: number;
+    /** Mit-Brutlinge (Spawn 1×–5×, halbe Werte) — EIGENER Slice, NICHT state.enemies
+     *  (sonst beschießen die Pflanzen die eigenen Verbündeten, P7-Befund im Test). */
+    broodlings: { id: string; px: number; py: number; hp: number; maxHp: number }[];
+  } | null;
+  /** P6: mitgebrachte gezüchtete Specimen (Injektion wie bredStats). */
+  beetles: import('../types').BeetleSpecimen[];
 }

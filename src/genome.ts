@@ -13,6 +13,3 @@ export {
   generateCrossResults,
 } from './genome/gacha';
 export { createBaseVariants } from './genome/bases';
-
-// Re-export for discoverability
-export { GENE_POOL as GENE_POOL_ALIAS } from './genome/pool';

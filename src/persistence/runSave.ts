@@ -25,6 +25,8 @@ export interface RunSave {
   discoveredVariants: string[];
   bredStats: NonNullable<SimState['bredStats']>;
   nektarEarned: number;
+  /** P5: Spieler-Tiles ("gx,gy":type) — die Map gehört zum Run-Zustand. */
+  mapTiles: Record<string, string>;
 }
 
 export function saveRun(state: SimState): void {
@@ -44,6 +46,7 @@ export function saveRun(state: SimState): void {
     discoveredVariants: state.discoveredVariants,
     bredStats: state.bredStats ?? {},
     nektarEarned: state.nektarEarned,
+    mapTiles: state.mapTiles,
   };
   void idbSet(RUN_KEY, s, RUN_VERSION);
 }

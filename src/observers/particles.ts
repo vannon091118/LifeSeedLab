@@ -45,6 +45,7 @@ export const PARTICLE_PROFILES: Record<string, ParticleProfile> = {
   warn_pulse:   { kind: 'RING',    count: 4,  lifetime: 26, size: [0.10, 0.22], velocity: [0.01, 0.03], gravity: 0,     rotationSpeed: 0,   alphaCurve: 'fadeInOut', spawnShape: 'ring' },
   muzzle_puff:  { kind: 'DUST',    count: 4,  lifetime: 10, size: [0.04, 0.09], velocity: [0.02, 0.05], gravity: -0.001,rotationSpeed: 0.1, alphaCurve: 'easeOut',   spawnShape: 'cone' },
   confetti_leaf:{ kind: 'LEAF',    count: 10, lifetime: 44, size: [0.07, 0.14], velocity: [0.02, 0.06], gravity: 0.003, rotationSpeed: 0.25,alphaCurve: 'fadeInOut', spawnShape: 'ring' },
+  wither_dust:  { kind: 'DUST',    count: 8,  lifetime: 26, size: [0.06, 0.14], velocity: [0.01, 0.03], gravity: 0.003, rotationSpeed: 0.15,alphaCurve: 'linear',    spawnShape: 'ring' },
   chain_arc:    { kind: 'SPARK',   count: 7,  lifetime: 12, size: [0.04, 0.08], velocity: [0.08, 0.14], gravity: 0,     rotationSpeed: 0.4, alphaCurve: 'linear',    spawnShape: 'ring' },
   // ── EFFECTS_SOURCE-Referenzen ──
   spark_line:   { kind: 'SPARK',   count: 6,  lifetime: 12, size: [0.03, 0.07], velocity: [0.10, 0.18], gravity: 0,     rotationSpeed: 0,   alphaCurve: 'linear',    spawnShape: 'cone' },

@@ -1,6 +1,9 @@
 // Owner: RngSystem (core). The ONLY RNG implementation. LOC ≤ 300.
 // Contract: gameplay namespaces (world/wave/enemy/plant/loot) never share stream state
 // with presentation namespaces (visual/particle/cosmetic).
+// FNV-1a string hashing lives in core/hash.ts (fnv1aHex/fnv1a core) — single hash owner.
+
+import { fnv1a } from './hash';
 
 export type RngNamespace =
   | 'world' | 'wave' | 'enemy' | 'plant' | 'loot'   // gameplay
@@ -96,12 +99,8 @@ export function deriveSeed(
 }
 
 export function strHash(s: string): number {
-  let h = 2166136261 >>> 0;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
+  // Delegates to the shared FNV-1a core (core/hash.ts) — same output as before.
+  return fnv1a(0x811c9dc5, s);
 }
 
 function mix(h: number, v: number): number {

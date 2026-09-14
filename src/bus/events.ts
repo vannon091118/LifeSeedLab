@@ -31,7 +31,15 @@ export type EventType =
   // placement feedback
   | 'PLACEMENT_REJECTED'
   | 'FERTILIZE_REJECTED'
-  | 'PROPAGATE_REJECTED';
+  | 'PROPAGATE_REJECTED'
+  // map (P5)
+  | 'TILE_PLACED'
+  | 'TILE_REJECTED'
+  | 'ROUTE_CHANGED'
+  // beetles (P6: Käferzucht — Brutling als alliierter Kämpfer)
+  | 'BEETLE_DEPLOYED'
+  | 'BEETLE_DOWN'
+  | 'BEETLE_REJECTED';
 
 // ── Payload contracts (v1) ───────────────────────────────────
 
@@ -63,6 +71,12 @@ export interface EventPayloads {
   PLACEMENT_REJECTED: { reason: 'occupied' | 'on_path' | 'no_inventory' | 'no_energy'; gx: number; gy: number };
   FERTILIZE_REJECTED: { plantId: string; reason: 'not_growing' | 'max_reached' | 'not_found' };
   PROPAGATE_REJECTED: { plantId: string; reason: 'not_mature' | 'not_found' | 'on_path' | 'occupied' };
+  TILE_PLACED: { gx: number; gy: number; tile: string; cost: number };
+  TILE_REJECTED: { gx: number; gy: number; tile: string; reason: 'unknown_tile' | 'no_energy' | 'max_count' | 'occupied_plant' | 'spawn_corridor' };
+  ROUTE_CHANGED: { waypoints: number };
+  BEETLE_DEPLOYED: { beetleId: string; name: string; px: number; py: number; spawnCount: number };
+  BEETLE_DOWN: { beetleId: string; px: number; py: number };
+  BEETLE_REJECTED: { reason: 'already_deployed' | 'no_energy' | 'none_available' };
 }
 
 export type GameEvent = {

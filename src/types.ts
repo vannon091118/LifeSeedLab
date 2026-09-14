@@ -31,6 +31,8 @@ export type PlantVariant = {
   generation?: number;
   parentA?: string;
   parentB?: string;
+  /** PLANTS_SOURCE-Verankerung für Basen (Platzierbarkeit im Run — eine Stats-Quelle). */
+  sourceId?: 'sprout' | 'rootwall' | 'mycelia';
 };
 
 // ── Run economy (in-run currency) ────────────────────────────
@@ -40,9 +42,10 @@ export type RunEconomy = {
 };
 
 // ── Meta save (persistent across runs) ───────────────────────
-// v3 (Gacha-Ökonomie): genau 2 Startpflanzen, Seed-Shop-Besitz, Reifungs-Queue.
+// ── v3 (Gacha-Ökonomie): genau 2 Startpflanzen, Seed-Shop-Besitz, Reifungs-Queue.
+// ── v4 (P6): Käferzucht — Brut-Lager, ein eingesetzter Käfer, Brut-Reifungs-Queue.
 export type MetaSave = {
-  version: 3;
+  version: 4;
   nektar: number;
   bestWave: number;
   runs: number;
@@ -65,6 +68,12 @@ export type MetaSave = {
   totalWavesSurvived: number;
   /** EINE Quelle für Zucht-Stats: beim Claim abgeleitet, an jeden Run injiziert (B1). */
   bredStats: Record<string, { hp: number; damage: number; range: number; cooldown: number; cost: number; effects: string[] }>;
+  /** P5 Spieler-Maps: benannte Layouts ("gx,gy":tile) — spielbarer Inhalt zwischen Spielern. */
+  mapLayouts: Record<string, Record<string, string>>;
+  /** P6 Käferzucht: gezüchtete Specimen (Brut-Lager) + Reifungs-Queue. */
+  beetles: BeetleSpecimen[];
+  beetleDeployed: string | null;
+  pendingBroods: PendingBrood[];
 };
 
 /** Eine Kreuzung wartet auf Reifung: verfügbar nach `wavesToUnlockFor(index)` Wellen. */
@@ -73,6 +82,16 @@ export type PendingCross = {
   seed: number;        // gacha seed — Kind ist bei Aussaat schon deterministisch fest
   neededWaves: number; // wavesToUnlockFor(crossIndex)
   startedWave: number; // totalWavesSurvived bei Aussaat
+};
+
+/** P6: Ein Brutvorgang wartet auf Reifung nach Kinderstärke (beetleWavesToUnlock). */
+export type PendingBrood = {
+  broodIndex: number;
+  specimenAId: string;
+  specimenBId: string;
+  neededWaves: number;
+  startedWave: number;
+  chosenIndex: number; // welcher der 3 Brutkandidaten deterministisch „gewonnen" hat
 };
 
 // ── Game modes ───────────────────────────────────────────────
@@ -92,6 +111,29 @@ export type CrossResult = {
   parentB: string;
   probability: number;
   isNew: boolean;
+};
+
+// ── Käferzucht (P6): Brüten erweitert das Genom-Prinzip — eigene Identität ──
+export type BeetleSpecimen = {
+  id: string;
+  name: string;
+  /** BEETLES_SOURCE-Verankerung (Basis-Werte + Farbe — eine Stats-Quelle). */
+  specimenId: string;
+  genome: Genome;
+  stats: {
+    hp: number;
+    speed: number;       // Zellen/Tick
+    attack: number;      // Schaden pro Biss
+    taunt: boolean;      // TAUNT (Y/N)
+    spawnX: number;      // Spawn 1×–5× beim Einsatz
+    deathSpawnX: number; // Beim Tod X halbwertige Brutlinge
+    cost: number;        // Energie pro Einsatz im Run
+  };
+  color: string;
+  discovered: boolean;
+  generation?: number;
+  parentA?: string;
+  parentB?: string;
 };
 
 // ── Seed shop ────────────────────────────────────────────────

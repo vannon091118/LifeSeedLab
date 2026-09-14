@@ -220,24 +220,10 @@ export { BASES_SOURCE, EXTRAS_SOURCE, EFFECTS_SOURCE };
 // ── B4: Genome → VisualInput ─────────────────────────────────
 // Jede gezüchtete Variante erhält eine DISTINKTE Silhouette + Palette + Tint,
 // deterministisch aus Genom + Seed abgeleitet (Test locked).
+// Gen→Extra/Effect-Mapping lebt in config/genes.source.ts (SOURCE = CONTENT TRUTH).
 
 import type { PlantVariant } from '../types';
-
-const GENE_TO_EXTRA: Record<string, ExtraId> = {
-  fire: 'EXTRA_SPIKE', ice: 'EXTRA_GEM', heal: 'EXTRA_LEAF_CROWN',
-  shield: 'EXTRA_HAT', thorns: 'EXTRA_SPIKE', crit: 'EXTRA_ANTENNA',
-  regen: 'EXTRA_MUSHROOM', lure: 'EXTRA_VINE', venom: 'EXTRA_SPIKE',
-  splash: 'EXTRA_GEM', pierce: 'EXTRA_SPIKE', rapid: 'EXTRA_LEAF_CROWN',
-  swift: 'EXTRA_ANTENNA', heavy: 'EXTRA_HAT', aura: 'EXTRA_GEM',
-};
-
-const GENE_TO_EFFECT: Record<string, EffectId> = {
-  fire: 'EFFECT_BURN', ice: 'EFFECT_SLOW', venom: 'EFFECT_POISON',
-  heal: 'EFFECT_HEAL', shield: 'EFFECT_SHIELD', pierce: 'EFFECT_PIERCE',
-  crit: 'EFFECT_CRIT', swift: 'EFFECT_HASTE', aura: 'EFFECT_HEAL',
-  thorns: 'EFFECT_REFLECT', rapid: 'EFFECT_HASTE', heavy: 'EFFECT_CRIT',
-  splash: 'EFFECT_CHAIN', lure: 'EFFECT_CHAIN', regen: 'EFFECT_HEAL',
-};
+import { GENE_TO_EXTRA, GENE_TO_EFFECT } from '../config/genes.source';
 
 const TYPE_BASES: Record<PlantVariant['type'], BaseId[]> = {
   shooter: ['BASE_THORN', 'BASE_FROND', 'BASE_FLOWER'],

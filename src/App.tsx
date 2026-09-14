@@ -51,6 +51,8 @@ function AppInner() {
           loadout={meta.loadout}
           savedVariants={meta.savedVariants}
           bredStats={meta.bredStats}
+          beetles={meta.beetles}
+          audioOn={meta.audioOn}
           onMetaChange={setMeta}
           onExit={handleExitRun}
         />

@@ -48,6 +48,31 @@ describe('Phase 8: Visual Observer purity', () => {
       expect(['SpawnParticleBurst', 'SpawnFloatingNumber', 'PunchScale', 'CameraShake', 'ScreenFlash', 'ShowMangaText', 'PlayAnimation']).toContain(c.type);
     }
   });
+
+  it('B4 lifecycle events produce FX (GROWN/PROPAGATED/WITHERED burst, WEAKENED/FERTILIZED punch)', () => {
+    const obs = new VisualObserver(new Camera(), true);
+    obs.observe(makeEvent(10, 'PLANT_GROWN', 'plant-0001', 1, { plantId: 'plant-0001', variantId: 'sprout', gx: 2, gy: 3 }));
+    obs.observe(makeEvent(11, 'PLANT_PROPAGATED', 'plant-0002', 1, { sourcePlantId: 'plant-0001', plantId: 'plant-0002', variantId: 'sprout', gx: 3, gy: 3 }));
+    obs.observe(makeEvent(12, 'PLANT_WITHERED', 'plant-0003', 1, { plantId: 'plant-0003', variantId: 'sprout', gx: 4, gy: 4 }));
+    obs.observe(makeEvent(13, 'PLANT_WEAKENED', 'plant-0004', 1, { plantId: 'plant-0004', variantId: 'sprout' }));
+    obs.observe(makeEvent(14, 'PLANT_FERTILIZED', 'plant-0005', 1, { plantId: 'plant-0005', variantId: 'sprout', count: 1 }));
+    const cmds = obs.drain();
+    const bursts = cmds.filter(c => c.type === 'SpawnParticleBurst') as Extract<typeof cmds[number], { type: 'SpawnParticleBurst' }>[];
+    const punches = cmds.filter(c => c.type === 'PunchScale') as Extract<typeof cmds[number], { type: 'PunchScale' }>[];
+    const profiles = bursts.map(c => c.profile);
+    expect(profiles).toContain('glow_rise');      // GROWN
+    expect(profiles).toContain('ring_soft');      // PROPAGATED
+    expect(profiles).toContain('wither_dust');    // WITHERED
+    expect(punches.some(c => c.entityId === 'plant-0004' && c.strength < 0)).toBe(true);  // WEAKENED: sackt ein
+    expect(punches.some(c => c.entityId === 'plant-0005' && c.strength > 0)).toBe(true);  // FERTILIZED: pulst
+    // alle verwendeten Profile müssen existieren (A7-Grammatik)
+    const pool = new ParticlePool();
+    for (const p of profiles) {
+      pool.burst(p, 0, 0, '#fff', 1);
+      expect(pool.activeCount).toBeGreaterThan(0);
+      pool.clear();
+    }
+  });
 });
 
 describe('Phase 11: Particle pool', () => {

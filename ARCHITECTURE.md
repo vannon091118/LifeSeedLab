@@ -19,7 +19,7 @@
 | Tests | Vitest | **behalten** | läuft, 52+ Tests |
 | Async-PvP-Backend | **Convex — aufgeschoben** | **Schema jetzt, Einbau später** | Vercel-as-Backend abgelehnt (Deploys laufen bereits auf managed Freebuff-Hosting; eine zweite Plattform kauft nichts). Convex passt zu Build-Sharing: kleine JSON-Dokumente, kein Server-Betrieb, TS-SDK, Free Tier, Auth slotting später sauber ein. **Was jetzt passiert, ist nur der Schema-Vertrag:** Das Export-Format eines geteilten Builds ist fix als `{ genomePair, rootSeed, commandLogHash, variantKey, createdAt, version }`. Dasselbe JSON, das heute in den Run-Save geht, POSTet später unverändert an Convex — Gameplay-Code erfährt nie, dass ein Backend existiert; es kommt hinter genau einem `bus/remote`-Adapter an. |
 | Discovery-Chain | **Supabase + SHA256-lite, lokal-first** | **Schema jetzt, Sync später** | Kein Token/Blockchain: `genome_hash` aus RNG ist der Beweis, `prev_hash`-Kette ist die Verkettung. Lokal `UNIQUE(genome_hash)`, public read, `supabase/migrations/001_discoveries.sql`. |
-| Abgelehnt | Game Engines (LOC-Caps + Purity-Vertrag), neue State-Manager (React-State + Refs genügen), Playwright (aufgeschoben bis Mobile-e2e), **jede Änderung an `vite.config.ts`** | — | |
+| Abgelehnt | Game Engines (LOC-Caps + Purity-Vertrag), neue State-Manager (React-State + Refs genügen), **jede Änderung an `vite.config.ts`** | — | |
 
 ---
 

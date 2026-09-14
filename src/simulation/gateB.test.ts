@@ -126,7 +126,12 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
     let sawDay = false;
     root.bus.subscribe('NIGHT_STARTED', () => { sawNight = true; });
     root.bus.subscribe('DAY_STARTED', () => { sawDay = true; });
-    for (let i = 0; i < 5000; i++) root.stepOnce();
+    // Run am Leben halten: ohne das friert der Game-Over-Freeze (P1) die Uhr
+    // nach dem ersten Totalverlust ein — die Grenze von 2400 würde nie erreicht.
+    const s = root.getSnapshot();
+    s.lives = 1_000_000_000;
+    // 2 × 2400 Ticks — garantiert je einen Tag- und einen Nacht-Übergang (CYCLE_TICKS)
+    for (let i = 0; i < 12000; i++) root.stepOnce();
     expect(sawNight).toBe(true);
     expect(sawDay).toBe(true);
   });

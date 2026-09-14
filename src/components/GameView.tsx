@@ -4,7 +4,7 @@
 // DevGate: ?dev=1 / #dev zeigt Seed/Hash/Tick/EventLog/Particles/Inspector — Release hat 0 Dev-Surface.
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import type { CSSProperties } from 'react';
-import type { MetaSave } from '../types';
+import type { MetaSave, BeetleSpecimen } from '../types';
 import { SimulationRoot, makeCommand } from '../simulation/root';
 import { saveRun } from '../persistence/runSave';
 import { Renderer } from '../render/renderer';
@@ -18,7 +18,8 @@ import { resolveBredVisuals, resolveVisual } from '../visual/generator';
 import { strHash } from '../core/rng';
 import { useI18n } from '../i18n';
 import { PLANTS_SOURCE } from '../config/plants.source';
-import { recordRunEnd, advanceCrossMaturation } from '../meta';
+import { MAP_TILES_SOURCE, type MapTileType } from '../config/map.source';
+import { recordRunEnd, advanceCrossMaturation, updateMeta } from '../meta';
 import { isDevActive } from '../dev/gate';
 import { DevOverlay } from '../dev/DevOverlay';
 import { Inspector } from '../dev/Inspector';
@@ -27,16 +28,18 @@ interface Props {
   seed: number; runId: number;
   loadout: string[]; savedVariants: MetaSave['savedVariants'];
   bredStats: NonNullable<MetaSave['bredStats']>;
+  beetles: BeetleSpecimen[];
+  audioOn: boolean;
   onMetaChange: (meta: MetaSave) => void; onExit: () => void;
 }
-interface HudSnapshot { wave: number; energy: number; lives: number; combo: number; inventory: Record<string, number>; paused: boolean; phase: import('../simulation/state').RunPhase; }
+interface HudSnapshot { wave: number; energy: number; lives: number; combo: number; inventory: Record<string, number>; paused: boolean; phase: import('../simulation/state').RunPhase; beetleDeployed: boolean; }
 type Ghost = { visual: import('../visual/generator').ResolvedVisual; gx: number; gy: number; valid: boolean } | null;
 
 function DropIcon(){ return <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden><path d="M7 1.5C7 1.5 2.8 6 2.8 9.1A4.2 4.2 0 0011.2 9.1C11.2 6 7 1.5 7 1.5Z" fill="#d9a441" stroke="#2b2b26" strokeWidth="1.2" strokeLinejoin="round"/><circle cx="5.4" cy="7.2" r="1" fill="white" opacity="0.85"/></svg>; }
 function LeafHeartIcon(){ return <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden><path d="M7 11.2C7 11.2 2.3 8.4 2.3 5.6A2.7 2.7 0 017 3.1A2.7 2.7 0 0111.7 5.6C11.7 8.4 7 11.2 7 11.2Z" fill="#5a8f4e" stroke="#2b2b26" strokeWidth="1.2"/><path d="M7 3.1C7 3.1 7.8 4.6 7 6" stroke="#2b2b26" strokeWidth="0.9" strokeLinecap="round"/></svg>; }
 function WaveIcon(){ return <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden><path d="M1.5 7 Q3.5 3.5 5.5 7 T9.5 7 T12.5 7" stroke="#2b2b26" strokeWidth="1.4" strokeLinecap="round" fill="none"/><path d="M1.5 9 Q3.5 5.5 5.5 9 T9.5 9 T12.5 9" stroke="#2b2b26" strokeWidth="1" strokeLinecap="round" fill="none" opacity="0.5"/></svg>; }
 
-export function GameView({ seed, runId, loadout, savedVariants, bredStats, onMetaChange, onExit }: Props){
+export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetles, audioOn, onMetaChange, onExit }: Props){
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rootRef = useRef<SimulationRoot | null>(null);
   const rendererRef = useRef<Renderer | null>(null);
@@ -47,17 +50,20 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, onMet
   const runEndedRef = useRef(false);
 
   const [selected, setSelected] = useState<string | null>(null);
+  // P5: Platzier-Modus — 'plant' (Tray) oder ein Map-Tile-Typ. EIN Workflow, zwei Objekt-Klassen.
+  const [placeMode, setPlaceMode] = useState<'plant' | MapTileType>('plant');
   const [hud, setHud] = useState<HudSnapshot | null>(null);
   const [ghost, setGhost] = useState<Ghost>(null);
   const [suspended, setSuspended] = useState(false);
   const [showGameOver, setShowGameOver] = useState(false);
-  const [fxOn, setFxOn] = useState(true);
+  const [fxOn, setFxOn] = useState(audioOn); // B8: audioOn aus dem Meta-Save ist der Startwert
   const [devTick, setDevTick] = useState(0);
   const [dpr, setDpr] = useState(1);
   const { t } = useI18n();
   const selectedRef = useRef<string | null>(null);
   const ghostRef = useRef<Ghost>(null);
   const cmdSeq = useRef(0);
+  const placeModeRef = useRef<'plant' | MapTileType>('plant');
   const devActive = useMemo(() => isDevActive(), []);
 
   const ghostVisual = useCallback((variantId: string) => {
@@ -70,12 +76,22 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, onMet
   const cancelPlacement = useCallback(() => {
     selectedRef.current = null; setSelected(null);
     ghostRef.current = null; setGhost(null);
+    setPlaceMode('plant');
   }, []);
 
   const handleSelect = useCallback((id: string, count: number) => {
     if (count <= 0) return;
     const next = selectedRef.current === id ? null : id;
     selectedRef.current = next; setSelected(next);
+    setPlaceMode('plant'); placeModeRef.current = 'plant';
+    if (!next) { ghostRef.current = null; setGhost(null); }
+  }, []);
+
+  /** P5: Map-Tile für den Platzier-Modus wählen (kostet Energie, kein Inventar). */
+  const handleSelectTile = useCallback((tile: MapTileType) => {
+    const next = (selectedRef.current === tile && placeModeRef.current !== 'plant') ? null : tile;
+    selectedRef.current = next; setSelected(next);
+    setPlaceMode(next ?? 'plant'); placeModeRef.current = next ?? 'plant';
     if (!next) { ghostRef.current = null; setGhost(null); }
   }, []);
 
@@ -84,13 +100,15 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, onMet
       const next = !v;
       observerRef.current?.setFxEnabled(next);
       audioRef.current?.setEnabled(next);
+      // B8-Kopplung: der Toggle persistiert im Meta-Save (einziger Writer: persistence/).
+      onMetaChange(updateMeta({ audioOn: next }));
       return next;
     });
-  }, []);
+  }, [onMetaChange]);
 
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;
-    const root = new SimulationRoot({ seed, runId, loadout, bredStats });
+    const root = new SimulationRoot({ seed, runId, loadout, bredStats, beetles });
     rootRef.current = root;
     const renderer = new Renderer(canvas);
     rendererRef.current = renderer;
@@ -105,7 +123,7 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, onMet
     particlesRef.current = particles;
     const feedback = new FeedbackLayer();
 
-    for (const type of ['PROJECTILE_HIT','ENEMY_DIED','PLANT_PLACED','WAVE_COMPLETED','GAME_OVER','CRITICAL_HIT','PLACEMENT_REJECTED','DAMAGE_DEALT','WAVE_STARTED','NIGHT_STARTED','DAY_STARTED','SCORE_CHANGED','COMBO_CHANGED','REWARD_GRANTED','COINS_GRANTED'] as const){
+    for (const type of ['PROJECTILE_HIT','ENEMY_DIED','PLANT_PLACED','WAVE_COMPLETED','GAME_OVER','CRITICAL_HIT','PLACEMENT_REJECTED','DAMAGE_DEALT','WAVE_STARTED','NIGHT_STARTED','DAY_STARTED','SCORE_CHANGED','COMBO_CHANGED','REWARD_GRANTED','COINS_GRANTED','PLANT_GROWN','PLANT_WEAKENED','PLANT_WITHERED','PLANT_PROPAGATED','PLANT_FERTILIZED','BEETLE_DEPLOYED','BEETLE_DOWN','BEETLE_REJECTED'] as const){
       root.bus.subscribe(type, (e) => { observer.observe(e as never); audio.observe(e as never); });
     }
     root.bus.subscribe('NIGHT_STARTED', () => renderer.setNight(true));
@@ -153,7 +171,7 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, onMet
           advanceCrossMaturation(s.wave.number);
           onMetaChange(next);
         }
-        setHud({ wave: s.wave.number, energy: s.resources.energy, lives: s.lives, combo: s.combo.count, inventory: { ...s.inventory }, paused: pausedRef.current, phase: s.phase });
+        setHud({ wave: s.wave.number, energy: s.resources.energy, lives: s.lives, combo: s.combo.count, inventory: { ...s.inventory }, paused: pausedRef.current, phase: s.phase, beetleDeployed: s.deployedBeetle !== null });
         if (devActive) setDevTick(v => v + 1);
       }
       if (saveAccum > 10000) { saveAccum = 0; saveRun(root.getSnapshot()); }
@@ -171,7 +189,11 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, onMet
       window.removeEventListener('pointerdown', unlockOnce);
       saveRun(root.getSnapshot());
     };
-  }, [seed, runId, loadout, savedVariants, bredStats, onMetaChange, fxOn, devActive]);
+    // fxOn is deliberately NOT a dependency: FX is presentation-only and must never
+    // tear down + rebuild the simulation root (that would restart the run). The
+    // observers expose setFxEnabled/setEnabled for live toggling instead.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seed, runId, loadout, savedVariants, bredStats, onMetaChange, devActive]);
 
   const onPointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!selectedRef.current) return;
@@ -180,6 +202,7 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, onMet
     const cell = renderer.gridFromPixel(e.clientX - rect.left, e.clientY - rect.top);
     if (!cell) { ghostRef.current = null; setGhost(null); return; }
     const snap = rootRef.current?.getSnapshot();
+    // Tile-Modus: Zelle frei von Pflanzen genügt; Plant-Modus: Zelle frei von Pflanzen
     const occupied = snap?.plants.some(p => p.gx === cell.gx && p.gy === cell.gy) ?? false;
     const valid = !occupied;
     const visual = ghostVisual(selectedRef.current);
@@ -194,6 +217,11 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, onMet
     const rect = (e.currentTarget as HTMLCanvasElement).getBoundingClientRect();
     const cell = renderer.gridFromPixel(e.clientX - rect.left, e.clientY - rect.top);
     if (!cell) return;
+    if (placeModeRef.current !== 'plant') {
+      // P5: Map-Tile platzieren — gleicher Command-Pfad, andere Command-Art
+      root.commands.push(makeCommand(root.clock.get().tick, 'PLACE_TILE', ++cmdSeq.current, { gx: cell.gx, gy: cell.gy, tile: placeModeRef.current }));
+      return;
+    }
     root.commands.push(makeCommand(root.clock.get().tick, 'PLACE_PLANT', ++cmdSeq.current, { variantId: selectedRef.current!, gx: cell.gx, gy: cell.gy }));
   }, []);
 
@@ -207,6 +235,14 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, onMet
     const root = rootRef.current; if (!root) return;
     root.commands.push(makeCommand(root.clock.get().tick, 'START_WAVE', ++cmdSeq.current, {}));
   }, []);
+
+  /** P6: Brutling einsetzen — eigener Command-Pfad (Spawns während Welle oder Vorbereitung). */
+  const handleDeployBeetle = useCallback(() => {
+    const root = rootRef.current; if (!root) return;
+    const brood = beetles[beetles.length - 1];
+    if (!brood) return;
+    root.commands.push(makeCommand(root.clock.get().tick, 'DEPLOY_BEETLE', ++cmdSeq.current, { beetleId: brood.id }));
+  }, [beetles]);
 
   const plantIds = Array.from(new Set([...Object.keys(PLANTS_SOURCE), ...loadout]));
   const inspectorVisual = ghost?.visual ?? (selected ? ghostVisual(selected) : null);
@@ -223,6 +259,11 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, onMet
           <button onClick={togglePause} style={styles.btn} aria-label={hud?.paused ? 'Fortsetzen' : 'Pause'}>{hud?.paused ? '▶' : '❚❚'}</button>
           <button onClick={handleStartWave} style={{ ...styles.btn, ...styles.btnPrimary }}>{t('game.startWave')}</button>
           <button onClick={onExit} style={styles.btn}>{t('game.exitRun')}</button>
+          {beetles.length > 0 && !hud?.beetleDeployed && (
+            <button onClick={handleDeployBeetle} style={{ ...styles.btn, ...styles.btnBeetle }} title={`${beetles[beetles.length - 1].name} einsetzen`}>
+              {t('game.deployBeetle')}
+            </button>
+          )}
         </div>
       </div>
 
@@ -267,7 +308,7 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, onMet
           <div style={styles.tray} role="toolbar" aria-label="Pflanzenauswahl">
             {plantIds.map(id => {
               const count = hud?.inventory[id] ?? 0;
-              const isSel = selected === id; const disabled = count <= 0;
+              const isSel = selected === id && placeMode === 'plant'; const disabled = count <= 0;
               return (
                 <button
                   key={id}
@@ -278,6 +319,23 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, onMet
                   <span style={styles.trayDot} aria-hidden/>
                   <span style={styles.trayName}>{id}</span>
                   <span style={styles.trayCount}>×{count}</span>
+                </button>
+              );
+            })}
+            {/* P5: Map-Tiles — Wege lenken Gegner, Töpfe tragen Pflanzen, Findlinge blockieren */}
+            {(Object.keys(MAP_TILES_SOURCE) as MapTileType[]).map(tile => {
+              const isSel = selected === tile && placeMode === tile;
+              const affordable = (hud?.energy ?? 0) >= MAP_TILES_SOURCE[tile].cost;
+              return (
+                <button
+                  key={tile}
+                  onClick={() => handleSelectTile(tile)}
+                  style={{ ...styles.trayItem, ...(isSel ? styles.trayItemSelected : {}), ...(affordable ? {} : styles.trayItemDisabled) }}
+                  aria-pressed={isSel} aria-disabled={!affordable} title={`${tile} (${MAP_TILES_SOURCE[tile].cost} Energie)`}
+                >
+                  <span style={{ ...styles.trayDot, background: tile === 'path' ? '#d9c9a3' : tile === 'pot' ? '#c96f3b' : tile === 'boulder' ? '#9a948a' : '#c96f8e' }} aria-hidden/>
+                  <span style={styles.trayName}>{tile}</span>
+                  <span style={styles.trayCount}>{MAP_TILES_SOURCE[tile].cost}⚡</span>
                 </button>
               );
             })}
@@ -315,6 +373,7 @@ const styles: Record<string, CSSProperties> = {
   topRight: { display: 'flex', gap: 8, alignItems: 'center' },
   btn: { padding: '10px 14px', background: '#fff', border: '2px solid var(--ink)', borderRadius: 10, color: 'var(--ink)', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '3px 3px 0 var(--ink)', lineHeight: 1, minHeight: 44, minWidth: 44 },
   btnPrimary: { background: 'var(--leaf)', color: '#fff', borderColor: 'var(--ink)' },
+  btnBeetle: { background: '#d9a441', color: '#2b2b26', borderColor: 'var(--ink)' },
   stage: { flex: 1, position: 'relative', minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '10px 10px 8px', background: 'var(--paper)' },
   canvasFrame: { position: 'relative', width: '100%', maxWidth: 860, flex: 1, minHeight: 0, background: '#fff', border: '2px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink), 0 14px 32px rgba(43,43,38,0.16)', overflow: 'hidden', display: 'flex' },
   canvas: { width: '100%', height: '100%', display: 'block', touchAction: 'none', flex: 1 },

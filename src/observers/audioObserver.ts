@@ -64,6 +64,14 @@ export class AudioObserver {
       case 'WAVE_COMPLETED': return 'chime';
       case 'GAME_OVER': return 'ko';
       case 'PLACEMENT_REJECTED': return 'blub';
+      // Pflanzenlebenszyklus (B4): Reife, Setzling, Welken, Dünger.
+      case 'PLANT_GROWN': return 'chime';
+      case 'PLANT_PROPAGATED': return 'hum';
+      case 'PLANT_WITHERED': return 'whoosh';
+      case 'PLANT_FERTILIZED': return 'blub';
+      // P6/P8 Käfer: harte, tierische Klänge — bewusst KEINE Pflanzenklänge.
+      case 'BEETLE_DEPLOYED': return 'zap';
+      case 'BEETLE_DOWN': return 'ko';
       default: return null;
     }
   }

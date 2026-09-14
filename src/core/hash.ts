@@ -16,7 +16,16 @@ export interface HashableState {
   combo: { count: number; multiplier: number; timer: number; highest: number };
 }
 
-function fnv1a(h0: number, str: string): number {
+/**
+ * Canonical FNV-1a as 8-digit hex — the one shared implementation for all hash
+ * identities (discovery genome/entry hashes). One hash core, one truth.
+ */
+export function fnv1aHex(input: string): string {
+  return fnv1a(0x811c9dc5, input).toString(16).padStart(8, '0');
+}
+
+/** FNV-1a core (raw u32) — single implementation for all identity/mixing hashes. */
+export function fnv1a(h0: number, str: string): number {
   let h = h0;
   for (let i = 0; i < str.length; i++) {
     h ^= str.charCodeAt(i);

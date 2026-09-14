@@ -1,52 +1,29 @@
-import type { PlantVariant } from '../types';
-import { STARTER_PLANT_COUNT } from '../config/economy.source';
+import type { PlantVariant, Genome } from '../types';
+import { PLANTS_SOURCE } from '../config/plants.source';
+import { deriveTraits } from './cross';
 
 // Owner: Source (base variants). LOC ≤ 200.
-void STARTER_PLANT_COUNT;
+// Basen werden aus PLANTS_SOURCE abgeleitet — EINE Stats-Quelle (Befund A2:
+// es gab zwei parallele Basen-Wahrheiten mit unterschiedlichen IDs). Kanonische
+// IDs = PlantTypeId, damit Platzierung im Run direkt über resolvePlantStats
+// funktioniert. stats.special bleibt: wall+thorns → reflect, support+heal → aura.
 
 export function createBaseVariants(): PlantVariant[] {
-  return [
-    {
-      id: 'base_shooter',
-      name: 'Sprout',
-      type: 'shooter',
-      genome: [
-        { id: 'rapid', power: 0.5, dominant: true },
-        { id: 'pierce', power: 0.3, dominant: true },
-      ],
-      traits: ['rapid fire', 'pierce'],
-      cost: 50,
-      stats: { hp: 100, damage: 15, range: 3, cooldown: 30, special: null },
-      color: '#4ade80',
+  return Object.values(PLANTS_SOURCE).map(src => {
+    const special = src.role === 'wall' && src.effects.includes('EFFECT_REFLECT') ? 'reflect'
+      : src.role === 'support' && src.effects.includes('EFFECT_HEAL') ? 'heal_aura'
+      : null;
+    return {
+      id: src.id,
+      name: src.id.charAt(0).toUpperCase() + src.id.slice(1),
+      type: src.role,
+      genome: src.genome.map(g => ({ ...g })),
+      traits: deriveTraits(src.genome as Genome),
+      cost: src.cost,
+      stats: { ...src.stats, special },
+      color: src.role === 'shooter' ? '#4ade80' : src.role === 'wall' ? '#a3734a' : '#c084fc',
       discovered: true,
-    },
-    {
-      id: 'base_wall',
-      name: 'Rootwall',
-      type: 'wall',
-      genome: [
-        { id: 'shield', power: 0.7, dominant: true },
-        { id: 'thorns', power: 0.4, dominant: true },
-      ],
-      traits: ['shield', 'thorns'],
-      cost: 40,
-      stats: { hp: 300, damage: 5, range: 0.5, cooldown: 60, special: 'reflect' },
-      color: '#a3734a',
-      discovered: true,
-    },
-    {
-      id: 'base_support',
-      name: 'Mycelia',
-      type: 'support',
-      genome: [
-        { id: 'heal', power: 0.6, dominant: false },
-        { id: 'aura', power: 0.3, dominant: false },
-      ],
-      traits: ['heal', 'aura'],
-      cost: 60,
-      stats: { hp: 80, damage: 0, range: 2, cooldown: 45, special: 'heal_aura' },
-      color: '#c084fc',
-      discovered: true,
-    },
-  ];
+      sourceId: src.id,
+    };
+  });
 }

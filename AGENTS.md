@@ -70,7 +70,7 @@ Kein „sollte passen", kein claims ohne Ausführung. Dev-Server/Preview wird **
 5. Debug/Dev-Flächen (Seed-Badge, Hash, Zähler, `[D]`) außerhalb des DevGates (`?dev=1`).
 6. Hardcoded Gameplay-Konstanten außerhalb `config/*.source.ts`.
 7. Caps erhöhen, um Code unterbringen zu wollen.
-8. Neue Dependencies ohne dokumentierte Begründung + Katalog-Prüfung; nie: Game Engine, State-Manager, Playwright (derzeit).
+8. Neue Dependencies ohne dokumentierte Begründung + Katalog-Prüfung; nie: Game Engine, State-Manager (derzeit).
 
 ## Ressourcenkarte (wo schaue ich nach?)
 

@@ -12,7 +12,9 @@ export type CommandType =
   | 'CANCEL_PLACEMENT'
   | 'INSPECT'
   | 'FERTILIZE_PLANT'
-  | 'PROPAGATE_PLANT';
+  | 'PROPAGATE_PLANT'
+  | 'PLACE_TILE'
+  | 'DEPLOY_BEETLE';
 
 export interface CommandPayloads {
   PLACE_PLANT: { variantId: string; gx: number; gy: number };
@@ -24,6 +26,8 @@ export interface CommandPayloads {
   INSPECT: { entityId: string | null };
   FERTILIZE_PLANT: { plantId: string };
   PROPAGATE_PLANT: { plantId: string };
+  PLACE_TILE: { gx: number; gy: number; tile: string };
+  DEPLOY_BEETLE: { beetleId: string };
 }
 
 export type Command = {

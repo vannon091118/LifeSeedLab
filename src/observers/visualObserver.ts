@@ -96,8 +96,37 @@ export class VisualObserver {
         this.push({ type: 'SpawnParticleBurst', profile: 'dust_puff', x: e.payload.gx + 0.5, y: e.payload.gy + 0.5, seed: (e.tick * 13 + this.seq) | 0, intensity: 1, color: '#b7a986' });
         break;
 
+      // ── Pflanzenlebenszyklus (B4): Wachstum, Schwäche, Welken, Vermehrung ──
+      case 'PLANT_GROWN':
+        // Reife: Blattgrün steigt vom Boden auf — die Pflanze „erhebt sich aufs Papier“.
+        this.push({ type: 'PlayAnimation', entityId: e.payload.plantId, anim: 'grow', ticks: 14 });
+        this.push({ type: 'SpawnParticleBurst', profile: 'glow_rise', x: e.payload.gx + 0.5, y: e.payload.gy + 0.5, seed: (e.tick * 37 + this.seq) | 0, intensity: 1, color: '#86efac' });
+        break;
+
+      case 'PLANT_WEAKENED':
+        // Kein gx/gy im Payload: das Welken zeigt sich als sichtbares Einsacken der Entity.
+        this.push({ type: 'PunchScale', entityId: e.payload.plantId, strength: -0.12 });
+        break;
+
       case 'PLACEMENT_REJECTED':
         this.push({ type: 'SpawnParticleBurst', profile: 'warn_pulse', x: e.payload.gx + 0.5, y: e.payload.gy + 0.5, seed: (e.tick * 7) | 0, intensity: 1, color: '#a94438' });
+        break;
+
+      case 'PLANT_PROPAGATED':
+        // Setzling: ein sanfter Papierring um die neue Position, im Blattton.
+        this.push({ type: 'SpawnParticleBurst', profile: 'ring_soft', x: e.payload.gx + 0.5, y: e.payload.gy + 0.5, seed: (e.tick * 41 + this.seq) | 0, intensity: 1, color: '#a7c08a' });
+        this.push({ type: 'PlayAnimation', entityId: e.payload.plantId, anim: 'placement', ticks: 10 });
+        break;
+
+      case 'PLANT_WITHERED':
+        // Verwelkt: Papierstaub sinkt zu Boden (schwerkraftbetont), entsättigt Rot-Braun.
+        this.push({ type: 'SpawnParticleBurst', profile: 'wither_dust', x: e.payload.gx + 0.5, y: e.payload.gy + 0.5, seed: (e.tick * 43 + this.seq) | 0, intensity: 1.5, color: '#9c8464' });
+        this.push({ type: 'PlayAnimation', entityId: e.payload.plantId, anim: 'death', ticks: 12 });
+        break;
+
+      case 'PLANT_FERTILIZED':
+        // Kein gx/gy im Payload: der Dünger-Kick zeigt sich als kräftiger Puls der Entity.
+        this.push({ type: 'PunchScale', entityId: e.payload.plantId, strength: 0.18 });
         break;
 
       case 'NIGHT_STARTED':
@@ -107,6 +136,19 @@ export class VisualObserver {
 
       case 'DAY_STARTED':
         this.push({ type: 'SpawnParticleBurst', profile: 'spawn_spore', x: 6, y: 4, seed: (e.tick * 19) | 0, intensity: 1, color: '#e8dfc8' });
+        break;
+
+      // ── P6/P8: Käfer (Brutling) — eigene Bernstein/Tusche-FX-Sprache, deutlich
+      // unterscheidbar von der Pflanzenpräsentation (kein Grün, kein chime): ──
+      case 'BEETLE_DEPLOYED':
+        // Einsatz: bernsteinfarbener Puls-Ring am Pfadkopf — „das Tier tritt an".
+        this.push({ type: 'SpawnParticleBurst', profile: 'ring_soft', x: e.payload.px + 0.5, y: e.payload.py + 0.5, seed: (e.tick * 47 + this.seq) | 0, intensity: 2, color: '#d9a441' });
+        this.push({ type: 'ShowMangaText', text: e.payload.name.toUpperCase() + '!', x: e.payload.px, y: e.payload.py - 1, intensity: 3 });
+        break;
+
+      case 'BEETLE_DOWN':
+        // K.O.: Tusche-Fleck zerfällt — kalt, asymmetrisch, kein Blattstaub.
+        this.push({ type: 'SpawnParticleBurst', profile: 'wither_dust', x: e.payload.px + 0.5, y: e.payload.py + 0.5, seed: (e.tick * 53 + this.seq) | 0, intensity: 2, color: '#5b5348' });
         break;
 
       case 'GAME_OVER':

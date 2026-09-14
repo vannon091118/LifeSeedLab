@@ -4,16 +4,7 @@
 // kein Token. Supabase-Spiegel via UNIQUE(genome_hash) — erste Entdeckung gewinnt.
 
 import type { Genome } from '../types';
-
-// ── Deterministischer FNV-1a (kanonisch, gleich wie core/hash) ──────
-function fnv1aHex(input: string): string {
-  let h = 0x811c9dc5 >>> 0;
-  for (let i = 0; i < input.length; i++) {
-    h ^= input.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return (h >>> 0).toString(16).padStart(8, '0');
-}
+import { fnv1aHex } from '../core/hash';
 
 // ── Genome-Hash (einzige Wahrheit für eine Kreuzung) ─────────────────
 /** Kanonische Darstellung: Gene sortiert nach id, power auf 1e-4 quantisiert. */

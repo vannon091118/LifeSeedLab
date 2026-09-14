@@ -61,6 +61,7 @@ describe('Gate B — Resume-Shape (RunSave v2)', () => {
     const shapeCheck: import('../persistence/runSave').RunSave = {
       version: 2, runId: 1, seed: 1, tick: 0, waveNumber: 1, energy: 100, lives: 20, score: 0,
       combo: { count: 0, timer: 0, multiplier: 1, highest: 0 }, plants: [], inventory: {}, discoveredVariants: [], bredStats: {}, nektarEarned: 0,
+      mapTiles: {},
     };
     expect(shapeCheck.version).toBe(2);
     expect((shapeCheck as unknown as Record<string, unknown>)).not.toHaveProperty('enemies');
@@ -102,10 +103,10 @@ describe('Gate B — Meta-Migration v1/v2 → v3', () => {
     const migrate = (raw: unknown, fromVersion: number) => {
       if (fromVersion !== 1 && fromVersion !== 2) return null;
       const base = defaultMeta();
-      return { ...base, ...(raw as object), version: 3 } as MetaSave;
+      return { ...base, ...(raw as object), version: 4 } as MetaSave;
     };
-    const loaded = load<MetaSave>(key, { version: 3, migrate, fallback: defaultMeta });
-    expect(loaded.version).toBe(3);
+    const loaded = load<MetaSave>(key, { version: 4, migrate, fallback: defaultMeta });
+    expect(loaded.version).toBe(4);
     expect(loaded.nektar).toBe(10);
     expect(loaded.runs).toBe(1);
     expect(loaded.bestWave).toBe(2);
@@ -114,19 +115,19 @@ describe('Gate B — Meta-Migration v1/v2 → v3', () => {
   it('korruptes Meta wird quarantäniert und fallback greift', () => {
     const key = 'lifegamelab_meta';
     localStorage.setItem(key, '{not-json');
-    const loaded = load<MetaSave>(key, { version: 3, fallback: defaultMeta });
-    expect(loaded.version).toBe(3);
+    const loaded = load<MetaSave>(key, { version: 4, fallback: defaultMeta });
+    expect(loaded.version).toBe(4);
     expect(localStorage.getItem(`${key}.corrupt`)).not.toBeNull();
   });
 
   it('checksum mismatch → quarantine + fallback', () => {
     const key = 'lifegamelab_meta';
-    const raw = { version: 3, nektar: 999 } as unknown as MetaSave;
+    const raw = { version: 4, nektar: 999 } as unknown as MetaSave;
     const dataStr = JSON.stringify(raw);
-    const env = { v: 3, checksum: fnv(dataStr) ^ 12345, data: raw };
+    const env = { v: 4, checksum: fnv(dataStr) ^ 12345, data: raw };
     localStorage.setItem(key, JSON.stringify(env));
-    const loaded = load<MetaSave>(key, { version: 3, fallback: defaultMeta });
+    const loaded = load<MetaSave>(key, { version: 4, fallback: defaultMeta });
     expect(loaded.nektar).not.toBe(999);
-    expect(loaded.version).toBe(3);
+    expect(loaded.version).toBe(4);
   });
 });

@@ -13,8 +13,10 @@ import { ProjectileSystem } from './projectileSystem';
 import { ScoreSystem } from './scoreSystem';
 import { ComboSystem } from './comboSystem';
 import { WaveSystem } from './waveSystem';
+import { MapSystem } from './mapSystem';
+import { executeCommand, type CommandContext } from './rootCommands';
 import { STARTING_INVENTORY } from '../config/plants.source';
-import { makePlacementRejected } from '../bus/commands';
+import { CYCLE_TICKS } from '../core/clock';
 
 export interface RootInit {
   seed: number;
@@ -24,6 +26,8 @@ export interface RootInit {
   loadout?: string[];
   /** Stats for carried bred variants (genome-derived at breeding time). */
   bredStats?: NonNullable<SimState['bredStats']>;
+  /** P6: gezüchtete Specimen für den Brutling-Einsatz im Run. */
+  beetles?: import('../types').BeetleSpecimen[];
 }
 
 export class SimulationRoot {
@@ -38,6 +42,7 @@ export class SimulationRoot {
   private score: ScoreSystem;
   private combo: ComboSystem;
   private waves: WaveSystem;
+  private map: MapSystem;
   private eventLog: GameEvent[] = [];
   private accumulator = 0;
   private rejectSeq = 0;
@@ -55,6 +60,7 @@ export class SimulationRoot {
     this.score = new ScoreSystem(e => this.publish(e));
     this.combo = new ComboSystem(e => this.publish(e));
     this.waves = new WaveSystem(e => this.publish(e));
+    this.map = new MapSystem(e => this.publish(e));
 
   }
 
@@ -84,6 +90,15 @@ export class SimulationRoot {
   stepOnce(): void {
     const state = this.state;
 
+    // 0) Game Over friert den Run am Owner ein (P1): Clock stoppt, Commands
+    //    werden verworfen, Systeme ruhen. Die UI zeigt das Ende — die Sim
+    //    vollstreckt es: keine Wellen, keine Platzierungen, keine Ticks danach.
+    if (state.phase === 'gameover') {
+      this.commands.clear();
+      this.clearEventLog();
+      return;
+    }
+
     // 1) drain commands
     for (const cmd of this.commands.drain()) {
       this.handleCommand(state, cmd);
@@ -95,7 +110,7 @@ export class SimulationRoot {
     this.clock.step();
     const nowPhase = state.clock.phase;
     if (prevPhase !== nowPhase) {
-      const cycle = Math.floor(state.clock.tick / 4800);
+      const cycle = Math.floor(state.clock.tick / (CYCLE_TICKS * 2));
       this.publish(nowPhase === 'night'
         ? { eventId: `${state.clock.tick}:system:clock:NIGHT_STARTED:${cycle}`, tick: state.clock.tick, type: 'NIGHT_STARTED', sourceId: 'system:clock', version: 1, payload: { cycle } }
         : { eventId: `${state.clock.tick}:system:clock:DAY_STARTED:${cycle}`, tick: state.clock.tick, type: 'DAY_STARTED', sourceId: 'system:clock', version: 1, payload: { cycle } });
@@ -125,6 +140,9 @@ export class SimulationRoot {
       });
       this.projectiles.update(state);
       this.enemies.applyStatusTicks(state);
+
+      // P6: Brutling kämpft mit (gleiche Kampfpfade, ein Writer für den Slice)
+      this.enemies.updateBeetle(state);
 
       // combo scoring: kills handled via ENEMY_DIED events below
     } else if (state.phase === 'prep') {
@@ -160,8 +178,8 @@ export class SimulationRoot {
       }
     }
 
-    // 6) game over
-    if (state.lives <= 0 && state.phase !== 'gameover') {
+    // 6) game over (der Game-Over-Freeze oben greift ab dem nächsten Tick — P1)
+    if (state.lives <= 0) {
       state.phase = 'gameover';
       this.publish({
         eventId: `${state.clock.tick}:system:run:GAME_OVER:0`,
@@ -174,68 +192,40 @@ export class SimulationRoot {
     }
   }
 
-  // ── Commands ────────────────────────────────────────────────
+  // ── Commands (Interpretation ausgelagert: rootCommands.ts, Regel 1 Split) ──
   private handleCommand(state: SimState, cmd: Command): void {
-    switch (cmd.type) {
-      case 'PLACE_PLANT': {
-        const r = this.plants.place(state, cmd.payload.variantId, cmd.payload.gx, cmd.payload.gy);
-        if (!r.ok) {
-          // Rejections are EVENTS, not silence (Defect: stilles Scheitern — UI/FX hängen am Bus)
-          this.publish(makePlacementRejected(state.clock.tick, ++this.rejectSeq, cmd.payload.gx, cmd.payload.gy, r.reason));
-        }
-        break;
-      }
-      case 'REMOVE_PLANT':
-        this.plants.remove(state, cmd.payload.plantId);
-        break;
-      case 'START_WAVE':
-        this.waves.startWave(state);
-        break;
-      case 'FERTILIZE_PLANT': {
-        const r = this.plants.fertilize(state, cmd.payload.plantId);
-        if (!r.ok) {
-          this.publish({
-            eventId: `${state.clock.tick}:system:plant:FERTILIZE_REJECTED:${++this.rejectSeq}`,
-            tick: state.clock.tick,
-            type: 'FERTILIZE_REJECTED',
-            sourceId: 'system:plant',
-            version: 1,
-            payload: { plantId: cmd.payload.plantId, reason: r.reason },
-          });
-        }
-        break;
-      }
-      case 'PROPAGATE_PLANT': {
-        const r = this.plants.propagate(state, cmd.payload.plantId);
-        if (!r.ok) {
-          this.publish({
-            eventId: `${state.clock.tick}:system:plant:PROPAGATE_REJECTED:${++this.rejectSeq}`,
-            tick: state.clock.tick,
-            type: 'PROPAGATE_REJECTED',
-            sourceId: 'system:plant',
-            version: 1,
-            payload: { plantId: cmd.payload.plantId, reason: r.reason },
-          });
-        }
-        break;
-      }
-      case 'SELECT_PLANT':
-      case 'CANCEL_PLACEMENT':
-      case 'INSPECT':
-      case 'BREED_PLANTS':
-        // UI-level concerns handled outside the deterministic sim
-        break;
-      default: {
-        const _exhaustive: never = cmd as never;
-        void _exhaustive;
-        break;
-      }
-    }
+    executeCommand(this.commandContext(), state, cmd);
+  }
+
+  private commandContext(): CommandContext {
+    return {
+      plants: this.plants, enemies: this.enemies, map: this.map, waves: this.waves,
+      publish: (e) => this.publish(e),
+      recomputeRoute: (s) => this.recomputeRoute(s),
+      nextSeq: () => ++this.rejectSeq,
+    };
   }
 
   // ── State access ────────────────────────────────────────────
   getSnapshot(): SimState {
     return this.state;
+  }
+
+  /** P5: Route aus dem Map-Grid ableiten und an EnemySystem geben (Fallback: null = DEFAULT).
+   * Ohne eigene Tiles gilt der gestaltete DEFAULT-Pfad (Terrain-Weg) — das leere
+   * Spielfeld ist bereits gestaltet; erst Platzierungen lenken den Laufweg um. */
+  private recomputeRoute(state: SimState): void {
+    const hasTiles = Object.keys(state.mapTiles).length > 0;
+    const route = hasTiles ? this.map.computeRoute(state) : null;
+    this.enemies.setRoute(route);
+    this.publish({
+      eventId: `${state.clock.tick}:system:map:ROUTE_CHANGED:${++this.rejectSeq}`,
+      tick: state.clock.tick,
+      type: 'ROUTE_CHANGED',
+      sourceId: 'system:map',
+      version: 1,
+      payload: { waypoints: route?.length ?? 0 },
+    });
   }
 
   getEventLog(): readonly GameEvent[] {
@@ -261,9 +251,12 @@ export class SimulationRoot {
       phase: 'prep',
       wave: { number: 0, schedule: null, spawnQueue: [], lastSpawnTick: 0, prepStartTick: this.clock.get().tick },
       resources: { energy: 150, coins: 0 },
+      mapTiles: {},
+      deployedBeetle: null,
       lives: 20,
       inventory,
       bredStats: init.bredStats ? { ...init.bredStats } : undefined,
+      beetles: init.beetles ? init.beetles.map(b => ({ ...b })) : [],
       discoveredVariants: discovered,
       plants: [],
       enemies: [],

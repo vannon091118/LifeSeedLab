@@ -3,7 +3,11 @@ import { useI18n } from '../i18n';
 import type { MetaSave, PlantVariant, GameMode } from '../types';
 import { createBaseVariants } from '../genome';
 import { Greenhouse } from './Greenhouse';
+import { SeedShop } from './SeedShop';
+import { BeetleLab } from './BeetleLab';
 import { Codex } from './Codex';
+import { MenuScene } from './MenuScene';
+import { SproutIcon, WaveIcon, BookIcon, SwordIcon, SeedIcon, BugIcon } from './MenuIcons';
 
 // Owner: UI (MainMenu screen). LOC ≤ 400.
 // B9/§40: Papier-Panels mit Büroklammer, trashig selbstironische Kopie, keine Blur-Glass-Karten.
@@ -22,6 +26,8 @@ type Props = {
 export function MainMenu({ meta, onMetaChange, onStartRun, onBack }: Props) {
   const { t } = useI18n();
   const [showGreenhouse, setShowGreenhouse] = useState(false);
+  const [showShop, setShowShop] = useState(false);
+  const [showBeetleLab, setShowBeetleLab] = useState(false);
   const [showCodex, setShowCodex] = useState(false);
 
   const bases: PlantVariant[] = createBaseVariants();
@@ -30,6 +36,9 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onBack }: Props) {
 
   return (
     <div style={styles.wrap}>
+      {/* Spielszene als Menü-Hintergrund (P3): Papierhügel + Weg + Pflanze —
+          das Menü FÜHLT sich wie das Spiel an, nicht wie ein Debug-Panel. */}
+      <MenuScene />
       <div style={styles.panel}>
         <div style={styles.clip} aria-hidden />
         <div style={styles.header}>
@@ -54,9 +63,21 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onBack }: Props) {
           <ModeCard
             icon={<SproutIcon />}
             title={t('menu.greenhouse')}
-            desc={t('shop.desc')}
+            desc={t('menu.greenhouseDesc')}
             onClick={() => setShowGreenhouse(true)}
             disabled={ownedVariants.length < 2}
+          />
+          <ModeCard
+            icon={<SeedIcon />}
+            title={t('menu.shop')}
+            desc={t('menu.shopDesc')}
+            onClick={() => setShowShop(true)}
+          />
+          <ModeCard
+            icon={<BugIcon />}
+            title={t('menu.beetleLab')}
+            desc={t('menu.beetleLabDesc')}
+            onClick={() => setShowBeetleLab(true)}
           />
           <ModeCard
             icon={<WaveIcon />}
@@ -108,47 +129,26 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onBack }: Props) {
           onClose={() => setShowGreenhouse(false)}
         />
       )}
+      {showShop && (
+        <SeedShop
+          meta={meta}
+          onMetaChange={onMetaChange}
+          onClose={() => setShowShop(false)}
+        />
+      )}
+      {showBeetleLab && (
+        <BeetleLab
+          meta={meta}
+          onMetaChange={onMetaChange}
+          onClose={() => setShowBeetleLab(false)}
+        />
+      )}
       {showCodex && <Codex onClose={() => setShowCodex(false)} />}
     </div>
   );
 }
 
-// SVG-Icons (B9: keine Emoji-Finalkunst) — 24px, ink stroke, paper fill
-function SproutIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M12 21v-8" stroke="#2b2b26" strokeWidth="2" strokeLinecap="round" />
-      <path d="M12 13C12 9 9 6 4 6c0 5 3 8 8 7Z" fill="#5a8f4e" stroke="#2b2b26" strokeWidth="2" strokeLinejoin="round" />
-      <path d="M12 13c0-4 3-7 8-7 0 5-3 8-8 7Z" fill="#7fb069" stroke="#2b2b26" strokeWidth="2" strokeLinejoin="round" />
-    </svg>
-  );
-}
-function WaveIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M2 14q3-5 6 0t6 0 6 0" stroke="#2b2b26" strokeWidth="2.2" strokeLinecap="round" fill="none" />
-      <path d="M2 19q3-5 6 0t6 0 6 0" stroke="#2b2b26" strokeWidth="1.4" strokeLinecap="round" fill="none" opacity="0.5" />
-    </svg>
-  );
-}
-function BookIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M4 4h7v16H6a2 2 0 01-2-2V4Z" fill="#d9a441" stroke="#2b2b26" strokeWidth="2" strokeLinejoin="round" />
-      <path d="M20 4h-7v16h5a2 2 0 002-2V4Z" fill="#f5efdc" stroke="#2b2b26" strokeWidth="2" strokeLinejoin="round" />
-      <path d="M11 4h2v16h-2z" fill="#2b2b26" />
-    </svg>
-  );
-}
-function SwordIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M5 19L16 8" stroke="#2b2b26" strokeWidth="2.4" strokeLinecap="round" />
-      <path d="M14 4l6 6-3 1-4-4 1-3Z" fill="#9ca3af" stroke="#2b2b26" strokeWidth="2" strokeLinejoin="round" />
-      <path d="M4 16l4 4-2 1-3-3 1-2Z" fill="#a94438" stroke="#2b2b26" strokeWidth="1.6" strokeLinejoin="round" />
-    </svg>
-  );
-}
+// Icons (B9) leben in MenuIcons.tsx — eine Präsentations-Verantwortung pro Datei.
 
 function StatBox({ label, value }: { label: string; value: number }) {
   return (
@@ -187,6 +187,7 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundImage:
       'repeating-linear-gradient(0deg, rgba(43,43,38,0.025) 0 1px, transparent 1px 3px), radial-gradient(ellipse at 70% 10%, rgba(217,164,65,0.10), transparent 55%)',
     overflow: 'auto',
+    position: 'relative',
   },
   panel: {
     position: 'relative',

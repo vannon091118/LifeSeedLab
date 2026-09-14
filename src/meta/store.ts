@@ -2,14 +2,37 @@ import type { MetaSave, PlantVariant } from '../types';
 import { load, save, remove } from '../persistence/storage';
 import { STARTER_PLANT_COUNT } from '../config/economy.source';
 import { createBaseVariants } from '../genome/bases';
+import { genomeEffectIds } from '../visual/generator';
 
 // Owner: PersistenceSystem (meta store — the only persistence owner remains storage.ts).
 
 export const META_KEY = 'lifegamelab_meta';
-export const META_VERSION = 3;
+export const META_VERSION = 4;
+
+/** Legacy-Basen-IDs (vor der PLANTS_SOURCE-Vereinheitlichung) → kanonische PlantTypeId. */
+const LEGACY_BASE_ID: Record<string, 'sprout' | 'rootwall' | 'mycelia'> = {
+  base_shooter: 'sprout', base_wall: 'rootwall', base_support: 'mycelia',
+};
+
+function canonicalVariantId(id: string): string {
+  return LEGACY_BASE_ID[id] ?? id;
+}
 
 export function starterVariants(): PlantVariant[] {
   return createBaseVariants().slice(0, STARTER_PLANT_COUNT);
+}
+
+/** Zucht-Stats EINE Quelle: beim Besitz-Eintrag abgeleitet (B1 — früher nie geschrieben,
+ *  gezüchtete Pflanzen waren im Run dadurch unplatzierbar). Deterministisch aus dem Genom. */
+export function deriveBredEntry(variant: PlantVariant): NonNullable<MetaSave['bredStats']>[string] {
+  return {
+    hp: variant.stats.hp,
+    damage: variant.stats.damage,
+    range: variant.stats.range,
+    cooldown: variant.stats.cooldown,
+    cost: variant.cost,
+    effects: genomeEffectIds(variant.genome).map(e => String(e)),
+  };
 }
 
 export function defaultMeta(): MetaSave {
@@ -17,7 +40,7 @@ export function defaultMeta(): MetaSave {
   const counts: Record<string, number> = {};
   for (const v of starters) counts[v.id] = 1;
   return {
-    version: 3,
+    version: 4,
     nektar: 60,
     bestWave: 0,
     runs: 0,
@@ -33,21 +56,20 @@ export function defaultMeta(): MetaSave {
     pendingCrosses: [],
     totalWavesSurvived: 0,
     bredStats: {},
+    mapLayouts: {},
+    beetles: [],
+    beetleDeployed: null,
+    pendingBroods: [],
   };
 }
 
 function sanitizeCounts(raw: unknown, fallback: Record<string, number>): Record<string, number> {
   if (!raw || typeof raw !== 'object') return fallback;
   const out: Record<string, number> = {};
-  let total = 0;
-  const starters = starterVariants().map(v => v.id);
   for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
-    if (typeof v === 'number' && v > 0) { out[k] = Math.floor(v); total += Math.floor(v); }
-  }
-  if (total > STARTER_PLANT_COUNT) {
-    const trimmed: Record<string, number> = {};
-    for (const id of starters) { if (out[id]) trimmed[id] = 1; }
-    return trimmed;
+    // Legacy-Basen-IDs auf kanonische PlantTypeId heben — kein Besitz geht verloren.
+    const id = canonicalVariantId(k);
+    if (typeof v === 'number' && v > 0) out[id] = (out[id] ?? 0) + Math.floor(v);
   }
   return out;
 }
@@ -69,6 +91,11 @@ function toV3(base: MetaSave, raw: Partial<MetaSave>): MetaSave {
     seedStash: typeof raw.seedStash === 'number' ? Math.max(0, raw.seedStash) : 0,
     pendingCrosses: Array.isArray(raw.pendingCrosses) ? raw.pendingCrosses : [],
     totalWavesSurvived: typeof raw.totalWavesSurvived === 'number' ? raw.totalWavesSurvived : 0,
+    mapLayouts: raw.mapLayouts && typeof raw.mapLayouts === 'object' ? raw.mapLayouts : {},
+    // P6: Käfer-Felder sind v4-neu — Altsaves starten mit leerem Brut-Lager.
+    beetles: Array.isArray(raw.beetles) ? raw.beetles : [],
+    beetleDeployed: raw.beetleDeployed ?? null,
+    pendingBroods: Array.isArray(raw.pendingBroods) ? raw.pendingBroods : [],
   };
 }
 

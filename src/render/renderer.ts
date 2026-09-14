@@ -10,6 +10,7 @@ import { resolveVisual, type ResolvedVisual } from '../visual/generator';
 import { getPlantStats } from '../simulation/plantSystem';
 import { strHash } from '../core/rng';
 import { drawLayerPrimitive } from './layers/primitives';
+import { drawMapTile } from './layers/mapTiles';
 import { drawEnemyBody } from './layers/enemies';
 import { drawParticle } from './layers/particlesDraw';
 import { bakeTerrain as bake } from './layers/terrain';
@@ -106,6 +107,13 @@ export class Renderer {
     ctx.translate(ox + shakeX, oy + shakeY);
 
     if (this.terrain) ctx.drawImage(this.terrain, 0, 0, GRID_COLS * cell, GRID_ROWS * cell);
+
+    // P5: Spieler-Tiles unter allem Gameplay zeichnen (read-only aus dem State)
+    for (const [key, tile] of Object.entries(state.mapTiles)) {
+      const [gx, gy] = key.split(',').map(Number);
+      drawMapTile(ctx, tile, gx, gy, cell);
+    }
+
     if (ghost) this.drawGhost(ctx, ghost, cell);
 
     // shadows

@@ -12,6 +12,8 @@ export interface ClockState {
 }
 
 export const TICK_MS = 1000 / 30; // 30 sim ticks/sec (contract Phase 2.1)
+/** Day/night cycle length in ticks (2400 = 80s per phase at 30tps). ONE source. */
+export const CYCLE_TICKS = 2400;
 const NIGHT_THRESHOLD = 0.5;      // phase flips at half-cycle in v1 (wave-bound later via events)
 
 export class GameClock {
@@ -48,15 +50,14 @@ export class GameClock {
     this.s.tick++;
     this.s.elapsed = this.s.tick * TICK_MS;
 
-    // phase cycle: 2400 ticks = 80s per phase at 30tps
-    const CYCLE = 2400;
-    const t = this.s.tick % (CYCLE * 2);
-    const inNight = t >= CYCLE;
+    // phase cycle: CYCLE_TICKS per phase (day/night) — see CYCLE_TICKS above
+    const t = this.s.tick % (CYCLE_TICKS * 2);
+    const inNight = t >= CYCLE_TICKS;
     const newPhase: ClockPhase = inNight ? 'night' : 'day';
     if (newPhase !== this.s.phase) {
       this.s.phase = newPhase;
     }
-    this.s.phaseProgress = (t % CYCLE) / CYCLE;
+    this.s.phaseProgress = (t % CYCLE_TICKS) / CYCLE_TICKS;
 
     if (this.s.phase === 'night') this.s.waveTime++;
   }
