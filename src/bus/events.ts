@@ -12,6 +12,11 @@ export type EventType =
   | 'PLANT_PLACED'
   | 'PLANT_REMOVED'
   | 'PLANT_ATTACKED'
+  | 'PLANT_GROWN'
+  | 'PLANT_FERTILIZED'
+  | 'PLANT_WEAKENED'
+  | 'PLANT_WITHERED'
+  | 'PLANT_PROPAGATED'
   // combat
   | 'PROJECTILE_FIRED'
   | 'PROJECTILE_HIT'
@@ -22,8 +27,11 @@ export type EventType =
   | 'SCORE_CHANGED'
   | 'COMBO_CHANGED'
   | 'REWARD_GRANTED'
+  | 'COINS_GRANTED'
   // placement feedback
-  | 'PLACEMENT_REJECTED';
+  | 'PLACEMENT_REJECTED'
+  | 'FERTILIZE_REJECTED'
+  | 'PROPAGATE_REJECTED';
 
 // ── Payload contracts (v1) ───────────────────────────────────
 
@@ -37,6 +45,12 @@ export interface EventPayloads {
   PLANT_PLACED: { plantId: string; variantId: string; gx: number; gy: number };
   PLANT_REMOVED: { plantId: string; refund: number };
   PLANT_ATTACKED: { plantId: string; targetId: string | null };
+  PLANT_GROWN: { plantId: string; variantId: string; gx: number; gy: number };
+  PLANT_FERTILIZED: { plantId: string; variantId: string; count: number };
+  PLANT_WEAKENED: { plantId: string; variantId: string };
+  PLANT_WITHERED: { plantId: string; variantId: string; gx: number; gy: number };
+  PLANT_PROPAGATED: { sourcePlantId: string; plantId: string; variantId: string; gx: number; gy: number };
+
   PROJECTILE_FIRED: { projectileId: string; plantId: string; targetId: string; damage: number; effectId: string | null };
   PROJECTILE_HIT: { projectileId: string; enemyId: string; damage: number; critical: boolean; px: number; py: number; effectId: string | null };
   DAMAGE_DEALT: { enemyId: string; amount: number; critical: boolean; hp: number; px: number; py: number };
@@ -45,7 +59,10 @@ export interface EventPayloads {
   SCORE_CHANGED: { score: number; delta: number };
   COMBO_CHANGED: { count: number; multiplier: number };
   REWARD_GRANTED: { energy: number; sourceId: string };
+  COINS_GRANTED: { coins: number; sourceId: string; enemyId: string };
   PLACEMENT_REJECTED: { reason: 'occupied' | 'on_path' | 'no_inventory' | 'no_energy'; gx: number; gy: number };
+  FERTILIZE_REJECTED: { plantId: string; reason: 'not_growing' | 'max_reached' | 'not_found' };
+  PROPAGATE_REJECTED: { plantId: string; reason: 'not_mature' | 'not_found' | 'on_path' | 'occupied' };
 }
 
 export type GameEvent = {

@@ -53,6 +53,9 @@ Aus dem technisch tragfähigen Singleplayer-Prototyp wird schrittweise ein deter
 - [x] Wave-Reward als `REWARD_GRANTED` statt falscher Score-Änderung behandeln.
 - [x] `DAY_STARTED`/`NIGHT_STARTED` an Clock-Phasenwechsel veröffentlichen.
 - [x] Grundlegende Crit-/Status-/Chain-Pipeline im Simulationskern verdrahten.
+- [x] Auto-Wellen: `WaveSystem.maybeAutoStart()` nach `AUTO_WAVE_DELAY_TICKS` in `prep` (kein manueller Welle-Trigger mehr nötig).
+- [x] 1–5 Shop-Münzen je Kill (`ScoreSystem` via `loot`-Namespace, `COINS_GRANTED`-Event).
+- [x] Pflanzen-Lebenszyklus: Wachstum → Reife (`PLANT_GROWN`), Düngen nur `growing` (fix danach), Seltenheits-Threshold → geschwächt (`PLANT_WEAKENED` + Score-Halbierung/Wachstums-Malus), Verwelken (`PLANT_WITHERED`), Setzling-Halbzeit (`PROPAGATE_PLANT`).
 - [ ] Integrationstests für Effektkette, Combo × Score, Reward, Day/Night und Game Over ergänzen.
 - [ ] Resume-Shape und Meta-Migration test-locken.
 
@@ -104,8 +107,21 @@ Erst nach Gate E und stabiler Mobile-Version: Convex-Schema, Match-/Actor-Identi
 5. Erst bei grünem Gate den nächsten Abschnitt beginnen.
 6. Dieses Dokument nach jedem abgeschlossenen Abschnitt aktualisieren.
 
+## 0.1 Welt-Source-Abgrenzung (Phase B — explizit)
+
+`CELL_SIZE`, `PLANTS_PER_CELL`, `WAVES_PER_NIGHT`, `SPAWN_QUEUE_SHUFFLE` bleiben bewusst in `config/world.source.ts`. Sie sind keine Legacy-Symbole, sondern fachliche World-Source-Werte mit geplanter Verdrahtung in späteren Gates (Wave-/Placement-Kopplung, Phase D). Entfernung erfolgt ausschließlich dort, wo die fachliche Quelle auflösbar ersetzt wird — nicht als Dead-Code-Kosmetik.
+
+## 0.2 Kampfökonomie & Pflanzen-Lebenszyklus (Phase B/C — verbindlich)
+
+- **Wellen laufen automatisch weiter.** Nach jeder `WAVE_COMPLETED` startet `WaveSystem.maybeAutoStart()` in `prep` nach `AUTO_WAVE_DELAY_TICKS` (3s) automatisch die nächste Welle. Spieler-`START_WAVE` bleibt manuell auslösbar.
+- **Jeder Kill gibt 1–5 Münzen** (`resources.coins`, `ScoreSystem`), deterministisch via `loot`-Namespace-RNG pro `(seed, tick, enemyId)` → `COINS_GRANTED`-Event. Keine `Math.random`-Nutzung. Münzen sind In-Run-Shop-Währung; `energy` bleibt davon unberührt.
+- **Platzierte Pflanzen haben je nach Seltenheit einen Threshold und verschleißen:** Wachstum `growing → mature` (`GROWTH_TICKS_BY_RARITY`), danach `lifeTicksLeft`-Countdown bis Verwelken. Unter `WEAKENED_THRESHOLD` (30%) → geschwächt (halber Schaden) + `PLANT_WEAKENED`; bei 0 → `PLANT_WITHERED` (Entfernung). Seltenheit aus `rarityForCost(cost)`.
+- **System Lebenserwartung erhöhen + Status boosten, aber Nutzbarkeit verringern:** `FERTILIZE_PLANT` nur während `growing` — pro `FERTILIZE_BONUS`-Anwendung +HP/+Schaden/+Haltbarkeit, aber +Cooldown (`extraCooldown`). Max `FERTILIZE_BONUS.maxApplications`. Nach Reife fix.
+- **Setzlinge ziehen:** `PROPAGATE_PLANT` nur bei `mature`; erzeugt Nachkommen gleicher `variantId` auf freier Nachbarzelle mit `SEEDLING_GROWTH_FACTOR` (0.5× Wachstumszeit). `PLANT_PROPAGATED`-Event.
+- **Düngen nur während Wachstum:** `fertilize()` lehnt `not_growing`/`max_reached` ab; nach `PLANT_GROWN` sind Werte fixiert. `PlantSystem.tickLifecycle()` + `update()` wenden Schwächung/Wachstums-Malus in der Schadensberechnung an.
+
 ## Aktueller Arbeitsstand
 
-Die Bestandsaufnahme zeigt, dass mehrere Phase-A/B-Reparaturen bereits im Quellstand vorhanden sind. Der erste aktive Abschnitt ist umgesetzt: `MetaSave.runId` wird beim Run-Start reserviert, deterministisch als Seed-Komponente verwendet und zusammen mit Loadout/Bred-Stats an `SimulationRoot` gereicht. Das Release-HUD enthält keine Seed-/Hash-/Tick-/Event-/Partikel-/Phase-Debugwerte und keine FX-/Debug-Schalter mehr. Typecheck und die vollständige Suite sind grün (65 Tests); das neue RootInit-Gate deckt die Identitätsweitergabe ab.
+Die Bestandsaufnahme zeigt, dass mehrere Phase-A/B-Reparaturen bereits im Quellstand vorhanden sind. Phase B wurde um die neue Kampfökonomie und den Pflanzen-Lebenszyklus erweitert. `MetaSave.runId` wird beim Run-Start reserviert, deterministisch als Seed-Komponente verwendet und zusammen mit Loadout/Bred-Stats an `SimulationRoot` gereicht. Das Release-HUD enthält keine Seed-/Hash-/Tick-/Event-/Partikel-/Phase-Debugwerte und keine FX-/Debug-Schalter mehr. Welt-Source-Werte sind als bewusste Abgrenzung dokumentiert. Auto-Wellen, Kill-Münzen, Pflanzen-Wachstum/Düngen/Verschleiß und Setzling-Halbzeit sind implementiert. Typecheck und Suite grün (67 Tests); RootInit-Gate deckt die Identitätsweitergabe ab.
 
-Als nächster aktiver Abschnitt folgt der vollständige Legacy-/Dead-Code-Audit. Danach wird das DevGate als eigene Präsentationsgrenze umgesetzt; Pointer-Placement, Resume und der große Visual-Pass bleiben getrennte Gates.
+Welt-Source-Audit, Auto-Wellen, Shop-Münzen und der vollständige Lebenszyklus sind damit abgeschlossen; Shop-UI-Anbindung und Shop-Determinismus-Gates folgen in Phase C/D.

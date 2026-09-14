@@ -5,8 +5,15 @@
 import type { SimState, PlantEntity, EnemyEntity } from './state';
 import { makeEvent, type GameEvent } from '../bus/events';
 import { PLANTS_SOURCE, type PlantSource } from '../config/plants.source';
-import { ENEMY_PATH, PLACEMENT_PATH_MARGIN, isInsideGrid, dist } from '../config/world.source';
+import { ENEMY_PATH, PLACEMENT_PATH_MARGIN, isInsideGrid, dist, GRID_COLS, GRID_ROWS } from '../config/world.source';
 import { nextId } from '../core/ids';
+import {
+  GROWTH_TICKS_BY_RARITY,
+  LIFESPAN_TICKS_BY_RARITY,
+  FERTILIZE_BONUS,
+  SEEDLING_GROWTH_FACTOR,
+  rarityForCost,
+} from '../config/economy.source';
 
 export interface PlantStats {
   hp: number;
@@ -60,12 +67,27 @@ export class PlantSystem {
     state.resources.energy -= stats.cost;
     state.inventory[variantId] = inv - 1;
 
+    const rarity = rarityForCost(stats.cost);
+    const baseGrowth = GROWTH_TICKS_BY_RARITY[rarity];
+    const baseLife = LIFESPAN_TICKS_BY_RARITY[rarity];
+    const growthTotal = baseGrowth;
     const plant: PlantEntity = {
       id: nextId('plant'),
       variantId,
       gx, gy,
       hp: stats.hp,
+      maxHp: stats.hp,
       lastShot: 0,
+      growthState: 'growing',
+      growthTicksLeft: growthTotal,
+      growthTicksTotal: growthTotal,
+      lifeTicksLeft: baseLife,
+      lifeTicksTotal: baseLife,
+      fertilizeCount: 0,
+      extraDamage: 0,
+      extraCooldown: 0,
+      isWeakened: false,
+      isSeedling: false,
     };
     state.plants.push(plant);
 
@@ -90,6 +112,129 @@ export class PlantSystem {
     return true;
   }
 
+  /** Düngen: nur während Wachstum, boostet Werte und verlängert Haltbarkeit, erhöht Cooldown. */
+  fertilize(state: SimState, plantId: string): { ok: true } | { ok: false; reason: 'not_growing' | 'max_reached' | 'not_found' } {
+    const plant = state.plants.find(p => p.id === plantId);
+    if (!plant) return { ok: false, reason: 'not_found' };
+    if (plant.growthState !== 'growing') return { ok: false, reason: 'not_growing' };
+    if (plant.fertilizeCount >= FERTILIZE_BONUS.maxApplications) return { ok: false, reason: 'max_reached' };
+    plant.fertilizeCount++;
+    plant.extraDamage += FERTILIZE_BONUS.damage;
+    plant.extraCooldown += FERTILIZE_BONUS.cooldownPenalty;
+    plant.maxHp += FERTILIZE_BONUS.hp;
+    plant.hp += FERTILIZE_BONUS.hp;
+    plant.lifeTicksTotal += FERTILIZE_BONUS.lifespan;
+    plant.lifeTicksLeft += FERTILIZE_BONUS.lifespan;
+    // Werte sind pro Durchgang fixiert — nach Reife nicht mehr änderbar (guard oben)
+    this.emit(makeEvent(state.clock.tick, 'PLANT_FERTILIZED', plant.id, plant.fertilizeCount, {
+      plantId: plant.id, variantId: plant.variantId, count: plant.fertilizeCount,
+    }));
+    return { ok: true };
+  }
+
+  /** Setzling ziehen: reife Pflanze erzeugt Nachkommen mit halber Wachstumszeit. */
+  propagate(state: SimState, plantId: string): { ok: true; plant: PlantEntity } | { ok: false; reason: 'not_mature' | 'not_found' | 'on_path' | 'occupied' } {
+    const source = state.plants.find(p => p.id === plantId);
+    if (!source) return { ok: false, reason: 'not_found' };
+    if (source.growthState !== 'mature') return { ok: false, reason: 'not_mature' };
+    const stats = resolvePlantStats(state, source.variantId);
+    if (!stats) return { ok: false, reason: 'not_found' };
+    const pos = this.findFreeNeighbor(state, source.gx, source.gy);
+    if (!pos) return { ok: false, reason: 'occupied' };
+    if (!isInsideGrid(pos.gx, pos.gy)) return { ok: false, reason: 'on_path' };
+    const cx = pos.gx + 0.5, cy = pos.gy + 0.5;
+    for (const p of ENEMY_PATH) if (dist(cx, cy, p.x, p.y) < PLACEMENT_PATH_MARGIN) return { ok: false, reason: 'on_path' };
+    if (state.plants.some(p => p.gx === pos.gx && p.gy === pos.gy)) return { ok: false, reason: 'occupied' };
+    const rarity = rarityForCost(stats.cost);
+    const baseGrowth = GROWTH_TICKS_BY_RARITY[rarity];
+    const baseLife = LIFESPAN_TICKS_BY_RARITY[rarity];
+    const growthTotal = Math.max(1, Math.floor(baseGrowth * SEEDLING_GROWTH_FACTOR));
+    const plant: PlantEntity = {
+      id: nextId('plant'),
+      variantId: source.variantId,
+      gx: pos.gx, gy: pos.gy,
+      hp: stats.hp,
+      maxHp: stats.hp,
+      lastShot: 0,
+      growthState: 'growing',
+      growthTicksLeft: growthTotal,
+      growthTicksTotal: growthTotal,
+      lifeTicksLeft: baseLife,
+      lifeTicksTotal: baseLife,
+      fertilizeCount: 0,
+      extraDamage: 0,
+      extraCooldown: 0,
+      isWeakened: false,
+      isSeedling: true,
+    };
+    state.plants.push(plant);
+    this.emit(makeEvent(state.clock.tick, 'PLANT_PROPAGATED', plant.id, state.plants.length, {
+      sourcePlantId: source.id, plantId: plant.id, variantId: plant.variantId, gx: plant.gx, gy: plant.gy,
+    }));
+    return { ok: true, plant };
+  }
+
+  private findFreeNeighbor(state: SimState, gx: number, gy: number): { gx: number; gy: number } | null {
+    const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]];
+    for (const [dx, dy] of dirs) {
+      const nx = gx + dx, ny = gy + dy;
+      if (!isInsideGrid(nx, ny)) continue;
+      if (state.plants.some(p => p.gx === nx && p.gy === ny)) continue;
+      const cx = nx + 0.5, cy = ny + 0.5;
+      let onPath = false;
+      for (const p of ENEMY_PATH) if (dist(cx, cy, p.x, p.y) < PLACEMENT_PATH_MARGIN) { onPath = true; break; }
+      if (!onPath) return { gx: nx, gy: ny };
+    }
+    // fallback: scan outward ring 2
+    for (let r = 2; r <= 3; r++) {
+      for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) {
+        if (Math.abs(dx) !== r && Math.abs(dy) !== r) continue;
+        const nx = gx + dx, ny = gy + dy;
+        if (!isInsideGrid(nx, ny)) continue;
+        if (state.plants.some(p => p.gx === nx && p.gy === ny)) continue;
+        const cx = nx + 0.5, cy = ny + 0.5;
+        let onPath = false;
+        for (const p of ENEMY_PATH) if (dist(cx, cy, p.x, p.y) < PLACEMENT_PATH_MARGIN) { onPath = true; break; }
+        if (!onPath) return { gx: nx, gy: ny };
+      }
+    }
+    return null;
+  }
+
+  /** Lifecycle-Tick: Wachstum → Reife → Haltbarkeit (Schwelle → Verwelken). Jedes Tick deterministisch. */
+  tickLifecycle(state: SimState): void {
+    // iterate reverse for safe removal on wither
+    for (let i = state.plants.length - 1; i >= 0; i--) {
+      const plant = state.plants[i];
+      if (plant.growthState === 'growing') {
+        plant.growthTicksLeft--;
+        if (plant.growthTicksLeft <= 0) {
+          plant.growthState = 'mature';
+          plant.growthTicksLeft = 0;
+          this.emit(makeEvent(state.clock.tick, 'PLANT_GROWN', plant.id, state.clock.tick, {
+            plantId: plant.id, variantId: plant.variantId, gx: plant.gx, gy: plant.gy,
+          }));
+        }
+      } else {
+        // mature: lifespan countdown — erst geschwächt, dann verwelkt
+        plant.lifeTicksLeft--;
+        if (!plant.isWeakened && plant.lifeTicksLeft <= Math.floor(plant.lifeTicksTotal * 0.3)) {
+          plant.isWeakened = true;
+          this.emit(makeEvent(state.clock.tick, 'PLANT_WEAKENED', plant.id, state.clock.tick, {
+            plantId: plant.id, variantId: plant.variantId,
+          }));
+        }
+        if (plant.lifeTicksLeft <= 0) {
+          const removed = state.plants.splice(i, 1)[0];
+          this.emit(makeEvent(state.clock.tick, 'PLANT_WITHERED', removed.id, state.clock.tick, {
+            plantId: removed.id, variantId: removed.variantId, gx: removed.gx, gy: removed.gy,
+          }));
+        }
+      }
+    }
+    void GRID_COLS; void GRID_ROWS;
+  }
+
   /** Shooters acquire targets and request projectile spawns via callback. */
   update(
     state: SimState,
@@ -98,7 +243,8 @@ export class PlantSystem {
     for (const plant of state.plants) {
       const stats = resolvePlantStats(state, plant.variantId);
       if (!stats || stats.damage <= 0) continue;
-      if (state.clock.tick - plant.lastShot < stats.cooldown) continue;
+      const effectiveCooldown = stats.cooldown + plant.extraCooldown;
+      if (state.clock.tick - plant.lastShot < effectiveCooldown) continue;
 
       let target: EnemyEntity | null = null;
       let best = Infinity;
@@ -108,8 +254,13 @@ export class PlantSystem {
       }
       if (!target) continue;
 
+      // weakened halves damage; growing slightly reduces damage (not yet at full power)
+      let effectiveDamage = stats.damage + plant.extraDamage;
+      if (plant.isWeakened) effectiveDamage = Math.floor(effectiveDamage * 0.5);
+      else if (plant.growthState === 'growing') effectiveDamage = Math.floor(effectiveDamage * 0.7);
+      if (effectiveDamage <= 0) continue;
       plant.lastShot = state.clock.tick;
-      fire(plant, target, stats.damage);
+      fire(plant, target, effectiveDamage);
       this.emit(makeEvent(state.clock.tick, 'PLANT_ATTACKED', plant.id, plant.lastShot, {
         plantId: plant.id, targetId: target.id,
       }));

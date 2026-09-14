@@ -10,7 +10,9 @@ export type CommandType =
   | 'BREED_PLANTS'
   | 'SELECT_PLANT'
   | 'CANCEL_PLACEMENT'
-  | 'INSPECT';
+  | 'INSPECT'
+  | 'FERTILIZE_PLANT'
+  | 'PROPAGATE_PLANT';
 
 export interface CommandPayloads {
   PLACE_PLANT: { variantId: string; gx: number; gy: number };
@@ -20,6 +22,8 @@ export interface CommandPayloads {
   SELECT_PLANT: { variantId: string };
   CANCEL_PLACEMENT: Record<string, never>;
   INSPECT: { entityId: string | null };
+  FERTILIZE_PLANT: { plantId: string };
+  PROPAGATE_PLANT: { plantId: string };
 }
 
 export type Command = {

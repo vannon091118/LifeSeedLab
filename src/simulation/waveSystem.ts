@@ -5,6 +5,7 @@ import type { SimState } from './state';
 import { makeEvent, type GameEvent } from '../bus/events';
 import { generateWaveSchedule, waveEnemyCount, type WaveSchedule } from '../config/enemies.source';
 import { makeRng } from '../core/rng';
+import { AUTO_WAVE_DELAY_TICKS } from '../config/economy.source';
 
 export class WaveSystem {
   private seq = 0;
@@ -33,6 +34,7 @@ export class WaveSystem {
     }
     state.wave.spawnQueue = queue;
     state.wave.lastSpawnTick = state.clock.tick;
+    state.wave.prepStartTick = null;
 
     this.emit(makeEvent(state.clock.tick, 'WAVE_STARTED', 'system:wave', ++this.seq, {
       wave: state.wave.number, enemyCount: waveEnemyCount(schedule),
@@ -63,10 +65,22 @@ export class WaveSystem {
 
     const reward = state.wave.schedule?.reward ?? 0;
     state.phase = 'prep';
+    state.wave.prepStartTick = state.clock.tick;
     this.emit(makeEvent(state.clock.tick, 'WAVE_COMPLETED', 'system:wave', ++this.seq, {
       wave: state.wave.number, reward,
     }));
     return reward;
+  }
+
+  /** Auto-Wellen: in prep nach AUTO_WAVE_DELAY_TICKS automatisch die nächste Welle starten. */
+  maybeAutoStart(state: SimState): boolean {
+    if (state.phase !== 'prep') return false;
+    const start = state.wave.prepStartTick;
+    if (start == null) return false;
+    if (state.clock.tick - start >= AUTO_WAVE_DELAY_TICKS) {
+      return this.startWave(state);
+    }
+    return false;
   }
 
   /** Current schedule accessor (pre-generation for UI previews). */

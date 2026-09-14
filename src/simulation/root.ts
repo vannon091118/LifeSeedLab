@@ -102,6 +102,7 @@ export class SimulationRoot {
     }
 
     // 3) systems in fixed order (determinism)
+    this.plants.tickLifecycle(state);
     this.combo.update(state);
 
     if (state.phase === 'wave') {
@@ -129,6 +130,7 @@ export class SimulationRoot {
     } else if (state.phase === 'prep') {
       this.plants.healTick(state);
       this.score.prepDrip(state);
+      this.waves.maybeAutoStart(state);
     }
 
     // 4) react to kills (score + combo) — authoritative consumers of ENEMY_DIED.
@@ -189,12 +191,45 @@ export class SimulationRoot {
       case 'START_WAVE':
         this.waves.startWave(state);
         break;
+      case 'FERTILIZE_PLANT': {
+        const r = this.plants.fertilize(state, cmd.payload.plantId);
+        if (!r.ok) {
+          this.publish({
+            eventId: `${state.clock.tick}:system:plant:FERTILIZE_REJECTED:${++this.rejectSeq}`,
+            tick: state.clock.tick,
+            type: 'FERTILIZE_REJECTED',
+            sourceId: 'system:plant',
+            version: 1,
+            payload: { plantId: cmd.payload.plantId, reason: r.reason },
+          });
+        }
+        break;
+      }
+      case 'PROPAGATE_PLANT': {
+        const r = this.plants.propagate(state, cmd.payload.plantId);
+        if (!r.ok) {
+          this.publish({
+            eventId: `${state.clock.tick}:system:plant:PROPAGATE_REJECTED:${++this.rejectSeq}`,
+            tick: state.clock.tick,
+            type: 'PROPAGATE_REJECTED',
+            sourceId: 'system:plant',
+            version: 1,
+            payload: { plantId: cmd.payload.plantId, reason: r.reason },
+          });
+        }
+        break;
+      }
       case 'SELECT_PLANT':
       case 'CANCEL_PLACEMENT':
       case 'INSPECT':
       case 'BREED_PLANTS':
-        // UI-level concerns handled outside the deterministic sim (Phase 15/22)
+        // UI-level concerns handled outside the deterministic sim
         break;
+      default: {
+        const _exhaustive: never = cmd as never;
+        void _exhaustive;
+        break;
+      }
     }
   }
 
@@ -224,8 +259,8 @@ export class SimulationRoot {
       loadout,
       clock: this.clock.get() as SimState['clock'],
       phase: 'prep',
-      wave: { number: 0, schedule: null, spawnQueue: [], lastSpawnTick: 0 },
-      resources: { energy: 150 },
+      wave: { number: 0, schedule: null, spawnQueue: [], lastSpawnTick: 0, prepStartTick: this.clock.get().tick },
+      resources: { energy: 150, coins: 0 },
       lives: 20,
       inventory,
       bredStats: init.bredStats ? { ...init.bredStats } : undefined,

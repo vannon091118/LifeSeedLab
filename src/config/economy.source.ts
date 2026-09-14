@@ -20,3 +20,47 @@ export function wavesToUnlockFor(crossIndex: number): number {
 
 /** Gacha: die Instanz (z.B. Greenhouse) entscheidet deterministisch aus diesem Seed. */
 export const GACHA_NAMESPACES = { plant: 'plant' } as const;
+
+// ── Kampfökonomie & Pflanzen-Lebenszyklus (Source = Truth) ──────
+/** 1–5 Münzen pro Kill für den In-Run-Shop (deterministisch via loot-RNG). */
+export const COINS_PER_KILL_MIN = 1;
+export const COINS_PER_KILL_MAX = 5;
+
+/** Auto-Wellen: Ticks in 'prep' bis die nächste Welle automatisch startet. */
+export const AUTO_WAVE_DELAY_TICKS = 90; // 3s bei 30tps
+
+/** Wachstum:Ticks bis zur Reife je Seltenheit (düngen nur währenddessen). */
+export const GROWTH_TICKS_BY_RARITY: Record<'common' | 'rare' | 'exotic', number> = {
+  common: 90,  // 3s
+  rare: 150,   // 5s
+  exotic: 210, // 7s
+};
+
+/** Haltbarkeit nach Reife: Ticks bis zum Verwelken (erst geschwächt, dann tot). */
+export const LIFESPAN_TICKS_BY_RARITY: Record<'common' | 'rare' | 'exotic', number> = {
+  common: 900,  // 30s
+  rare: 1500,   // 50s
+  exotic: 2100, // 70s
+};
+
+/** Schwelle: unter 30% Restlebenszeit → geschwächt (Schaden halbiert). */
+export const WEAKENED_THRESHOLD = 0.3;
+
+/** Düngen (nur growing): pro Anwendung — deterministisch, fix. */
+export const FERTILIZE_BONUS = {
+  hp: 20,
+  damage: 3,
+  lifespan: 300,      // +10s Haltbarkeit
+  cooldownPenalty: 4, // +Ticks Cooldown (Nutzbarkeit verringert)
+  maxApplications: 3,
+} as const;
+
+/** Setzling: neue Generierung derselben Pflanze mit halber Wachstumszeit. */
+export const SEEDLING_GROWTH_FACTOR = 0.5;
+
+/** Rarität aus Kosten ableiten (source-driven, ohne zweite Wahrheit). */
+export function rarityForCost(cost: number): 'common' | 'rare' | 'exotic' {
+  if (cost >= 60) return 'exotic';
+  if (cost >= 45) return 'rare';
+  return 'common';
+}

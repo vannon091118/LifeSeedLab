@@ -3,13 +3,27 @@
 
 import type { ClockState } from '../core/clock';
 
+export type PlantGrowthState = 'growing' | 'mature';
+
 export interface PlantEntity {
   id: string;
   variantId: string;        // plants.source id or bred genome id
   gx: number;
   gy: number;
   hp: number;
+  maxHp: number;
   lastShot: number;         // tick of last attack
+  // Lifecycle (Source-driven via economy.source)
+  growthState: PlantGrowthState;
+  growthTicksLeft: number;
+  growthTicksTotal: number;
+  lifeTicksLeft: number;
+  lifeTicksTotal: number;
+  fertilizeCount: number;
+  extraDamage: number;
+  extraCooldown: number;
+  isWeakened: boolean;
+  isSeedling: boolean;
 }
 
 export interface EnemyEntity {
@@ -63,8 +77,10 @@ export interface SimState {
     } | null;
     spawnQueue: { typeId: string; delay: number }[];
     lastSpawnTick: number;
+    /** prep-phase auto-wave timer (null while in wave). */
+    prepStartTick: number | null;
   };
-  resources: { energy: number };
+  resources: { energy: number; coins: number };
   /** Player lives. Owned by SimulationRoot (run state); reduced only via leak events. */
   lives: number;
   inventory: Record<string, number>;

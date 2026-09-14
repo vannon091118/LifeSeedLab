@@ -3,6 +3,8 @@
 
 import type { SimState } from './state';
 import { makeEvent, type GameEvent } from '../bus/events';
+import { makeRng } from '../core/rng';
+import { COINS_PER_KILL_MIN, COINS_PER_KILL_MAX } from '../config/economy.source';
 
 export class ScoreSystem {
   private seq = 0;
@@ -14,6 +16,9 @@ export class ScoreSystem {
     state.score += scoreValue;
     state.resources.energy += reward;
     state.nektarEarned += Math.max(1, Math.floor(reward / 5));
+    // 1–5 Shop-Münzen deterministisch via loot-RNG (pro Kill, kein Stream-State)
+    const coins = makeRng('loot', (state.seed ^ Math.imul(state.clock.tick, 0x51ED) ^ Math.imul(enemyId.length, 0x9E37) ^ enemyId.charCodeAt(0)) >>> 0).nextInt(COINS_PER_KILL_MIN, COINS_PER_KILL_MAX);
+    state.resources.coins += coins;
 
     this.emit(makeEvent(state.clock.tick, 'SCORE_CHANGED', 'system:score', ++this.seq, {
       score: state.score, delta: scoreValue,
@@ -21,7 +26,10 @@ export class ScoreSystem {
     this.emit(makeEvent(state.clock.tick, 'REWARD_GRANTED', 'system:score', ++this.seq, {
       energy: reward, sourceId: enemyId,
     }));
-    void px; void py; // position available for reward-flight observers later (Phase 10.6)
+    this.emit(makeEvent(state.clock.tick, 'COINS_GRANTED', 'system:score', ++this.seq, {
+      coins, sourceId: enemyId, enemyId,
+    }));
+    void px; void py;
   }
 
   /** Wave completion bonus (called by WaveSystem via root wiring). Energy only —
