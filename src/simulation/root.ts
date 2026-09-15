@@ -18,6 +18,7 @@ import { executeCommand, type CommandContext } from './rootCommands';
 import { STARTING_INVENTORY, PLANT_IDS } from '../config/plants.source';
 import { defaultMapTiles } from '../config/map.source';
 import { CYCLE_TICKS } from '../core/clock';
+import { applyResume, type ResumeSnapshot } from './resume';
 
 export interface RootInit {
   seed: number;
@@ -29,6 +30,8 @@ export interface RootInit {
   bredStats?: NonNullable<SimState['bredStats']>;
   /** P6: gezüchtete Specimen für den Brutling-Einsatz im Run. */
   beetles?: import('../types').BeetleSpecimen[];
+  /** B2: gespeicherter Run-Zustand (Resume startet in `prep`, ohne Gegner/Projektile/Schedule). */
+  resume?: ResumeSnapshot;
 }
 
 export class SimulationRoot {
@@ -244,7 +247,7 @@ export class SimulationRoot {
     const inventory: Record<string, number> = { ...STARTING_INVENTORY };
     for (const id of loadout) { inventory[id] = 2; }
     const discovered = [...PLANT_IDS, ...loadout];
-    return {
+    const base: SimState = {
       seed,
       runId: init.runId ?? 0,
       loadout,
@@ -268,6 +271,10 @@ export class SimulationRoot {
       nektarEarned: 0,
       counters: { enemy: 0, plant: 0, projectile: 0 },
     };
+    // B2: Resume injiziert ausschließlich den vertraglich erlaubten Teil; die Sim bleibt
+    // der einzige Writer des Zustands (kein zweiter Speicherpfad).
+    if (init.resume) applyResume(base, init.resume);
+    return base;
   }
 }
 

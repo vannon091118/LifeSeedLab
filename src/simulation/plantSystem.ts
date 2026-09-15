@@ -6,6 +6,7 @@ import type { SimState, PlantEntity, EnemyEntity } from './state';
 import { makeEvent, type GameEvent } from '../bus/events';
 import { PLANTS_SOURCE, type PlantSource } from '../config/plants.source';
 import { ENEMY_PATH, PLACEMENT_PATH_MARGIN, isInsideGrid, dist, GRID_COLS, GRID_ROWS } from '../config/world.source';
+import { placementRejectReason } from './placementRules';
 import { nextId } from '../core/ids';
 import {
   GROWTH_TICKS_BY_RARITY,
@@ -50,19 +51,14 @@ export class PlantSystem {
     if (!stats) return { ok: false, reason: 'no_inventory' };
 
     const inv = state.inventory[variantId] || 0;
-    if (inv <= 0) return { ok: false, reason: 'no_inventory' };
-    if (state.resources.energy < stats.cost) return { ok: false, reason: 'no_energy' };
-    if (!isInsideGrid(gx, gy)) return { ok: false, reason: 'on_path' };
-
-    const cx = gx + 0.5, cy = gy + 0.5;
-    for (const p of ENEMY_PATH) {
-      if (dist(cx, cy, p.x, p.y) < PLACEMENT_PATH_MARGIN) {
-        return { ok: false, reason: 'on_path' };
-      }
-    }
-    if (state.plants.some(p => p.gx === gx && p.gy === gy)) {
-      return { ok: false, reason: 'occupied' };
-    }
+    // B3: identische Regel wie die UI-Vorschau (PlacementController) — eine Wahrheit.
+    const reject = placementRejectReason({
+      board: { gx, gy, plants: state.plants },
+      inventoryCount: inv,
+      energy: state.resources.energy,
+      cost: stats.cost,
+    });
+    if (reject) return { ok: false, reason: reject };
 
     state.resources.energy -= stats.cost;
     state.inventory[variantId] = inv - 1;

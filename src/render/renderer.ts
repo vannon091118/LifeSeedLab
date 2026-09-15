@@ -19,6 +19,18 @@ const INK = '#2b2b26';
 const PAPER = '#f5efdc';
 const NIGHT = '#1c222b';
 
+/** B3-Ghost-Vertrag: Identität kommt aus ResolvedVisual, Zustand (gültig/abgelehnt) aus der UI. */
+export interface RenderGhost {
+  visual: ResolvedVisual;
+  gx: number;
+  gy: number;
+  valid: boolean;
+  /** Wirkungsradius in Zellen (Schützen/Support) — Reichweitenring. */
+  range?: number | null;
+  /** Tick-basierter Shake bei Ablehnung (Präsentation, kein Gameplay-Einfluss). */
+  shake?: { x: number; y: number } | null;
+}
+
 const visualCache = new Map<string, ResolvedVisual>();
 
 export class Renderer {
@@ -95,7 +107,7 @@ export class Renderer {
     particles?: ParticlePool,
     feedback?: FeedbackLayer,
     shakeX = 0, shakeY = 0,
-    ghost?: { visual: ResolvedVisual; gx: number; gy: number; valid: boolean } | null,
+    ghost?: RenderGhost | null,
   ): void {
     const ctx = this.ctx;
     const { ox, oy, cell } = this.metrics();
@@ -158,12 +170,42 @@ export class Renderer {
     feedback?.drawFlashes(ctx, this.w, this.h);
   }
 
-  private drawGhost(ctx: CanvasRenderingContext2D, ghost: NonNullable<Parameters<Renderer['render']>[5]>, cell: number): void {
-    const { gx, gy, valid } = ghost;
-    ctx.save(); ctx.globalAlpha = 0.55;
+  /**
+   * B3-Geist: ResolvedVisual mit 60 % Alpha, grün/rot getönter Footprint und Reichweitenring.
+   * `shake` kommt tick-basiert aus der UI (Ablehnung) — nie aus der Wanduhr.
+   */
+  private drawGhost(ctx: CanvasRenderingContext2D, ghost: RenderGhost, cell: number): void {
+    const { gx, gy, valid, range } = ghost;
+    const shakeX = ghost.shake?.x ?? 0;
+    const shakeY = ghost.shake?.y ?? 0;
+    const cx = (gx + 0.5) * cell + shakeX;
+    const cy = (gy + 0.5) * cell + shakeY;
+
+    ctx.save();
+    ctx.translate(shakeX, shakeY);
     ctx.fillStyle = valid ? 'rgba(90,143,78,0.25)' : 'rgba(169,68,56,0.30)';
     ctx.fillRect(gx * cell + 2, gy * cell + 2, cell - 4, cell - 4);
-    const cx = (gx + 0.5) * cell, cy = (gy + 0.5) * cell;
+    ctx.strokeStyle = valid ? '#5a8f4e' : '#a94438';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.strokeRect(gx * cell + 2, gy * cell + 2, cell - 4, cell - 4);
+    ctx.setLineDash([]);
+    ctx.restore();
+
+    if (range !== null && range !== undefined && range > 1) {
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.strokeStyle = valid ? '#5a8f4e' : '#a94438';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.arc(cx, cy, range * cell, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    ctx.save();
+    ctx.globalAlpha = 0.6;
     for (const layer of ghost.visual.layers) {
       ctx.save(); ctx.translate(cx + layer.anchor.x * cell, cy + layer.anchor.y * cell);
       ctx.rotate(layer.rotation); const s = layer.scale * cell * 0.3; ctx.scale(s, s);

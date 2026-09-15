@@ -60,6 +60,25 @@ export function registerVariant(variant: PlantVariant): MetaSave {
   return updateMeta({ bredStats });
 }
 
+/**
+ * B1 „Keep" einer Kreuzung: verbraucht je 1× beider Eltern und registriert das Kind.
+ * Ohne diesen Verbrauch wäre Zucht unbegrenzt wiederholbar (dieselben Eltern, beliebig viele
+ * Nachkommen). Rückgabe null ⇒ Elternbestand reicht nicht — dann passiert nichts.
+ */
+export function keepCross(child: PlantVariant, parentAId: string, parentBId: string): MetaSave | null {
+  const meta = loadMeta();
+  const a = canonicalVariantId(parentAId);
+  const b = canonicalVariantId(parentBId);
+  const costA = a === b ? 2 : 1;
+  if ((meta.variantCounts[a] ?? 0) < costA || (meta.variantCounts[b] ?? 0) < 1) return null;
+
+  const counts = { ...meta.variantCounts };
+  counts[a] = (counts[a] ?? 0) - costA;
+  if (a !== b) counts[b] = (counts[b] ?? 0) - 1;
+  updateMeta({ variantCounts: counts });
+  return registerVariant(child);
+}
+
 export function toggleLoadout(variantId: string): MetaSave {
   const meta = loadMeta();
   const inLoadout = meta.loadout.includes(variantId);

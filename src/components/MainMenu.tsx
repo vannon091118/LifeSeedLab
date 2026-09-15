@@ -17,9 +17,12 @@ type Props = {
   onMetaChange: (m: MetaSave) => void;
   onStartRun: (mode: GameMode) => void;
   onNavigate: (s: MenuScreen) => void;
+  /** B2: Welle des gespeicherten Runs (null = kein fortsetzbarer Run). */
+  resumeWave?: number | null;
+  onResume?: () => void;
 };
 
-export function MainMenu({ meta, onMetaChange, onStartRun, onNavigate }: Props) {
+export function MainMenu({ meta, onMetaChange, onStartRun, onNavigate, resumeWave, onResume }: Props) {
   const { t } = useI18n();
   void onMetaChange; // Hub schreibt kein Meta — owned-Berechnung ist read-only
 
@@ -59,12 +62,21 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onNavigate }: Props) 
           desc={t('menu.beetleLabDesc')}
           onClick={() => onNavigate('beetlelab')}
         />
+        {onResume && resumeWave ? (
+          <ModeCard
+            icon={<WaveIcon />}
+            title={t('menu.resume')}
+            desc={t('menu.resumeDesc').replace('{n}', String(resumeWave))}
+            onClick={onResume}
+            highlight
+          />
+        ) : null}
         <ModeCard
           icon={<WaveIcon />}
           title={t('menu.endless')}
           desc={t('menu.endlessDesc')}
           onClick={() => onStartRun('endless')}
-          highlight
+          highlight={!onResume}
         />
         <ModeCard
           icon={<BookIcon />}

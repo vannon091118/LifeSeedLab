@@ -3,7 +3,7 @@ import type { MetaSave, PlantVariant } from '../types';
 import type { TranslationKey } from '../i18n';
 import { useI18n } from '../i18n';
 import { rollGachaCross, deriveGachaSeed, createBaseVariants, type GachaRoll } from '../genome';
-import { consumeSeed, enqueueCross, registerVariant } from '../meta';
+import { consumeSeed, enqueueCross, keepCross } from '../meta';
 import { wavesToUnlockFor } from '../config/economy.source';
 
 // Owner: UI (Greenhouse screen). LOC ≤ 400.
@@ -45,7 +45,13 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
   const handleKeep = async (roll: GachaRoll) => {
     // Reifungs-Vertrag: behalten erst nach X überlebten Wellen (economy.source)
     if (!crossReady(meta, roll.crossIndex)) return;
-    const m = registerVariant(roll.child);
+    // B1: Keep verbraucht je 1× beider Eltern (eine Meta-Operation, ein Writer).
+    const m = keepCross(roll.child, roll.parentA.id, roll.parentB.id);
+    if (!m) {
+      setShareNote(t('shop.parentsGone'));
+      setTimeout(() => setShareNote(null), 2200);
+      return;
+    }
     onMetaChange(m);
     setLastRoll(null);
     // Discovery-Chain: append-only, hash-linked, lokale Deduplizierung
