@@ -1,6 +1,6 @@
-﻿// Owner: UI (Codex â€” public discovery chain). LOC â‰¤ 400.
+﻿// Owner: UI (Codex — public discovery chain). LOC ≤ 400.
 // Read-only chain view. No login needed. Local-first, Supabase-mirror
-// via UNIQUE(genome_hash). First discovery wins â€” organic prestige.
+// via UNIQUE(genome_hash). First discovery wins — organic prestige.
 
 import { useMemo, useState } from 'react';
 import { useI18n } from '../i18n';
@@ -24,7 +24,7 @@ export function Codex({ onClose }: Props) {
   const chain = useMemo(() => loadCodex(), []);
   const verification = useMemo(() => verifyLocalChain(), [chain]);
   const playerId = useMemo(() => getPlayerId(), []);
-  // newest first for display, but verification expects tip order â€” keep source order under the hood
+  // newest first for display, but verification expects tip order — keep source order under the hood
   const display = useMemo(() => [...chain].reverse(), [chain]);
 
   const handleCopy = async (entry: DiscoveryEntry) => {
@@ -34,7 +34,7 @@ export function Codex({ onClose }: Props) {
       setCopied(entry.entry_hash);
       setTimeout(() => setCopied(null), 1500);
     } catch {
-      // fallback â€” select hack
+      // fallback — select hack
       setCopied(entry.entry_hash);
     }
   };
@@ -61,15 +61,15 @@ export function Codex({ onClose }: Props) {
             <h2 style={styles.title}>{t('codex.title')}</h2>
             <p style={styles.subtitle}>{t('codex.subtitle')}</p>
           </div>
-          <button onClick={onClose} style={styles.closeBtn}>âœ•</button>
+          <button onClick={onClose} style={styles.closeBtn}>✕</button>
         </div>
 
         <div style={styles.metaRow}>
-          <span style={styles.metaPill}>ðŸ§¬ {chain.length} {chain.length === 1 ? 'Entdeckung' : 'Entdeckungen'}</span>
+          <span style={styles.metaPill}>🧬 {chain.length} {chain.length === 1 ? 'Entdeckung' : 'Entdeckungen'}</span>
           <span style={{ ...styles.metaPill, background: verification.valid ? 'rgba(74,222,128,0.12)' : 'rgba(248,113,113,0.12)', borderColor: verification.valid ? 'rgba(74,222,128,0.35)' : 'rgba(248,113,113,0.35)', color: verification.valid ? '#4ade80' : '#f87171' }}>
-            {verification.valid ? `âœ“ ${t('codex.valid')}` : `âœ— ${t('codex.invalid')}`}
+            {verification.valid ? `✓ ${t('codex.valid')}` : `✗ ${t('codex.invalid')}`}
           </span>
-          <span style={styles.metaPillSmall} title={playerId}>ðŸ‘¤ {playerId}</span>
+          <span style={styles.metaPillSmall} title={playerId}>👤 {playerId}</span>
         </div>
 
         {display.length === 0 ? (
@@ -83,13 +83,13 @@ export function Codex({ onClose }: Props) {
                   <span style={styles.genBadge}>Gen {e.generation}</span>
                 </div>
                 <div style={styles.cardMeta}>
-                  <span style={styles.metaLine}>{t('codex.firstBy')}: <strong style={styles.player}>{e.player_id}</strong> Â· {formatDate(e.timestamp)}</span>
-                  <span style={styles.metaLine}>Eltern: {e.parents[0]} Ã— {e.parents[1]} Â· Seed {e.seed}</span>
-                  <span style={styles.metaLineSmall} title={e.entry_hash}>â›“ {e.entry_hash.slice(0, 8)}â€¦ â† {e.prev_hash ? e.prev_hash.slice(0, 6) : 'GENESIS'}</span>
+                  <span style={styles.metaLine}>{t('codex.firstBy')}: <strong style={styles.player}>{e.player_id}</strong> · {formatDate(e.timestamp)}</span>
+                  <span style={styles.metaLine}>Eltern: {e.parents[0]} × {e.parents[1]} · Seed {e.seed}</span>
+                  <span style={styles.metaLineSmall} title={e.entry_hash}>⛓ {e.entry_hash.slice(0, 8)}… ← {e.prev_hash ? e.prev_hash.slice(0, 6) : 'GENESIS'}</span>
                 </div>
                 <div style={styles.cardActions}>
                   <button onClick={() => handleCopy(e)} style={styles.actionBtn}>
-                    {copied === e.entry_hash ? t('codex.copied') : `â§‰ ${t('codex.share')}`}
+                    {copied === e.entry_hash ? t('codex.copied') : `⧉ ${t('codex.share')}`}
                   </button>
                 </div>
               </div>
@@ -98,7 +98,7 @@ export function Codex({ onClose }: Props) {
         )}
 
         <div style={styles.footerNote}>
-          Seeds sind Zahlen â€” jede geteilte Zeile <code style={styles.code}>lifeseed:seed:gen:hash</code> lÃ¤dt exakt dieselbe Pflanze.
+          Seeds sind Zahlen — jede geteilte Zeile <code style={styles.code}>lifeseed:seed:gen:hash</code> lädt exakt dieselbe Pflanze.
           Verifikation = deterministischer RNG, kein externer Konsens.
         </div>
       </div>
@@ -107,7 +107,7 @@ export function Codex({ onClose }: Props) {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  // Screen-Betrieb: Vollbild-Inhalt in MenuScreenShell â€” Papier-IdentitÃ¤t (B0/B9), kein Dark-Slate-Prototyp
+  // Screen-Betrieb: Vollbild-Inhalt in MenuScreenShell — Papier-Identität (B0/B9), kein Dark-Slate-Prototyp
   overlay: { display: 'flex', flexDirection: 'column', alignItems: 'center' },
   panel: { width: '100%', maxWidth: 640, background: 'var(--paper-warm)', border: '2.5px solid var(--ink)', borderRadius: 8, boxShadow: '6px 6px 0 var(--ink)', padding: 20, color: 'var(--ink)' },
   header: { display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 14 },

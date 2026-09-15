@@ -55,12 +55,20 @@ Alle relevanten Dokumente befinden sich nun unter `docs/`:
 4. ✅ **B14.5 — Symmetrische Atomarität.** `keepCross` in einem Persistenzschritt wie `consumeSeedAndEnqueueCross` (A13.6).
 5. ✅ **B14.6 — Kanonische Checksumme.** Integrität inhaltlich statt über JSON-Key-Reihenfolge, Alt-Saves bleiben lesbar (A13.5).
 
+**Übernommen aus dem externen Review, jeder Punkt im Code nachgeprüft — A14–A16 → B16:**
+
+- **A14 (DEFECT, verifiziert): die berechnete Map-Route wird nie gezeichnet.** `drawPath` liest statisch `ENEMY_PATH`, das Terrain wird einmal pro Seed gebacken, und `getRoute()` hat **null** Render-Konsumenten (nur `map.test.ts`) — obwohl sein Kommentar einen Renderer-Verbraucher behauptet. Ein umgeleiteter Pfad ist damit unsichtbar.
+- **A15 (INCOMPLETE, gemessen): die Genom-Kreuzung mutiert — aber das Modell ist an der falschen Stelle offen.** Drei echte Mutationsachsen (Fremdgen p = 0.15, Stärke-Jitter, Dominanz-Drift), jedoch: die Allelmenge ist mit 15 Pool-Genen geschlossen, die Paarung läuft über Array-**Index** statt Gen-ID, und der Eingang ist ein Dreier-Menü (`PLANTS_SOURCE`). Test-gelockt in `src/genome/cross.test.ts`.
+- **A16 (DEFECT, behoben): `Codex.tsx` war doppelkodiert** (Mojibake als literale Zeichen). Rückkodiert, verifiziert, und als Gate verboten (`src/encoding.test.ts` + `.editorconfig`).
+- **A17 (DEFECT, gefunden in der Sichtprüfung): der Codex-Screen ist halb übersetzt** — deutsche Literale in der Komponente neben i18n-Texten, obwohl `codex.empty` bereits existiert. Kein Test konnte das finden; deshalb steht die Sichtprüfung im Sprint-Abschluss.
+- **A18 (DEFECT-Klasse, behoben): die fail-open-Geschwister des B14-Fehlers** — `claimBrood` wählte bei ungültigem Index stillschweigend 0 und prüfte Reife nur in der UI; `keepCross` war über den optionalen Index umgehbar (und der Bypass war als Vertrag test-gelockt); die Inventar-Kappung hinterließ hängende Loadout-/bredStats-Referenzen; ein Save-Downgrade überschrieb still das neuere Save. Behoben fail-closed, mit 9 neuen Gates. Zwei weitere Review-Behauptungen (`recordRunEnd` tot, Discovery-Chain gebrochen) sind im Code **widerlegt** (A18.7). Offen als Design-Entscheidung: Kappungs-Politik (B16.8) und E2E-Geometrie vom Renderer lesen (B16.9).
+
 **Nächster Block — B15: die Zucht-Schleife erreichbar machen.** Der kritische Befund: „Aussäen → reifen → behalten" ist derzeit **nicht einmal auslösbar**, weil der Reifungszähler nur beim `GAME_OVER` fortschreitet und dieser Moment den Screen (und damit den Wurf) abräumt (A13.12). B15 liefert Beanspruchung aus der Queue (Kind aus dem persistierten Seed rekonstruiert), koppelt die Reifung an Wellen statt an den Run-Tod und macht den Wurf reihenfolge-unabhängig (A13.13).
 
 ### 🟡 Mid-Term — Messen statt hoffen
 
 6. **B14.7 — Snapshot-Budget.** Der 10-Hz-HUD-Pfad klont den vollen `SimState`; gegen **B12** (frame ≤ 16 ms, sim ≤ 2 ms, 390×844) messen und entdrosseln (A13.8).
-7. **E2E-Suite anlegen — blockiert den neuen Sprint-Abschluss.** `playwright.config.ts` und `@playwright/test` liegen im Projekt, aber `npx playwright test --list` meldet „Total: 0 tests in 0 files" (`tests/` fehlt). Ohne Spezifikationen ist Stufe 2 des verbindlichen Sprint-Abschlusses (`AGENTS.md`) nicht erfüllbar. Erste E2E-Gates: Run starten, Pflanze platzieren, Welle überleben, Game-Over-Karte, Screen-Router ohne Zustandsverlust.
+7. **E2E-Suite in den Sprint-Abschluss einhängen — erledigt, zu verifizieren bleibt die Disziplin.** Die Suite liegt jetzt in `tests/` (10 Spezifikationen: Router, Platzierung, Run-Screen, Preview) und läuft grün; Stufe 2 des verbindlichen Sprint-Abschlusses (`AGENTS.md`) ist damit ausführbar und über `git-noir/shinon` als eigene Gate-Stufe registriert. Offen: die Specs decken den glücklichen Pfad ab — Spielverlust, Wellen-Ende und das Fortschreiten der Reifung fehlen.
 8. **`nextScopedId`-Injektivität prüfen.** Hash- statt Zähler-Kennung (`% 9000`) ist kollisionstheoretisch offen (A13.11).
 9. **Entscheidung Track-Zugehörigkeit des Styleframes** (`docs/art/` gitignoriert) — entweder Ausnahme in `.gitignore` oder Verweis aus B0.9 entfernen (A13.9).
 

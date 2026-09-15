@@ -9,7 +9,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React 19](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=white)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6-646cff?logo=vite&logoColor=white)](https://vite.dev/)
-[![Vitest](https://img.shields.io/badge/tests-170%20passing-6e9f18?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/tests-185%20passing-6e9f18?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![Determinismus](https://img.shields.io/badge/sim-deterministisch-4ade80)](docs/architecture/architecture-contract.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -105,7 +105,7 @@ npm run dev
 # Type-Check (muss 0 Fehler sein)
 npm run typecheck
 
-# Test-Suite (52+ Tests, alle grün)
+# Test-Suite (185 Tests, alle grün)
 npm test
 
 # Produktions-Build
@@ -289,6 +289,13 @@ npm run test:e2e
 - ✅ Placement-Rules + Controller (pointer-only, test-locked)
 - ✅ Identitäts-Gate: monotone Entitäts-Kennungen (B14, `MetaSave` v5 + Migration)
 - ✅ Kanonische Save-Checksumme (key-sortiert, Alt-Saves bleiben lesbar)
+- ✅ Genom-Mutation: Fremdgen, Stärke-Jitter, Dominanz-Drift (A15, `src/genome/cross.test.ts`)
+- ✅ Encoding-Gate: kein Mojibake, keine Ersatzzeichen in `src/` (A16, `src/encoding.test.ts`)
+- ✅ E2E (Playwright, 10 Spezifikationen in `tests/`): Router, Platzierung, Run-Screen, Preview 390×844
+
+> **Offen (B16, spezifiziert, nicht umgesetzt):** Der Renderer zeichnet die **berechnete** Map-Route
+> nicht — `drawPath` liest statisch `ENEMY_PATH`, und `getRoute()` hat keinen Render-Konsumenten.
+> Umleiten ist damit unsichtbar (A14, siehe `docs/quality/quality-spec.md` B16.1).
 
 ---
 
@@ -302,12 +309,12 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `ebb4913` — Sim-Härtung + faire Ökonomie: Snapshot-Kopien, atomares Sow, event-getriebenes Run-Ende |
-| Arbeitsbaum | 0 gestaged, 19 geändert, 2 neu |
+| HEAD | `d06afa4` — feat(persistenz): monotone Kennungen, kanonische Saves, E2E im Gate |
+| Arbeitsbaum | 0 gestaged, 10 geändert, 3 neu |
 | Letztes Gate | ✅ offen (preflight, 0 Fehler, 0 Warnungen) |
-| Letzter Shinon-Commit | `b935044` feat(shinon): Commit+Push-Executor statt bloßem Commit-Gate |
+| Letzter Shinon-Commit | `d06afa4` feat(persistenz): monotone Kennungen, kanonische Saves, E2E im Gate |
 | Letzter Push | ✅ origin/main |
-| LOC-Hotspots | `src/config/map.source.ts` 198/200 (99 %)<br>`src/simulation/root.ts` 291/300 (97 %)<br>`src/persistence/storage.ts` 193/200 (97 %)<br>`src/simulation/enemySystem.ts` 288/300 (96 %)<br>`src/components/GameView.tsx` 384/400 (96 %) |
+| LOC-Hotspots | `src/config/map.source.ts` 198/200 (99 %)<br>`src/simulation/root.ts` 291/300 (97 %)<br>`src/simulation/enemySystem.ts` 288/300 (96 %)<br>`src/components/GameView.tsx` 384/400 (96 %)<br>`src/persistence/storage.ts` 191/200 (96 %) |
 <!-- SHINON:STATUS:END -->
 
 ---

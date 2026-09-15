@@ -31,6 +31,7 @@ describe('B14 — Brut-Identität', () => {
   it('vergibt einen verbrauchten broodIndex nicht erneut', () => {
     enqueueBrood(A, B, 1);                 // broodIndex 0
     enqueueBrood(A, B, 1);                 // broodIndex 1
+    updateMeta({ totalWavesSurvived: 99 }); // A18.1: claim setzt Reife voraus — hier erzwingen
     claimBrood(1, 0);                      // höchster Index fällt aus dem Fenster
 
     const third = enqueueBrood(A, B, 1);
@@ -40,11 +41,40 @@ describe('B14 — Brut-Identität', () => {
     expect(third.broodGeneration).toBe(3);
   });
 
+  it('UNREIFE Brut wird nicht ausgegeben (fail-closed, A18.1)', () => {
+    enqueueBrood(A, B, 3);                 // neededWaves 3, Zähler steht bei 0
+    const meta = loadMeta();
+    const after = claimBrood(0, 0);        // unreif ⇒ unverändert
+    expect(after).toStrictEqual(meta);
+    expect(loadMeta().beetles.length).toBe(0);
+    expect(loadMeta().pendingBroods.length).toBe(1);
+  });
+
+  it('UNBEKANNTER broodIndex ändert nichts (fail-closed, A18.1)', () => {
+    const before = loadMeta();
+    const after = claimBrood(999, 0);
+    expect(after).toStrictEqual(before);
+  });
+
+  it('UNBEKANNTER Kandidaten-Index wählt NICHT stillschweigend 0 (A18.1)', () => {
+    enqueueBrood(A, B, 1);
+    updateMeta({ totalWavesSurvived: 99 }); // Reife erzwingen
+
+    const before = loadMeta();
+    const after = claimBrood(0, 7);        // Kandidat 7 existiert nicht (nur 0–2)
+
+    expect(after).toStrictEqual(before);
+    expect(loadMeta().beetles.length).toBe(0);
+    expect(loadMeta().pendingBroods.length).toBe(1);
+  });
+
   it('erzeugt nie zwei Specimen mit identischer ID im Brut-Lager', () => {
     enqueueBrood(A, B, 1);                 // 0
     enqueueBrood(A, B, 1);                 // 1
+    updateMeta({ totalWavesSurvived: 99 }); // Reife für die ersten beiden (startedWave 0)
     claimBrood(1, 0);
-    enqueueBrood(A, B, 1);                 // 2 (nicht 1 — das war das Recycling)
+    enqueueBrood(A, B, 1);                 // 2 (nicht 1 — das war das Recycling; startedWave 99)
+    updateMeta({ totalWavesSurvived: 100 }); // und jetzt reift auch die dritte
     claimBrood(2, 0);
 
     const ids = loadMeta().beetles.map(b => b.id);
@@ -202,11 +232,14 @@ describe('B14 — keepCross atomar', () => {
     expect(after.pendingCrosses.length).toBe(1);
   });
 
-  it('kommt ohne crossIndex aus (Rückwärtskompatibilität des Aufrufs)', () => {
-    updateMeta({ variantCounts: { sprout: 2, rootwall: 1 }, savedVariants: [], bredStats: {}, pendingCrosses: [pending] });
+  it('kommt NICHT ohne crossIndex aus — die Queue ist nicht umgehbar (A18.2)', () => {
+    updateMeta({ variantCounts: { sprout: 2, rootwall: 1 }, savedVariants: [], bredStats: {}, pendingCrosses: [pending], totalWavesSurvived: 5 });
 
-    expect(keepCross(child, 'sprout', 'rootwall')).not.toBeNull();
+    // @ts-expect-error A18.2: der frühere „Rückwärtskompatibilitäts"-Aufruf war der Bypass —
+    // er ist jetzt typ- und vertragswidrig (der alte Test lockte ihn als Vertrag).
+    expect(keepCross(child, 'sprout', 'rootwall')).toBeNull();
     expect(loadMeta().pendingCrosses.length).toBe(1);
+    expect(loadMeta().variantCounts['sprout']).toBe(2);
   });
 });
 

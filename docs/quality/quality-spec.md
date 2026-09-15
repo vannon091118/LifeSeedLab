@@ -170,6 +170,87 @@ Ergebnis: „Behalten" ist im ausgelieferten Zustand **nicht auslösbar** — de
 
 **Reproduktion:** `resolveBreedTargets`-Reihenfolge vs. Seed — als Gate in B15.4 zu fixieren (nicht in diesem Durchgang, da es bestehende Wurf-Ergebnisse verändert und damit Balancing berührt).
 
+### A14. DEFECT (verifiziert) — die berechnete Route wird nie gezeichnet
+
+Befundkette, jede Stufe im Code gelesen:
+
+1. Das Map-Grid wird zu einer Route verrechnet; `SimulationRoot` ruft `EnemySystem.setRoute(route)` bei `START_WAVE`.
+2. `EnemySystem.activePath()` = `this.route ?? ENEMY_PATH` — die Gegner laufen also tatsächlich die **berechnete** Route.
+3. `Renderer.prepareTerrain(seed)` backt `bakeTerrain(seed)` und **nur** bei Seed-Wechsel neu (`if (this.terrainSeed === seed) return`) — laut Dateiheader bewusst „EINMAL pro Seed gebacken".
+4. `layers/terrain.ts`, `drawPath()`, liest **ausschließlich** `ENEMY_PATH`: statisch, ohne Parameter, ohne Routen-Bezug; die Verzierung stammt aus dem `visual`-Namespace.
+5. `EnemySystem.getRoute()` trägt den Kommentar „Renderer zeigt die Route — read-only", hat aber **null** Aufrufer in `src/render/` — die einzigen Aufrufer liegen in `src/simulation/map.test.ts`.
+
+Ergebnis: **Umleiten ist unsichtbar.** Wer mit `path`-Kacheln umleitet, sieht weiter die Default-Serpentine, während die Gegner auf einer anderen Bahn laufen — das Feature wird berechnet, aber nicht dargestellt. Aussage (5) ist zusätzlich eine Behauptung über einen Konsumenten, den es nicht gibt (dieselbe Klasse wie A13.7: ein Kommentar, den niemand prüft).
+
+Belege: `src/render/layers/terrain.ts:171-232`, `src/render/renderer.ts:77-81`, `src/simulation/enemySystem.ts:30-47`. Warum kein Test anschlug: `map.test.ts` prüft die Route **im Modell**, nicht im Bild — deshalb blieb es grün.
+
+### A15. INCOMPLETE (verifiziert, gemessen) — Genom-Mutation: drei Achsen, ein falsches Nein
+
+Frage: Gibt es in `crossGenomes` überhaupt Mutation oder nur Rekombination? Antwort, per Gate über 200 deterministische Seeds gemessen (`src/genome/cross.test.ts`) — **Mutation existiert, auf drei Achsen:**
+
+1. **Fremdgen** (p = 0.15 je Slot): ein Gen aus `GENE_POOL`, das in **keinem** Elternteil liegt, mit frischer Stärke 0.1–0.7.
+2. **Stärke-Jitter:** `blend = 0.5 ± 0.15` gegen die Eltern, danach `±0.05` Rauschen, auf 0..1 geklemmt — Stärken werden neu gewürfelt, nicht kopiert.
+3. **Dominanz-Drift:** `dominant ? rng.next() > 0.2 : rng.next() < 0.3` — dominant → rezessiv mit p = 0.2, rezessiv → dominant mit p = 0.3.
+
+**Was daran trotzdem geschlossen ist:** Fremdgene stammen aus `GENE_POOL` (hartcodiert in `genome/pool.ts`, 15 Einträge), und ihre Dominanz ist ein **Pool-Attribut** — kein Mutationsergebnis. Mutation erfindet also kein neues Gen, sie reshuffelt die 15 mit neuen Stärken. „Unendlich viele Basen" ist derzeit auf der **Stärkeachse offen** und auf der **Allelachse geschlossen**. Das ist gute Nachricht und Grenze zugleich: das Modell ist bereits „endlich viele Allele, unendlich viele Kombinationen" — nur der **Eingang** ist ein Dreier-Menü (`PLANTS_SOURCE`: sprout/rootwall/mycelia, je 2 Gene = 6 Allele im Umlauf).
+
+**Positionskopplung statt Genkopplung.** `cross.ts` paart `a[i % a.length]` gegen `b[i % b.length]` — nach Array-**Index**, nicht nach Gen-ID. Bei 2+2 Genen heißt das: `rapid` konkurriert immer mit `shield`, `pierce` immer mit `thorns`. Bei ungleichen Längen wrappt `%` und paart beliebige Gene. Deshalb fühlt sich der Genpool trotz Mutation schnell erschöpft an: praktisch sind es 2 Slots × 3 Basen, nicht 15 Allele.
+
+**Der stärkste Mechanismus ist unbemerkt.** Die Dedup-Stufe (`seen`, Behalten bei `g.power > existing.power`) sichert je Gen-ID das **stärkere** Gen — zusammen mit Blend und Jitter ist das die eigentliche „stärker"-Mechanik des Spiels. Sie funktioniert, war aber nirgends benannt und ungetestet, bis dieses Gate entstand.
+
+**Korrektur an meiner eigenen ersten Messung (Protokollpflicht):** Der erste Dominanz-Test benutzte Sprout + Rootwall als Eltern — beide tragen ausschließlich **dominante** Gene. „Dominanz kann entstehen" ist mit diesem Paar strukturell unmöglich; der Test schlug fehl, ohne dass der Code defekt war. Korrigiert wurde nicht der Code, sondern das Kriterium (Gewinn-Messung gegen Sprout + Mycelia, die einzige Basis mit rezessiven Genen). Das steht hier, damit dieser Fehlschlag niemandem später als Bug-Beweis dient.
+
+### A16. DEFECT (verifiziert, behoben) — Encoding-Fossil: Mojibake als literale Zeichen
+
+`src/components/Codex.tsx` enthielt `ðŸ§¬`, `âœ"`, `â€"`, `lÃ¤dt`. Das war **kein Laufzeit-Artefakt**: Die Zeichen standen wörtlich doppelkodiert in der Datei (UTF-8, einmal als Windows-1252 gelesen und wieder als UTF-8 gespeichert — das Muster eines Shell-Schreibvorgangs ohne UTF-8-Encoding). Repo-weites `git grep` nach den Mojibake-Sequenzen: betroffen war **genau diese eine** Datei.
+
+Warum es überlebte: Die Verifikation prüfte Zeilenenden („CRLF durchgehend erhalten") — aber nie die Kodierung. Ein intaktes Zeilenende über einem zerstörten Zeichen sieht in jedem Diff unauffällig aus.
+
+Behoben: byte-genaue Rückkodierung CP1252 → UTF-8, BOM und CRLF erhalten, 0 × U+FFFD, Umlaute/Emoji/✕/— verifiziert, `tsc` clean. Prävention: Gate `src/encoding.test.ts` (verbietet U+FFFD und die Mojibake-Sequenzen in allen `src/**/*.ts(x)`) + `.editorconfig` (`charset = utf-8`).
+
+### A18. DEFECT-Klasse (verifiziert) — fail-open-Geschwister des B14-Fehlers
+
+Ausgangspunkt war ein externes Review von `d06afa4`; jeder Punkt wurde gegen den Code geprüft, bevor er galt — zwei Behauptungen des Reviews waren falsch und sind hier **widerlegt** (A18.7).
+
+### A18.1 DEFECT (behoben) — `claimBrood` war fail-open
+
+`rolled[chosenIndex] ?? rolled[0]` wählte bei ungültigem Kandidaten-Index stillschweigend 0; die Reife wurde ausschließlich in der UI über `readyBroods` geprüft — eine Gameplay-Entscheidung in der Komponente (Verbotspunkt 3). Jetzt: Reifeprüfung **in** `claimBrood` (`isMatured`), unbekannter Kandidat ⇒ unverändert, unbekannter `broodIndex` ⇒ unverändert. Alle drei Pfade test-gelockt (`identity.test.ts`).
+
+### A18.2 DEFECT (behoben) — `keepCross` war über den optionalen Index umgehbar
+
+Schlimmer als im Review: der Bypass war **als Vertrag test-gelockt** (`identity.test.ts`, „kommt ohne crossIndex aus (Rückwärtskompatibilität des Aufrufs)"). Der Kommentar an `keepCross` nannte die Ausbuchung den EINZIGEN Ort, an dem die Queue schrumpft — der Ort war aber freiwillig. Jetzt: `crossIndex` verpflichtend, Reifeprüfung **in** `keepCross` vor jedem Verbrauch (fail-closed); der alte Test ist invertiert und beweist jetzt das Gegenteil.
+
+### A18.3 DEFECT (behoben) — Kappung hinterließ hängende Referenzen
+
+`applyRegisterVariant` kappte `savedVariants` auf 60 und löschte die `variantCounts` der Verdrängten — aber nicht deren `bredStats` (unbegrenztes Wachstum) und nicht ihren `loadout`-Eintrag (Phantom-Referenzen). Jetzt räumt die Kappung alle drei mit. **Nicht behoben und bewusst offen (Design-Entscheidung, Spielerebene):** dass überhaupt gekappt wird, während die Discovery-Chain „erste Entdeckung ist für immer" verspricht — die Chain lebt in ihrem eigenen Store (`discovery/codex.ts`, `CODEX_KEY`) und ist davon unberührt, aber das Inventar wirft die älteste Züchtung weg, ohne den Spieler zu fragen. Entweder Bestand kappen statt Identität, oder der Spieler entscheidet.
+
+### A18.4 DEFECT (behoben) — Persistenz: Downgrade überschrieb still das neuere Save
+
+`env.v > opts.version` kehrte in **beiden** Backends still zum Fallback zurück; das nächste `save()` hätte das neuere Save überschrieben. Jetzt: Quarantäne statt stiller Verwerfen (Rohdaten bleiben unter `<key>.corrupt` erhalten). Dabei gleich zwei Review-Punkte mitgenommen: die Envelope-Validierung existierte doppelt (`load`/`idbGet`, ~15 Zeilen je Stelle) und lebt jetzt einmal in `validateEnvelope`; die Version-Differenz folgt einer Regel in `resolveVersion` (unter uns ⇒ migrieren, über uns ⇒ Quarantäne). `storage.ts` ist dadurch **geschrumpft** (192 → 190 LOC), ohne den Cap anzufassen. Der unbenutzte Grabstein-Export `STORAGE_CHECKSUM_SEP` ist entfernt; der IDB-Name `lifegamelab` ist als bewusstes Legacy dokumentiert (Umbenennung würde Run-Snapshots verwaisen).
+
+### A18.5 INCOMPLETE — E2E-Geometrie ist gespiegelt, nicht geteilt
+
+`tests/run.spec.ts` rechnet Zellmitten mit hartcodierten `GRID/PAD/+8` nach; der Kommentar sagt ehrlich, dass der Test bei Renderer-Drift nichts mehr findet, ohne dass jemand weiß warum. Fix (B16-Auftrag): `Renderer.metrics()` ans DevGate hängen (`CELL/OX/OY` als Werte), dann liest der Test die Wahrheit statt einer Kopie. Die `waitForTimeout`-Sleeps sind bekannte Flaky-Kandidaten, solange die Suite lokal grün läuft.
+
+### A18.6 DEFECT (behoben) — das Reife-Kriterium existierte zweimal
+
+`isCrossReady` (Pflanzen) und `readyBroods` (Käfer) duplizierten dieselbe Arithmetik. Jetzt: `isMatured(startedWave, neededWaves, total)` ist DAS Kriterium, beide Gates rufen es.
+
+### A18.7 WIDERLEGT — zwei Review-Behauptungen, die der Code nicht trägt
+
+1. **„`recordRunEnd()` wird nicht aufgerufen"** — falsch: `GameView.tsx:162` ruft es event-getrieben im `GAME_OVER`-Handler (`e.payload.wave`, genau die B15.2-Vorbereitung).
+2. **„`applyRegisterVariant` bricht die Discovery-Chain"** — falsch: die Chain lebt in einem eigenen Store (`discovery/codex.ts`, `CODEX_KEY`, append-only, hash-verkettet) und ist von der Inventar-Kappung unberührt. Der echte, getrennte Befund ist A18.3.
+
+Zusätzlich verkannt: die Migrationskette in `store.ts` ist bewusst **Normalisierung** (`toCurrent(defaultMeta(), old)` aus jeder Version 1–4), kein `while`-Loop nötig — das reale Persistenzproblem war der Downgrade-Pfad (A18.4). Lehre: Ein Review, das Existenz statt Nutzung prüft, produziert dieselbe Fehlerklasse, die es anprangert.
+
+### A17. DEFECT (verifiziert, in der Release-Fläche sichtbar) — der Codex-Screen ist halb übersetzt
+
+Gefunden bei der Sichtprüfung, nicht in der Simulation: Mit Sprache **English** steht auf dem Codex-Screen „No discoveries yet. Breed the first one!" direkt neben **„0 Entdeckungen"**, und der Erklärkasten ist vollständig deutsch („Seeds sind Zahlen — jede geteilte Zeile … lädt exakt dieselbe Pflanze. Verifikation = deterministischer RNG, kein externer Konsens.").
+
+`src/components/Codex.tsx` schreibt diese Texte als **Literale in die Komponente**, statt sie über die i18n-Schicht zu ziehen — obwohl dieselbe Schicht für genau diesen Screen bereits einen Schlüssel führt (`codex.empty`, `src/i18n/translations.ts:75`). Das Muster existiert also, es wurde nur nicht durchgehalten. Ein gemischtsprachiger Screen ist kein Geschmacksurteil, sondern ein Oberflächen-Defekt, und er ist im Screenshot reproduzierbar.
+
+**Warum kein Gate das fand:** Die Tests prüfen Verhalten (Router, Platzierung, Ticks), nicht die Sprache der Ausgabe. Genau darum steht in `AGENTS.md` die Sichtprüfung als eigene Stufe vor dem E2E — sie ist hier die einzige Instanz, die den Defekt sehen konnte.
+
 ---
 
 # PART B — ASSET & RENDER SPECIFICATION
@@ -415,3 +496,50 @@ Die Besitzliste wird **kanonisch sortiert**, bevor sie gewichtet wird — der Wu
 - [ ] Kein Eintrag verschwindet aus der Queue, ohne beansprucht worden zu sein
 - [ ] 390×844 geprüft (Queue-Zeile + Knopf ≥ 44 px, kein Hover-Zwang)
 - [ ] `tsc` clean, Suite grün, `vite build` grün
+
+## B16. Route sichtbar machen & Genom-Modell schärfen (Auftrag aus A14/A15/A16)
+
+### B16.1 Die aktive Route muss gezeichnet werden (aus A14)
+
+Der Terrain-Layer erhält die **aktive** Route (als Provider/Getter, nicht als Zustandskopie), und `drawPath` liest sie statt `ENEMY_PATH`. Re-Bake **nur** bei Routen- oder Seed-Wechsel, niemals pro Frame (B12: frame ≤ 16 ms). `getRoute()` bekommt einen echten Konsumenten oder fällt ganz; der Kommentar in `enemySystem.ts` wird richtiggestellt. Gate-Test auf den **Vertrag** („der Renderer erhält genau die aktive Route"), nicht auf Canvas-Pixel.
+
+### B16.2 Paarung entscheiden: Slot oder Gen (aus A15)
+
+Entweder Paarung nach Gen-**ID** (Alignment über die Allelmenge) oder die Slot-Semantik wird explizit als Design dokumentiert. Beides verändert Wurf-Ergebnisse und damit Balancing ⇒ separat ausrollen, wie B15.4.
+
+### B16.3 Allelmenge öffnen („unendlich viele Basen")
+
+`PLANTS_SOURCE` bleibt die Definition der **Allele** (was ein Gen kann, kostet, rendert); ein Samen erhält einen Index, und `deriveSeed(GAME_SEED, 'seed', index)` zieht Rolle + 3–5 Gene mit Stärke und Dominanz deterministisch. `createBaseVariants()` wird damit eine Schleife um dieselbe Config statt einer Drei-Einträge-Liste — die Discovery-Chain funktioniert dafür bereits heute. Gate: gleicher Index ⇒ identisches Genom, verschiedene Indizes ⇒ verschiedene Genome.
+
+### B16.4 Zwei Stream-Verschmutzungen beheben (aus dem Review, verifiziert)
+
+- `generateCrossResults` zieht `rng.next()` für `probability`, **nachdem** das Kind fertig ist — und **niemand** liest den Wert (nur die Typdeklaration in `types.ts`). Er liegt aber im Gameplay-Strom: Kandidat *i+1* hängt von ihm ab. Ein Anzeigewert gehört nicht in den Gameplay-Strom.
+- `generateName` zieht Präfix/Suffix aus **demselben** Strom wie `crossGenomes`. Damit verschiebt jede Änderung an `names.source` — Präsentationsdaten — alle nachfolgenden Genome und damit jeden `lifeseed:`-Hash der Discovery-Chain.
+
+Fix: Namens- und Anzeige-Zufall in den `visual`-Namespace (eigener, abgeleiteter Stream). Verändert bestehende Ergebnisse ⇒ versioniert ausrollen.
+
+### B16.5 `generation` ist zwei Dinge
+
+In `rollGachaCross` wird `generation: crossIndex` gesetzt, in `generateCrossResults` ist `generation` der Parameter (Stamm-Generation). Ein Feld, zwei Bedeutungen — wer das später „vereinheitlicht", ändert die IDs gespeicherter Kreuzungen. Entweder umbenennen oder die Doppelbedeutung im Typ dokumentieren.
+
+### B16.6 DoD für B16
+
+- [ ] Renderer zeichnet die aktive Route (A14); Re-Bake nur bei Routen-/Seed-Wechsel
+- [ ] `getRoute()` hat einen Konsumenten oder existiert nicht mehr; Kommentar richtiggestellt
+- [ ] Gate: Route-Vertrag grün, kein Frame-Rebake (B12-Messung bleibt grün)
+- [ ] Entscheidung B16.2 dokumentiert und umgesetzt
+- [ ] Gate: Anzeige-/Namenszufall außerhalb des Gameplay-Stroms; Discovery-Hashes stabil
+- [ ] Gate: gleicher Samen-Index ⇒ identisches Genom (B16.3)
+- [ ] `tsc` clean, Suite grün, `vite build` grün
+
+### B16.7 Sprache der Release-Fläche (aus A17)
+
+Die drei Literale in `Codex.tsx` wandern in die i18n-Schicht (de + en) — die Schlüssel für diesen Screen existieren bereits. Kein Radikalschnitt über alle Komponenten: Der Bestand an hardcodierten deutschen Literalen in `src/components/*.tsx` wird **gezählt und als Obergrenze verankert** (Ratchet) — die Zahl darf sinken, nicht steigen. Sichtprüfung beider Sprachen bei 390×844, weil Sprache kein Testfall ist.
+
+### B16.8 Kappungs-Politik entscheiden (aus A18.3, Design-Entscheidung)
+
+Entweder Bestand (`variantCounts`) kappen statt Identität (`savedVariants`), oder der Spieler wählt, was verdrängt wird. Bis zur Entscheidung bleibt der Fix aus A18.3 (keine hängenden Referenzen) die einzige Garantie. Einfluss auf die Discovery-Chain: keiner (eigener Store).
+
+### B16.9 E2E liest die Geometrie vom Renderer (aus A18.5)
+
+`Renderer.metrics()` wird über das DevGate als Werte exportiert (`CELL/OX/OY`); `tests/run.spec.ts` liest sie, statt `GRID/PAD/+8` zu spiegeln. Danach überlebt ein Renderer-Refactor die Tests ohne stillen Tot.

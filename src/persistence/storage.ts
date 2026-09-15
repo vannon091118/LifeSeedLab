@@ -2,8 +2,6 @@
 // EIN Speicher-Owner: versionierte Saves + Migrationskette + FNV-Checksumme +
 // Quarantäne bei Korruption. meta.ts/runSave.ts sind nur Schema-Adapter (QUALITY_SPEC B2).
 
-const CHECKSUM_SEP = '|';
-
 function fnv1a(str: string): number {
   let h = 0x811c9dc5 >>> 0;
   for (let i = 0; i < str.length; i++) {
@@ -62,39 +60,61 @@ function quarantine(key: string, raw: string): void {
   try { localStorage.setItem(`${key}.corrupt`, raw); } catch { /* ignore */ }
 }
 
+/**
+ * A18.4: Envelope-Validierung existierte doppelt (load + idbGet, ~15 Zeilen je Stelle).
+ * Eine Wahrheit: parse/Defekt/Checksum ⇒ Quarantäne + null; sonst der Envelope.
+ */
+function validateEnvelope(raw: string, key: string): Envelope | null {
+  let env: Envelope;
+  try { env = JSON.parse(raw) as Envelope; } catch {
+    quarantine(key, raw);
+    return null;
+  }
+  if (typeof env.v !== 'number' || typeof env.checksum !== 'number' || env.data == null) {
+    quarantine(key, raw);
+    return null;
+  }
+  if (!checksumMatches(env)) {
+    // integrity failure → quarantine, never trust partial data
+    quarantine(key, raw);
+    return null;
+  }
+  return env;
+}
+
+/**
+ * A18.4: Version-Differenz mit EINER Regel: **unter** uns → migrieren, **über** uns →
+ * Quarantäne. Vorher kehrte ein Downgrade (env.v > version) still zum Fallback zurück —
+ * das nächste save() hätte dann das NEUERE Save überschrieben. Die Quarantäne erhält
+ * die Rohdaten unter `<key>.corrupt` (bewusst localStorage: klein, überall verfügbar;
+ * Run-Snapshots sind groß — sie werden hier gar nicht erst hingeschrieben, s. u.).
+ */
+function resolveVersion<T>(key: string, env: Envelope, raw: string, opts: StoreOptions<T>, writeBack: (migrated: T) => void): T {
+  if (env.v === opts.version) return env.data as T;
+  if (env.v > opts.version) {
+    // newer save (downgrade) → NOT silent defaults; preserve the newer data
+    quarantine(key, raw);
+    return opts.fallback();
+  }
+  if (!opts.migrate) return opts.fallback();
+  const migrated = opts.migrate(env.data, env.v);
+  if (migrated === null) {
+    quarantine(key, raw);
+    return opts.fallback();
+  }
+  writeBack(migrated);
+  return migrated;
+}
+
 // ── localStorage backend (sync — meta) ───────────────────────
 export function load<T>(key: string, opts: StoreOptions<T>): T {
   let raw: string | null = null;
   try { raw = localStorage.getItem(key); } catch { return opts.fallback(); }
   if (!raw) return opts.fallback();
 
-  let env: Envelope;
-  try { env = JSON.parse(raw) as Envelope; } catch {
-    quarantine(key, raw);
-    return opts.fallback();
-  }
-  if (typeof env.v !== 'number' || typeof env.checksum !== 'number' || env.data == null) {
-    quarantine(key, raw);
-    return opts.fallback();
-  }
-
-  if (!checksumMatches(env)) {
-    // integrity failure → quarantine, never trust partial data
-    quarantine(key, raw);
-    return opts.fallback();
-  }
-
-  if (env.v === opts.version) return env.data as T;
-  if (env.v > opts.version) return opts.fallback(); // newer save (downgrade) → defaults
-  if (!opts.migrate) return opts.fallback();
-
-  const migrated = opts.migrate(env.data, env.v);
-  if (migrated === null) {
-    quarantine(key, raw);
-    return opts.fallback();
-  }
-  save(key, migrated, opts.version);
-  return migrated;
+  const env = validateEnvelope(raw, key);
+  if (!env) return opts.fallback();
+  return resolveVersion(key, env, raw, opts, (migrated) => save(key, migrated, opts.version));
 }
 
 export function save<T>(key: string, value: T, version: number): void {
@@ -106,6 +126,9 @@ export function remove(key: string): void {
 }
 
 // ── IndexedDB backend (async — run snapshots, ARCHITECTURE.md §4) ──
+// A18.4 (bewusst, NICHT bereinigen): der Name `lifegamelab` ist Legacy-Branding —
+// eine Umbenennung würde bestehende Run-Snapshots verwaisen. Ein neuer Name wäre
+// KEINE Migration, sondern Datenverlust.
 const IDB_NAME = 'lifegamelab';
 const IDB_STORE = 'runs';
 
@@ -145,32 +168,9 @@ export async function idbGet<T>(key: string, opts: StoreOptions<T>): Promise<T> 
     db.close();
     if (!raw) return opts.fallback();
 
-    // PARITÄT zum localStorage-Backend (Contract: EIN Integritätsvertrag):
-    // parse-fail / Envelope-Defekt / Checksum-Mismatch → Quarantäne + fallback.
-    let env: Envelope;
-    try { env = JSON.parse(raw) as Envelope; } catch {
-      quarantine(key, raw);
-      return opts.fallback();
-    }
-    if (typeof env.v !== 'number' || typeof env.checksum !== 'number' || env.data == null) {
-      quarantine(key, raw);
-      return opts.fallback();
-    }
-    if (!checksumMatches(env)) {
-      quarantine(key, raw);
-      return opts.fallback();
-    }
-
-    if (env.v === opts.version) return env.data as T;
-    if (env.v > opts.version) return opts.fallback(); // newer save (downgrade) → defaults
-    if (!opts.migrate) return opts.fallback();
-    const migrated = opts.migrate(env.data, env.v);
-    if (migrated === null) {
-      quarantine(key, raw);
-      return opts.fallback();
-    }
-    await idbSet(key, migrated, opts.version);
-    return migrated;
+    const env = validateEnvelope(raw, key);
+    if (!env) return opts.fallback();
+    return resolveVersion(key, env, raw, opts, (migrated) => idbSet(key, migrated, opts.version));
   } catch {
     return opts.fallback();
   }
@@ -188,5 +188,3 @@ export async function idbRemove(key: string): Promise<void> {
     db.close();
   } catch { /* ignore */ }
 }
-
-export const STORAGE_CHECKSUM_SEP = CHECKSUM_SEP;

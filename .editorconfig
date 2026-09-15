@@ -1,0 +1,19 @@
+# LifeSeedLab — Encoding/Zeilenenden verbindlich (siehe quality-spec A16).
+# Hintergrund: Ein Schreibvorgang über eine Windows-Shell hat eine Quelldatei
+# doppelkodiert (UTF-8 → CP1252 → UTF-8) und Mojibake wörtlich in den Code
+# geschrieben. `charset = utf-8` macht die Kodierung sichtbar und konstant.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{yml,yaml}]
+indent_size = 2

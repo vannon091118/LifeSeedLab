@@ -1,5 +1,6 @@
 import type { MetaSave, PendingBrood, PlantVariant } from '../types';
 import { loadMeta, updateMeta, persistMeta, deriveBredEntry } from './store';
+import { isCrossReady, isMatured } from './economy';
 import { rollBrood } from '../genome/beetle';
 
 // Owner: PersistenceSystem (meta run/variant ops). LOC ≤ 200.
@@ -49,11 +50,18 @@ function applyRegisterVariant(meta: MetaSave, variant: PlantVariant): MetaSave {
   const counts = { ...meta.variantCounts };
   counts[canonical.id] = (counts[canonical.id] || 0) + 1;
   let library = meta.savedVariants;
+  let loadout = meta.loadout;
+  const bred = { ...(meta.bredStats ?? {}) };
   if (!library.some(v => v.id === canonical.id)) {
     library = [...library, canonical];
     if (library.length > 60) {
+      // A18.3: Kappung darf keine hängenden Referenzen hinterlassen — verdrängte IDs
+      // werden konsequent aus counts, bredStats und loadout mitgeräumt. (Vorher:
+      // Loadout referenzierte Phantom-Pflanzen, bredStats wuchs unbegrenzt.)
       const dropped = library.slice(0, library.length - 60);
-      for (const d of dropped) delete counts[d.id];
+      const droppedIds = new Set(dropped.map(d => d.id));
+      for (const id of droppedIds) { delete counts[id]; delete bred[id]; }
+      loadout = loadout.filter(id => !droppedIds.has(id));
       library = library.slice(library.length - 60);
     }
   }
@@ -61,7 +69,8 @@ function applyRegisterVariant(meta: MetaSave, variant: PlantVariant): MetaSave {
     ...meta,
     variantCounts: counts,
     savedVariants: library,
-    bredStats: { ...meta.bredStats, [canonical.id]: deriveBredEntry(canonical) },
+    bredStats: { ...bred, [canonical.id]: deriveBredEntry(canonical) },
+    loadout,
   };
 }
 
@@ -74,13 +83,16 @@ export function registerVariant(variant: PlantVariant): MetaSave {
 /**
  * B1 „Keep" einer Kreuzung: verbraucht je 1× beider Eltern und registriert das Kind.
  * Ohne diesen Verbrauch wäre Zucht unbegrenzt wiederholbar (dieselben Eltern, beliebig viele
- * Nachkommen). Rückgabe null ⇒ Elternbestand reicht nicht — dann passiert nichts.
+ * Nachkommen). Rückgabe null ⇒ nicht reif oder Elternbestand reicht nicht — dann passiert nichts.
  *
- * `crossIndex` (optional) bucht zusätzlich den Reifungs-Eintrag aus — das ist der EINZIGE
- * Ort, an dem die Warteschlange schrumpft (A13.12/B14.4).
+ * A18.2: `crossIndex` ist VERPFLICHTEND und wird HIER auf Reife geprüft (isCrossReady,
+ * fail-closed). Vorher war er optional — jeder Aufrufer konnte die Queue umgehen, und genau
+ * das war als Vertrag test-gelockt. Die Ausbuchung ist nicht verhandelbar: das ist der
+ * EINZIGE Ort, an dem die Warteschlange schrumpft (A13.12/B14.4) — jetzt wirklich.
  */
-export function keepCross(child: PlantVariant, parentAId: string, parentBId: string, crossIndex?: number): MetaSave | null {
+export function keepCross(child: PlantVariant, parentAId: string, parentBId: string, crossIndex: number): MetaSave | null {
   const meta = loadMeta();
+  if (!isCrossReady(meta, crossIndex)) return null;
   const a = canonicalVariantId(parentAId);
   const b = canonicalVariantId(parentBId);
   const costA = a === b ? 2 : 1;
@@ -90,9 +102,7 @@ export function keepCross(child: PlantVariant, parentAId: string, parentBId: str
   counts[a] = (counts[a] ?? 0) - costA;
   if (a !== b) counts[b] = (counts[b] ?? 0) - 1;
   const base: MetaSave = { ...meta, variantCounts: counts };
-  const booked: MetaSave = crossIndex === undefined
-    ? base
-    : { ...base, pendingCrosses: base.pendingCrosses.filter(c => c.crossIndex !== crossIndex) };
+  const booked: MetaSave = { ...base, pendingCrosses: base.pendingCrosses.filter(c => c.crossIndex !== crossIndex) };
   // B14.5: Elternverbrauch + Queue-Ausbuchung + Kind-Registrierung + bredStats in EINEM
   // Persistenzschritt. Vorher drei Schreiber ⇒ Zwischenzustand „Eltern verbraucht, kein Kind".
   const next = applyRegisterVariant(booked, child);
@@ -136,8 +146,12 @@ export function claimBrood(broodIndex: number, chosenIndex: number): MetaSave {
   const meta = loadMeta();
   const pending = meta.pendingBroods.find(p => p.broodIndex === broodIndex);
   if (!pending) return meta;
+  // A18.1: Reife ist eine Meta-Entscheidung, keine UI-Frage — unreife Bruten werden
+  // nicht ausgegeben, auch wenn eine Komponente es versucht (Verbotspunkt 3).
+  if (!isMatured(pending.startedWave, pending.neededWaves, meta.totalWavesSurvived)) return meta;
   const rolled = rollBrood(pending.specimenAId, pending.specimenBId, pending.broodIndex);
-  const chosen = rolled[chosenIndex] ?? rolled[0];
+  // A18.1: fail-closed — ein ungültiger Kandidaten-Index wählt NICHT stillschweigend 0.
+  const chosen = rolled[chosenIndex];
   if (!chosen) return meta;
   const beetles = [...meta.beetles, chosen];
   const capped = beetles.length > 40 ? beetles.slice(beetles.length - 40) : beetles;
@@ -147,9 +161,9 @@ export function claimBrood(broodIndex: number, chosenIndex: number): MetaSave {
   });
 }
 
-/** Brut, deren Reifung abgelaufen ist (UI fragt nach totalWavesSurvived). */
+/** Brut, deren Reifung abgelaufen ist — über dasselbe Kriterium wie die Pflanzen (A18.6). */
 export function readyBroods(meta: MetaSave): PendingBrood[] {
-  return meta.pendingBroods.filter(p => meta.totalWavesSurvived - p.startedWave >= p.neededWaves);
+  return meta.pendingBroods.filter(p => isMatured(p.startedWave, p.neededWaves, meta.totalWavesSurvived));
 }
 
 // ── P5: Spieler-Maps (spielbarer Inhalt — Layout speichern/laden) ──

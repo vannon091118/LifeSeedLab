@@ -65,10 +65,23 @@ export function advanceCrossMaturation(waveReached: number): void {
  * unbekannter `crossIndex` ⇒ NICHT reif. Ein Gate, das bei Unbekanntem „ja" sagt,
  * ist kein Gate.
  */
+/**
+ * A18.6: DAS Reife-Kriterium — genau eine Arithmetik für Pflanzen UND Bruten.
+ * Vorher: `isCrossReady` (Pflanzen) und `readyBroods` (Käfer) duplizierten dieselbe
+ * Formel — zwei Wahrheiten, die beim nächsten Tuning auseinanderlaufen.
+ */
+export function isMatured(startedWave: number, neededWaves: number, totalWavesSurvived: number): boolean {
+  return totalWavesSurvived - startedWave >= neededWaves;
+}
+
+/**
+ * Ein Reife-Gate (B14.4, fail-closed): unbekannter Index ⇒ nicht reif.
+ * Kein zweiter Ableitungspfad — die UI liest nur (Verbotspunkt 3).
+ */
 export function isCrossReady(meta: MetaSave, crossIndex: number): boolean {
   const entry = meta.pendingCrosses.find(c => c.crossIndex === crossIndex);
   if (!entry) return false;
-  return meta.totalWavesSurvived - entry.startedWave >= entry.neededWaves;
+  return isMatured(entry.startedWave, entry.neededWaves, meta.totalWavesSurvived);
 }
 
 export function consumeSeed(): MetaSave | null {

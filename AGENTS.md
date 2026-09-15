@@ -94,8 +94,6 @@ node git-noir/shinon/cli.ts finish --all   # Vorbereitung → Gate → Commit �
 
 Details: [`docs/setup/script-readme.md`](docs/setup/script-readme.md). Das Tooling in `git-noir/` ist lokal (gitignoriert): Werkzeug, nicht Inhalt.
 
-> **Offener Punkt (ehrlich benannt):** Die E2E-Suite existiert noch nicht — `npx playwright test --list` meldet „Total: 0 tests in 0 files" (`tests/` fehlt), obwohl `playwright.config.ts` und `@playwright/test` im Projekt liegen. Stufe 2 ist damit derzeit nicht erfüllbar. Solange keine Spezifikationen stehen, muss jeder Sprint diesen Punkt **ausdrücklich als offen melden** — nicht stillschweigend überspringen und nicht als erledigt verbuchen.
-
 ## Verboten (ohne Ausnahme)
 
 1. Zweiter RNG, zweiter EventBus, zweiter State-Owner, Dopplung bestehender Module.
