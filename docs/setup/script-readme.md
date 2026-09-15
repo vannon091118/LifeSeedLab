@@ -47,6 +47,7 @@ node git-noir/shinon/cli.ts push           # Push-Executor (--dry-run möglich)
 node git-noir/shinon/cli.ts finish --all   # kompletter Ablauf inkl. Staging und Push
 node git-noir/shinon/cli.ts init --slug=owner/repo   # Einrichtung, ohne Push
 node git-noir/shinon/cli.ts install-hooks  # Hooks schreiben, core.hooksPath setzen
+node git-noir/shinon/cli.ts enforce        # Enforcement-Modus anzeigen / setzen (advisory|strict)
 ```
 
 ## Hooks
@@ -69,6 +70,7 @@ Repository-Root (oder `SHINON_CONFIG=<pfad>`):
 {
   "commit": { "messageFile": "commit_msg.txt", "freeForm": false },
   "gate": {
+    "enforcement": "strict",
     "checks": { "typecheck": true, "tests": true, "build": false },
     "locCaps": [{ "path": "src/simulation/", "cap": 300, "label": "Simulationssystem" }],
     "commands": { "tests": { "command": "npx", "args": ["vitest", "run"], "enabled": true } }
@@ -77,11 +79,40 @@ Repository-Root (oder `SHINON_CONFIG=<pfad>`):
 }
 ```
 
+## Enforcement-Modus
+
+Das Gate kennt genau zwei Modi (`gate.enforcement`):
+
+| Modus | Wirkung |
+|---|---|
+| `advisory` (Tooling-Default) | Nur Fehler schließen das Gate; Warnungen werden berichtet |
+| `strict` (**dieses Repository**) | Warnungen blockieren wie Fehler — grün heißt 0 Fehler **und** 0 Warnungen |
+
+Der Modus ist **persistierte Konfiguration, kein Per-Lauf-Flag**. Das ist Absicht: Ein Flag wäre ein
+zweiter Weg am Gate vorbei. Weil die Entscheidung in `shinon.config.json` im Repository liegt, gilt
+sie für die CLI **und** für die Hooks — und bleibt es auch nach einem frischen Clone.
+
+```bash
+node git-noir/shinon/cli.ts enforce            # aktuellen Modus + Quelle anzeigen
+node git-noir/shinon/cli.ts enforce strict     # Enforcement aktivieren (schreibt shinon.config.json)
+node git-noir/shinon/cli.ts enforce advisory   # zurück auf advisory
+```
+
+Die Blockier-Regel lebt an **einer** Stelle (`checks/check.ts`: `isBlocking`) und wird von Fail-Fast,
+Einzelurteil, Gesamturteil und Nachrichtenprüfung gemeinsam benutzt — Entscheidung und Bericht können
+nicht auseinanderlaufen. Bericht und README-Status nennen den Modus; bei reiner Warnungslage schließt
+das Gate mit `GATE GESCHLOSSEN (Enforcement)`.
+
+Ausnahme mit Begründung: Die Architektur-Regel „Persistenz nur über `persistence/`" gilt für
+**Spielcode**. Der Playwright-Harness unter `tests/` darf den Browser-Save lesend beobachten (er läuft
+außerhalb der App und kann den Owner nicht importieren); Schreiben bleibt verboten, und die Ausnahme ist
+in `checks.test.ts` als exakte Liste gelockt, damit sie nicht still wächst.
+
 ## Tests des Toolings
 
 ```bash
 npx tsc -p git-noir/tsconfig.json                        # Typecheck des Toolings
-npx vitest run --config git-noir/vitest.config.ts        # 24 Tests: Gates, Komponist, Starter
+npx vitest run --config git-noir/vitest.config.ts        # Gate, Enforcement, Komponist, Starter
 ```
 
 Die Projekt-Suite (`npx vitest run`) bleibt unberührt und prüft weiterhin ausschließlich `src/**`.

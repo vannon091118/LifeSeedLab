@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import type { MetaSave } from '../types';
 import type { TranslationKey } from '../i18n';
 import { useI18n } from '../i18n';
-import { buySeed } from '../meta';
+import { buySeedAndGerminate } from '../meta';
 import { SEED_SHOP_BASE_PRICE, SEED_SHOP_PRICE_STEP, SEED_SHOP_OFFERS } from '../config/economy.source';
 
 // Owner: UI (SeedShop screen). LOC ≤ 400.
@@ -23,8 +23,13 @@ export function SeedShop({ meta, onMetaChange, onClose }: Props) {
 
   const offers = useMemo(() => buildOffers(meta), [meta]);
 
+  // B17.3: der Keim-Index läuft auf dem monotonen breedGeneration — derselbe Index ergibt
+  // weltweit dieselbe Pflanze (germinateVariant ist deterministisch aus dem Spiel-Seed).
+  const germinateIndex = meta.breedGeneration;
+
   const handleBuy = (price: number) => {
-    const m = buySeed(price);
+    // B17.3 (Option A): Kaufen KEIMT sofort — EIN atomarer Schritt (Nektar → Bestand).
+    const m = buySeedAndGerminate(price, germinateIndex);
     if (m) {
       onMetaChange(m);
       setNote(t('shop.buy') + ' ✓');
@@ -56,14 +61,14 @@ export function SeedShop({ meta, onMetaChange, onClose }: Props) {
             >
               <span style={styles.rarity}>{t(rarityKey(o.rarity))}</span>
               <span style={styles.offerPrice}>🍯 {o.price}</span>
-              <span style={styles.offerHint}>→ +1 {t('shop.stash')}</span>
+              <span style={styles.offerHint}>→ {t('shop.germinate')}</span>
             </button>
           ))}
         </div>
 
         <div style={styles.stockRow}>
           <span>{t('shop.stash')}: <strong>{meta.seedStash}</strong></span>
-          <span style={styles.stockHint}>{t('shop.sow')}</span>
+          <span style={styles.stockHint}>{t('shop.germinateHint').replace('{n}', String(germinateIndex + 1))}</span>
         </div>
       </div>
     </div>

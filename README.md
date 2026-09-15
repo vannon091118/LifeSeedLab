@@ -9,7 +9,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React 19](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=white)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6-646cff?logo=vite&logoColor=white)](https://vite.dev/)
-[![Vitest](https://img.shields.io/badge/tests-185%20passing-6e9f18?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/tests-198%20passing-6e9f18?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![Determinismus](https://img.shields.io/badge/sim-deterministisch-4ade80)](docs/architecture/architecture-contract.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -105,7 +105,7 @@ npm run dev
 # Type-Check (muss 0 Fehler sein)
 npm run typecheck
 
-# Test-Suite (185 Tests, alle grün)
+# Test-Suite (198 Tests, alle grün)
 npm test
 
 # Produktions-Build
@@ -309,12 +309,13 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `d06afa4` — feat(persistenz): monotone Kennungen, kanonische Saves, E2E im Gate |
-| Arbeitsbaum | 0 gestaged, 10 geändert, 3 neu |
+| HEAD | `1d2bfa7` — fix(meta): fail-closed-Gates für Zucht/Reifung, Save-Downgrade in Quarantäne |
+| Arbeitsbaum | 22 gestaged, 0 geändert, 0 neu |
 | Letztes Gate | ✅ offen (preflight, 0 Fehler, 0 Warnungen) |
-| Letzter Shinon-Commit | `d06afa4` feat(persistenz): monotone Kennungen, kanonische Saves, E2E im Gate |
+| Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
+| Letzter Shinon-Commit | `1d2bfa7` fix(meta): fail-closed-Gates für Zucht/Reifung, Save-Downgrade in Quarantäne |
 | Letzter Push | ✅ origin/main |
-| LOC-Hotspots | `src/config/map.source.ts` 198/200 (99 %)<br>`src/simulation/root.ts` 291/300 (97 %)<br>`src/simulation/enemySystem.ts` 288/300 (96 %)<br>`src/components/GameView.tsx` 384/400 (96 %)<br>`src/persistence/storage.ts` 191/200 (96 %) |
+| LOC-Hotspots | `src/config/map.source.ts` 198/200 (99 %)<br>`src/components/GameView.tsx` 390/400 (98 %)<br>`src/simulation/root.ts` 291/300 (97 %)<br>`src/simulation/enemySystem.ts` 288/300 (96 %)<br>`src/persistence/storage.ts` 191/200 (96 %) |
 <!-- SHINON:STATUS:END -->
 
 ---

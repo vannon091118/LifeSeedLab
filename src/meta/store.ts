@@ -92,6 +92,34 @@ function deriveBroodGeneration(raw: Partial<MetaSave>, broods: PendingBrood[], b
   return (used.length > 0 ? Math.max(...used) : -1) + 1;
 }
 
+/**
+ * B17: `startedWave` kann konstruktionsbedingt NIE in der Zukunft liegen — die Reifung zählt
+ * `totalWavesSurvived - startedWave`, und der Zähler wächst nur. Altsaves können es trotzdem
+ * (als der Reifungsschritt nur am `GAME_OVER` hing, während die UI ohne Zählerfortschritt
+ * aussäen konnte): solche Einträge reifen NIE — genau das Bild „Samen keimen nicht".
+ *
+ * Der Load hebt sie auf die Wahrheit. Das ist eine Invarianten-Reparatur, keine Design-Entscheidung:
+ * was nie in der Zukunft begonnen haben kann, wird auch nicht so geführt.
+ */
+function healRipeness<T extends { startedWave: number }>(entries: T[], totalWavesSurvived: number): T[] {
+  return entries.map((entry) =>
+    entry.startedWave > totalWavesSurvived ? { ...entry, startedWave: totalWavesSurvived } : entry,
+  );
+}
+
+/** B17: Reifungs-Invarianten für einen geladenen Save (idempotent, reine Ableitung).
+ *
+ * Bewusst NICHT enthalten: ein Nachschub für Pflanzen. Dass Basis-Pflanzen beim Kreuzen auf 0
+ * gehen können, ist als Vertrag test-gelockt (`keep.test.ts`) und damit eine Design-Frage
+ * (Bestandsquelle: keimender Samen oder unerschöpfliches Saatgut) — siehe A19/B17 im quality-spec. */
+function normalizeRipeness(meta: MetaSave): MetaSave {
+  return {
+    ...meta,
+    pendingCrosses: healRipeness(meta.pendingCrosses ?? [], meta.totalWavesSurvived),
+    pendingBroods: healRipeness(meta.pendingBroods ?? [], meta.totalWavesSurvived),
+  };
+}
+
 function toCurrent(base: MetaSave, raw: Partial<MetaSave>): MetaSave {
   const broods = Array.isArray(raw.pendingBroods) ? raw.pendingBroods : [];
   const beetles = Array.isArray(raw.beetles) ? raw.beetles : [];
@@ -129,11 +157,14 @@ function migrate(raw: unknown, fromVersion: number): MetaSave | null {
 }
 
 export function loadMeta(): MetaSave {
-  return load<MetaSave>(META_KEY, {
+  // B17: Invarianten werden bei JEDEM Load hergestellt, nicht nur bei der Migration. Die
+  // Storage-Schicht reicht Saves der aktuellen Version unverändert durch — eine Heilung nur im
+  // Migrationspfad liefe für genau die Saves nie, die sie brauchen.
+  return normalizeRipeness(load<MetaSave>(META_KEY, {
     version: META_VERSION,
     migrate,
     fallback: defaultMeta,
-  });
+  }));
 }
 
 export function persistMeta(meta: MetaSave): void {

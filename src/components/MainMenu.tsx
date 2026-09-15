@@ -1,5 +1,6 @@
 import type { MetaSave, PlantVariant, GameMode } from '../types';
 import { createBaseVariants } from '../genome';
+import { toggleLoadout } from '../meta';
 import { useI18n } from '../i18n';
 import { SproutIcon, WaveIcon, BookIcon, SwordIcon, SeedIcon, BugIcon } from './MenuIcons';
 import type { MenuScreen } from './NavIndicators';
@@ -24,11 +25,15 @@ type Props = {
 
 export function MainMenu({ meta, onMetaChange, onStartRun, onNavigate, resumeWave, onResume }: Props) {
   const { t } = useI18n();
-  void onMetaChange; // Hub schreibt kein Meta — owned-Berechnung ist read-only
+  // B18: der Hub schreibt jetzt genau EIN Meta — den Loadout-Toggle (A19.6). Alles andere
+  // bleibt read-only; die Writer-Regel gilt pro Feld, nicht pro Screen.
 
   const bases: PlantVariant[] = createBaseVariants();
   const allVariants = [...bases, ...meta.savedVariants];
   const ownedVariants = allVariants.filter(v => (meta.variantCounts[v.id] || 0) > 0);
+  const loadoutVariants = meta.loadout
+    .map(id => ownedVariants.find(v => v.id === id))
+    .filter((v): v is PlantVariant => v !== undefined);
 
   return (
     <div>
@@ -94,14 +99,34 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onNavigate, resumeWav
       </div>
 
       <div style={styles.collectionSection}>
-        <h3 style={styles.sectionTitle}>{t('menu.loadout')} ({ownedVariants.length})</h3>
+        <h3 style={styles.sectionTitle}>
+          {t('menu.loadout')} ({meta.loadout.length}/4) — {t('menu.collection')} ({ownedVariants.length})
+        </h3>
         <div style={styles.collectionGrid}>
-          {ownedVariants.map(v => (
-            <div key={v.id} style={styles.collectionItem}>
+          {loadoutVariants.map(v => (
+            <button
+              key={v.id}
+              style={styles.loadoutItem}
+              onClick={() => onMetaChange(toggleLoadout(v.id))}
+              aria-label={`${t('menu.leave')}: ${v.name}`}
+            >
+              <div style={{ ...styles.preview, background: v.color }} />
+              <span style={styles.name}>{v.name}</span>
+              <span style={styles.count}>✓</span>
+            </button>
+          ))}
+          {ownedVariants.filter(v => !meta.loadout.includes(v.id)).map(v => (
+            <button
+              key={v.id}
+              style={{ ...styles.collectionItem, ...(meta.loadout.length >= 4 ? styles.loadoutFull : {}) }}
+              onClick={() => onMetaChange(toggleLoadout(v.id))}
+              disabled={meta.loadout.length >= 4}
+              aria-label={`${t('menu.take')}: ${v.name}`}
+            >
               <div style={{ ...styles.preview, background: v.color }} />
               <span style={styles.name}>{v.name}</span>
               <span style={styles.count}>×{meta.variantCounts[v.id]}</span>
-            </div>
+            </button>
           ))}
           {ownedVariants.length === 0 && (
             <span style={styles.empty}>{t('common.empty')}</span>
@@ -257,6 +282,27 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     color: 'var(--ink)',
     fontWeight: 600,
+    cursor: 'pointer',
+    minHeight: 44,
+  },
+  loadoutItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '8px 12px',
+    background: '#eef7e6',
+    border: '2px solid var(--leaf-dark)',
+    borderRadius: 6,
+    boxShadow: '2px 2px 0 var(--leaf-dark)',
+    fontSize: 12,
+    color: 'var(--ink)',
+    fontWeight: 600,
+    cursor: 'pointer',
+    minHeight: 44,
+  },
+  loadoutFull: {
+    opacity: 0.45,
+    cursor: 'not-allowed',
   },
   preview: {
     width: 18,

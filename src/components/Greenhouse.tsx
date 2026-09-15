@@ -147,18 +147,47 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
           </div>
         )}
 
-        {/* Reifungs-Queue */}
+        {/* Reifungs-Queue (B15.1/B15.3): das Kind wird aus dem PERSISTIERTEN Seed
+            rekonstruiert — kein React-State über den Screen-Wechsel hinweg. Reife Zeilen
+            zeigen Kind + Beanspruchen-Knopf, unreife die verbleibenden Wellen. */}
         {meta.pendingCrosses.length > 0 && (
           <div style={styles.pendingRow}>
             <span style={styles.sectionTitle}>
               {t('shop.pending').replace('{n}', String(meta.pendingCrosses.length))}
             </span>
-            {meta.pendingCrosses.map((c) => (
-              <div key={c.crossIndex} style={styles.pendingItem}>
-                {/* Verbleibende Wellen, nicht die Gesamtanforderung (war irreführend). */}
-                {t('shop.maturing').replace('{n}', String(Math.max(0, c.neededWaves - (meta.totalWavesSurvived - c.startedWave))))}
-              </div>
-            ))}
+            {meta.pendingCrosses.map((c) => {
+              const remaining = Math.max(0, c.neededWaves - (meta.totalWavesSurvived - c.startedWave));
+              if (!isCrossReady(meta, c.crossIndex)) {
+                return (
+                  <div key={c.crossIndex} style={styles.pendingItem}>
+                    {t('shop.maturing').replace('{n}', String(remaining))}
+                  </div>
+                );
+              }
+              // Reif ⇒ Kind aus dem gespeicherten Seed rekonstruieren (B15.1).
+              // null ⇒ Eltern nicht mehr im Besitz (Kandidat bleibt, Meldung beim Versuch).
+              const roll = rollGachaCross(owned, c.seed, c.crossIndex);
+              return (
+                <div key={c.crossIndex} style={styles.pendingReady}>
+                  <div style={styles.childRow}>
+                    <div style={{ ...styles.preview, background: roll?.child.color ?? '#ddd' }} />
+                    <div style={styles.childInfo}>
+                      <strong style={styles.childName}>{roll?.child.name ?? t('shop.parentsGone')}</strong>
+                      <div style={styles.parentsLine}>
+                        {roll ? `${t('gacha.parents')} ${roll.parentA.name} × ${roll.parentB.name}` : ''}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => roll && handleKeep(roll)}
+                      disabled={!roll}
+                      style={{ ...styles.claimBtn, opacity: roll ? 1 : 0.4, flex: '0 0 auto', padding: '8px 14px' }}
+                    >
+                      {t('shop.ready')}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -214,4 +243,5 @@ const styles: Record<string, React.CSSProperties> = {
   pendingRow: { display: 'flex', flexDirection: 'column' as const, gap: 6 },
   sectionTitle: { fontSize: 12, color: '#6b6250', textTransform: 'uppercase' as const, letterSpacing: 1, fontWeight: 800 },
   pendingItem: { fontSize: 12, color: '#6b6250', padding: '6px 10px', background: '#fff', border: '1.5px solid var(--ink)', borderRadius: 8, fontWeight: 600 },
+  pendingReady: { padding: '10px 12px', background: '#fff', border: '2px solid var(--leaf-dark)', borderRadius: 8 },
 };

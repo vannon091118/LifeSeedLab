@@ -45,7 +45,7 @@ Alle relevanten Dokumente befinden sich nun unter `docs/`:
 
 > Reihenfolge nach dem Arbeitsrhythmus des Vertrags: **Phase → Test → Gate → nächstes.**
 
-### 🟢 Short-Term — Korrektheit vor Feature (**B14 erledigt**, **B15 offen**)
+### 🟢 Short-Term — Korrektheit vor Feature (**B14 + B15 + B17 + B18.1 erledigt**)
 
 **B14 — umgesetzt und test-locked (18 neue Gates in `src/meta/identity.test.ts`):**
 
@@ -63,14 +63,32 @@ Alle relevanten Dokumente befinden sich nun unter `docs/`:
 - **A17 (DEFECT, gefunden in der Sichtprüfung): der Codex-Screen ist halb übersetzt** — deutsche Literale in der Komponente neben i18n-Texten, obwohl `codex.empty` bereits existiert. Kein Test konnte das finden; deshalb steht die Sichtprüfung im Sprint-Abschluss.
 - **A18 (DEFECT-Klasse, behoben): die fail-open-Geschwister des B14-Fehlers** — `claimBrood` wählte bei ungültigem Index stillschweigend 0 und prüfte Reife nur in der UI; `keepCross` war über den optionalen Index umgehbar (und der Bypass war als Vertrag test-gelockt); die Inventar-Kappung hinterließ hängende Loadout-/bredStats-Referenzen; ein Save-Downgrade überschrieb still das neuere Save. Behoben fail-closed, mit 9 neuen Gates. Zwei weitere Review-Behauptungen (`recordRunEnd` tot, Discovery-Chain gebrochen) sind im Code **widerlegt** (A18.7). Offen als Design-Entscheidung: Kappungs-Politik (B16.8) und E2E-Geometrie vom Renderer lesen (B16.9).
 
-**Nächster Block — B15: die Zucht-Schleife erreichbar machen.** Der kritische Befund: „Aussäen → reifen → behalten" ist derzeit **nicht einmal auslösbar**, weil der Reifungszähler nur beim `GAME_OVER` fortschreitet und dieser Moment den Screen (und damit den Wurf) abräumt (A13.12). B15 liefert Beanspruchung aus der Queue (Kind aus dem persistierten Seed rekonstruiert), koppelt die Reifung an Wellen statt an den Run-Tod und macht den Wurf reihenfolge-unabhängig (A13.13).
+**A19 (DEFECT-Klasse, aus dem Spielbetrieb gemeldet, behoben): die Meta-Wahrheit lag im React-State.** Der Run-Start reservierte die `runId` auf der Router-**Kopie** und persistierte sie — jeder Fortschritt, der während des Runs direkt in die Persistenz ging (überstandene Wellen), wurde beim nächsten Start überschrieben. Dasselbe Muster traf das Menü: es zeigte nach dem Run die Kopie und säte damit `startedWave`-Werte in die Zukunft, die **nie** reifen konnten („Samen keimen nicht"). Fix: `beginRun()` reserviert auf `loadMeta()`, das Menü liest beim Verlassen frisch, und `healRipeness` stellt Reifungs-Invarianten bei **jedem** Load her (die Storage-Schicht reicht aktuelle Versionen unverändert durch — eine Heilung nur im Migrationszweig liefe für die betroffenen Saves nie). 4 neue Gates in `src/meta/b17.test.ts`, darunter eine Gegenprobe, die die alte Form als Verlust dokumentiert. **Entscheidungen getroffen und umgesetzt (2026-09-15):** Bestandsquelle B17.3 = Option A (Samen keimt zur Pflanze, atomar als `buySeedAndGerminate`) und Fortschrittsregel B17.4 = Option A (angebrochene Welle, `WAVE_STARTED → +1`, Doppelzählungs-Gate in E2E).
+
+**B15 — umgesetzt (Zucht-Schleife erreichbar):**
+
+1. ✅ **B15.2 — Reifung an Wellen gekoppelt, durch B17.4 geschärft.** Der Zähler tickt während des Runs (je angebrochener Welle +1 via `WAVE_STARTED`); `GAME_OVER` zählt nicht nach (keine Doppelzählung) — ein Writer, ein Aufrufanlass.
+2. ✅ **B15.1/B15.3 — Beanspruchung aus der Queue.** Reife Queue-Zeilen zeigen das Kind (aus dem persistierten `PendingCross.seed` rekonstruiert) + Beanspruchen-Knopf; unreife die verbleibenden Wellen. Kein React-State über den Screen-Wechsel.
+3. ✅ **B15.4 — Wurf reihenfolge-unabhängig.** `rollGachaCross` sortiert die Besitzliste kanonisch (nach id) vor dem Gewichten; Gate inkl. Gegenprobe in `src/meta/b15.test.ts`.
+
+**B17 — Persistenz-Korrektheit UND Bestandskreislauf umgesetzt:**
+
+1. ✅ **B17.1 — Persistiert wird nie eine Kopie.** `meta/run.ts:beginRun()` reserviert die `runId` auf der persistierten Wahrheit; der Router hält keine schreibbare Kopie mehr und liest beim Verlassen des Runs frisch.
+2. ✅ **B17.2 — Reifungs-Invarianten bei jedem Load.** `store.ts:healRipeness` hebt `startedWave` auf `totalWavesSurvived` (`≤`, idempotent, konservativ, auch für Bruten) — festgefressene Kreuzungen reifen wieder.
+3. ✅ **B17.3 — Bestandsquelle = Option A.** Ein Kauf keimt **direkt** zur Pflanze (`buySeedAndGerminate`, ein atomarer Schritt, fail-closed ohne Nektar); Keim-Identität `seed_{index}` deterministisch aus dem Spiel-Seed (Discovery-Chain-Vertrag). Der test-gelockte Elternverbrauch (Keep 2→1) bleibt unangetastet.
+4. ✅ **B17.4 — Fortschrittsregel = Option A.** Jede angebrochene Welle zählt +1 (`WAVE_STARTED`); Tod in Welle 1 bringt genau +1. „Keine Runde bringt was" ist strukturell unmöglich; das E2E-Gate lockt +0 und +2 als Defekte.
+
+**Nächster offener Block — B16** (Route sichtbar machen, Genom-Modell schärfen, E2E-Geometrie), danach die Mid-Term-Messschiene (B14.7 Snapshot-Budget, Bibliotheks-Wachstum).
+
+**B18.1 — Loadout bedienbar (umgesetzt):** Das Menü trennt **Loadout (n/4, Mitnehmen/Ablegen über `toggleLoadout`)** von der Sammlung; gezüchtete Pflanzen erreichen den Run. Offen: **B18.2** Sichtbeweis, dass ein Kind im Run sichtbar anders spielt/aussieht (Verdrahtung steht, Bestätigung im Spielbetrieb).
 
 ### 🟡 Mid-Term — Messen statt hoffen
 
 6. **B14.7 — Snapshot-Budget.** Der 10-Hz-HUD-Pfad klont den vollen `SimState`; gegen **B12** (frame ≤ 16 ms, sim ≤ 2 ms, 390×844) messen und entdrosseln (A13.8).
-7. **E2E-Suite in den Sprint-Abschluss einhängen — erledigt, zu verifizieren bleibt die Disziplin.** Die Suite liegt jetzt in `tests/` (10 Spezifikationen: Router, Platzierung, Run-Screen, Preview) und läuft grün; Stufe 2 des verbindlichen Sprint-Abschlusses (`AGENTS.md`) ist damit ausführbar und über `git-noir/shinon` als eigene Gate-Stufe registriert. Offen: die Specs decken den glücklichen Pfad ab — Spielverlust, Wellen-Ende und das Fortschreiten der Reifung fehlen.
+7. **E2E-Suite in den Sprint-Abschluss einhängen — erledigt, zu verifizieren bleibt die Disziplin.** Die Suite liegt jetzt in `tests/` (11 Tests: Router, Platzierung, Run-Screen, Preview) und läuft grün; Stufe 2 des verbindlichen Sprint-Abschlusses (`AGENTS.md`) ist damit ausführbar und über `git-noir/shinon` als eigene Gate-Stufe registriert. Offen: die Specs decken den glücklichen Pfad ab — Spielverlust, Wellen-Ende und das Fortschreiten der Reifung fehlen.
 8. **`nextScopedId`-Injektivität prüfen.** Hash- statt Zähler-Kennung (`% 9000`) ist kollisionstheoretisch offen (A13.11).
 9. **Entscheidung Track-Zugehörigkeit des Styleframes** (`docs/art/` gitignoriert) — entweder Ausnahme in `.gitignore` oder Verweis aus B0.9 entfernen (A13.9).
+10. **Bibliotheks-Wachstum messen (B16.8-Nachlauf).** Die Kappungs-Entscheidung („Identität ist unverletzlich") beruht auf der 2ⁿ-Kostenkurve als natürlicher Bremse; das reale Save-Wachstum wird gegen B12 gemessen, nicht behauptet.
 
 ### 🔴 Long-Term — Ausbau & Release
 

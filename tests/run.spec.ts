@@ -29,6 +29,23 @@ async function devValue(page: Page, label: string): Promise<number> {
 }
 
 /**
+ * Liest totalWavesSurvived aus dem Meta-Save (B15.2: Reifungszähler).
+ *
+ * Der Harness liest den Browser-Save schwarzbox: Er läuft außerhalb der App und kann keine
+ * persistence/-Owner-Funktion importieren. Die Architektur-Regel („Persistenz nur über
+ * persistence/") gilt für Spielcode und ist für `tests/` bewusst und getestet ausgenommen
+ * (git-noir/shinon/tests/checks.test.ts) — schreiben kann dieser Test nichts.
+ */
+async function metaWaves(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    try {
+      const env = JSON.parse(localStorage.getItem('lifegamelab_meta') || '{}');
+      return Number(env?.data?.totalWavesSurvived ?? 0);
+    } catch { return -1; }
+  });
+}
+
+/**
  * Ermittelt die Rasterzellen, an denen der CANVAS der oberste Empfänger ist.
  *
  * Der Test klickt bewusst nicht blind auf Koordinaten: HUD-Chips, Platzierungs-Tray und (im
@@ -134,5 +151,24 @@ test.describe('Run', () => {
 
     await expect(page.getByRole('button', { name: /endless/i }).first()).toBeVisible();
     await expect(page.locator('canvas')).toHaveCount(0);
+  });
+
+  // ── B17.4 — die Reifung zählt die ANGEBROCHENE Welle (Option A, A19.5) ──
+  //
+  // Der Zähler hängt an WAVE_STARTED (+1 pro angebrochener Welle), nicht mehr an WAVE_COMPLETED.
+  // Der E2E-Beweis nutzt denselben deterministischen Tod: Ohne Verteidigung stirbt der Run in
+  // Welle 1 — der Zähler muss dann GENAU +1 stehen. +0 wäre der alte (tote) Vertrag, +2 eine
+  // Doppelzählung (WAVE_STARTED + recordRunEnd) — beides ein Defekt. Kein Balance-Risiko:
+  // der Tod ohne Verteidigung ist deterministisch, kein „Welle überleben"-Glücksspiel.
+  test('Reifung zählt die angebrochene Welle: Tod in Welle 1 ⇒ Zähler genau +1 (keine Doppelzählung)', async ({ page }) => {
+    test.setTimeout(120_000);
+    await startRun(page);
+
+    const before = await metaWaves(page);
+
+    // Ohne Verteidigung laufen die Grunts durch — der Run endet in Welle 1.
+    await expect(page.getByText(/game over/i).first()).toBeVisible({ timeout: 90_000 });
+
+    expect(await metaWaves(page), 'Angebrochene Welle zählt genau +1').toBe(before + 1);
   });
 });

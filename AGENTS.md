@@ -92,12 +92,14 @@ node git-noir/shinon/cli.ts finish --all   # Vorbereitung → Gate → Commit �
 
    Auch dort gilt die Reihenfolge: **ohne grünes Gate kein Commit, ohne Commit kein Push.** `git commit`/`git push` von Hand sind tabu — Shinon ist der einzige Git-Abschlusspfad.
 
+   Das Gate läuft im **Enforcement-Modus**: Warnungen blockieren wie Fehler (`gate.enforcement=strict`, persistiert in `shinon.config.json`). „Grün" heißt damit **0 Fehler und 0 Warnungen**. Der Modus ist Konfiguration, kein Per-Lauf-Flag — er gilt auch für die Hooks, und es gibt bewusst keinen Schalter, der ihn für einen einzelnen Lauf aushebelt. Umschalten ausschließlich über `node git-noir/shinon/cli.ts enforce advisory|strict`.
+
 Details: [`docs/setup/script-readme.md`](docs/setup/script-readme.md). Das Tooling in `git-noir/` ist lokal (gitignoriert): Werkzeug, nicht Inhalt.
 
 ## Verboten (ohne Ausnahme)
 
 1. Zweiter RNG, zweiter EventBus, zweiter State-Owner, Dopplung bestehender Module.
-2. `localStorage`/IndexedDB-Zugriff außerhalb `persistence/`.
+2. `localStorage`/IndexedDB-Zugriff außerhalb `persistence/` (Geltung: **Spielcode**; der Playwright-Harness unter `tests/` darf den Browser-Save lesend beobachten — schreiben darf er nichts, und die Ausnahme ist im Tooling als exakte Liste test-gelockt).
 3. Gameplay-Entscheidungen in Renderer/Observer/UI; Präsentations-Entscheidungen in der Sim.
 4. Emojis als finale Grafik, zufällige Gradients, Stock-Icons (Art-Richtung: s. quality-spec.md B0).
 5. Debug/Dev-Flächen (Seed-Badge, Hash, Zähler, `[D]`) außerhalb des DevGates (`?dev=1`).

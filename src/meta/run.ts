@@ -22,6 +22,23 @@ export function reserveRunId(meta: MetaSave): MetaSave {
   return { ...meta, runId, loadout };
 }
 
+/**
+ * B17/A19: Run-Start auf der **persistierten Wahrheit**.
+ *
+ * Vorher reservierte der Router (`App.tsx`) die `runId` auf seinem React-State und schrieb diesen
+ * State zurück. Damit überschrieb jeder Run-Start alles, was während des laufenden Runs direkt in
+ * die Persistenz geschrieben wurde, ohne über den React-State zu gehen — überstandene Wellen
+ * (`advanceCrossMaturation`) und der Sprachwechsel (`i18n`) zum Beispiel. Sichtbar wurde das als
+ * „keine Runde bringt was": der Fortschritt verschwand beim Start der nächsten.
+ *
+ * Regel: persistiert wird **nie eine Kopie** — jeder Meta-Schreibvorgang geht von `loadMeta()` aus.
+ */
+export function beginRun(): MetaSave {
+  const next = reserveRunId(loadMeta());
+  persistMeta(next);
+  return next;
+}
+
 export function applyRunEnd(meta: MetaSave, waveReached: number, nektarEarned: number): MetaSave {
   return {
     ...meta,
@@ -49,28 +66,14 @@ function applyRegisterVariant(meta: MetaSave, variant: PlantVariant): MetaSave {
   const canonical: PlantVariant = { ...variant, id: canonicalVariantId(variant.id) };
   const counts = { ...meta.variantCounts };
   counts[canonical.id] = (counts[canonical.id] || 0) + 1;
-  let library = meta.savedVariants;
-  let loadout = meta.loadout;
-  const bred = { ...(meta.bredStats ?? {}) };
-  if (!library.some(v => v.id === canonical.id)) {
-    library = [...library, canonical];
-    if (library.length > 60) {
-      // A18.3: Kappung darf keine hängenden Referenzen hinterlassen — verdrängte IDs
-      // werden konsequent aus counts, bredStats und loadout mitgeräumt. (Vorher:
-      // Loadout referenzierte Phantom-Pflanzen, bredStats wuchs unbegrenzt.)
-      const dropped = library.slice(0, library.length - 60);
-      const droppedIds = new Set(dropped.map(d => d.id));
-      for (const id of droppedIds) { delete counts[id]; delete bred[id]; }
-      loadout = loadout.filter(id => !droppedIds.has(id));
-      library = library.slice(library.length - 60);
-    }
-  }
+  const library = meta.savedVariants.some(v => v.id === canonical.id)
+    ? meta.savedVariants
+    : [...meta.savedVariants, canonical];
   return {
     ...meta,
     variantCounts: counts,
     savedVariants: library,
-    bredStats: { ...bred, [canonical.id]: deriveBredEntry(canonical) },
-    loadout,
+    bredStats: { ...(meta.bredStats ?? {}), [canonical.id]: deriveBredEntry(canonical) },
   };
 }
 
@@ -153,10 +156,10 @@ export function claimBrood(broodIndex: number, chosenIndex: number): MetaSave {
   // A18.1: fail-closed — ein ungültiger Kandidaten-Index wählt NICHT stillschweigend 0.
   const chosen = rolled[chosenIndex];
   if (!chosen) return meta;
-  const beetles = [...meta.beetles, chosen];
-  const capped = beetles.length > 40 ? beetles.slice(beetles.length - 40) : beetles;
+  // B16.8: keine Kappung des Brut-Lagers — Identität ist unverletzlich (dieselbe
+  // Entscheidung wie für savedVariants; ein Cap hätte beetleDeployed verwaisen können).
   return updateMeta({
-    beetles: capped,
+    beetles: [...meta.beetles, chosen],
     pendingBroods: meta.pendingBroods.filter(p => p.broodIndex !== broodIndex),
   });
 }

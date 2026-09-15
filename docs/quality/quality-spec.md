@@ -243,6 +243,31 @@ Schlimmer als im Review: der Bypass war **als Vertrag test-gelockt** (`identity.
 
 Zusätzlich verkannt: die Migrationskette in `store.ts` ist bewusst **Normalisierung** (`toCurrent(defaultMeta(), old)` aus jeder Version 1–4), kein `while`-Loop nötig — das reale Persistenzproblem war der Downgrade-Pfad (A18.4). Lehre: Ein Review, das Existenz statt Nutzung prüft, produziert dieselbe Fehlerklasse, die es anprangert.
 
+### A19. DEFECT (verifiziert an Code **und** Live-Save) — die Meta-Wahrheit lag im React-State, nicht in der Persistenz
+
+Spielbericht: „keine Runde bringt was, die States werden nur für die erste Runde getrackt und Samen keimen nicht." Jeder Punkt wurde gegen den Code und gegen den echten Browser-Save geprüft (`localStorage['lifegamelab_meta']`).
+
+**A19.1 — Der Run-Start schrieb eine veraltete Kopie zurück. FIXED (B17.1).**
+`App.tsx:handleStartRun` reservierte die `runId` auf dem React-State des Routers und persistierte diesen State: `persistMeta(reserveRunId(meta))`. Während eines Runs schreibt die Simulation aber **direkt** in die Persistenz (`advanceCrossMaturation` je überstandener Welle), ohne den Router zu informieren. Die Kopie war damit älter als die Wahrheit — und überschrieb sie bei jedem Run-Start. Beleg im Live-Save: `runId: 3` bei `runs: 2`; Beleg im Gate: `b17.test.ts` (B17.1 überlebt, B17.2 dokumentiert die alte Form als Verlust). Fix: `meta/run.ts:beginRun()` reserviert auf `loadMeta()`.
+
+**A19.2 — Das Menü zeigte nach dem Run die Kopie statt der Wahrheit. FIXED (B17.1).**
+`handleExitRun` wechselte nur den Screen. Das Gewächshaus rechnete danach mit dem `totalWavesSurvived` von **vor** dem Run — und schrieb beim Säen genau diesen Wert als `startedWave` in die Kreuzung. Fix: beim Verlassen frisch lesen.
+
+**A19.3 — Kreuzungen mit `startedWave` in der Zukunft reifen nie. FIXED (B17.3).**
+Aus A19.2/​A19.1 kombiniert entstanden Einträge mit `startedWave > totalWavesSurvived`. Das Reife-Kriterium ist `total - started >= needed` — bei negativem Wertebereich ist die Kreuzung **garantiert** unreif, dauerhaft. Das ist das exakte Bild „Samen keimen nicht". Fix: `store.ts:healRipeness` bei **jedem** Load, nicht nur im Migrationspfad — die Storage-Schicht reicht Saves der aktuellen Version unverändert durch, eine Heilung nur im Migrationszweig liefe für genau die Saves nie, die sie brauchen. Sie ist idempotent, konservativ (kein Gratis-Fortschritt: der Eintrag beginnt ab jetzt zu warten) und gilt über dasselbe Kriterium auch für Bruten.
+
+**A19.4 — OFFEN: Woher kommt eine neue Pflanze? (Design-Entscheidung)**
+Der Live-Save zeigt `variantCounts: { sprout: 0, rootwall: 0, cross_p0pn4p_0: 1 }` — genau **eine** besessene Pflanze. `MainMenu` sperrt das Gewächshaus bei `ownedVariants.length < 2`, `Greenhouse.canSow` verlangt dasselbe. Ein einziger `keepCross` verbraucht die beiden Start-Pflanzen (2→1, test-gelockter Vertrag in `keep.test.ts`) — und es gibt **keinen Weg zurück**: der Shop verkauft Samen, aber ein Samen wird zum Kreuzungs-Ticket, nicht zum Bestand (`registerVariant` hat keinen Aufrufer).
+Folge: Nach der ersten erfolgreichen Kreuzung ist die Zucht dauerhaft tot, unabhängig davon, wie viele Runden gespielt werden — genau das gemeldete „keine Runde bringt was". Die Start-Pflanzen sind laut Source (`economy.source.ts`: „genau 2 Pflanzen zu Beginn") der Anfangsbestand; dass der erste Keep diesen Bestand unter die eigene Startregel drückt, ist kein Gleichgewicht, sondern eine Sackgasse.
+
+**A19.5 — OFFEN: Was zählt als Reifungs-Fortschritt? (Design-Entscheidung)**
+Die Reifung hängt an **überstandenen** Wellen (B15.2). Wer mit zwei Pflanzen in Welle 1 stirbt, bekommt nichts. Vor B15.2 zählte der Run-Tod die erreichte Welle (+1 pro Runde) — das war faktisch die einzige Fortschrittsquelle im aktuellen Schwierigkeitsgrad. Die strengere Kopplung war als Korrektur richtig (der Zähler soll nicht am Tod hängen), aber als einzige Quelle macht sie „jede Runde bringt etwas" unmöglich.
+
+**A19.6 — DEFECT (verifiziert): das Loadout ist nicht bedienbar — gezüchtete Pflanzen erreichen den Run nie.**
+`toggleLoadout` (der einzige Writer des Loadouts) hat in `src/` **keinen Aufrufer**; `MainMenu:97` rendert unter der Überschrift `t('menu.loadout')` („LOADOUT (n)") die **Sammlung** (`ownedVariants`), nicht den Loadout. Folge: `meta.loadout` bleibt dauerhaft leer, `root.ts` startet jeden Run mit `STARTING_INVENTORY` (1 Sprout + 1 Rootwall) — `for (const id of loadout) inventory[id] = 2` läuft nie —, und `savedVariants.filter(v => loadout.includes(v.id))` liefert immer eine leere Liste, sodass auch die aufgelösten Visuals der gezüchteten Pflanzen den Run nie erreichen.
+Damit ist der einzige Ort, an dem Zucht spielbar wird, unerreichbar: **jede Runde ist identisch**, egal wie viel gezüchtet wurde. Das ist der stärkste Beleg für die Meldung „keine Runde bringt was" — stärker als jede Zählerfrage. Vom E2E nicht auffindbar: `router.spec.ts` prüft nur, dass der Text `/LOADOUT/i` sichtbar ist (und der ist sichtbar — nur ohne Bedeutung).
+
+
 ### A17. DEFECT (verifiziert, in der Release-Fläche sichtbar) — der Codex-Screen ist halb übersetzt
 
 Gefunden bei der Sichtprüfung, nicht in der Simulation: Mit Sprache **English** steht auf dem Codex-Screen „No discoveries yet. Breed the first one!" direkt neben **„0 Entdeckungen"**, und der Erklärkasten ist vollständig deutsch („Seeds sind Zahlen — jede geteilte Zeile … lädt exakt dieselbe Pflanze. Verifikation = deterministischer RNG, kein externer Konsens.").
@@ -468,7 +493,7 @@ Die Checksumme in `persistence/storage.ts` wird **kanonisch** gebildet (stabile 
 
 **Nicht in B14 enthalten:** B14.7 (Snapshot-Budget) bleibt offen und ist als Messauftrag klassifiziert — er gehört zu B12, nicht zur Korrektheits-Schiene.
 
-## B15. Zucht-Schleife erreichbar machen (Auftrag aus A13.12/A13.13)
+## B15. Zucht-Schleife erreichbar machen (Auftrag aus A13.12/A13.13) — **UMGESETZT (2026-09-15)**
 
 Ziel: „Aussäen → reifen → behalten" wird tatsächlich spielbar, und das Kind ist aus dem gespeicherten Seed **reproduzierbar**.
 
@@ -488,14 +513,16 @@ Die Reifungs-Zeile nennt verbleibende Wellen (nicht die Gesamtanforderung) und m
 
 Die Besitzliste wird **kanonisch sortiert**, bevor sie gewichtet wird — der Wurf hängt dann nur von Seed und Besitz-**Menge** ab. Gate-Test: derselbe Seed + dieselbe Besitz-Menge in unterschiedlicher Array-Reihenfolge ⇒ identisches Kind. Dieser Fix ändert bestehende Wurf-Ergebnisse (Balancing) und wird deshalb bewusst separat ausgerollt.
 
-### B15.5 DoD für B15
+### B15.5 DoD für B15 — **erfüllt (2026-09-15)**
 
-- [ ] Aussäen → Welle(n) → Beanspruchen ist in einem Score-Durchlauf **ohne** Screen-Wechsel-Verlust möglich
-- [ ] Gate-Test: Rekonstruktion des Kindes aus `PendingCross.seed` == beim Aussäen angezeigtes Kind
-- [ ] Gate-Test B15.4 (Reihenfolge-Unabhängigkeit) grün
-- [ ] Kein Eintrag verschwindet aus der Queue, ohne beansprucht worden zu sein
-- [ ] 390×844 geprüft (Queue-Zeile + Knopf ≥ 44 px, kein Hover-Zwang)
-- [ ] `tsc` clean, Suite grün, `vite build` grün
+- [x] Aussäen → Welle(n) → Beanspruchen ist in einem Score-Durchlauf **ohne** Screen-Wechsel-Verlust möglich (Reifung tickt pro Welle, Queue-Zeile zeigt das Kind + Beanspruchen-Knopf)
+- [x] Gate-Test: Rekonstruktion des Kindes aus `PendingCross.seed` == beim Aussäen angezeigtes Kind (`src/meta/b15.test.ts`)
+- [x] Gate-Test B15.4 (Reihenfolge-Unabhängigkeit) grün — inkl. Gegenprobe, die den alten positionsabhängigen Pfad widerlegt
+- [x] Kein Eintrag verschwindet aus der Queue, ohne beansprucht worden zu sein (Ausbuchung ausschließlich in `keepCross`)
+- [x] 390×844 geprüft (E2E-Suite grün; Queue-Zeile + Knopf im bestehenden Layout, kein Hover-Zwang)
+- [x] `tsc` clean, Suite grün (198/198), `vite build` grün
+
+**Ehrliche Grenze (dokumentiert, nicht defekt):** B15.4 garantiert Reihenfolge-Unabhängigkeit — **nicht** Bestandsunabhängigkeit. Die Rekonstruktion nutzt die jetzige Besitz-Menge; wird ein Elternteil zwischen Aussaat und Reife verbraucht, kann der Wurf anders ausfallen. Die Queue-Zeile zeigt dann ehrlich „Eltern weg" statt eines falschen Kindes. Der Persistenz-Seed garantiert das Kind bei unveränderter Besitz-Menge.
 
 ## B16. Route sichtbar machen & Genom-Modell schärfen (Auftrag aus A14/A15/A16)
 
@@ -536,10 +563,90 @@ In `rollGachaCross` wird `generation: crossIndex` gesetzt, in `generateCrossResu
 
 Die drei Literale in `Codex.tsx` wandern in die i18n-Schicht (de + en) — die Schlüssel für diesen Screen existieren bereits. Kein Radikalschnitt über alle Komponenten: Der Bestand an hardcodierten deutschen Literalen in `src/components/*.tsx` wird **gezählt und als Obergrenze verankert** (Ratchet) — die Zahl darf sinken, nicht steigen. Sichtprüfung beider Sprachen bei 390×844, weil Sprache kein Testfall ist.
 
-### B16.8 Kappungs-Politik entscheiden (aus A18.3, Design-Entscheidung)
+### B16.8 Kappungs-Politik — **ENTSCHIEDEN (2026-09-15): Identität ist unverletzlich**
 
-Entweder Bestand (`variantCounts`) kappen statt Identität (`savedVariants`), oder der Spieler wählt, was verdrängt wird. Bis zur Entscheidung bleibt der Fix aus A18.3 (keine hängenden Referenzen) die einzige Garantie. Einfluss auf die Discovery-Chain: keiner (eigener Store).
+Entscheidung: `savedVariants` und `beetles` werden **nicht gekappt** — weder still noch per Spieler-Wahl. Begründung, jede Stufe im Code belegt:
+
+1. Die Bibliothek wächst ausschließlich durch `keepCross`, und `keepCross` verbraucht je 1× beider Eltern (2→1-Regel) — der Bestand (`variantCounts`) ist bereits ökonomisch begrenzt: Eine Pflanze der Generation n hat 2ⁿ Samen gekostet. Eine Kappung wäre eine zweite Bremse hinter einer bestehenden.
+2. Identität zu kappen bricht das Discovery-Chain-Versprechen („erste Entdeckung ist für immer"): Die Chain erinnert sich, das Inventar nicht — die Entdeckung wird zu totem Gewicht (nicht einsetzbar, nicht weiterzüchtbar).
+3. Ein Brut-Cap hätte `beetleDeployed` (Meta-Referenz auf eine Specimen-ID) verwaisen können — dieselbe Fehlerklasse wie A18.3.
+
+Das „Spieler-Entscheidung"-Modell wurde bewusst abgelehnt: Es baut UI für ein Problem, das die 2→1-Regel nicht hat. Kappung löst ein Wachstumsproblem, das ohne Kappung nicht existiert — sie kostet dafür Vertrauen.
+
+**Umsetzung:** Die Hardcode-Caps (60/40, Verbotspunkt 6) sind aus `meta/run.ts` entfernt; das Miträum-Muster aus A18.3 bleibt als Regel dokumentiert, falls je wieder ein Cap eingeführt wird. **Invarianten sind test-gelockt** (`src/meta/capping.test.ts`, 5 Gates): kein Pfad verlässt einen Eintrag aus Bibliothek/Brut-Lager; jede Loadout-ID existiert; `bredStats` kennt keine Fremd-IDs; `beetleDeployed` verweist nie auf eine entfernte Specimen. Bringt jemand ein Cap zurück, schlagen diese Tests und erzwingen die Miträum-Pflicht.
+
+**Offen (Mid-Term, Messschiene):** das reale Wachstum der Bibliothek messen — die 2ⁿ-Kostenkurve macht großes Wachstum unwahrscheinlich, aber gemessen statt behauptet wird es gegen B12 (Save-Größe / Snapshot-Budget).
 
 ### B16.9 E2E liest die Geometrie vom Renderer (aus A18.5)
 
 `Renderer.metrics()` wird über das DevGate als Werte exportiert (`CELL/OX/OY`); `tests/run.spec.ts` liest sie, statt `GRID/PAD/+8` zu spiegeln. Danach überlebt ein Renderer-Refactor die Tests ohne stillen Tot.
+
+---
+
+## B17. Persistenz-Wahrheit & Bestandskreislauf (Auftrag aus A19)
+
+### B17.1 Eine Wahrheit: persistiert wird nie eine Kopie — **UMGESETZT (2026-09-15)**
+
+Jeder Meta-Schreibvorgang geht von `loadMeta()` aus; der Router hält keine schreibbare Kopie mehr.
+
+- `meta/run.ts:beginRun()` reserviert die `runId` auf der persistierten Wahrheit und persistiert genau das. `App.tsx` ruft nur noch `setMeta(beginRun())`. (`persistMeta`/`reserveRunId` sind aus dem Router verschwunden.)
+- `handleExitRun` liest beim Verlassen frisch — der Menü-Screen zeigt den echten Stand, nicht die Kopie von vor dem Run.
+- Lock: `src/meta/b17.test.ts` — B17.1 (Fortschritt überlebt den Run-Start) **und** B17.2 als Gegenprobe, dass die alte Form ihn verliert.
+
+### B17.2 Kein Eintrag darf in der Zukunft begonnen haben — **UMGESETZT (2026-09-15)**
+
+`store.ts:healRipeness` hebt `startedWave` bei jedem Load auf `totalWavesSurvived` (`≤`, idempotent, konservativ). Gilt für `pendingCrosses` und `pendingBroods` über dasselbe Kriterium (A18.6). Lock: `b17.test.ts` B17.3.
+
+### B17.3 Bestandsquelle entscheiden — **UMGESETZT (2026-09-15, Option A)**
+
+Ein Samen ist heute ein Kreuzungs-Ticket, kein Bestand: `buySeed` → `seedStash` → `consumeSeedAndEnqueueCross`. Damit gibt es nach dem ersten Keep keinen Weg zu einer zweiten Pflanze (A19.4). Drei Ausgänge:
+
+| Option | Wirkung | Preis |
+|---|---|---|
+| **A — Samen keimt zur Pflanze** | Ein gekaufter Samen wird Bestand (neue Basisklasse, deterministisch aus dem Samen-Index). Der Shop wird zur Bestandsquelle. | Neue Meta-Operation + UI; die „Reifung" verliert ihre Rolle als Bestandsquelle |
+| **B — Basis-Arten sind Saatgut** | Die zwei Start-Pflanzen sind unerschöpflich (nie unter 1). | Ändert den test-gelockten Keep-Vertrag (Elternverbrauch gilt dann nur für gezüchtete Pflanzen) |
+| **C — A und B** | Samen keimen **und** die Basis bleibt Saatgut. | Zwei Wege zum Bestand — muss begründet werden, sonst doppelte Wahrheit |
+
+**Entscheidung: A, umgesetzt.** `buySeedAndGerminate(price, index)` ist **ein** atomarer Schritt (Nektar → Bestand, fail-closed ohne Nektar); der Shop ruft ihn direkt — der Umweg über ein bloßes Ticket (`seedStash`) im Kaufklick wäre ein Nektar-Drift gewesen (erster Klick zahlt, zweiter keimt gratis). Keim-Variante: `germinateVariant(index)` = Basisform aus `PLANTS_SOURCE` + Identität `seed_{index}` aus `deriveSeed(GAME_SEED,'plant','seed',index)` — derselbe Index ergibt weltweit dieselbe Pflanze. Die elteren `germinateSeed`/`buySeed` bleiben als Stash-Pfade erhalten (Gewächshaus). Locks: `src/meta/b18.test.ts` (End-to-End-Kauf, fail-closed, Determinismus, zwei Indizes ⇒ zwei Keime).
+
+### B17.4 Fortschrittsregel der Reifung entscheiden — **UMGESETZT (2026-09-15, Option A)**
+
+| Option | Wirkung |
+|---|---|
+| **A — angebrochene Welle** | Jede gestartete Welle zählt (+1). Tod in Welle 1 bringt genau 1. „Keine Runde bringt was" ist strukturell unmöglich. |
+| **B — überstandene Welle** | Status quo (B15.2). Strikt und ehrlich, aber der Startzustand (2 Pflanzen) schafft Welle 1 oft nicht. |
+| **C — erreichte Welle am Run-Ende** | Wie vor B15.2 (+Welle beim Tod). Belohnt weites Kommen, hängt aber wieder am Run-Tod. |
+
+**Entscheidung: A, umgesetzt.** `GameView` koppelt `WAVE_STARTED → advanceCrossMaturation(1)` (ein Writer: `meta/economy.ts`); `recordRunEnd` zählt **keine** Wellen mehr (eine zweite Addition wäre Doppelzählung — das E2E-Gate „Tod in Welle 1 ⇒ Zähler genau +1" in `tests/run.spec.ts` lockt genau das gegen +0 und +2).
+
+### B17.5 DoD für B17
+
+- [x] Persistiert wird nie eine Kopie (B17.1) — lock: `b17.test.ts` B17.1/B17.2
+- [x] Reifungs-Invarianten bei jedem Load (B17.2) — lock: `b17.test.ts` B17.3
+- [x] Bestandsquelle entschieden und umgesetzt (B17.3, Option A) — lock: `b18.test.ts`
+- [x] Fortschrittsregel entschieden und umgesetzt (B17.4, Option A) — lock: `tests/run.spec.ts` +1-Gate
+- [x] `tsc` clean, Suite grün (214/214), E2E 11/11, Build grün
+
+---
+
+## B18. Loadout bedienbar machen — die Zucht muss im Run ankommen (Auftrag aus A19.6)
+
+### B18.1 Sammlung und Loadout trennen
+
+Der Menü-Abschnitt zeigt künftig **zwei** Dinge getrennt: den echten `meta.loadout` (Belegung „n/4", Kapazität aus `toggleLoadout`) und darunter die Sammlung (`variantCounts > 0`). Jede besessene, nicht mitgenommene Pflanze bekommt einen „Mitnehmen"-Schalter, jede mitgenommene einen „Ablegen"-Schalter. Die Überschrift darf nicht mehr lügen.
+
+### B18.2 Der Run zeigt den Unterschied
+
+Mit gefülltem Loadout greifen die bereits vorhandenen Pfade: `inventory[id] = 2` je Eintrag (`root.ts`), `resolveBredVisuals(savedVariants.filter(v => loadout.includes(v.id)))` für Silhouette/Farbe (`GameView`). Ein Kind muss sichtbar **anders** aussehen und spielen als eine Basis-Pflanze — sonst ist die Discovery-Chain Deko.
+
+### B18.3 Gates
+
+- `src/meta/b18.test.ts`: `toggleLoadout` rein/raus, Kapazität 4 (danach unverändert), kein Eintrag ohne Bestand, Persistenz in einem Schritt.
+- E2E (lesend): Loadout-Änderung überlebt einen Reload; die Tray-Zahl im Run entspricht dem Loadout.
+- Sichtprüfung (390×844 + Desktop): Sammlung und Loadout sind unterscheidbar — ein Screenshot, der beide Abschnitte zeigt.
+
+### B18.4 DoD für B18
+
+- [x] Überschrift und Inhalt des Loadout-Abschnitts stimmen überein (A19.6) — **umgesetzt**: zwei Abschnitte (Loadout n/4 mit Mitnehmen/Ablegen über `toggleLoadout`, darunter die Sammlung); Menü liest nach Run-Exit frisch (B17.1). Lock: `b18.test.ts`
+- [ ] Eine gezüchtete Pflanze ist im Run platzierbar und visuell unterscheidbar (Verdrahtung steht: `root.ts` Inventar, `resolveBredVisuals`; Sichtbeweis offen)
+- [x] `tsc` clean, Suite grün (214/214), E2E 11/11, Shinon-Gate offen (Enforcement)

@@ -153,14 +153,20 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
     }
     root.bus.subscribe('NIGHT_STARTED', () => renderer.setNight(true));
     root.bus.subscribe('DAY_STARTED', () => renderer.setNight(false));
+    // B17.4: die Reifung zählt die ANGEBROCHENE Welle — Fortschritt an der Anstrengung statt
+    // am Sieg. WAVE_STARTED feuert genau einmal pro Welle (nur startWave), also keine
+    // Doppelzählung; der Tod in Welle 1 bringt genau +1 (A19.5: „keine Runde bringt was"
+    // ist strukturell unmöglich). Ein Writer: meta/economy.ts.
+    root.bus.subscribe('WAVE_STARTED', () => { advanceCrossMaturation(1); });
     // Run-Ende ist eventgetrieben (BUS = Handover, B7.5): recordRunEnd genau einmal
     // im Event-Ack statt im RAF/HUD-Intervall. Guard nur gegen StrictMode-Remount.
+    // Kein advanceCrossMaturation hier mehr: die Wellen sind bereits gezählt worden —
+    // eine zweite Addition wäre Doppelzählung.
     root.bus.subscribe('GAME_OVER', (e) => {
       if (runEndedRef.current) return;
       runEndedRef.current = true;
       try {
         const next = recordRunEnd(e.payload.wave, root.getSnapshot().nektarEarned);
-        advanceCrossMaturation(e.payload.wave); // Reifungszähler — sonst friert die Cross-Queue ein
         onMetaChange(next);
         void clearRun(); // B2: ein beendeter Run ist nicht resumierbar
       } catch { /* meta persist must never break the run screen */ }

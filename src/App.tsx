@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { MetaSave, GameMode } from './types';
-import { loadMeta, persistMeta, reserveRunId } from './meta';
+import { loadMeta, beginRun } from './meta';
 import { I18nProvider, detectLangFromMeta } from './i18n';
 import { deriveSeed } from './core/rng';
 import { GAME_SEED, RUN_SEED_VERSION } from './config';
@@ -50,6 +50,10 @@ function AppInner() {
   // Alle Hooks unconditionally vor jedem early return — Rules of Hooks.
   const handleExitRun = useCallback(() => {
     setResuming(false);
+    // B17/A19: beim Verlassen frisch aus der Persistenz lesen, nicht die Kopie von vor dem Run
+    // zeigen. Während des Runs schreibt die Sim direkt (überstandene Wellen), ohne den Router zu
+    // informieren — die Kopie wäre also älter als die Wahrheit.
+    setMeta(loadMeta());
     setScreen('menu');
   }, []);
   const handleNavigate = useCallback((s: MenuScreen) => setScreen(s), []);
@@ -57,17 +61,17 @@ function AppInner() {
   const handleMenuBack = useCallback(() => setScreen('start'), []);
   const handleStartRun = useCallback(
     (_mode: GameMode) => {
-      if (!meta) return;
       // Neuer Run: alter Save ist damit verbraucht; Run-Identität wird vor dem Rendern reserviert.
       void clearRun();
       setPendingRun(null);
       setResuming(false);
-      const nextMeta = reserveRunId(meta);
-      persistMeta(nextMeta);
-      setMeta(nextMeta);
+      // B17/A19: `beginRun` reserviert auf der persistierten Wahrheit — nicht auf dieser
+      // React-Kopie. Der Start schrieb früher die Kopie zurück und überschrieb damit jeden
+      // Fortschritt, der während des letzten Runs direkt in die Persistenz ging.
+      setMeta(beginRun());
       setScreen('run');
     },
-    [meta],
+    [],
   );
 
   /** B2: Fortsetzen nutzt die BESTEHENDE runId — kein neuer Seed, keine neue Identität. */

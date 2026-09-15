@@ -22,13 +22,18 @@ export function rollGachaCross(owned: PlantVariant[], seed: number, crossIndex: 
   if (owned.length < 2) return null;
   const rng = makeRng('plant', seed);
 
-  const indexed = owned.map((v, i) => ({ v, i, w: 1 / (1 + variantPower(v)) }));
+  // B15.4/A13.13: die Besitzliste wird KANONISCH SORTIERT (nach id), bevor sie gewichtet
+  // wird — der Wurf hängt dann nur von Seed und Besitz-**Menge** ab, nicht von der
+  // Einfüge-Reihenfolge des Save-Objekts. Ohne das ist das Kind aus `PendingCross.seed`
+  // allein nicht reproduzierbar: Die Liste ändert sich, sobald Eltern verbraucht werden.
+  const canon = [...owned].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const indexed = canon.map((v) => ({ v, w: 1 / (1 + variantPower(v)) }));
   const pick = (exclude: PlantVariant | null): PlantVariant => {
     for (let attempt = 0; attempt < 8; attempt++) {
       const p = rng.pickWeighted(indexed, e => e.w).v;
       if (!exclude || p.id !== exclude.id) return p;
     }
-    return owned.find(v => !exclude || v.id !== exclude.id) ?? owned[0];
+    return canon.find(v => !exclude || v.id !== exclude.id) ?? canon[0];
   };
   const parentA = pick(null);
   const parentB = pick(parentA);
