@@ -54,6 +54,37 @@ describe('Phase 6 gate: visual determinism', () => {
     expect(first.get('cross_seedling')).toEqual(second.get('cross_seedling'));
     expect(first.get('cross_seedling')!.variantKey).not.toContain('base_shooter');
   });
+});
 
+describe('Kästchenblock-CGI: genomgetriebene Skala (0.85–1.25)', () => {
+  it('jede Skala liegt in den Bounds (alle Basen, mehrere Seeds)', () => {
+    for (const baseId of BASE_IDS) {
+      for (const seed of [1, 42, 999, 583921]) {
+        const v = generateVisualForBase(baseId, seed);
+        expect(v.scale).toBeGreaterThanOrEqual(0.85);
+        expect(v.scale).toBeLessThanOrEqual(1.25);
+      }
+    }
+  });
 
+  it('stärkeres Genom ⇒ größere Skala (gleiches Seed)', () => {
+    const weak = resolveVisual({ ...input, strength: 0.0, visualSeed: 777 });
+    const strong = resolveVisual({ ...input, strength: 1.0, visualSeed: 777 });
+    expect(strong.scale).toBeGreaterThan(weak.scale);
+    // Jitter-Klemme: selbst Extreme bleiben in den Bounds
+    expect(weak.scale).toBeGreaterThanOrEqual(0.85);
+    expect(strong.scale).toBeLessThanOrEqual(1.25);
+  });
+
+  it('Skala ist deterministisch: gleiches Input ⇒ identische Skala', () => {
+    const a = resolveVisual({ ...input, strength: 0.6 });
+    const b = resolveVisual({ ...input, strength: 0.6 });
+    expect(a.scale).toBe(b.scale);
+  });
+
+  it('fehlende strength fällt auf seeded-Mittelwert zurück (in Bounds)', () => {
+    const v = resolveVisual({ ...input });
+    expect(v.scale).toBeGreaterThanOrEqual(0.85);
+    expect(v.scale).toBeLessThanOrEqual(1.25);
+  });
 });

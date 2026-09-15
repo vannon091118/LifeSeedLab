@@ -14,7 +14,8 @@ export type CommandType =
   | 'FERTILIZE_PLANT'
   | 'PROPAGATE_PLANT'
   | 'PLACE_TILE'
-  | 'DEPLOY_BEETLE';
+  | 'DEPLOY_BEETLE'
+  | 'EXPAND_MAP';
 
 export interface CommandPayloads {
   PLACE_PLANT: { variantId: string; gx: number; gy: number };
@@ -28,6 +29,7 @@ export interface CommandPayloads {
   PROPAGATE_PLANT: { plantId: string };
   PLACE_TILE: { gx: number; gy: number; tile: string };
   DEPLOY_BEETLE: { beetleId: string };
+  EXPAND_MAP: { gx: number; gy: number };
 }
 
 export type Command = {

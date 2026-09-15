@@ -1,9 +1,46 @@
 // Owner: EnemyBodiesLayer. LOC ≤ 300.
-// Five distinct ink bodies (B10) — caller owns world transform / punch / HP bar.
+// Five distinct CGI bodies (B10 + Kästchenblock-CGI): Verlaufsfill + Specular +
+// Ink-Kontur, skaliert mit cellScale (Boss ×2.2 etc.). Caller owns transform/punch/HP.
 
 import type { EnemyEntity } from '../../simulation/state';
 
 const INK = '#2b2b26';
+
+/** CGI-Grundkörper: Verlaufsfill (Licht oben-links), Specular, Ink-Kontur. */
+function cgiBody(ctx: CanvasRenderingContext2D, rx: number, ry: number, fill: string, offX = 0): void {
+  const g = ctx.createLinearGradient(-rx, -ry, rx, ry);
+  g.addColorStop(0, lighten(fill, 0.2));
+  g.addColorStop(0.55, fill);
+  g.addColorStop(1, darken(fill, 0.24));
+  ctx.fillStyle = g;
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  ctx.ellipse(offX, 0, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  const sp = ctx.createRadialGradient(offX - rx * 0.35, -ry * 0.45, rx * 0.05, offX - rx * 0.3, -ry * 0.4, rx * 0.7);
+  sp.addColorStop(0, 'rgba(255,255,255,0.55)');
+  sp.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.beginPath();
+  ctx.arc(offX - rx * 0.3, -ry * 0.4, rx * 0.7, 0, Math.PI * 2);
+  ctx.fillStyle = sp;
+  ctx.fill();
+  // Ink-Gesichtspunkte
+  ctx.fillStyle = INK;
+  ctx.beginPath(); ctx.arc(offX + rx * 0.35, -ry * 0.2, 1.6, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(offX + rx * 0.7, -ry * 0.1, 1.2, 0, Math.PI * 2); ctx.fill();
+}
+
+function shiftColor(hex: string, f: number): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  const c = (v: number) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
+  if (f >= 0) return `#${c(r + (255 - r) * f)}${c(g + (255 - g) * f)}${c(b + (255 - b) * f)}`;
+  return `#${c(r * (1 + f))}${c(g * (1 + f))}${c(b * (1 + f))}`;
+}
+function lighten(hex: string, f: number): string { return shiftColor(hex, f); }
+function darken(hex: string, f: number): string { return shiftColor(hex, -f); }
 
 export function drawEnemyBody(
   ctx: CanvasRenderingContext2D,
@@ -65,14 +102,5 @@ export function drawEnemyBody(
 }
 
 function inkBody(ctx: CanvasRenderingContext2D, rx: number, ry: number, fill: string, offX = 0): void {
-  ctx.fillStyle = fill;
-  ctx.strokeStyle = INK;
-  ctx.lineWidth = 2.2;
-  ctx.beginPath();
-  ctx.ellipse(offX, 0, rx, ry, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = INK;
-  ctx.beginPath(); ctx.arc(offX + rx * 0.35, -ry * 0.2, 1.6, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(offX + rx * 0.7, -ry * 0.1, 1.2, 0, Math.PI * 2); ctx.fill();
+  cgiBody(ctx, rx, ry, fill, offX);
 }

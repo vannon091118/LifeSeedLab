@@ -111,7 +111,7 @@ export class Renderer {
     // P5: Spieler-Tiles unter allem Gameplay zeichnen (read-only aus dem State)
     for (const [key, tile] of Object.entries(state.mapTiles)) {
       const [gx, gy] = key.split(',').map(Number);
-      drawMapTile(ctx, tile, gx, gy, cell);
+      drawMapTile(ctx, tile, gx, gy, cell, state.mapTiles);
     }
 
     if (ghost) this.drawGhost(ctx, ghost, cell);
@@ -187,7 +187,9 @@ export class Renderer {
     else if (v.animation === 'bob') oy = Math.sin(tick * 0.05 + plant.gy) * cell * 0.02;
     if (anim?.anim === 'attack') { const p = anim.phase; const lunge = Math.sin(p * Math.PI) * cell * 0.12; ox = lunge * 0.3; oy = -lunge * 0.4; sq = 1 + Math.sin(p * Math.PI) * 0.08; }
     else if (anim?.anim === 'placement') { const p = anim.phase; sq = p < 0.3 ? 0.6 + p * 1.5 : p < 0.8 ? 1.05 : 1; }
-    ctx.save(); ctx.translate(cx + ox, cy + oy); ctx.rotate(rot); ctx.scale(sq * punch, sq * punch);
+    ctx.save(); ctx.translate(cx + ox, cy + oy); ctx.rotate(rot);
+    const genomScale = v.scale; // Kästchenblock-CGI: Skala ist Genom-Aussage (0.85–1.25)
+    ctx.scale(sq * punch * genomScale, sq * punch * genomScale);
     for (const layer of v.layers) {
       ctx.save(); ctx.translate(layer.anchor.x * cell, layer.anchor.y * cell);
       ctx.rotate(layer.rotation); const s = layer.scale * cell * 0.3; ctx.scale(s, s);

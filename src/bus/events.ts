@@ -36,6 +36,7 @@ export type EventType =
   | 'TILE_PLACED'
   | 'TILE_REJECTED'
   | 'ROUTE_CHANGED'
+  | 'MAP_EXPANDED'
   // beetles (P6: Käferzucht — Brutling als alliierter Kämpfer)
   | 'BEETLE_DEPLOYED'
   | 'BEETLE_DOWN'
@@ -72,8 +73,9 @@ export interface EventPayloads {
   FERTILIZE_REJECTED: { plantId: string; reason: 'not_growing' | 'max_reached' | 'not_found' };
   PROPAGATE_REJECTED: { plantId: string; reason: 'not_mature' | 'not_found' | 'on_path' | 'occupied' };
   TILE_PLACED: { gx: number; gy: number; tile: string; cost: number };
-  TILE_REJECTED: { gx: number; gy: number; tile: string; reason: 'unknown_tile' | 'no_energy' | 'max_count' | 'occupied_plant' | 'spawn_corridor' };
+  TILE_REJECTED: { gx: number; gy: number; tile: string; reason: 'unknown_tile' | 'no_energy' | 'max_count' | 'occupied_plant' | 'spawn_corridor' | 'not_expandable' | 'already_buildable' };
   ROUTE_CHANGED: { waypoints: number };
+  MAP_EXPANDED: { gx: number; gy: number; cost: number };
   BEETLE_DEPLOYED: { beetleId: string; name: string; px: number; py: number; spawnCount: number };
   BEETLE_DOWN: { beetleId: string; px: number; py: number };
   BEETLE_REJECTED: { reason: 'already_deployed' | 'no_energy' | 'none_available' };

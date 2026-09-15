@@ -2,8 +2,14 @@
 // World geometry + placement rules. No code outside config/ may define these values.
 
 export const GRID_COLS = 12;
-export const GRID_ROWS = 8;
+export const GRID_ROWS = 12;
 export const CELL_SIZE = 64;
+
+/** Startgebiet: 8×8-Innenbereich frei, Rand (Spalte 0, Zeile 0,11, Spalte 11) blockiert. */
+export const GRID_START_COLS = 8;
+export const GRID_START_ROWS = 8;
+export const GRID_START_OFFSET_X = 2;
+export const GRID_START_OFFSET_Y = 2;
 
 /** Enemy waypoints in cell coordinates (x from 0..GRID_COLS). */
 export const ENEMY_PATH: ReadonlyArray<{ x: number; y: number }> = [

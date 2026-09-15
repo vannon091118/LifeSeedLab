@@ -92,12 +92,12 @@ function buildOffers(meta: MetaSave): { id: string; price: number; rarity: 'comm
 }
 
 const styles: Record<string, React.CSSProperties> = {
+  // Screen-Betrieb: Vollbild-Inhalt in MenuScreenShell (kein Fixed-Overlay mehr)
   overlay: {
-    position: 'fixed', inset: 0, background: 'rgba(43,43,38,0.55)', zIndex: 50,
-    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
   },
   panel: {
-    width: '92vw', maxWidth: 520, maxHeight: '88vh', overflowY: 'auto',
+    width: '100%', maxWidth: 600,
     background: 'var(--paper-warm)', border: '2.5px solid var(--ink)', borderRadius: 8,
     boxShadow: '6px 6px 0 var(--ink)', padding: 22, color: 'var(--ink)',
   },

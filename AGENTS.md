@@ -1,4 +1,19 @@
-# AGENTS.md — Arbeitsvertrag für Agenten (context-free briefing)
+## VERPFLICHTENDER REPOSITORY-SEARCH WORKFLOW
+
+BEVOR Dateien gelesen, bearbeitet oder Architekturentscheidungen getroffen werden:
+
+1. Zuerst Repository-Struktur ermitteln.
+2. Für Dateisuche `rg --files` verwenden.
+3. Für Text-/Symbolsuche `rg` verwenden.
+4. Suchbereich gezielt auf relevante Verzeichnisse und Dateitypen begrenzen.
+5. Erst danach relevante Dateien lesen.
+6. Niemals den gesamten Repository-Inhalt lesen, wenn eine gezielte Suche möglich ist.
+7. Niemals `ls`, `dir`, `find` oder vergleichbare langsame/unkontrollierte Vollbaumsuchen als primäres Suchwerkzeug verwenden, wenn `rg` die Aufgabe erfüllen kann.
+8. Bei unbekannter Architektur zuerst Search/Recon durchführen.
+9. Vor Änderungen muss nach bestehenden Implementierungen gesucht werden.
+10. Eine neue Struktur darf erst erstellt werden, nachdem geprüft wurde, ob bereits eine semantisch passende existiert.
+
+Diese Regeln sind PFLICHT und dürfen nicht übersprungen werden.s# AGENTS.md — Arbeitsvertrag für Agenten (context-free briefing)
 
 > Dieses Dokument ist die **einzige Pflichtlektüre** für einen Agenten ohne bisherigen Kontext.
 > Lese es vollständig, bevor du Code schreibst. Vertiefung: [`ARCHITECTURE_CONTRACT.md`](ARCHITECTURE_CONTRACT.md) (rechtsverbindlich) · [`ARCHITECTURE.md`](ARCHITECTURE.md) (Technik) · [`docs/QUALITY_SPEC.md`](docs/QUALITY_SPEC.md) (Arbeitsliste).

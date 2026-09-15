@@ -1,17 +1,13 @@
-import { useState } from 'react';
-import { useI18n } from '../i18n';
 import type { MetaSave, PlantVariant, GameMode } from '../types';
 import { createBaseVariants } from '../genome';
-import { Greenhouse } from './Greenhouse';
-import { SeedShop } from './SeedShop';
-import { BeetleLab } from './BeetleLab';
-import { Codex } from './Codex';
-import { MenuScene } from './MenuScene';
+import { useI18n } from '../i18n';
 import { SproutIcon, WaveIcon, BookIcon, SwordIcon, SeedIcon, BugIcon } from './MenuIcons';
+import type { MenuScreen } from './NavIndicators';
 
-// Owner: UI (MainMenu screen). LOC ≤ 400.
-// B9/§40: Papier-Panels mit Büroklammer, trashig selbstironische Kopie, keine Blur-Glass-Karten.
-// Basis der Sammlung = createBaseVariants (eine Quelle — Dublette gelöscht, A2).
+// Owner: UI (MainMenu = Hub-Kärtchen). LOC ≤ 400.
+// MainMenu ist NUR noch das Tor: illustrierte Karten navigieren auf EIGENE
+// Screens (Greenhouse/SeedShop/BeetleLab/Codex leben top-level in App.tsx).
+// Basis der Sammlung = createBaseVariants (eine Quelle — A2).
 // Gacha: Gewächshaus = Samen-Shop + Aussaat; keine Elternwahl.
 
 export const BREED_NEKTAR_COST = 40; // Anzeige Legacy; Preise kommen aus economy.source
@@ -20,130 +16,90 @@ type Props = {
   meta: MetaSave;
   onMetaChange: (m: MetaSave) => void;
   onStartRun: (mode: GameMode) => void;
-  onBack: () => void;
+  onNavigate: (s: MenuScreen) => void;
 };
 
-export function MainMenu({ meta, onMetaChange, onStartRun, onBack }: Props) {
+export function MainMenu({ meta, onMetaChange, onStartRun, onNavigate }: Props) {
   const { t } = useI18n();
-  const [showGreenhouse, setShowGreenhouse] = useState(false);
-  const [showShop, setShowShop] = useState(false);
-  const [showBeetleLab, setShowBeetleLab] = useState(false);
-  const [showCodex, setShowCodex] = useState(false);
+  void onMetaChange; // Hub schreibt kein Meta — owned-Berechnung ist read-only
 
   const bases: PlantVariant[] = createBaseVariants();
   const allVariants = [...bases, ...meta.savedVariants];
   const ownedVariants = allVariants.filter(v => (meta.variantCounts[v.id] || 0) > 0);
 
   return (
-    <div style={styles.wrap}>
-      {/* Spielszene als Menü-Hintergrund (P3): Papierhügel + Weg + Pflanze —
-          das Menü FÜHLT sich wie das Spiel an, nicht wie ein Debug-Panel. */}
-      <MenuScene />
-      <div style={styles.panel}>
-        <div style={styles.clip} aria-hidden />
-        <div style={styles.header}>
-          <button onClick={onBack} style={styles.backBtn}>←</button>
-          <h1 style={styles.title}>{t('menu.title')}</h1>
-          <div style={styles.nektarBadge}>
-            {t('menu.nektar')}: <strong>{meta.nektar}</strong>
-          </div>
-        </div>
-
-        <div style={styles.marquee} aria-hidden>
-          *** WILLKOMMEN IM LABOR *** DEIN GENOM, DEIN GLUECK *** KEINE HAFTUNG FUER MUTATIONEN ***
-        </div>
-
-        <div style={styles.statsRow}>
-          <StatBox label={t('menu.bestWave')} value={meta.bestWave} />
-          <StatBox label={t('menu.runs')} value={meta.runs} />
-          <StatBox label={t('menu.collection')} value={ownedVariants.length} />
-        </div>
-
-        <div style={styles.modes}>
-          <ModeCard
-            icon={<SproutIcon />}
-            title={t('menu.greenhouse')}
-            desc={t('menu.greenhouseDesc')}
-            onClick={() => setShowGreenhouse(true)}
-            disabled={ownedVariants.length < 2}
-          />
-          <ModeCard
-            icon={<SeedIcon />}
-            title={t('menu.shop')}
-            desc={t('menu.shopDesc')}
-            onClick={() => setShowShop(true)}
-          />
-          <ModeCard
-            icon={<BugIcon />}
-            title={t('menu.beetleLab')}
-            desc={t('menu.beetleLabDesc')}
-            onClick={() => setShowBeetleLab(true)}
-          />
-          <ModeCard
-            icon={<WaveIcon />}
-            title={t('menu.endless')}
-            desc={t('menu.endlessDesc')}
-            onClick={() => onStartRun('endless')}
-            highlight
-          />
-          <ModeCard
-            icon={<BookIcon />}
-            title={t('codex.title')}
-            desc={t('codex.subtitle')}
-            onClick={() => setShowCodex(true)}
-          />
-          <ModeCard
-            icon={<SwordIcon />}
-            title={t('menu.pvp')}
-            desc={t('menu.pvpDesc')}
-            onClick={() => {}}
-            disabled
-          />
-        </div>
-
-        <div style={styles.collectionSection}>
-          <h3 style={styles.sectionTitle}>{t('menu.loadout')} ({ownedVariants.length})</h3>
-          <div style={styles.collectionGrid}>
-            {ownedVariants.map(v => (
-              <div key={v.id} style={styles.collectionItem}>
-                <div style={{ ...styles.preview, background: v.color }} />
-                <span style={styles.name}>{v.name}</span>
-                <span style={styles.count}>×{meta.variantCounts[v.id]}</span>
-              </div>
-            ))}
-            {ownedVariants.length === 0 && (
-              <span style={styles.empty}>{t('common.empty')}</span>
-            )}
-          </div>
-        </div>
-
-        <p style={styles.footer} aria-hidden>
-          LifeSeedLab v0.1 — hier wurde nicht gespart, hier wurde gesparst. popup-blocker empfohlen.
-        </p>
+    <div>
+      <div style={styles.marquee} aria-hidden>
+        *** WILLKOMMEN IM LABOR *** DEIN GENOM, DEIN GLUECK *** KEINE HAFTUNG FUER MUTATIONEN ***
       </div>
 
-      {showGreenhouse && (
-        <Greenhouse
-          meta={meta}
-          onMetaChange={onMetaChange}
-          onClose={() => setShowGreenhouse(false)}
+      <div style={styles.statsRow}>
+        <StatBox label={t('menu.bestWave')} value={meta.bestWave} />
+        <StatBox label={t('menu.runs')} value={meta.runs} />
+        <StatBox label={t('menu.collection')} value={ownedVariants.length} />
+      </div>
+
+      <div style={styles.modes}>
+        <ModeCard
+          icon={<SproutIcon />}
+          title={t('menu.greenhouse')}
+          desc={t('menu.greenhouseDesc')}
+          onClick={() => onNavigate('greenhouse')}
+          disabled={ownedVariants.length < 2}
         />
-      )}
-      {showShop && (
-        <SeedShop
-          meta={meta}
-          onMetaChange={onMetaChange}
-          onClose={() => setShowShop(false)}
+        <ModeCard
+          icon={<SeedIcon />}
+          title={t('menu.shop')}
+          desc={t('menu.shopDesc')}
+          onClick={() => onNavigate('seedshop')}
         />
-      )}
-      {showBeetleLab && (
-        <BeetleLab
-          meta={meta}
-          onMetaChange={onMetaChange}
-          onClose={() => setShowBeetleLab(false)}
+        <ModeCard
+          icon={<BugIcon />}
+          title={t('menu.beetleLab')}
+          desc={t('menu.beetleLabDesc')}
+          onClick={() => onNavigate('beetlelab')}
         />
-      )}
-      {showCodex && <Codex onClose={() => setShowCodex(false)} />}
+        <ModeCard
+          icon={<WaveIcon />}
+          title={t('menu.endless')}
+          desc={t('menu.endlessDesc')}
+          onClick={() => onStartRun('endless')}
+          highlight
+        />
+        <ModeCard
+          icon={<BookIcon />}
+          title={t('codex.title')}
+          desc={t('codex.subtitle')}
+          onClick={() => onNavigate('codex')}
+        />
+        <ModeCard
+          icon={<SwordIcon />}
+          title={t('menu.pvp')}
+          desc={t('menu.pvpDesc')}
+          onClick={() => {}}
+          disabled
+        />
+      </div>
+
+      <div style={styles.collectionSection}>
+        <h3 style={styles.sectionTitle}>{t('menu.loadout')} ({ownedVariants.length})</h3>
+        <div style={styles.collectionGrid}>
+          {ownedVariants.map(v => (
+            <div key={v.id} style={styles.collectionItem}>
+              <div style={{ ...styles.preview, background: v.color }} />
+              <span style={styles.name}>{v.name}</span>
+              <span style={styles.count}>×{meta.variantCounts[v.id]}</span>
+            </div>
+          ))}
+          {ownedVariants.length === 0 && (
+            <span style={styles.empty}>{t('common.empty')}</span>
+          )}
+        </div>
+      </div>
+
+      <p style={styles.footer} aria-hidden>
+        LifeSeedLab v0.1 — hier wurde nicht gespart, hier wurde gesparst. popup-blocker empfohlen.
+      </p>
     </div>
   );
 }
@@ -177,78 +133,6 @@ function ModeCard({ icon, title, desc, onClick, disabled, highlight }: {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  wrap: {
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-    background: 'var(--paper)',
-    backgroundImage:
-      'repeating-linear-gradient(0deg, rgba(43,43,38,0.025) 0 1px, transparent 1px 3px), radial-gradient(ellipse at 70% 10%, rgba(217,164,65,0.10), transparent 55%)',
-    overflow: 'auto',
-    position: 'relative',
-  },
-  panel: {
-    position: 'relative',
-    width: '92vw',
-    maxWidth: 860,
-    padding: 26,
-    background: 'var(--paper-warm)',
-    border: '2.5px solid var(--ink)',
-    borderRadius: 6,
-    boxShadow: '6px 6px 0 var(--ink)',
-    margin: '20px 0 28px',
-  },
-  clip: {
-    position: 'absolute',
-    top: -14,
-    left: 40,
-    width: 44,
-    height: 26,
-    border: '3px solid #8a8a80',
-    borderTop: 'none',
-    borderRadius: '0 0 22px 22px',
-    background: 'transparent',
-    boxShadow: 'inset 0 -2px 0 rgba(43,43,38,0.25)',
-  },
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 14,
-    marginBottom: 12,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    background: '#fff',
-    border: '2px solid var(--ink)',
-    borderRadius: 8,
-    color: 'var(--ink)',
-    fontSize: 18,
-    fontWeight: 800,
-    cursor: 'pointer',
-    boxShadow: '2px 2px 0 var(--ink)',
-  },
-  title: {
-    flex: 1,
-    fontSize: 24,
-    fontWeight: 800,
-    margin: 0,
-    color: 'var(--ink)',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  nektarBadge: {
-    padding: '8px 14px',
-    background: '#fff',
-    border: '2px solid var(--ink)',
-    borderRadius: 8,
-    boxShadow: '2px 2px 0 var(--ink)',
-    color: 'var(--ink)',
-    fontSize: 14,
-    fontWeight: 600,
-  },
   marquee: {
     overflow: 'hidden',
     whiteSpace: 'nowrap',
@@ -259,13 +143,13 @@ const styles: Record<string, React.CSSProperties> = {
     letterSpacing: 1,
     padding: '5px 8px',
     borderRadius: 4,
-    marginBottom: 18,
+    marginBottom: 16,
     textOverflow: 'ellipsis',
   },
   statsRow: {
     display: 'flex',
     gap: 12,
-    marginBottom: 20,
+    marginBottom: 18,
   },
   statBox: {
     flex: 1,

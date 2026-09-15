@@ -16,6 +16,7 @@ import { WaveSystem } from './waveSystem';
 import { MapSystem } from './mapSystem';
 import { executeCommand, type CommandContext } from './rootCommands';
 import { STARTING_INVENTORY } from '../config/plants.source';
+import { defaultMapTiles } from '../config/map.source';
 import { CYCLE_TICKS } from '../core/clock';
 
 export interface RootInit {
@@ -251,7 +252,7 @@ export class SimulationRoot {
       phase: 'prep',
       wave: { number: 0, schedule: null, spawnQueue: [], lastSpawnTick: 0, prepStartTick: this.clock.get().tick },
       resources: { energy: 150, coins: 0 },
-      mapTiles: {},
+      mapTiles: defaultMapTiles(),
       deployedBeetle: null,
       lives: 20,
       inventory,

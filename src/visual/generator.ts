@@ -24,6 +24,9 @@ export interface ResolvedVisual {
   extraIds: ExtraId[];
   effectIds: EffectId[];
   layers: ResolvedLayer[];      // resolved bottom-first render order
+  /** Gesamt-Skala des Wesens (Kästchenblock-CGI: Identität wächst aus dem Genom,
+   *  0.85–1.25 — deterministisch aus strength + visualSeed, test-locked). */
+  scale: number;
   shadow: { scale: number; alpha: number };
   outline: string;
   palette: { base: string; accent: string; dark: string };
@@ -36,6 +39,9 @@ export interface VisualInput {
   extraIds: ExtraId[];
   effectIds: EffectId[];
   visualSeed: number;
+  /** Genom-Stärke 0..1 (Ø Gene-Power) — steuert die Gesamt-Skala (0.85–1.25).
+   *  Fehlt sie, fällt die Skala auf den seeded-Mittelwert zurück. */
+  strength?: number;
 }
 
 // ── Compatibility Resolution (Phase 6.2) ────────────────────
@@ -98,6 +104,9 @@ export function resolvePalette(input: VisualInput, rng: ReturnType<typeof makeRn
 // ── Geometry Resolver (Phase 6.4) ───────────────────────────
 function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v));
+}
+function clamp01(v: number): number {
+  return clamp(v, 0, 1);
 }
 
 export function resolveGeometry(extra: ExtraSource, rng: ReturnType<typeof makeRng>): { scale: number; rotation: number } {
@@ -169,6 +178,12 @@ export function resolveVisual(inputRaw: VisualInput): ResolvedVisual {
 
   const shadow = { scale: 0.9, alpha: 0.25 };
 
+  // Gesamt-Skala: Genom-Stärke → 0.85–1.15, seeded Jitter ±0.05, geklemmt 0.85–1.25
+  // (Kästchenblock-CGI §4: Skala ist Aussage — aus der Quelle, nie Renderer-Zufall).
+  const rngScale = rngStage(4);
+  const strength = clamp01(input.strength ?? 0.4 + rngScale.next() * 0.2);
+  const scale = clamp(0.85 + strength * 0.3 + (rngScale.next() - 0.5) * 0.1, 0.85, 1.25);
+
   // variantKey: stable identity for persistence/discovery
   const variantKey = [
     input.baseId,
@@ -185,6 +200,7 @@ export function resolveVisual(inputRaw: VisualInput): ResolvedVisual {
     extraIds: input.extraIds,
     effectIds: input.effectIds,
     layers,
+    scale,
     shadow,
     outline: palette.dark,
     palette,
@@ -250,11 +266,16 @@ export function genomeToVisualInput(variant: PlantVariant, rootSeed: number): Vi
   const effectId = strongest ? GENE_TO_EFFECT[strongest.id] : undefined;
 
   const visualSeed = deriveSeed(rootSeed, 'visual', variant.id, geneHash, 1);
+  // Genom-Stärke = Ø Gene-Power (Kästchenblock-CGI: Skala ist Aussage, aus der Quelle)
+  const strength = variant.genome.length > 0
+    ? variant.genome.reduce((s, g) => s + g.power, 0) / variant.genome.length
+    : 0.4;
   return {
     baseId,
     extraIds: extras,
     effectIds: effectId ? [effectId] : [],
     visualSeed,
+    strength,
   };
 }
 

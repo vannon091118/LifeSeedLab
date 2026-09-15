@@ -115,6 +115,7 @@ export const translations = {
     'common.cancel': 'Abbrechen',
     'common.confirm': 'Bestätigen',
     'common.empty': 'Leer',
+    'common.back': 'Zurück',
   },
   en: {
     'start.title': 'LifeGameLab',
@@ -230,6 +231,7 @@ export const translations = {
     'common.cancel': 'Cancel',
     'common.confirm': 'Confirm',
     'common.empty': 'Empty',
+    'common.back': 'Back',
   },
 } as const;
 

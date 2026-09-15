@@ -6,12 +6,13 @@
 
 import type { SimState, MapTiles } from './state';
 import { makeEvent, type GameEvent } from '../bus/events';
-import { MAP_TILES_SOURCE, MAP_TILE_IDS, MAP_DEFAULT_WEIGHT, MAP_NEIGHBOR_MODE, type MapTileType } from '../config/map.source';
+import { MAP_TILES_SOURCE, MAP_TILE_IDS, MAP_DEFAULT_WEIGHT, MAP_NEIGHBOR_MODE, expansionTiles, isBuildable, type MapTileType } from '../config/map.source';
+import { isInsideGrid } from '../config/world.source';
 import { GRID_COLS, GRID_ROWS } from '../config/world.source';
 
 export type PlaceTileResult =
   | { ok: true }
-  | { ok: false; reason: 'unknown_tile' | 'no_energy' | 'max_count' | 'occupied_plant' | 'spawn_corridor' };
+  | { ok: false; reason: 'unknown_tile' | 'no_energy' | 'max_count' | 'occupied_plant' | 'spawn_corridor' | 'not_expandable' };
 
 /** Schlüssel-Funktion EINE Konvention: "gx,gy". */
 export function tileKey(gx: number, gy: number): string {
@@ -47,6 +48,8 @@ export class MapSystem {
     }
     // Spawn-Korridor (Spalte 0) bleibt frei — Gegner müssen spawnen können
     if (gx === 0) return { ok: false, reason: 'spawn_corridor' };
+    // Nur im aktuellen Baubereich platzieren (Start: 8×8, erweiterbar)
+    if (!isBuildable(gx, gy)) return { ok: false, reason: 'not_expandable' };
     if (state.resources.energy < src.cost) return { ok: false, reason: 'no_energy' };
     const key = tileKey(gx, gy);
     // Pflanzen stehen nur auf Töpfen — Zelle mit Pflanze ist tabu
@@ -135,9 +138,40 @@ export class MapSystem {
     }
     return null;
   }
+
+  /** EXPAND_MAP: Zelle aus dem Blockiert-Zustand in begehbaren Bereich verwandeln. */
+  expandMap(state: SimState, gx: number, gy: number): { ok: boolean; reason?: 'not_expandable' | 'no_energy' | 'already_buildable' } {
+    const key = tileKey(gx, gy);
+    const current = state.mapTiles[key];
+    // Nur boulder-Tiles im Rand können expandiert werden
+    if (current !== 'boulder') return { ok: false, reason: current ? 'already_buildable' : 'not_expandable' };
+    // Prüfe ob die Zelle im expandierbaren Bereich liegt
+    const exp = expansionTiles().find(e => e.gx === gx && e.gy === gy);
+    if (!exp) return { ok: false, reason: 'not_expandable' };
+    if (state.resources.energy < exp.cost) return { ok: false, reason: 'no_energy' };
+    state.resources.energy -= exp.cost;
+    delete state.mapTiles[key]; // Boulder entfernen = begehbar
+    this.emit(makeEvent(state.clock.tick, 'MAP_EXPANDED', 'system:map', ++this.seq, {
+      gx, gy, cost: exp.cost,
+    }));
+    return { ok: true };
+  }
 }
 
 /** Alle Tile-IDs (UI-Tray). */
 export function mapTileChoices(): MapTileType[] {
   return [...MAP_TILE_IDS];
+}
+
+
+/** Prüft ob eine Zelle im aktuellen Baubereich liegt (für UI-Validierung). */
+export function canBuildAt(gx: number, gy: number, tiles: MapTiles): boolean {
+  const key = tileKey(gx, gy);
+  const tile = tiles[key];
+  // Kein Tile = begehbar (Papier-Wiese)
+  if (!tile) return true;
+  // Pot-Tiles sind Platzier-Flächen
+  if (tile === 'pot') return true;
+  // Alles andere = nicht begehbar
+  return false;
 }

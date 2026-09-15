@@ -41,7 +41,6 @@ function generatePlayerId(): string {
     // ignore
   }
   // Fallback: zeitbasiert — nur für Identität, nie für Gameplay-RNG.
-  // eslint-disable-next-line no-restricted-globals -- meta identity only
   const t = typeof Date !== 'undefined' ? Date.now() : 0;
   return `player_${t.toString(36).slice(-6)}_${Math.floor(t % 9973).toString(36)}`;
 }

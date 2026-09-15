@@ -1,17 +1,19 @@
 // Owner: TerrainLayerSystem (render layer 1, pre-baked). LOC ≤ 300.
-// Papierwelt wird EINMAL pro Seed in ein Offscreen-Canvas gebacken (B10):
-// Papierkorn, Rasen-Tuffs statt Raster, geschichteter Pfad mit Abnutzung, Dekor.
-// Zero Kosten pro Frame. Alle Streuung aus dem 'visual'-Namespace (deterministisch).
+// Kästchenblock-CGI (docs/art/papier-trifft-cgi.md): Schul-Mathe-Collageblock als
+// Bühne — warmes Papier, blaue Rasterlinien exakt auf CELL_SIZE, Blockrand + Lochung,
+// Bleistift-Kritzeleien, Collage-Fetzen. EINMAL pro Seed gebacken (B10), zero Kosten
+// pro Frame. Alle Streuung aus dem 'visual'-Namespace (deterministisch).
 
-import { GRID_COLS, GRID_ROWS, ENEMY_PATH, PLACEMENT_PATH_MARGIN, dist } from '../../config/world.source';
+import { GRID_COLS, GRID_ROWS, ENEMY_PATH } from '../../config/world.source';
 import { makeRng, deriveSeed } from '../../core/rng';
 
 const PAPER = '#f5efdc';
 const PAPER_DIM = '#e8dfc8';
+const GRID_BLUE = 'rgba(120,150,190,0.38)';
+const INK = '#2b2b26';
 const DIRT = '#d9c9a3';
 const DIRT_EDGE = '#b7a986';
-const INK = '#2b2b26';
-const TUFT = '#8ba872';
+const PENCIL = 'rgba(43,43,38,0.09)';
 
 export function bakeTerrain(seed: number): HTMLCanvasElement {
   const cell = 64;
@@ -21,60 +23,154 @@ export function bakeTerrain(seed: number): HTMLCanvasElement {
   const ctx = canvas.getContext('2d')!;
   const rng = makeRng('visual', deriveSeed(seed, 'visual', 'terrain', 0, 1));
 
-  // ── paper base + grain ──
+  // ── Papierkorn (matt, fein) ──
   ctx.fillStyle = PAPER;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = 'rgba(43,43,38,0.05)';
-  for (let i = 0; i < 1400; i++) {
-    const x = rng.next() * canvas.width;
-    const y = rng.next() * canvas.height;
-    ctx.fillRect(x, y, rng.next() < 0.3 ? 1.5 : 1, 1);
+  ctx.fillStyle = 'rgba(43,43,38,0.045)';
+  for (let i = 0; i < 1200; i++) {
+    ctx.fillRect(rng.next() * canvas.width, rng.next() * canvas.height, rng.next() < 0.3 ? 1.5 : 1, 1);
   }
-  // few faint fiber strokes
-  ctx.strokeStyle = 'rgba(43,43,38,0.04)';
+
+  // ── Kästchen-Raster (exakt auf CELL_SIZE — die Welt wohnt im Heft) ──
+  ctx.strokeStyle = GRID_BLUE;
   ctx.lineWidth = 1;
-  for (let i = 0; i < 26; i++) {
-    const x = rng.next() * canvas.width, y = rng.next() * canvas.height;
-    const a = rng.next() * Math.PI;
-    const l = 20 + rng.next() * 60;
+  for (let gx = 0; gx <= GRID_COLS; gx++) {
     ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l);
+    ctx.moveTo(gx * cell + 0.5, 0);
+    ctx.lineTo(gx * cell + 0.5, canvas.height);
+    ctx.stroke();
+  }
+  for (let gy = 0; gy <= GRID_ROWS; gy++) {
+    ctx.beginPath();
+    ctx.moveTo(0, gy * cell + 0.5);
+    ctx.lineTo(canvas.width, gy * cell + 0.5);
     ctx.stroke();
   }
 
-  // ── lawn tufts on legal placement cells (grid vanishes into ink-dotted corners) ──
-  const isLegal = (gx: number, gy: number) => {
-    const cx = gx + 0.5, cy = gy + 0.5;
-    for (const p of ENEMY_PATH) if (dist(cx, cy, p.x, p.y) < PLACEMENT_PATH_MARGIN) return false;
-    return true;
-  };
-  for (let gy = 0; gy < GRID_ROWS; gy++) {
-    for (let gx = 0; gx < GRID_COLS; gx++) {
-      if (!isLegal(gx, gy)) continue;
-      // corner dots (subtle cell hint)
-      ctx.fillStyle = 'rgba(43,43,38,0.10)';
-      ctx.beginPath(); ctx.arc(gx * cell + 3, gy * cell + 3, 1.4, 0, Math.PI * 2); ctx.fill();
-      // tufts
-      const tufts = 2 + Math.floor(rng.next() * 3);
-      ctx.strokeStyle = TUFT;
-      ctx.lineWidth = 1.6;
-      for (let t = 0; t < tufts; t++) {
-        const x = gx * cell + 8 + rng.next() * (cell - 16);
-        const y = gy * cell + 8 + rng.next() * (cell - 16);
-        const h = 4 + rng.next() * 6;
-        const lean = (rng.next() - 0.5) * 3;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.quadraticCurveTo(x + lean, y - h * 0.6, x + lean * 1.6, y - h);
-        ctx.stroke();
-      }
-    }
+  // ── Blockrand + Lochung links (Heft-Echtzeit) ──
+  const MARGIN = 22;
+  ctx.fillStyle = PAPER_DIM;
+  ctx.fillRect(0, 0, MARGIN, canvas.height);
+  ctx.strokeStyle = 'rgba(43,43,38,0.30)';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(MARGIN + 0.5, 0);
+  ctx.lineTo(MARGIN + 0.5, canvas.height);
+  ctx.stroke();
+  for (let y = 30; y < canvas.height; y += 44) {
+    ctx.fillStyle = '#dcd5c0';
+    ctx.beginPath();
+    ctx.arc(MARGIN / 2, y, 4.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(43,43,38,0.32)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
   }
 
-  // ── path: layered dirt ribbon ──
+  // ── Bleistift-Kritzeleien (Archive verlorener Rechenstunden) ──
+  drawScribbles(ctx, rng, cell);
+
+  // ── Collage-Fetzen + Klebestreifen (2–4, Rand-nah) ──
+  drawCollageScraps(ctx, rng, cell);
+
+  // ── Route: handgezeichneter Tinten-/Erden-Strich ÜBER dem Raster ──
+  drawPath(ctx, rng, cell);
+
+  return canvas;
+}
+
+// ── Kritzeleien: Sterne, Spiralen, Mini-Formeln, Kringel ──
+function drawScribbles(ctx: CanvasRenderingContext2D, rng: ReturnType<typeof makeRng>, cell: number): void {
+  const count = 12;
+  for (let i = 0; i < count; i++) {
+    const gx = 1 + Math.floor(rng.next() * (GRID_COLS - 1));
+    const gy = Math.floor(rng.next() * GRID_ROWS);
+    const cx = gx * cell + cell * 0.3 + rng.next() * cell * 0.4;
+    const cy = gy * cell + cell * 0.3 + rng.next() * cell * 0.4;
+    const kind = Math.floor(rng.next() * 4);
+    ctx.strokeStyle = PENCIL;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    if (kind === 0) {
+      // Stern (5 Zacken, gezeichnet, nicht geometrisch-perfekt)
+      const r1 = 4 + rng.next() * 3, r2 = 9 + rng.next() * 4;
+      for (let k = 0; k <= 5; k++) {
+        const a = -Math.PI / 2 + k * (2 * Math.PI * 2 / 5);
+        const px = cx + Math.cos(a) * r2, py = cy + Math.sin(a) * r2;
+        k === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        const a2 = a + (2 * Math.PI / 5);
+        ctx.lineTo(cx + Math.cos(a2) * r1, cy + Math.sin(a2) * r1);
+      }
+    } else if (kind === 1) {
+      // Spirale
+      for (let t = 0; t < 24; t++) {
+        const a = t * 0.36, r = 1.2 * t;
+        const px = cx + Math.cos(a) * r, py = cy + Math.sin(a) * r;
+        t === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+    } else if (kind === 2) {
+      // Mini-Formel: x | = | (
+      ctx.moveTo(cx - 12, cy); ctx.lineTo(cx + 12, cy);
+      ctx.moveTo(cx - 7, cy - 6); ctx.lineTo(cx - 7, cy + 6);
+      ctx.moveTo(cx + 6, cy - 7); ctx.lineTo(cx + 6, cy + 7);
+    } else {
+      // Kringel (doppelwellige Schlaufe)
+      for (let t = 0; t < 30; t++) {
+        const a = t * 0.42;
+        const px = cx + Math.cos(a) * (5 + t * 0.55);
+        const py = cy + Math.sin(a * 2) * 4;
+        t === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+    }
+    ctx.stroke();
+  }
+}
+
+// ── Collage: Papier-Fetzen + Klebestreifen (Collageblock-Identität) ──
+function drawCollageScraps(ctx: CanvasRenderingContext2D, rng: ReturnType<typeof makeRng>, cell: number): void {
+  // 2–3 Fetzen: leicht gedrehte Rechtecke in Papier-Tönen mit Ink-Kante
+  const scraps = 2 + Math.floor(rng.next() * 2);
+  for (let i = 0; i < scraps; i++) {
+    const x = rng.next() * GRID_COLS * cell;
+    const y = rng.next() * GRID_ROWS * cell;
+    const w = cell * (0.7 + rng.next() * 0.9);
+    const h = cell * (0.5 + rng.next() * 0.6);
+    const rot = (rng.next() - 0.5) * 0.3;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = rng.next() < 0.5 ? PAPER_DIM : '#fdf8ea';
+    ctx.fillRect(-w / 2, -h / 2, w, h);
+    ctx.globalAlpha = 0.22;
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1.4;
+    ctx.strokeRect(-w / 2, -h / 2, w, h);
+    ctx.restore();
+  }
+  // 1–2 Klebestreifen (halbdurchscheinend, leicht rotiert)
+  const tapes = 1 + Math.floor(rng.next() * 2);
+  for (let i = 0; i < tapes; i++) {
+    const x = rng.next() * GRID_COLS * cell;
+    const y = rng.next() * GRID_ROWS * cell;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate((rng.next() - 0.5) * 0.6);
+    ctx.globalAlpha = 0.30;
+    ctx.fillStyle = '#d9a441';
+    ctx.fillRect(-22, -7, 44, 14);
+    ctx.globalAlpha = 0.12;
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-22, -7, 44, 14);
+    ctx.restore();
+  }
+}
+
+// ── Route: geschichteter Erdstreifen mit Wackelkontur (lesbar über dem Raster) ──
+function drawPath(ctx: CanvasRenderingContext2D, rng: ReturnType<typeof makeRng>, cell: number): void {
   const HALF = 0.42;
-  const wobble = (base: number, salt: number) => base + (rng.next() - 0.5) * 0.06 * (salt || 1);
+  const wobble = (base: number, salt: number) => base + (rng.next() - 0.5) * 0.05 * (salt || 1);
   const drawStrip = (width: number, color: string) => {
     ctx.fillStyle = color;
     for (let i = 0; i < ENEMY_PATH.length - 1; i++) {
@@ -89,15 +185,14 @@ export function bakeTerrain(seed: number): HTMLCanvasElement {
       ctx.lineTo(bx - px, by - py);
       ctx.closePath();
       ctx.fill();
-      // round joint
       ctx.beginPath(); ctx.arc(bx, by, width, 0, Math.PI * 2); ctx.fill();
     }
   };
-  drawStrip(cell * wobble(HALF + 0.07, 1), DIRT_EDGE); // dark under-edge
-  drawStrip(cell * HALF, DIRT);                        // body
+  drawStrip(cell * wobble(HALF + 0.06, 1), DIRT_EDGE); // dunkle Unterkante
+  drawStrip(cell * HALF, DIRT);                        // Körper
 
-  // wear speckles + stepping stones on the path
-  for (let i = 0; i < 260; i++) {
+  // Abnutzungs-Sprenkel + Trittsteine
+  for (let i = 0; i < 220; i++) {
     const seg = Math.floor(rng.next() * (ENEMY_PATH.length - 1));
     const a = ENEMY_PATH[seg], b = ENEMY_PATH[seg + 1];
     const t = rng.next();
@@ -122,8 +217,8 @@ export function bakeTerrain(seed: number): HTMLCanvasElement {
       ctx.fill(); ctx.stroke();
     }
   }
-  // ink contour along path edges (wobbling, hand-drawn)
-  ctx.strokeStyle = 'rgba(43,43,38,0.55)';
+  // Wackelkontur an den Rändern (handgezeichnet)
+  ctx.strokeStyle = 'rgba(43,43,38,0.5)';
   ctx.lineWidth = 2;
   for (let i = 0; i < ENEMY_PATH.length - 1; i++) {
     const a = ENEMY_PATH[i], b = ENEMY_PATH[i + 1];
@@ -137,30 +232,4 @@ export function bakeTerrain(seed: number): HTMLCanvasElement {
       ctx.stroke();
     }
   }
-
-  // ── decor scatter (off-path, no gameplay meaning) ──
-  for (let i = 0; i < 10; i++) {
-    const x = rng.next() * canvas.width, y = rng.next() * canvas.height;
-    if (!isLegal(Math.floor(x / cell) - 0, Math.floor(y / cell))) { /* allow anyway, decor is passive */ }
-    ctx.strokeStyle = 'rgba(90,143,78,0.8)';
-    ctx.lineWidth = 1.8;
-    for (let b = 0; b < 3; b++) {
-      const bx = x + (b - 1) * 3, h = 5 + rng.next() * 7;
-      ctx.beginPath();
-      ctx.moveTo(bx, y);
-      ctx.quadraticCurveTo(bx + (b - 1), y - h * 0.6, bx + (b - 1) * 2, y - h);
-      ctx.stroke();
-    }
-  }
-  for (let i = 0; i < 4; i++) {
-    const x = rng.next() * canvas.width, y = rng.next() * canvas.height;
-    ctx.fillStyle = '#c9bd9e';
-    ctx.strokeStyle = 'rgba(43,43,38,0.4)';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.ellipse(x, y, 3 + rng.next() * 3, 2.4 + rng.next() * 2, rng.next() * Math.PI, 0, Math.PI * 2);
-    ctx.fill(); ctx.stroke();
-  }
-
-  return canvas;
 }

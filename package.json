@@ -8,17 +8,27 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run",
-    "typecheck": "tsc -b --noEmit"
+    "test:e2e": "playwright test",
+    "test:e2e:show": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "typecheck": "tsc -b --noEmit",
+    "lint": "eslint src",
+    "lint:hooks": "eslint src --rule 'react-hooks/rules-of-hooks:error'"
   },
   "dependencies": {
+    "@playwright/mcp": "^0.0.80",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.23.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "typescript": "~5.7.2",
+    "typescript-eslint": "^8.46.2",
     "vite": "^6.0.0",
     "vitest": "^5.0.0"
   }

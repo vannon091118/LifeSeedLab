@@ -38,14 +38,127 @@ export const MAP_NEIGHBOR_MODE = 'ortho4' as const;
 /** Grund-Gewicht für un-bebaut begehbare Zellen (Papier-Wiese). */
 export const MAP_DEFAULT_WEIGHT = 1;
 
+// ── Path-Autoconnect (Konfiguration) ──────────────────────────────────────
+// Path-Tiles verbinden sich automatisch mit Nachbarn. Die Verbindungs-
+// logik ist config-driven: jeder Tile-Typ kann `connectsTo` angeben.
+
+/** Nachbar-Offsets für die Verbindungs-Erkennung (ortho4). */
+export const PATH_NEIGHBORS: readonly [number, number][] = [
+  [0, -1], // oben
+  [1, 0],  // rechts
+  [0, 1],  // unten
+  [-1, 0], // links
+] as const;
+
+/** Verbindungstypen basierend auf Nachbar-Konfiguration. */
+export type PathConnection =
+  | 'straight_h'  // links + rechts
+  | 'straight_v'  // oben + unten
+  | 'corner_tl'   // oben + links
+  | 'corner_tr'   // oben + rechts
+  | 'corner_bl'   // unten + links
+  | 'corner_br'   // unten + rechts
+  | 't_top'       // oben + links + rechts
+  | 't_bottom'    // unten + links + rechts
+  | 't_left'      // oben + unten + links
+  | 't_right'     // oben + unten + rechts
+  | 'cross'       // alle 4
+  | 'end_top'     // nur oben
+  | 'end_right'   // nur rechts
+  | 'end_bottom'  // nur unten
+  | 'end_left'    // nur links
+  | 'isolated';   // keine Nachbarn
+
+/** Berechnet den Verbindungstyp eines Path-Tiles basierend auf seinen Nachbarn. */
+export function resolvePathConnection(
+  tiles: Record<string, string>,
+  gx: number,
+  gy: number,
+  isInside: (x: number, y: number) => boolean,
+): PathConnection {
+  const hasN = [false, false, false, false]; // oben, rechts, unten, links
+  for (let i = 0; i < PATH_NEIGHBORS.length; i++) {
+    const [dx, dy] = PATH_NEIGHBORS[i];
+    const nx = gx + dx, ny = gy + dy;
+    if (!isInside(nx, ny)) continue;
+    const neighbor = tiles[`${nx},${ny}`];
+    if (neighbor === 'path') hasN[i] = true;
+  }
+
+  const [top, right, bottom, left] = hasN;
+  const count = hasN.filter(Boolean).length;
+
+  if (count === 0) return 'isolated';
+  if (count === 1) {
+    if (top) return 'end_top';
+    if (right) return 'end_right';
+    if (bottom) return 'end_bottom';
+    return 'end_left';
+  }
+  if (count === 4) return 'cross';
+  if (count === 3) {
+    if (!top) return 't_top';
+    if (!right) return 't_right';
+    if (!bottom) return 't_bottom';
+    return 't_left';
+  }
+  // count === 2
+  if (top && bottom) return 'straight_v';
+  if (left && right) return 'straight_h';
+  if (top && right) return 'corner_tr';
+  if (top && left) return 'corner_tl';
+  if (bottom && right) return 'corner_br';
+  return 'corner_bl';
+}
+
 /** Sicherheitsnetz: Wenn kein Weg zum Ausgang existiert, gilt der DEFAULT-Pfad
  * (ENEMY_PATH) — die Map kann den Run nicht softlocken. */
 export const MAP_FALLBACK_TO_DEFAULT_PATH = true;
 
-/** Start-Tiles einer frischen Map (gestaltetes, leeres Spielfeld). */
+/** Startgebiet: 8×8 Innenbereich frei, Rand logisch blockiert. */
 export function defaultMapTiles(): Record<string, MapTileType> {
-  // leer: "bereits gestaltet" kommt vom Terrain-Bake (Papierwelt), nicht von Tiles
+  // leer — der Rand wird logisch blockiert (isBuildable + MapSystem.placeTile)
   return {};
+}
+
+/** Prüft ob eine Zelle im aktuellen Baubereich liegt (Start: 8×8 Zentrum). */
+export function isBuildable(gx: number, gy: number): boolean {
+  return gx >= 2 && gx <= 9 && gy >= 2 && gy <= 9;
+}
+
+/** Expansion: Zellen die freigeschaltet werden können (Reihenfolge = Kosten-Reihenfolge). */
+export interface ExpansionTile {
+  gx: number;
+  gy: number;
+  cost: number;
+}
+
+/** Alle expandierbaren Zellen (Rand-Zellen, die freigeschaltet werden können). */
+export function expansionTiles(): ExpansionTile[] {
+  const tiles: ExpansionTile[] = [];
+  let tier = 0;
+  // Zuerst die inneren Rand-Zellen (gx 1/10, gy 2-9 und gy 1/10, gx 2-9)
+  for (let i = 0; i < 4; i++) {
+    const ring = i; // 0=innerster Ring
+    const cost = 30 + ring * 15;
+    //_oben_
+    for (let gx = 2 + ring; gx <= 9 - ring; gx++) {
+      tiles.push({ gx, gy: 1 - ring, cost });
+    }
+    //unten
+    for (let gx = 2 + ring; gx <= 9 - ring; gx++) {
+      tiles.push({ gx, gy: 10 + ring, cost });
+    }
+    // links
+    for (let gy = 2 + ring; gy <= 9 - ring; gy++) {
+      tiles.push({ gx: 1 - ring, gy, cost });
+    }
+    // rechts
+    for (let gy = 2 + ring; gy <= 9 - ring; gy++) {
+      tiles.push({ gx: 10 + ring, gy, cost });
+    }
+  }
+  return tiles;
 }
 
 /** Serialized Map-Layout (Spieler-Maps, P5/PvP): tiles als "x,y":type-Map. */

@@ -106,6 +106,20 @@ export function executeCommand(ctx: CommandContext, state: SimState, cmd: Comman
       }
       break;
     }
+    case 'EXPAND_MAP': {
+      const r = ctx.map.expandMap(state, cmd.payload.gx, cmd.payload.gy);
+      if (!r.ok) {
+        ctx.publish({
+          eventId: `${state.clock.tick}:system:map:TILE_REJECTED:${ctx.nextSeq()}`,
+          tick: state.clock.tick,
+          type: 'TILE_REJECTED',
+          sourceId: 'system:map',
+          version: 1,
+          payload: { gx: cmd.payload.gx, gy: cmd.payload.gy, tile: 'boulder', reason: r.reason ?? 'not_expandable' },
+        });
+      }
+      break;
+    }
     case 'SELECT_PLANT':
     case 'CANCEL_PLACEMENT':
     case 'INSPECT':

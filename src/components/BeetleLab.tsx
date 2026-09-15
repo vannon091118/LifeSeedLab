@@ -167,8 +167,9 @@ export function BeetleLab({ meta, onMetaChange, onClose }: Props) {
 // Icon in MenuIcons.tsx (eine Präsentations-Verantwortung pro Datei)
 
 const styles: Record<string, React.CSSProperties> = {
-  overlay: { position: 'fixed', inset: 0, background: 'rgba(43,43,38,0.55)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 },
-  panel: { width: '92vw', maxWidth: 560, maxHeight: '88vh', overflowY: 'auto', background: '#f3ecd9', border: '2.5px solid var(--ink)', borderRadius: 8, boxShadow: '6px 6px 0 var(--ink)', padding: 22, color: 'var(--ink)' },
+  // Screen-Betrieb: Vollbild-Inhalt in MenuScreenShell (kein Fixed-Overlay mehr)
+  overlay: { display: 'flex', flexDirection: 'column', alignItems: 'center' },
+  panel: { width: '100%', maxWidth: 620, background: '#f3ecd9', border: '2.5px solid var(--ink)', borderRadius: 8, boxShadow: '6px 6px 0 var(--ink)', padding: 22, color: 'var(--ink)' },
   header: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 },
   title: { flex: 1, fontSize: 20, fontWeight: 800, color: 'var(--ink)', margin: 0, textTransform: 'uppercase' as const, letterSpacing: 0.5 },
   headerRight: { display: 'flex', gap: 8, alignItems: 'center' },

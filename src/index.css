@@ -9,6 +9,10 @@
   --nektar:#d9a441;
   --danger:#a94438;
   --night:#1c222b;
+  /* Kästchenblock-CGI: Collage-Block-Tokens (docs/art/papier-trifft-cgi.md) */
+  --grid-blue:rgba(120,150,190,0.38);
+  --tape:rgba(217,164,65,0.45);
+  --pencil:rgba(43,43,38,0.09);
 }
 *{
   margin: 0;
@@ -35,6 +39,31 @@ button:hover {
 
 button:active {
   transform: translateY(1px);
+}
+
+/* Sichtbare Fokus-Stile (Tastaturbedienbarkeit, Web-Guidelines) */
+button:focus-visible {
+  outline: 3px solid var(--leaf);
+  outline-offset: 2px;
+}
+
+/* Papier-Übergang zwischen Screens (ScreenTransition) */
+@keyframes screenIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) rotate(-0.6deg) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 ::-webkit-scrollbar {
