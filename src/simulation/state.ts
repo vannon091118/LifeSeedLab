@@ -65,6 +65,9 @@ export type RunPhase = 'prep' | 'wave' | 'gameover';
 /** Spieler-platzierte Map-Tiles (P5). Owner: MapSystem. Key "gx,gy". */
 export type MapTiles = Record<string, string>;
 
+/** Aktueller berechneter Feind-Laufweg (Zellzentren). Owner: SimulationRoot (Coordination). */
+export type Route = ReadonlyArray<{ x: number; y: number }> | null;
+
 export interface SimState {
   seed: number;
   /** Authoritative run identity (mirrors MetaSave.runId at run start — B1). */
@@ -86,6 +89,8 @@ export interface SimState {
   resources: { energy: number; coins: number };
   /** Map-Slice (P5): vom Spieler platzierte Tiles. Owner: MapSystem. */
   mapTiles: MapTiles;
+  /** Aktueller Feind-Laufweg (nur für Rendering/UI). Owner: SimulationRoot (setzt in recomputeRoute). */
+  currentRoute: Route;
   /** Player lives. Owned by SimulationRoot (run state); reduced only via leak events. */
   lives: number;
   inventory: Record<string, number>;

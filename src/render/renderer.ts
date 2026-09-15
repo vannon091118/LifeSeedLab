@@ -2,7 +2,7 @@
 // ALL GRAPHICS = OBSERVERS: reads state, never writes gameplay (contract Phase 7).
 // Renderer entscheidet NICHTS über Extras/Farben — er zeichnet nur ResolvedVisual.
 
-import type { SimState, PlantEntity } from '../simulation/state';
+import type { SimState, PlantEntity, Route } from '../simulation/state';
 import type { ParticlePool } from '../observers/particles';
 import type { FeedbackLayer } from './layers/feedback';
 import { GRID_COLS, GRID_ROWS } from '../config/world.source';

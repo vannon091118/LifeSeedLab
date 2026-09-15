@@ -15,7 +15,7 @@ import { ComboSystem } from './comboSystem';
 import { WaveSystem } from './waveSystem';
 import { MapSystem } from './mapSystem';
 import { executeCommand, type CommandContext } from './rootCommands';
-import { STARTING_INVENTORY } from '../config/plants.source';
+import { STARTING_INVENTORY, PLANT_IDS } from '../config/plants.source';
 import { defaultMapTiles } from '../config/map.source';
 import { CYCLE_TICKS } from '../core/clock';
 
@@ -218,6 +218,7 @@ export class SimulationRoot {
   private recomputeRoute(state: SimState): void {
     const hasTiles = Object.keys(state.mapTiles).length > 0;
     const route = hasTiles ? this.map.computeRoute(state) : null;
+    state.currentRoute = route;
     this.enemies.setRoute(route);
     this.publish({
       eventId: `${state.clock.tick}:system:map:ROUTE_CHANGED:${++this.rejectSeq}`,
@@ -239,20 +240,20 @@ export class SimulationRoot {
 
   /** Build a fresh deterministic state for a run. */
   private freshState(seed: number, init: RootInit): SimState {
+    const loadout = init.loadout ?? [];
     const inventory: Record<string, number> = { ...STARTING_INVENTORY };
-    const loadout = (init.loadout ?? []).filter(id =>
-      !Object.prototype.hasOwnProperty.call(STARTING_INVENTORY, id));
-    for (const id of loadout) inventory[id] = (inventory[id] ?? 0) + 2;
-    const discovered = [...Object.keys(STARTING_INVENTORY), ...loadout];
+    for (const id of loadout) { inventory[id] = 2; }
+    const discovered = [...PLANT_IDS, ...loadout];
     return {
       seed,
       runId: init.runId ?? 0,
       loadout,
-      clock: this.clock.get() as SimState['clock'],
-      phase: 'prep',
+      clock: this.clock.get() as SimState["clock"],
+      phase: "prep",
       wave: { number: 0, schedule: null, spawnQueue: [], lastSpawnTick: 0, prepStartTick: this.clock.get().tick },
       resources: { energy: 150, coins: 0 },
       mapTiles: defaultMapTiles(),
+      currentRoute: null,
       deployedBeetle: null,
       lives: 20,
       inventory,

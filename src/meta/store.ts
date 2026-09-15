@@ -100,7 +100,7 @@ function toV3(base: MetaSave, raw: Partial<MetaSave>): MetaSave {
 }
 
 function migrate(raw: unknown, fromVersion: number): MetaSave | null {
-  if (fromVersion !== 1 && fromVersion !== 2) return null;
+  if (fromVersion !== 1 && fromVersion !== 2 && fromVersion !== 3) return null;
   const old = raw as Partial<MetaSave> & { version?: number };
   if (typeof old.nektar !== 'number') return null;
   return toV3(defaultMeta(), old);

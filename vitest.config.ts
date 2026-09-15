@@ -1,8 +1,8 @@
-import { defineConfig } from 'vitest/config'
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    dirs: ['src'],
-    exclude: ['tests/**'],
+    include: ['src/**/*.test.{ts,tsx}'],
+    exclude: [ '**/node_modules/**', '**/dist/**'],
   },
-})
+});
