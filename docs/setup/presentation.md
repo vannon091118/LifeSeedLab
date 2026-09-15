@@ -77,12 +77,12 @@ LifeSeedLab verbindet **Plants vs. Zombies**-Gameplay mit **Binding of Isaac**-E
 | 1 | **Echter Determinismus** | `core/rng.ts` — 8 Namespaces, `deriveSeed`, FX ON/OFF = bit-identisch |
 | 2 | **Genom → Visual Pipeline** | `visual/generator.ts` — `genomeToVisualInput` → `ResolvedVisual` (test-locked) |
 | 3 | **Zucht = Gameplay** | `genome/beetle.ts` — Kreuzung, Mutation, Naming, `breedGeneration` persistiert |
-| 4 | **Single Writer Architecture** | `ARCHITECTURE_CONTRACT.md` §3 — Ownership-Tabelle, keine 2. State-Quelle |
+| 4 | **Single Writer Architecture** | `../architecture/architecture-contract.md` §3 — Ownership-Tabelle, keine 2. State-Quelle |
 | 5 | **Observer-Purity** | `observers/` — lesen nur Events, emittieren Visual-Commands, mutieren nie State |
 | 6 | **Source = Content Truth** | `config/*.source.ts` — **keine** Gameplay-Constants im Code |
 | 7 | **Resume-Vertrag (ehrlich)** | `persistence/` — Enemies/Projectiles absichtlich NICHT gespeichert, Wave-Neustart |
 | 8 | **Discovery-Chain** | `discovery/chain.ts` — FNV-1a Hash-Chain, `lifeseed:` Sharing, Supabase-Spiegel |
-| 9 | **Paper + Pop Art Direction** | `QUALITY_SPEC.md` B0, B9, B10 — verbindlich, testbar (Grayscale-Test) |
+| 9 | **Paper + Pop Art Direction** | `../quality/quality-spec.md` B0, B9, B10 — verbindlich, testbar (Grayscale-Test) |
 | 10 | **Mobile-First (390×844)** | Alle Touch-Targets ≥44px, kein Hover-Pflicht, Portrait-Layout |
 
 ---
@@ -177,7 +177,7 @@ Observer: Event → VisualCommand (color/palette IN Payload)
 | **Tests** | 52/52 grün | `npm test` |
 | **TypeScript** | 0 Fehler (strict) | `npm run typecheck` |
 | **Build** | Erfolgreich | `npm run build` |
-| **Architektur-Verstöße** | 0 (Gate geprüft) | `ARCHITECTURE_CONTRACT.md` §10 |
+| **Architektur-Verstöße** | 0 (Gate geprüft) | `../architecture/architecture-contract.md` §10 |
 | **LOC Simulation** | ~2.000 | `wc -l src/simulation/**/*.ts` |
 | **LOC Render/Visual** | ~1.400 | `wc -l src/render/**/*.ts src/visual/**/*.ts` |
 | **LOC Core/Bus** | ~1.000 | `wc -l src/core/**/*.ts src/bus/**/*.ts` |
@@ -208,11 +208,12 @@ Observer: Event → VisualCommand (color/palette IN Payload)
 | Ressource | Link |
 |---|---|
 | **Repository** | `github.com/<user>/lifeseedlab` |
-| **Architecture Contract** | [`ARCHITECTURE_CONTRACT.md`](ARCHITECTURE_CONTRACT.md) |
-| **Technical Architecture** | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
-| **Quality Spec (Arbeitsliste)** | [`docs/QUALITY_SPEC.md`](docs/QUALITY_SPEC.md) |
-| **Agent Rules** | [`AGENTS.md`](AGENTS.md) |
-| **Banner SVG** | [`docs/banner.svg`](docs/banner.svg) |
+| **Architecture Contract** | [`architecture-contract.md`](../architecture/architecture-contract.md) |
+| **Technical Architecture** | [`architecture.md`](../architecture/architecture.md) |
+| **Quality Spec (Arbeitsliste)** | [`quality-spec.md`](../quality/quality-spec.md) |
+| **Agent Rules** | [`AGENTS.md`](../../AGENTS.md) |
+| **Roadmap** | [`ROADMAP.md`](../../ROADMAP.md) |
+| **Banner SVG** | [`banner.svg`](../banner.svg) |
 
 ---
 
@@ -325,7 +326,7 @@ body: |
 - [ ] Release-Drafter konfigurieren (Conventional Commits)
 - [ ] CI: `tsc`, `vitest`, `vite build` auf jedem PR
 - [ ] Dependabot für Security Updates
-- [ ] CODEOWNERS für `ARCHITECTURE_CONTRACT.md` (Architektur-Änderungen = Review-Pflicht)
+- [ ] CODEOWNERS für `docs/architecture/architecture-contract.md` (Architektur-Änderungen = Review-Pflicht)
 
 ---
 
@@ -333,7 +334,7 @@ body: |
 
 **Entwickelt mit** [Buffy (Codebuff Agent)](https://codebuff.com) — deterministische Agenten-Entwicklung.
 
-**Architektur:** Human-in-the-loop + Agent (Buffy) — alle Entscheidungen dokumentiert in `ARCHITECTURE_CONTRACT.md`.
+**Architektur:** Human-in-the-loop + Agent (Buffy) — alle Entscheidungen dokumentiert in `docs/architecture/architecture-contract.md`.
 
 **Lizenz:** MIT — frei für kommerzielle und private Nutzung.
 

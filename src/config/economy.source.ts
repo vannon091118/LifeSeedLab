@@ -18,6 +18,12 @@ export function wavesToUnlockFor(crossIndex: number): number {
   return 2 + crossIndex * 2;
 }
 
+/** Reifungs-Queue: Obergrenze gleichzeitig wartender Kreuzungen.
+ *  Gereifte Kreuzungen werden NICHT mehr stillschweigend verworfen (A13.12); die Kapazität
+ *  begrenzt nur den Speicher-Wachstum. Bei Überschreitung fallen die ÄLTESTEN Einträge.
+ *  Die Queue wird ausschließlich beim Beanspruchen (`keepCross`) ausgebucht. */
+export const PENDING_CROSSES_MAX = 12;
+
 /** Gacha: die Instanz (z.B. Greenhouse) entscheidet deterministisch aus diesem Seed. */
 export const GACHA_NAMESPACES = { plant: 'plant' } as const;
 

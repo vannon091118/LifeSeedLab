@@ -1,7 +1,7 @@
 # LifegamePlant — Forensischer Bestands-Audit (Execution Prompt §2)
 
 > Stand: nach Konsolidierung + Discovery-Chain + Cap-Splits + DevGate. `tsc` grün, `vitest` **100/100** (11 Dateien).
-> Grundlage: §§1–49 des Execution Prompts + `AGENTS.md` + `ARCHITECTURE_CONTRACT.md` + `docs/QUALITY_SPEC.md`.
+> Grundlage: §§1–49 des Execution Prompts + `AGENTS.md` + `../architecture/architecture-contract.md` + `quality-spec.md`.
 
 ---
 

@@ -1,6 +1,6 @@
 import type { MetaSave, PendingCross } from '../types';
 import { loadMeta, updateMeta } from './store';
-import { wavesToUnlockFor } from '../config/economy.source';
+import { wavesToUnlockFor, PENDING_CROSSES_MAX } from '../config/economy.source';
 
 // Owner: PersistenceSystem (meta economy). LOC ≤ 200.
 // Atomare Meta-Operationen: consume+enqueue sind EIN Persistenzschritt (kein Zwischenzustand,
@@ -10,6 +10,11 @@ export function buySeed(price: number): MetaSave | null {
   const meta = loadMeta();
   if (meta.nektar < price) return null;
   return updateMeta({ nektar: meta.nektar - price, seedStash: meta.seedStash + 1 });
+}
+
+/** Reifungs-Queue begrenzen (älteste fallen) — reine Kapazitätsgrenze, kein Verwerfen von Reifem. */
+function capped(queue: PendingCross[]): PendingCross[] {
+  return queue.length > PENDING_CROSSES_MAX ? queue.slice(queue.length - PENDING_CROSSES_MAX) : queue;
 }
 
 /**
@@ -27,7 +32,7 @@ export function consumeSeedAndEnqueueCross(gachaSeed: number, crossIndex: number
   };
   return updateMeta({
     seedStash: meta.seedStash - 1,
-    pendingCrosses: [...meta.pendingCrosses, entry],
+    pendingCrosses: capped([...meta.pendingCrosses, entry]),
     breedGeneration: meta.breedGeneration + 1,
   });
 }
@@ -40,22 +45,30 @@ export function enqueueCross(seed: number, crossIndex: number, currentWave: numb
     neededWaves: wavesToUnlockFor(crossIndex),
     startedWave: currentWave,
   };
-  return updateMeta({ pendingCrosses: [...meta.pendingCrosses, entry], breedGeneration: meta.breedGeneration + 1 });
+  return updateMeta({ pendingCrosses: capped([...meta.pendingCrosses, entry]), breedGeneration: meta.breedGeneration + 1 });
 }
 
-export function advanceCrossMaturation(waveReached: number): number[] {
+/**
+ * Reifungs-Uhr: die EINZIGE Stelle, die `totalWavesSurvived` vorantreibt.
+ * Sie reiht KEINE Kreuzungen aus — Ausbuchen passiert ausschließlich beim Beanspruchen
+ * (`keepCross`). Vorher löschte dieser Schritt gereifte Einträge und warf ihre Seeds weg:
+ * genau die Stelle, an der die Reifung eintrat, zerstörte das Ergebnis (A13.12).
+ */
+export function advanceCrossMaturation(waveReached: number): void {
   const meta = loadMeta();
   const total = meta.totalWavesSurvived + Math.max(0, waveReached);
-  const ready: number[] = [];
-  const still: PendingCross[] = [];
-  for (const c of meta.pendingCrosses) {
-    if (total - c.startedWave >= c.neededWaves) ready.push(c.seed);
-    else still.push(c);
-  }
-  if (ready.length > 0 || total !== meta.totalWavesSurvived) {
-    updateMeta({ pendingCrosses: still, totalWavesSurvived: total });
-  }
-  return ready;
+  if (total !== meta.totalWavesSurvived) updateMeta({ totalWavesSurvived: total });
+}
+
+/**
+ * Reife-Gate — EINE Ableitung, fail-closed (B14.4):
+ * unbekannter `crossIndex` ⇒ NICHT reif. Ein Gate, das bei Unbekanntem „ja" sagt,
+ * ist kein Gate.
+ */
+export function isCrossReady(meta: MetaSave, crossIndex: number): boolean {
+  const entry = meta.pendingCrosses.find(c => c.crossIndex === crossIndex);
+  if (!entry) return false;
+  return meta.totalWavesSurvived - entry.startedWave >= entry.neededWaves;
 }
 
 export function consumeSeed(): MetaSave | null {

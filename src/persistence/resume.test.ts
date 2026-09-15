@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SimulationRoot, makeCommand } from '../simulation/root';
 import type { MetaSave } from '../types';
-import { defaultMeta } from '../meta';
+import { defaultMeta, META_VERSION } from '../meta';
 
 // storage uses globalThis.localStorage — polyfill for node env without jsdom
 function ensureLocalStorage(): void {
@@ -94,10 +94,10 @@ describe('Gate B — Resume-Shape (RunSave v2)', () => {
   });
 });
 
-describe('Gate B — Meta-Migration v1/v2 → v3', () => {
+describe('Gate B — Meta-Migration v1/v2 → aktuell', () => {
   beforeEach(() => { localStorage.clear(); });
 
-  it('v1→v3 Migration liefert Defaults ohne Crash', () => {
+  it('v1→aktuell Migration liefert Defaults ohne Crash', () => {
     const key = 'lifegamelab_meta';
     const v1Raw: unknown = { version: 1, nektar: 10, runs: 1, bestWave: 2 };
     const dataStr = JSON.stringify(v1Raw);
@@ -107,10 +107,10 @@ describe('Gate B — Meta-Migration v1/v2 → v3', () => {
     const migrate = (raw: unknown, fromVersion: number) => {
       if (fromVersion !== 1 && fromVersion !== 2) return null;
       const base = defaultMeta();
-      return { ...base, ...(raw as object), version: 4 } as MetaSave;
+      return { ...base, ...(raw as object), version: META_VERSION } as MetaSave;
     };
-    const loaded = load<MetaSave>(key, { version: 4, migrate, fallback: defaultMeta });
-    expect(loaded.version).toBe(4);
+    const loaded = load<MetaSave>(key, { version: META_VERSION, migrate, fallback: defaultMeta });
+    expect(loaded.version).toBe(META_VERSION);
     expect(loaded.nektar).toBe(10);
     expect(loaded.runs).toBe(1);
     expect(loaded.bestWave).toBe(2);
@@ -119,19 +119,19 @@ describe('Gate B — Meta-Migration v1/v2 → v3', () => {
   it('korruptes Meta wird quarantäniert und fallback greift', () => {
     const key = 'lifegamelab_meta';
     localStorage.setItem(key, '{not-json');
-    const loaded = load<MetaSave>(key, { version: 4, fallback: defaultMeta });
-    expect(loaded.version).toBe(4);
+    const loaded = load<MetaSave>(key, { version: META_VERSION, fallback: defaultMeta });
+    expect(loaded.version).toBe(META_VERSION);
     expect(localStorage.getItem(`${key}.corrupt`)).not.toBeNull();
   });
 
   it('checksum mismatch → quarantine + fallback', () => {
     const key = 'lifegamelab_meta';
-    const raw = { version: 4, nektar: 999 } as unknown as MetaSave;
+    const raw = { version: META_VERSION, nektar: 999 } as unknown as MetaSave;
     const dataStr = JSON.stringify(raw);
-    const env = { v: 4, checksum: fnv(dataStr) ^ 12345, data: raw };
+    const env = { v: META_VERSION, checksum: fnv(dataStr) ^ 12345, data: raw };
     localStorage.setItem(key, JSON.stringify(env));
-    const loaded = load<MetaSave>(key, { version: 4, fallback: defaultMeta });
+    const loaded = load<MetaSave>(key, { version: META_VERSION, fallback: defaultMeta });
     expect(loaded.nektar).not.toBe(999);
-    expect(loaded.version).toBe(4);
+    expect(loaded.version).toBe(META_VERSION);
   });
 });

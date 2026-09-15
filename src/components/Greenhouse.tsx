@@ -3,7 +3,7 @@ import type { MetaSave, PlantVariant } from '../types';
 import type { TranslationKey } from '../i18n';
 import { useI18n } from '../i18n';
 import { rollGachaCross, deriveGachaSeed, createBaseVariants, type GachaRoll } from '../genome';
-import { consumeSeedAndEnqueueCross, keepCross } from '../meta';
+import { consumeSeedAndEnqueueCross, keepCross, isCrossReady } from '../meta';
 import { wavesToUnlockFor } from '../config/economy.source';
 
 // Owner: UI (Greenhouse screen). LOC ≤ 400.
@@ -44,10 +44,11 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
   };
 
   const handleKeep = async (roll: GachaRoll) => {
-    // Reifungs-Vertrag: behalten erst nach X überlebten Wellen (economy.source)
-    if (!crossReady(meta, roll.crossIndex)) return;
-    // B1: Keep verbraucht je 1× beider Eltern (eine Meta-Operation, ein Writer).
-    const m = keepCross(roll.child, roll.parentA.id, roll.parentB.id);
+    // Reifungs-Vertrag: behalten erst nach X überlebten Wellen (economy.source).
+    // Ein Gate (isCrossReady), fail-closed — UI liest nur (B14.4).
+    if (!isCrossReady(meta, roll.crossIndex)) return;
+    // B1: Keep verbraucht je 1× beider Eltern + bucht die Queue aus (ein Writer, ein Schritt).
+    const m = keepCross(roll.child, roll.parentA.id, roll.parentB.id, roll.crossIndex);
     if (!m) {
       setShareNote(t('shop.parentsGone'));
       setTimeout(() => setShareNote(null), 2200);
@@ -136,10 +137,10 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
             <div style={styles.resultActions}>
               <button
                 onClick={() => handleKeep(lastRoll)}
-                style={{ ...styles.claimBtn, opacity: crossReady(meta, lastRoll.crossIndex) ? 1 : 0.45 }}
-                disabled={!crossReady(meta, lastRoll.crossIndex)}
+                style={{ ...styles.claimBtn, opacity: isCrossReady(meta, lastRoll.crossIndex) ? 1 : 0.45 }}
+                disabled={!isCrossReady(meta, lastRoll.crossIndex)}
               >
-                {crossReady(meta, lastRoll.crossIndex) ? t('shop.ready') : t('shop.maturing').replace('{n}', String(wavesToUnlockFor(lastRoll.crossIndex)))}
+                {isCrossReady(meta, lastRoll.crossIndex) ? t('shop.ready') : t('shop.maturing').replace('{n}', String(wavesToUnlockFor(lastRoll.crossIndex)))}
               </button>
               <button onClick={() => handleShareSeed(lastRoll)} style={styles.shareBtn}>⧉ {t('codex.share')}</button>
             </div>
@@ -152,9 +153,10 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
             <span style={styles.sectionTitle}>
               {t('shop.pending').replace('{n}', String(meta.pendingCrosses.length))}
             </span>
-            {meta.pendingCrosses.map((c, i) => (
-              <div key={i} style={styles.pendingItem}>
-                {t('shop.maturing').replace('{n}', String(c.neededWaves))}
+            {meta.pendingCrosses.map((c) => (
+              <div key={c.crossIndex} style={styles.pendingItem}>
+                {/* Verbleibende Wellen, nicht die Gesamtanforderung (war irreführend). */}
+                {t('shop.maturing').replace('{n}', String(Math.max(0, c.neededWaves - (meta.totalWavesSurvived - c.startedWave))))}
               </div>
             ))}
           </div>
@@ -165,13 +167,9 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
 }
 
 // ── Helpers (pure, module-level) ─────────────────────────────
-
-/** Ist die Kreuzung mit diesem Index gereift? (true = claim-bar) */
-function crossReady(meta: MetaSave, crossIndex: number): boolean {
-  const entry = meta.pendingCrosses.find(c => c.crossIndex === crossIndex);
-  if (!entry) return true;
-  return (meta.totalWavesSurvived - entry.startedWave) >= entry.neededWaves;
-}
+// Reife-Prüfung lebt ausschließlich in `meta/economy.ts` (isCrossReady) — keine zweite
+// Ableitung mehr im Screen (A13.7/B14.4). Vorher stand hier eine zweite, die bei unbekanntem
+// `crossIndex` `true` zurückgab (fail-open).
 
 /** Besitz-Liste (kanonische IDs; Altsaves mit base_*-Counts bleiben sichtbar). */
 function useMemoOwned(meta: MetaSave): PlantVariant[] {

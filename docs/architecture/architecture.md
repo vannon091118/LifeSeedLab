@@ -1,9 +1,10 @@
-# ARCHITECTURE.md — LifeSeedLab
+# architecture.md — LifeSeedLab
 
 > Sprache: Deutsch (Regel 1). Dieser Text beschreibt die **technische Architektur** (das „Wie").
-> Der rechtsverbindliche Vertrag steht in [`ARCHITECTURE_CONTRACT.md`](ARCHITECTURE_CONTRACT.md),
-> die forensische Bestandsaufnahme + Asset-/Render-Spezifikation in [`docs/QUALITY_SPEC.md`](docs/QUALITY_SPEC.md).
-> Agenten-Regeln und Arbeitsmodus: [`AGENTS.md`](AGENTS.md).
+> Der rechtsverbindliche Vertrag steht in [`architecture-contract.md`](architecture-contract.md),
+> die forensische Bestandsaufnahme + Asset-/Render-Spezifikation in [`../quality/quality-spec.md`](../quality/quality-spec.md).
+> Agenten-Regeln und Arbeitsmodus: [`AGENTS.md`](../../AGENTS.md).
+> Projektstatus und nächste Meilensteine: [`ROADMAP.md`](../../ROADMAP.md).
 
 ---
 
@@ -41,7 +42,7 @@ src/
 ├── discovery/   chain.ts (genome_hash, hash-chain) · codex.ts (local-first) + Supabase-Spiegel
 ├── components/  Screens (Start/Menu/GameView/Breeding/ErrorBoundary)
 ├── i18n.tsx     DE/EN, Context-Provider, persisted in Meta
-└── types.ts     Meta-/Breeding-Typen (Legacy-Entity-Typen werden gelöscht — QUALITY_SPEC A1)
+└── types.ts     Meta-/Breeding-Typen (Legacy-Entity-Typen werden gelöscht — quality-spec.md A1)
 ```
 
 **Layer-Reihenfolge Renderer (fix):** 0 Background · 1 Terrain · 2 Shadows · 3 Plants · 4 Enemies · 5 Projectiles · 6 Particles · 7 Feedback · 8 Manga. Licht-Grade (Tag/Nacht) liegt **unter** 7/8.
@@ -87,7 +88,7 @@ SOURCE → GENOME → TRAITS → GAMEPLAY PHENOTYPE → VISUAL PHENOTYPE → SIM
 
 ---
 
-## 4. Persistenz-Vertrag (Zielbild, umsetzt QUALITY_SPEC B2)
+## 4. Persistenz-Vertrag (Zielbild, umsetzt quality-spec.md B2)
 
 Ein Owner: `persistence/storage.ts` (≤ 250 LOC). API:
 
@@ -142,10 +143,10 @@ Verbotene Verbindungen (Gate 3): `Canvas → Simulation`, `React-Visual → Simu
 
 ## 6. DevGate & Release-Fläche
 
-Alle Entwicklerwerkzeuge (State-Hash, Tick, Event-Log, Partikelzähler, Seed/RunId, FX-Toggle, Entity-Inspector) leben hinter `?dev=1` / `#dev`. Die Release-Fläche zeigt **keine** technischen IDs, keine Seed-Badges, keine Phase-Labels, keine Zähler — Specs in QUALITY_SPEC B7.4/B7.6.
+Alle Entwicklerwerkzeuge (State-Hash, Tick, Event-Log, Partikelzähler, Seed/RunId, FX-Toggle, Entity-Inspector) leben hinter `?dev=1` / `#dev`. Die Release-Fläche zeigt **keine** technischen IDs, keine Seed-Badges, keine Phase-Labels, keine Zähler — Specs in quality-spec.md B7.4/B7.6.
 
 ---
 
 ## 7. Offene Baustellen = Arbeitsliste
 
-Verbindliche Klassifikation und Spezifikation: **`docs/QUALITY_SPEC.md`** (Part A Befunde, Part B Specs B0–B13). Ausführungsreihenfolge: B1→B2→B3 (Korrektheit) → B4–B6 (Identität + Feedback) → B7/B9/B10 (Screens + Art) → B12/B13 (Mobile + DoD). Jede Änderung an einer dieser Dateien muss die DoD-Checkliste des Specs erfüllen.
+Verbindliche Klassifikation und Spezifikation: **`../quality/quality-spec.md`** (Part A Befunde, Part B Specs B0–B13). Ausführungsreihenfolge: B1→B2→B3 (Korrektheit) → B4–B6 (Identität + Feedback) → B7/B9/B10 (Screens + Art) → B12/B13 (Mobile + DoD). Jede Änderung an einer dieser Dateien muss die DoD-Checkliste des Specs erfüllen.

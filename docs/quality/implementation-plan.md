@@ -2,7 +2,7 @@
 
 Status: **verbindliche Arbeitsliste**  
 Erstellt: 2026-09-14  
-Grundlage: `AGENTS.md`, `ARCHITECTURE_CONTRACT.md`, `ARCHITECTURE.md`, `docs/QUALITY_SPEC.md`
+Grundlage: `AGENTS.md`, `../architecture/architecture-contract.md`, `../architecture/architecture.md`, `quality-spec.md`
 
 ## Ziel
 
@@ -20,7 +20,7 @@ Aus dem technisch tragfähigen Singleplayer-Prototyp wird schrittweise ein deter
 
 ## 0. Art Direction & Pipeline (verbindlich, vor jeder UI-Arbeit)
 
-- Quelle: `ARCHITECTURE.md` §3.1/§3.2 und `docs/QUALITY_SPEC.md` B0.
+- Quelle: `../architecture/architecture.md` §3.1/§3.2 und `quality-spec.md` B0.
 - Pipeline: `SOURCE → GENOME → TRAITS → GAMEPLAY PHENOTYPE → VISUAL PHENOTYPE → SIMULATION → EVENT → OBSERVER → RENDER` — Grafik besitzt keine zweite Wahrheit. `genomeToVisualInput()` ist die einzige Genome→Visual-Eingabe; der Renderer zeichnet nur `ResolvedVisual`.
 - Welt: Haptischer Papercraft-Look — Papierhintergrund + Papierwege mit Drop-Shadow + Fineliner-Rasterpunkte. Keine zweite Präsentationslogik in React/Canvas.
 - Lebewesen: Pflanzen/Gegner als detailreiche Nintendo-Pop-Figuren auf matter Papierwelt; jede gezüchtete Variante ist visuell distinkt (per Genom → `ResolvedVisual`, test-locked).
@@ -113,7 +113,7 @@ Erst nach Gate F und stabiler Mobile-Version: Convex-Schema, Match-/Actor-Identi
 1. Einen Phasenabschnitt auswählen.
 2. Vor dem Schreiben die 8-Fragen-Sperre aus dem Architekturvertrag prüfen.
 3. Kleinste zusammenhängende Änderung implementieren.
-4. Relevante Tests und `bun tsc -b --noEmit` ausführen.
+4. Relevante Tests und `npx tsc -b --noEmit` ausführen.
 5. Erst bei grünem Gate den nächsten Abschnitt beginnen.
 6. Dieses Dokument nach jedem abgeschlossenen Abschnitt aktualisieren.
 
@@ -132,4 +132,10 @@ Erst nach Gate F und stabiler Mobile-Version: Convex-Schema, Match-/Actor-Identi
 
 ## Aktueller Arbeitsstand
 
-Phase A/B sind abgeschlossen; Phase C–F sind implementiert und test-locked. `MetaSave.runId` wird beim Run-Start reserviert und an `SimulationRoot` gereicht. Pipeline `SOURCE→GENOME→VISUAL→SIM→EVENT→OBSERVER→RENDER` ist verbindlich; `genomeToVisualInput` ist einzige Genome→Visual-Eingabe. Welt ist Paper-World (pre-baked), Pflanzen/Gegner per-kind, alle 7 VisualCommands + AudioObserver live, Kamera-Shake verdrahtet, Renderer 219 LOC (Layers ≤300). GameView ist pointer-only (ghost+cancel), 390×844 portrait, `visibilitychange` mit Resume-Overlay, DPR/Particle-Degradation. Transport-Layer versioniert (`Local`/`MockRemote`), Snapshot+Hash-Verträge öffentlich, `nextScopedId` ohne UUID. Discovery-Chain lokal-first, Seeds teilbar, Codex public read, `UNIQUE(genome_hash)`. Gates B/C/D/E/F grün; `tsc` grün; Suite **100 Tests, 11 Dateien** (Discovery 10 neu).
+Phase A/B sind abgeschlossen; Phase C–F sind implementiert und test-locked. `MetaSave.runId` wird beim Run-Start reserviert und an `SimulationRoot` gereicht. Pipeline `SOURCE→GENOME→VISUAL→SIM→EVENT→OBSERVER→RENDER` ist verbindlich; `genomeToVisualInput` ist einzige Genome→Visual-Eingabe. Welt ist Paper-World (pre-baked), Pflanzen/Gegner per-kind, alle 7 VisualCommands + AudioObserver live, Kamera-Shake verdrahtet, Renderer 219 LOC (Layers ≤300). GameView ist pointer-only (ghost+cancel), 390×844 portrait, `visibilitychange` mit Resume-Overlay, DPR/Particle-Degradation. Transport-Layer versioniert (`Local`/`MockRemote`), Snapshot+Hash-Verträge öffentlich, `nextScopedId` ohne UUID. Discovery-Chain lokal-first, Seeds teilbar, Codex public read, `UNIQUE(genome_hash)`. Gates B/C/D/E/F grün.
+
+**Fortschreibung (2026-09-15, `main` = `ebb4913`):** `tsc` grün, Suite **154 Tests, 20 Dateien**. Neu seit dem letzten Stand: Platzierung in eigene Module gezogen (`placementRules`, `placementController`, Tray/Overlays), `ebb4913` härtet die Sim (`getSnapshot`/`getEventLog` als Tief­kopien, privater `pendingKills`-Puffer statt Log-Scraping, atomares `consumeSeedAndEnqueueCross`, IDB-Parität im Quarantäne-/Checksum-Vertrag, Run-Ende am `GAME_OVER`-Event statt im RAF-HUD-Intervall). Abgleich dieser Doku mit `AGENTS.md`/`README.md`/`ROADMAP.md` auf den Kebab-Case-Stand nachgezogen (32 tote Verweise korrigiert); Befund → `quality-spec.md` **A13**.
+
+**B14 umgesetzt (Auftrag aus A13):** `MetaSave` v5 mit monotonem `broodGeneration` (+ Migration v1–v4), Brut-Identität damit eindeutig über die gesamte Historie (vorher recycelte ein Fenster-Maximum den Index und erzeugte doppelte Specimen-IDs — verifiziert); `isCrossReady` als einziges, fail-closed Reife-Gate; `keepCross` in **einem** Persistenzschritt; kanonische (key-sortierte) Checksumme mit weiterhin lesbaren Alt-Saves. Die Reifungs-Queue verwirft Gereiftes nicht mehr. Suite **170 Tests, 20 Dateien**, `tsc` clean, `vite build` grün.
+
+**Nächster Auftrag (B15):** Die Zucht-Schleife ist derzeit **nicht auslösbar** — der Reifungszähler schreitet nur beim `GAME_OVER` fort, und genau dieser Moment räumt den Screen samt Wurf ab (A13.12). B15 bringt Beanspruchung aus der Queue, koppelt die Reifung an Wellen statt an den Run-Tod und macht den Gacha-Wurf reihenfolge-unabhängig (A13.13).

@@ -38,8 +38,12 @@ export function recordRunEnd(waveReached: number, nektarEarned: number): MetaSav
   return next;
 }
 
-export function registerVariant(variant: PlantVariant): MetaSave {
-  const meta = loadMeta();
+/**
+ * Rein: nächster Meta-Zustand für ein registriertes Kind (kein Persistenzzugriff).
+ * B1-Verkabelung: Zucht-Stats werden beim Besitz-Eintrag abgeleitet (früher nie geschrieben —
+ * gezüchtete Pflanzen waren im Run dadurch unplatzierbar).
+ */
+function applyRegisterVariant(meta: MetaSave, variant: PlantVariant): MetaSave {
   // Kanonische ID (Altsaves mit base_*-Eltern erzeugen sonst Geister-Varianten)
   const canonical: PlantVariant = { ...variant, id: canonicalVariantId(variant.id) };
   const counts = { ...meta.variantCounts };
@@ -53,19 +57,29 @@ export function registerVariant(variant: PlantVariant): MetaSave {
       library = library.slice(library.length - 60);
     }
   }
-  // B1-Verkabelung: Zucht-Stats beim Besitz-Eintrag ableiten (früher nie geschrieben —
-  // gezüchtete Pflanzen waren im Run dadurch unplatzierbar).
-  const withCounts = updateMeta({ variantCounts: counts, savedVariants: library });
-  const bredStats = { ...withCounts.bredStats, [canonical.id]: deriveBredEntry(canonical) };
-  return updateMeta({ bredStats });
+  return {
+    ...meta,
+    variantCounts: counts,
+    savedVariants: library,
+    bredStats: { ...meta.bredStats, [canonical.id]: deriveBredEntry(canonical) },
+  };
+}
+
+export function registerVariant(variant: PlantVariant): MetaSave {
+  const next = applyRegisterVariant(loadMeta(), variant);
+  persistMeta(next);
+  return next;
 }
 
 /**
  * B1 „Keep" einer Kreuzung: verbraucht je 1× beider Eltern und registriert das Kind.
  * Ohne diesen Verbrauch wäre Zucht unbegrenzt wiederholbar (dieselben Eltern, beliebig viele
  * Nachkommen). Rückgabe null ⇒ Elternbestand reicht nicht — dann passiert nichts.
+ *
+ * `crossIndex` (optional) bucht zusätzlich den Reifungs-Eintrag aus — das ist der EINZIGE
+ * Ort, an dem die Warteschlange schrumpft (A13.12/B14.4).
  */
-export function keepCross(child: PlantVariant, parentAId: string, parentBId: string): MetaSave | null {
+export function keepCross(child: PlantVariant, parentAId: string, parentBId: string, crossIndex?: number): MetaSave | null {
   const meta = loadMeta();
   const a = canonicalVariantId(parentAId);
   const b = canonicalVariantId(parentBId);
@@ -75,8 +89,15 @@ export function keepCross(child: PlantVariant, parentAId: string, parentBId: str
   const counts = { ...meta.variantCounts };
   counts[a] = (counts[a] ?? 0) - costA;
   if (a !== b) counts[b] = (counts[b] ?? 0) - 1;
-  updateMeta({ variantCounts: counts });
-  return registerVariant(child);
+  const base: MetaSave = { ...meta, variantCounts: counts };
+  const booked: MetaSave = crossIndex === undefined
+    ? base
+    : { ...base, pendingCrosses: base.pendingCrosses.filter(c => c.crossIndex !== crossIndex) };
+  // B14.5: Elternverbrauch + Queue-Ausbuchung + Kind-Registrierung + bredStats in EINEM
+  // Persistenzschritt. Vorher drei Schreiber ⇒ Zwischenzustand „Eltern verbraucht, kein Kind".
+  const next = applyRegisterVariant(booked, child);
+  persistMeta(next);
+  return next;
 }
 
 export function toggleLoadout(variantId: string): MetaSave {
@@ -96,8 +117,13 @@ export function toggleLoadout(variantId: string): MetaSave {
 /** Reift: 3 Brutkandidaten wurden deterministisch gewürfelt, Spieler wählt einen. */
 export function enqueueBrood(specimenAId: string, specimenBId: string, neededWaves: number): MetaSave {
   const meta = loadMeta();
-  const broodIndex = meta.pendingBroods.reduce((m, p) => Math.max(m, p.broodIndex), -1) + 1;
+  // A13.1/B14.1: Die Brut-Generation kommt aus dem MONOTONEN Zähler — niemals aus
+  // max(pendingBroods). Das Fenster schrumpft beim Claim; ein `max`-Wert würde den Index
+  // recyceln, `rollBrood` bekäme denselben Seed und es entstünden doppelte Specimen-IDs.
+  // Zähler und Eintrag werden im SELBEN Persistenzschritt geschrieben.
+  const broodIndex = meta.broodGeneration;
   return updateMeta({
+    broodGeneration: broodIndex + 1,
     pendingBroods: [...meta.pendingBroods, {
       broodIndex, specimenAId, specimenBId,
       neededWaves, startedWave: meta.totalWavesSurvived, chosenIndex: -1,

@@ -29,9 +29,32 @@ interface Envelope {
   data: unknown;
 }
 
+/**
+ * Kanonische Serialisierung: Objekt-Keys sortiert, Array-Reihenfolge bleibt (sie ist fachlich).
+ * Die Integritätsprüfung muss am INHALT hängen, nicht an der Darstellung — sonst quarantäniert
+ * jede Umsortierung von Keys ein gültiges Save (A13.5/B14.6).
+ */
+function canonicalJson(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'null';
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([, v]) => v !== undefined)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(',')}}`;
+}
+
+/**
+ * Integritätsvertrag: kanonische Checksumme. Die reine `JSON.stringify`-Reihenfolge wird weiter
+ * akzeptiert, damit Bestands-Saves lesbar bleiben; beim nächsten Schreiben werden sie kanonisiert.
+ */
+function checksumMatches(env: Envelope): boolean {
+  if (fnv1a(canonicalJson(env.data)) === env.checksum) return true;
+  return fnv1a(JSON.stringify(env.data)) === env.checksum;
+}
+
 function encode<T>(value: T, version: number): string {
-  const data = JSON.stringify(value);
-  const envelope: Envelope = { v: version, checksum: fnv1a(data), data: JSON.parse(data) };
+  const data = JSON.parse(JSON.stringify(value)) as T;
+  const envelope: Envelope = { v: version, checksum: fnv1a(canonicalJson(data)), data };
   return JSON.stringify(envelope);
 }
 
@@ -55,8 +78,7 @@ export function load<T>(key: string, opts: StoreOptions<T>): T {
     return opts.fallback();
   }
 
-  const serialized = JSON.stringify(env.data);
-  if (fnv1a(serialized) !== env.checksum) {
+  if (!checksumMatches(env)) {
     // integrity failure → quarantine, never trust partial data
     quarantine(key, raw);
     return opts.fallback();
@@ -134,7 +156,7 @@ export async function idbGet<T>(key: string, opts: StoreOptions<T>): Promise<T> 
       quarantine(key, raw);
       return opts.fallback();
     }
-    if (fnv1a(JSON.stringify(env.data)) !== env.checksum) {
+    if (!checksumMatches(env)) {
       quarantine(key, raw);
       return opts.fallback();
     }

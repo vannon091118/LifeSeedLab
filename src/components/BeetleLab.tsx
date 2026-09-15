@@ -32,12 +32,12 @@ export function BeetleLab({ meta, onMetaChange, onClose }: Props) {
   const ready = readyBroods(meta);
   const lastBrood = meta.beetles[meta.beetles.length - 1] as BeetleSpecimen | undefined;
 
-  // Live-Brutvorschau: deterministisch dieselben 3 Kandidaten, die enqueue produzieren würde
+  // Live-Brutvorschau: deterministisch dieselben 3 Kandidaten, die enqueue produzieren würde.
+  // A13.2/B14.1: DERSELBE monotone Zähler, den `enqueueBrood` liest — keine zweite Ableitung.
   const preview = useMemo(() => {
     if (!parentA || !parentB) return [];
-    const nextGen = meta.pendingBroods.reduce((m, p) => Math.max(m, p.broodIndex), -1) + 1;
-    return rollBrood(parentA, parentB, nextGen);
-  }, [parentA, parentB, meta.pendingBroods]);
+    return rollBrood(parentA, parentB, meta.broodGeneration);
+  }, [parentA, parentB, meta.broodGeneration]);
 
   const handleBreed = () => {
     if (!parentA || !parentB) { setNote(t('beetle.needTwo')); return; }

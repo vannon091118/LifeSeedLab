@@ -40,8 +40,10 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
-    /* Headed mode - show browser window */
-    headless: false,
+    /* Headed mode - show browser window.
+     * Gate-Standard ist headless (reproduzierbar, ohne Fenster-Fokus); sichtbar via
+     * `npm run test:e2e:show` (--headed) oder `PW_HEADED=1`. */
+    headless: process.env.PW_HEADED !== '1',
   },
 
   /* Configure projects for major browsers - limited to single browser as requested */

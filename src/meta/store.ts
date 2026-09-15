@@ -1,4 +1,4 @@
-import type { MetaSave, PlantVariant } from '../types';
+import type { MetaSave, PlantVariant, PendingBrood, BeetleSpecimen } from '../types';
 import { load, save, remove } from '../persistence/storage';
 import { STARTER_PLANT_COUNT } from '../config/economy.source';
 import { createBaseVariants } from '../genome/bases';
@@ -7,7 +7,7 @@ import { genomeEffectIds } from '../visual/generator';
 // Owner: PersistenceSystem (meta store — the only persistence owner remains storage.ts).
 
 export const META_KEY = 'lifegamelab_meta';
-export const META_VERSION = 4;
+export const META_VERSION = 5;
 
 /** Legacy-Basen-IDs (vor der PLANTS_SOURCE-Vereinheitlichung) → kanonische PlantTypeId. */
 const LEGACY_BASE_ID: Record<string, 'sprout' | 'rootwall' | 'mycelia'> = {
@@ -40,7 +40,7 @@ export function defaultMeta(): MetaSave {
   const counts: Record<string, number> = {};
   for (const v of starters) counts[v.id] = 1;
   return {
-    version: 4,
+    version: 5,
     nektar: 60,
     bestWave: 0,
     runs: 0,
@@ -60,6 +60,7 @@ export function defaultMeta(): MetaSave {
     beetles: [],
     beetleDeployed: null,
     pendingBroods: [],
+    broodGeneration: 0,
   };
 }
 
@@ -74,7 +75,26 @@ function sanitizeCounts(raw: unknown, fallback: Record<string, number>): Record<
   return out;
 }
 
-function toV3(base: MetaSave, raw: Partial<MetaSave>): MetaSave {
+/**
+ * Ableitung des monotonen Brut-Zählers für Altsaves (A13.1/B14.2).
+ * Untere Schranke = höchste je vergebene Brut-Generation + 1, damit eine nach der Migration
+ * erzeugte Brut keine bestehende Kennung wiederverwenden kann (kein Identitätsverlust).
+ */
+function deriveBroodGeneration(raw: Partial<MetaSave>, broods: PendingBrood[], beetles: BeetleSpecimen[]): number {
+  const persisted = raw.broodGeneration;
+  if (typeof persisted === 'number' && Number.isFinite(persisted)) {
+    return Math.max(0, Math.floor(persisted));
+  }
+  const used = [
+    ...broods.map(b => b.broodIndex),
+    ...beetles.map(b => b.generation),
+  ].filter((n): n is number => typeof n === 'number' && Number.isFinite(n));
+  return (used.length > 0 ? Math.max(...used) : -1) + 1;
+}
+
+function toCurrent(base: MetaSave, raw: Partial<MetaSave>): MetaSave {
+  const broods = Array.isArray(raw.pendingBroods) ? raw.pendingBroods : [];
+  const beetles = Array.isArray(raw.beetles) ? raw.beetles : [];
   return {
     ...base,
     nektar: typeof raw.nektar === 'number' ? raw.nektar : base.nektar,
@@ -93,17 +113,19 @@ function toV3(base: MetaSave, raw: Partial<MetaSave>): MetaSave {
     totalWavesSurvived: typeof raw.totalWavesSurvived === 'number' ? raw.totalWavesSurvived : 0,
     mapLayouts: raw.mapLayouts && typeof raw.mapLayouts === 'object' ? raw.mapLayouts : {},
     // P6: Käfer-Felder sind v4-neu — Altsaves starten mit leerem Brut-Lager.
-    beetles: Array.isArray(raw.beetles) ? raw.beetles : [],
+    beetles,
     beetleDeployed: raw.beetleDeployed ?? null,
-    pendingBroods: Array.isArray(raw.pendingBroods) ? raw.pendingBroods : [],
+    pendingBroods: broods,
+    // v5 (A13.1): monotoner Zähler, aus Altdaten einmalig abgeleitet.
+    broodGeneration: deriveBroodGeneration(raw, broods, beetles),
   };
 }
 
 function migrate(raw: unknown, fromVersion: number): MetaSave | null {
-  if (fromVersion !== 1 && fromVersion !== 2 && fromVersion !== 3) return null;
+  if (fromVersion < 1 || fromVersion > 4) return null;
   const old = raw as Partial<MetaSave> & { version?: number };
   if (typeof old.nektar !== 'number') return null;
-  return toV3(defaultMeta(), old);
+  return toCurrent(defaultMeta(), old);
 }
 
 export function loadMeta(): MetaSave {

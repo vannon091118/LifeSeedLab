@@ -9,8 +9,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React 19](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=white)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6-646cff?logo=vite&logoColor=white)](https://vite.dev/)
-[![Vitest](https://img.shields.io/badge/tests-52%20passing-6e9f18?logo=vitest&logoColor=white)](https://vitest.dev/)
-[![Determinismus](https://img.shields.io/badge/sim-deterministisch-4ade80)](ARCHITECTURE_CONTRACT.md)
+[![Vitest](https://img.shields.io/badge/tests-170%20passing-6e9f18?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![Determinismus](https://img.shields.io/badge/sim-deterministisch-4ade80)](docs/architecture/architecture-contract.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 </div>
@@ -56,7 +56,7 @@ LifeSeedLab ist ein **Browser-Tower-Defense**, bei dem du **Pflanzen züchtest s
 
 ## 🏗️ Architektur — Warum das stabil läuft
 
-Das Projekt folgt einem **bindenden Architekturvertrag** ([`ARCHITECTURE_CONTRACT.md`](ARCHITECTURE_CONTRACT.md)) mit harten Regeln:
+Das Projekt folgt einem **bindenden Architekturvertrag** ([`architecture-contract.md`](docs/architecture/architecture-contract.md)) mit harten Regeln:
 
 ### Die zwei Endgleichungen
 
@@ -237,7 +237,7 @@ Eltern A + B + Seed → Kind Genom → FNV-1a Hash → genome_hash
 
 ## 🎨 Art Direction — "Papier trifft CGI"
 
-> **Binding Contract** (siehe `docs/QUALITY_SPEC.md` B0, B9, B10)
+> **Binding Contract** (siehe `docs/quality/quality-spec.md` B0, B9, B10)
 
 | Ebene | Stil | Technik |
 |---|---|---|
@@ -279,13 +279,16 @@ npm run test:e2e
 - ✅ Observer-Purity (keine State-Mutation)
 - ✅ Partikel-Budgets (Normal/Busy/Chaos)
 
-### Geplante Gates (QUALITY_SPEC B13)
-- 🔄 Combo×Score Integration
-- 🔄 Effect-Profil Cross-Reference Gate
-- 🔄 Resume-Shape Contract
-- 🔄 Breeding-Determinismus über `breedGeneration`
-- 🔄 Meta-Migration v1→v2
-- 🔄 Day/Night Event Emission
+### Umgesetzte Gates (quality-spec.md B13)
+- ✅ Combo×Score Integration
+- ✅ Effect-Profil Cross-Reference Gate
+- ✅ Resume-Shape Contract
+- ✅ Breeding-Determinismus über `breedGeneration`
+- ✅ Meta-Migration v1/v2 → v3
+- ✅ Day/Night Event Emission
+- ✅ Placement-Rules + Controller (pointer-only, test-locked)
+- ✅ Identitäts-Gate: monotone Entitäts-Kennungen (B14, `MetaSave` v5 + Migration)
+- ✅ Kanonische Save-Checksumme (key-sortiert, Alt-Saves bleiben lesbar)
 
 ---
 
@@ -299,19 +302,20 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `8f8f58d` — [FOLD] Konsolidierung der Struktur und Aktivierung der Shinon Gates |
-| Arbeitsbaum | 0 gestaged, 5 geändert, 0 neu |
-| Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
-| Letzter Shinon-Commit | noch keiner |
-| Letzter Push | noch keiner |
-| LOC-Hotspots | `src/components/GameView.tsx` 401/400 (100 %)<br>`src/config/map.source.ts` 198/200 (99 %)<br>`src/simulation/enemySystem.ts` 288/300 (96 %)<br>`src/simulation/plantSystem.ts` 287/300 (96 %)<br>`src/simulation/root.ts` 275/300 (92 %) |
+| HEAD | `ebb4913` — Sim-Härtung + faire Ökonomie: Snapshot-Kopien, atomares Sow, event-getriebenes Run-Ende |
+| Arbeitsbaum | 0 gestaged, 19 geändert, 2 neu |
+| Letztes Gate | ✅ offen (preflight, 0 Fehler, 0 Warnungen) |
+| Letzter Shinon-Commit | `b935044` feat(shinon): Commit+Push-Executor statt bloßem Commit-Gate |
+| Letzter Push | ✅ origin/main |
+| LOC-Hotspots | `src/config/map.source.ts` 198/200 (99 %)<br>`src/simulation/root.ts` 291/300 (97 %)<br>`src/persistence/storage.ts` 193/200 (97 %)<br>`src/simulation/enemySystem.ts` 288/300 (96 %)<br>`src/components/GameView.tsx` 384/400 (96 %) |
 <!-- SHINON:STATUS:END -->
 
 ---
 
 ## 🗺️ Roadmap & Arbeitsliste
 
-Die verbindliche Arbeitsliste liegt in [`docs/QUALITY_SPEC.md`](docs/QUALITY_SPEC.md) (Part A: Befunde, Part B: Specs B0–B13).
+Die verbindliche Arbeitsliste liegt in [`docs/quality/quality-spec.md`](docs/quality/quality-spec.md) (Part A: Befunde, Part B: Specs B0–B13).
+Der Stand der Meilensteine steht in [`ROADMAP.md`](ROADMAP.md).
 
 | Phase | Fokus | Status |
 |---|---|---|
@@ -354,9 +358,10 @@ Alle Entwicklerwerkzeuge leben **nur** hinter dem DevGate:
 
 | Dokument | Zweck |
 |---|---|
-| [`ARCHITECTURE_CONTRACT.md`](ARCHITECTURE_CONTRACT.md) | Rechtsverbindlicher Vertrag (Regeln, Ownership, Caps, Seeds) |
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Technische Architektur, Stack-Entscheidungen, Datenfluss |
-| [`docs/QUALITY_SPEC.md`](docs/QUALITY_SPEC.md) | Forensischer Scan + Asset/Render-Spec (Arbeitsliste B0–B13) |
+| [`docs/architecture/architecture-contract.md`](docs/architecture/architecture-contract.md) | Rechtsverbindlicher Vertrag (Regeln, Ownership, Caps, Seeds) |
+| [`docs/architecture/architecture.md`](docs/architecture/architecture.md) | Technische Architektur, Stack-Entscheidungen, Datenfluss |
+| [`docs/quality/quality-spec.md`](docs/quality/quality-spec.md) | Forensischer Scan + Asset/Render-Spec (Arbeitsliste B0–B13) |
+| [`ROADMAP.md`](ROADMAP.md) | Projektstatus, Dokumentationskarte, nächste Meilensteine |
 | [`AGENTS.md`](AGENTS.md) | Agenten-Regeln, Arbeitsmodus, DoD-Checkliste |
 
 ---
@@ -365,7 +370,7 @@ Alle Entwicklerwerkzeuge leben **nur** hinter dem DevGate:
 
 Das Projekt folgt einem strikten **Architekturvertrag**. Bevor du Code schreibst:
 
-1. **Lese** `AGENTS.md` + `ARCHITECTURE_CONTRACT.md` + `ARCHITECTURE.md`
+1. **Lese** `AGENTS.md` + `docs/architecture/architecture-contract.md` + `docs/architecture/architecture.md`
 2. **Prüfe** die Ownership-Tabelle — gibt es schon einen Writer für deinen Slice?
 3. **Suche** nach bestehender Implementierung (`rg --files`, `rg "symbol"`)
 4. **Wende** die 8-Fragen-Sperre an (Contract §10)

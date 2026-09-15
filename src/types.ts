@@ -44,8 +44,9 @@ export type RunEconomy = {
 // ── Meta save (persistent across runs) ───────────────────────
 // ── v3 (Gacha-Ökonomie): genau 2 Startpflanzen, Seed-Shop-Besitz, Reifungs-Queue.
 // ── v4 (P6): Käferzucht — Brut-Lager, ein eingesetzter Käfer, Brut-Reifungs-Queue.
+// ── v5 (A13.1): monotoner Brut-Zähler — Identität darf nie aus einem Fenster abgeleitet werden.
 export type MetaSave = {
-  version: 4;
+  version: 5;
   nektar: number;
   bestWave: number;
   runs: number;
@@ -74,6 +75,9 @@ export type MetaSave = {
   beetles: BeetleSpecimen[];
   beetleDeployed: string | null;
   pendingBroods: PendingBrood[];
+  /** Monotoner Brut-Generation-Zähler (A13.1) — einzige Quelle für `PendingBrood.broodIndex`.
+   *  Nie aus `pendingBroods` ableiten: das Fenster schrumpft beim Claim und würde Indizes recyceln. */
+  broodGeneration: number;
 };
 
 /** Eine Kreuzung wartet auf Reifung: verfügbar nach `wavesToUnlockFor(index)` Wellen. */

@@ -98,6 +98,78 @@ Missing gates: combo×score integration; effect-profile cross-reference gate (`E
 - KEEP `ENEMY_PATH`, placement margin, helpers.
 - Prune dangling constants (`WAVES_PER_NIGHT`, `PLANTS_PER_CELL`, `SPAWN_QUEUE_SHUFFLE`, `CELL_SIZE` duplicate) or wire them into the systems that should consume them (`WAVES_PER_NIGHT` → wave/night coupling in Phase D).
 
+## A13. Lifecycle-Identität, Snapshot-Grenzen & Doku-Verweise — DEFECT + INCOMPLETE (Nachtrag ebb4913)
+
+Status bei Aufnahme: **154/154 Tests grün, `tsc` clean.** Jeder Befund wurde an der Quelle gelesen bzw. ausgeführt, nicht angenommen.
+
+### A13.1 DEFECT (verifiziert, kritisch) — `broodIndex` wird recycelt ⇒ doppelte Brut-Identitäten · **REPARIERT (B14.1–B14.3)**
+
+`enqueueBrood` (`meta/run.ts`) leitet den nächsten Index aus dem **aktuellen Fenster** ab:
+`meta.pendingBroods.reduce((m,p) => Math.max(m, p.broodIndex), -1) + 1`. Das ist als Aggregation reihenfolge-unabhängig (im Gegensatz zu `arr[arr.length-1]`), aber **nicht stabil**: `claimBrood` entfernt die Brut mit dem höchsten Index aus dem Fenster. Paart der Spieler danach **dieselben Eltern** erneut, fällt der Maximalwert zurück und der bereits verbrauchte Index wird erneut vergeben. `rollBrood` verwendet den Index als RNG-Namespace-Parameter (`deriveBroodSeed(A, B, generation)`) und bildet die Specimen-ID daraus (`brood_<seed>_<i>`) ⇒ identische Brut, identische ID. Ergebnis: `meta.beetles` enthält zwei Specimen mit **derselben `id`** (Doppel-Identität bei `key`, Lookup und Deploy-Spec).
+
+Beweis: `src/meta/identity.test.ts` (zuerst als Ist-Zustands-Beweis geführt, mit B14 in den Soll-Zustand gedreht).
+
+### A13.2 DEFECT — zweite Ableitungsquelle für dieselbe Wahrheit · **REPARIERT (B14.1)**
+
+`BeetleLab.tsx` berechnet `nextGen` mit **derselben** `reduce`/`Math.max`-Formel ein zweites Mal, um die Vorschau zu rendern. Vorschau und Enqueue können auseinanderlaufen („genau eine Quelle pro Wahrheit" verletzt; Ownership-Regel 2).
+
+### A13.3 INCONSISTENT — der Pflanzen-Pfad hat den Zähler schon · **REPARIERT (B14.1)**
+
+Pflanzenzucht ist korrekt monoton: `crossIndex = meta.breedGeneration` (persistiert, nie rückwärts). Der Käfer-Pfad ist die einzige Stelle im Repo, die eine Entitäts-Identität aus einem **schrumpfenden Array** ableitet. Das ist ein Musterfehler, kein Einzelfall-Zufall.
+
+### A13.4 DEFECT — order-abhängige First-Match-Zugriffe und ein invertiertes Gate · **REPARIERT (B14.4)**
+
+- `claimBrood` → `pendingBroods.find(p => p.broodIndex === idx)`, `Greenhouse.crossReady` → `pendingCrosses.find(...)`: **erster Treffer gewinnt** ⇒ bei doppelter Kennung entscheidet die Array-Reihenfolge über das Ergebnis.
+- `crossReady` gibt bei **unbekanntem** `crossIndex` `true` zurück („nicht gefunden = reif") ⇒ fail-open. Ein Gate darf fail-closed sein.
+
+### A13.5 DEFECT — Checksumme an die JSON-Property-Reihenfolge gekoppelt · **REPARIERT (B14.6)**
+
+`persistence/storage.ts` prüft `fnv1a(JSON.stringify(env.data))`. `JSON.stringify` respektiert die Einfüge-Reihenfolge der Keys; `toV3` (`meta/store.ts`) baut das Objekt aus einem Literal neu mit **anderer** Key-Reihenfolge. Jede spätere Umsortierung von Keys (Refactor, Migration, `{...a, ...b}`-Umbau) quarantäniert **gültige** Saves. Integrität darf den Inhalt meistern, nicht die Darstellung.
+
+### A13.6 INCOMPLETE — `keepCross` ist nicht atomar · **REPARIERT (B14.5)**
+
+`keepCross` (`meta/run.ts`) persistiert in **drei** Schritten: `updateMeta(counts)` → `registerVariant()` → `updateMeta(bredStats)`. Genau der Zwischenzustand („Eltern verbraucht, kein Kind registriert"), den `consumeSeedAndEnqueueCross` für den Sow-Pfad geschlossen hat, ist hier offen. Die Härtung wurde nicht symmetrisch angewandt.
+
+### A13.7 INCOMPLETE — drei Ableitungen von „ist die Brut reif" · **REPARIERT (B14.4)**
+
+`advanceCrossMaturation` (gibt `number[]` zurück, **kein** Aufrufer nutzt den Rückgabewert), `Greenhouse.crossReady` (eigene Wave-Arithmetik) und `readyBroods` (Käfer-Parallele) prüfen dieselbe Bedingung mit je eigenem Code. `advanceCrossMaturation` liefert zudem einen `number[]`-Rückgabewert ohne Vertrag (Seeds, nicht Indizes) — totes Interface mit Irreführungspotenzial.
+
+### A13.8 INCOMPLETE — `structuredClone` im 10-Hz-Hot-Path · **OFFEN (B14.7, Mid-Term: erst messen)**
+
+Seit ebb4913 liefern `getSnapshot()`/`getEventLog()` Tiefkopien (korrekt gegen Fremd-Mutation). `GameView` ruft `getSnapshot()` aber alle 100 ms im RAF-HUD-Intervall, `DevOverlay` pro Tick ⇒ Voll-Klon von `plants`/`enemies`/`projectiles` als Dauerlast. Gegen das B12-Budget (frame ≤ 16 ms, sim ≤ 2 ms, 390×844) ist das ungemessen.
+
+### A13.9 DEFECT — Doku-Querverweise nach dem Kebab-Case-Umzug verwaist · **REPARIERT**
+
+Commit `6585a3d` hat die Dokumente nach `docs/{architecture,quality,setup}/` verschoben und auf kebab-case umbenannt, aber **keinen** der Verweise mitgezogen: 32 tote Links in 7 Dateien (`ARCHITECTURE_CONTRACT.md`, `ARCHITECTURE.md`, `docs/QUALITY_SPEC.md`). Zusätzlich verweisen `ROADMAP.md` auf `docs/quality/changelog.md` und `CLAUDE.md` sowie B0.9 auf `docs/art/styleframe.html` — alle drei liegen in `.gitignore` und existieren für einen frischen Klon nicht. In diesem Arbeitsgang korrigiert (siehe A13.10).
+
+### A13.10 REPARIERT (dieser Arbeitsgang) — Verweise + Doku-Stand
+
+Tote Querverweise in `AGENTS.md`, `README.md`, `docs/architecture/architecture.md`, `docs/quality/{implementation-plan,lifegameplant-audit}.md`, `docs/setup/presentation.md` auf die neuen Pfade gezogen; Test-Badge (52 → 152) und Gate-Liste (🔄 → ✅) auf den echten Stand gehoben; `AGENTS.md`-Titel aus der vorhergehenden Absatzzeile gelöst (`werden.s# AGENTS.md` — H1 war nicht gerendert). Nicht repariert und bewusst offen: der Verweis auf das ignorierte Styleframe (A13.9, Entscheidung über Track-Zugehörigkeit nötig).
+
+### A13.11 Die systematische Frage — wo sonst leitet Code Identität aus einem Fenster ab?
+
+Prüfmuster für den Rest des Repos: jede Entitäts-Kennung muss aus einem **monotonen Zähler** oder einer **injektiv ableitbaren** Quelle kommen — nie aus `max`/`length`/`last`/`find` eines Fensters.
+
+Geprüfte Kandidaten, gelesen und ohne Window-Befund: `nextId` (`ids.ts`: monotones `counters[kind]`), `MetaSave.runId`/`runs` (`reserveRunId`), Kappungen von `savedVariants`/`beetles` (bewusst verlustbehaftet, betreiben keine Identität), `discovery/chain.ts` (append-only, Hash-verkettet), `SimulationRoot.pendingKills` (privater Puffer, wird pro Tick vollständig geleert — kein Fenster).
+
+**Offen (nicht verifiziert, eigener Prüfpunkt):** `nextScopedId` (`ids.ts`) leitet die Kennung nicht-monoton aus einem Hash ab (`h % 9000 + 1`) — theoretisch kollidierbar für verschiedene `(runOrMatchId, kind, seq)`. Keine Reproduktion versucht; bei Bedarf als eigenes Gate prüfen.
+
+### A13.12 DEFECT (verifiziert, kritisch) — die pflanzliche Zucht-Schleife ist unerreichbar
+
+`totalWavesSurvived` wird **ausschließlich** in `advanceCrossMaturation` geschrieben, und `advanceCrossMaturation` wird **ausschließlich** aus dem `GAME_OVER`-Handler von `GameView` gerufen. `App.tsx` ist ein `switch (screen)`-Router — es ist immer genau ein Screen gemountet. Daraus folgt zwingend:
+
+1. Der Reifungszähler kann sich nicht erhöhen, während `Greenhouse` gemountet ist.
+2. Jede Aussaat setzt `startedWave = totalWavesSurvived` und `neededWaves = wavesToUnlockFor(crossIndex) ≥ 2`, ist also unmittelbar nach dem Aussäen **nie** reif.
+3. Der einzige Moment, in dem eine Kreuzung reif wird, ist `GAME_OVER` — und in genau diesem Moment (a) wird `Greenhouse` nicht gerendert, sodass `lastRoll` (React-State) verloren ist, und (b) hat `advanceCrossMaturation` den Eintrag vor diesem Arbeitsgang **aus der Queue gelöscht und seinen Seed verworfen**.
+
+Ergebnis: „Behalten" ist im ausgelieferten Zustand **nicht auslösbar** — der Reifungsschritt zerstörte genau das, was er reifen ließ. Die Reifungs-Queue enthält außerdem keine Beanspruchungs-Oberfläche; der deterministisch gespeicherte `PendingCross.seed` ist damit toter Zustand. Mit B14.4 ist das **Datenverwerfen** behoben (gereifte Einträge bleiben erhalten), die **Erreichbarkeit** bleibt offen → B15.
+
+### A13.13 DEFECT (verifiziert) — `rollGachaCross` hängt von der Reihenfolge der Besitzliste ab
+
+`rollGachaCross` bildet `indexed = owned.map((v, i) => …)` und zieht Eltern über `rng.pickWeighted(indexed, …)` — also **positionsabhängig**. `owned` stammt aus `Object.keys(meta.variantCounts)` (Einfüge-Reihenfolge) und ändert sich, sobald Eltern verbraucht werden. Der Kommentar „Kind ist bei Aussaat schon deterministisch fest" gilt daher nur, solange die Besitzliste byte-identisch ist: allein aus `PendingCross.seed` ist das Kind **nicht** reproduzierbar. Für die Queue-Beanspruchung (B15) ist das blockierend, weil sie das Kind aus dem Seed rekonstruieren muss. Fix: kanonische Sortierung der Besitzliste (z. B. nach `id`) **vor** dem Gewichten — dann hängt der Wurf nur noch von Seed und Besitz-**Menge** ab.
+
+**Reproduktion:** `resolveBreedTargets`-Reihenfolge vs. Seed — als Gate in B15.4 zu fixieren (nicht in diesem Durchgang, da es bestehende Wurf-Ergebnisse verändert und damit Balancing berührt).
+
 ---
 
 # PART B — ASSET & RENDER SPECIFICATION
@@ -112,7 +184,7 @@ Missing gates: combo×score integration; effect-profile cross-reference gate (`E
 6. **No:** emoji as final art, random gradients, stock icons, photo textures, mixed styles, particle floods replacing animation.
 7. **Paper + Pop (LifeSeedLab-Identität):** Die Welt ist haptisch papercraft — Hintergrund/Wege als aufgeklebte Papierstreifen mit Drop-Shadow, Fineliner-Raster, ausgefransten Kanten, Papierkorn (einmal gebacken, `visual`-Namespace). UI sind Notizzettel/Post-its/Pappschilder mit Büroklammern (Tokens `--paper`/`--paper-dim`/`--ink`, kein Blur-Glass). Pflanzen/Gegner brechen bewusst aus der matten Welt aus: satt, plastisch, mit Farbverläufen + Specular-Highlights à la Nintendo — wie aufgeklebte, lebendig gewordene Figuren. Squash & Stretch, Konfetti aus Papierschnipseln, Idle-Atmen. Diese Sprache ist verbindlich; generische Mobile-TD-Kompositionen mit dunkler HUD-Leiste + leerer Canvas + Kartenmeer sind damit ausgeschlossen.
 8. **Keine zweite Wahrheit:** Visuelle Identität entsteht ausschließlich aus der Pipeline `SOURCE → GENOME → TRAITS → GAMEPLAY PHENOTYPE → VISUAL PHENOTYPE → SIMULATION → EVENT → OBSERVER → RENDER`. Screenshots dürfen nicht „hübsch erfunden" sein; jede Silhouette/Palette/Tint ist aus dem Genom ableitbar (`genomeToVisualInput` → `ResolvedVisual` → `variantKey`). Ein Menücontainer ohne Domänenbedeutung (Gewächshaus = Genom/Breeding, Archiv = Herbarium, Run = Schlachtfeld, Chronik = Feldnotizen) ist ein Defect.
-9. **Kästchenblock-CGI („Papier trifft CGI", bindend — Manifest: `docs/art/papier-trifft-cgi.md`, Styleframe: `docs/art/styleframe.html`):** Bühne = Schul-Mathe-Collageblock (blaues Raster exakt auf `CELL_SIZE`, Blockrand + Lochung, Bleistift-Kritzeleien Alpha ≈ 0.09, Collage-Fetzen/Klebestreifen — alles gebacken, `visual`-Namespace). Kachel = EIN rastersynchroner Kasten; Inhalte (pot/boulder/decor/path) wohnen im Kasten. Pflanzen/Käfer = CGI-Kontrast (2-Stopp-Verlauf + Specular oben-links + 2.5-px-Ink-Kontur) auf matten Papier. **Skala ist Genom-Aussage:** `ResolvedVisual.scale` = 0.85 + strength·0.3 ± 0.05, geklemmt 0.85–1.25, strength = Ø Gene-Power — deterministisch, test-locked (generator.test.ts).
+9. **Kästchenblock-CGI („Papier trifft CGI", bindend — Manifest: `../architecture/papier-trifft-cgi.md`, Styleframe: `../art/styleframe.html` — das Styleframe liegt bewusst außerhalb des Tracks, siehe A13.4):** Bühne = Schul-Mathe-Collageblock (blaues Raster exakt auf `CELL_SIZE`, Blockrand + Lochung, Bleistift-Kritzeleien Alpha ≈ 0.09, Collage-Fetzen/Klebestreifen — alles gebacken, `visual`-Namespace). Kachel = EIN rastersynchroner Kasten; Inhalte (pot/boulder/decor/path) wohnen im Kasten. Pflanzen/Käfer = CGI-Kontrast (2-Stopp-Verlauf + Specular oben-links + 2.5-px-Ink-Kontur) auf matten Papier. **Skala ist Genom-Aussage:** `ResolvedVisual.scale` = 0.85 + strength·0.3 ± 0.05, geklemmt 0.85–1.25, strength = Ø Gene-Power — deterministisch, test-locked (generator.test.ts).
 10. **Screen-System (bindend):** JEDER Menübereich ist ein eigener Top-Level-Screen (`App.tsx`-Router: start | menu | greenhouse | seedshop | beetlelab | codex | run) mit Papier-Übergang (`ScreenTransition`, `prefers-reduced-motion` = harter Schnitt) und Indikatoren für alles (`NavIndicators`: Notizzettel-Tabs mit `aria-current`, Status-Chips Nektar/Samen/Sammlung/bestes Wave/Brutling, Page-Dots). Keine Modal-Verschachtelung mehr.
 
 ## B1. Run identity & loadout (repair: App.tsx, meta, root.ts)
@@ -269,3 +341,77 @@ All steps are observer reactions to existing/planned events — zero gameplay co
 - [ ] Title scene animated; menu illustrated; 390×844 verified
 - [ ] New tests: B6 chain, combo×score, profile cross-ref gate, resume shape, breeding determinism, meta migration — suite ≥ 70 green
 - [ ] LOC caps respected (renderer split into `render/layers/*` when > 400)
+
+## B14. Lifecycle-Identität, Snapshot-Budget & Reife-Gates (Auftrag aus A13)
+
+Ziel: **jede Entitäts-Identität ist monoton und global eindeutig; jedes Gate ist fail-closed; jede Wahrheit hat genau eine Ableitung.**
+
+### B14.1 Monotoner Brut-Zähler statt Fenster-Maximum
+
+`MetaSave` erhält `broodGeneration: number` (monoton, persistiert). `enqueueBrood` liest `broodGeneration` als `broodIndex` und schreibt `+1` im **selben** `updateMeta`-Schritt. `rollBrood(A, B, generation)` bekommt genau diesen Wert — Vorschau und Enqueue leiten ihn aus derselben Quelle ab (A13.1, A13.2). Kein `reduce`/`Math.max` über `pendingBroods` mehr, auch nicht in `BeetleLab.tsx`.
+
+### B14.2 Migration v4 → v5 (kein Identitätsverlust, keine Doppelkennung)
+
+Altsaves setzen `broodGeneration = max(pendingBroods[].broodIndex, beetles[].generation) + 1` (untere Schranke 0). Damit kann ein nach der Migration erzeugter Brutling keine bestehende Kennung wiederverwenden. `META_VERSION` → 5; `migrate` akzeptiert 1–4; `toV3` wird zu `toCurrent` (kein zweiter Migrationspfad).
+
+### B14.3 Identitäts-Gate (Regressionstest)
+
+Gate: Nach `claimBrood` und erneuter Paarung **derselben** Eltern darf keine `BeetleSpecimen.id` doppelt in `meta.beetles` liegen und kein `broodIndex` doppelt in `meta.pendingBroods`. Der Ist-Zustands-Beweis `src/meta/brood-gap.test.ts` wird in den Soll-Zustand gedreht (Test bleibt, Erwartung invertiert).
+
+### B14.4 Ein Reife-Gate, fail-closed
+
+Genau **eine** Ableitung „ist diese Kreuzung/Brut reif": `meta/` exportiert `isCrossReady(meta, crossIndex)` und `readyBroods(meta)`; UI liest nur. Unbekannter `crossIndex` ⇒ **nicht** reif (A13.4). `advanceCrossMaturation` verliert den ungenutzten `number[]`-Rückgabewert (A13.7).
+
+### B14.5 Symmetrische Atomarität für `keepCross`
+
+`keepCross` führt Elternverbrauch, Kind-Registrierung und `bredStats`-Ableitung in **einem** load→mutate→persist-Zyklus aus (Muster von `consumeSeedAndEnqueueCross`) — kein Zustand „Eltern verbraucht, Kind fehlt" (A13.6).
+
+### B14.6 Inhalts-Integrität statt Darstellungs-Integrität
+
+Die Checksumme in `persistence/storage.ts` wird **kanonisch** gebildet (stabile Key-Sortierung vor dem Hash), sodass Umsortierungen von Keys gültige Saves nicht quarantänisieren. Bestehende Saves bleiben lesbar (Checksumme wird beim nächsten Schreiben kanonisiert) (A13.5).
+
+### B14.7 Snapshot-Budget
+
+`getSnapshot()` bleibt die defensive Kopie, aber der 10-Hz-HUD-Pfad in `GameView` klont nicht mehr den vollen `SimState`: entweder gedrosseltes Intervall oder eine flache HUD-Projektion (Wave/Energie/Leben/Combo/Inventar/Phase). Gemessen gegen B12 (frame ≤ 16 ms, 390×844) (A13.8).
+
+### B14.8 DoD für B14 — **erfüllt (B14.1–B14.6)**
+
+- [x] `broodGeneration` in `MetaSave` v5 + Migration v1–v4 getestet (Altsave ohne Feld ⇒ Startwert = höchste vergebene Kennung + 1)
+- [x] Keine Identitäts-Ableitung aus `max`/`length`/`last` eines Fensters (Gate-Test B14.3 grün)
+- [x] `BeetleLab` liest den Zähler, leitet ihn nicht selbst ab
+- [x] `isCrossReady` fail-closed + genau ein Gate-Aufrufpfad (`Greenhouse`)
+- [x] `keepCross` ein Persistenzschritt; Test: fehlender Elternteil lässt Eltern **und** Queue unangetastet
+- [x] Kanonische Checksumme: umsortierte Keys ⇒ **kein** Quarantäne; echter Inhalts-Betrug ⇒ weiterhin Quarantäne
+- [x] `tsc` clean, Suite grün (**170 Tests, 20 Dateien**), `vite build` grün
+- [x] Keine LOC-Cap-Verletzung (`meta/store.ts`, `meta/run.ts`, `meta/economy.ts` ≤ 200; `persistence/storage.ts` ≤ 250 lt. Dateiheader)
+
+**Nicht in B14 enthalten:** B14.7 (Snapshot-Budget) bleibt offen und ist als Messauftrag klassifiziert — er gehört zu B12, nicht zur Korrektheits-Schiene.
+
+## B15. Zucht-Schleife erreichbar machen (Auftrag aus A13.12/A13.13)
+
+Ziel: „Aussäen → reifen → behalten" wird tatsächlich spielbar, und das Kind ist aus dem gespeicherten Seed **reproduzierbar**.
+
+### B15.1 Beanspruchung aus der Reifungs-Queue
+
+Jeder gereifte `PendingCross` bietet in `Greenhouse` seine Beanspruchung an. Das Kind wird ausschließlich aus den persistierten Feldern rekonstruiert (`rollGachaCross(owned, entry.seed, entry.crossIndex)`) — kein React-State über den Screen-Wechsel hinweg. Die Queue-Zeile zeigt bei Reife Kind + Beanspruchen-Knopf, sonst die **verbleibenden** Wellen.
+
+### B15.2 Reifung an Wellen koppeln, nicht an den Run-Tod
+
+Der Reifungszähler darf nicht allein an `GAME_OVER` hängen (A13.12). Kandidat: `waveSystem` meldet `WAVE_COMPLETED`, `GameView` bündelt den Zähler-Fortschritt gedrosselt (nie pro Frame, nie im RAF-HUD-Pfad) und schreibt ihn **einmal** beim Run-Ende plus optional beim Wellenwechsel. Kein zweiter Writer auf `totalWavesSurvived`.
+
+### B15.3 Ehrliche Anzeige
+
+Die Reifungs-Zeile nennt verbleibende Wellen (nicht die Gesamtanforderung) und markiert gereifte Einträge sichtbar. Keine stillen Verluste: was in der Queue steht, ist beanspruchbar.
+
+### B15.4 Reihenfolge-Unabhängigkeit des Wurfs (A13.13)
+
+Die Besitzliste wird **kanonisch sortiert**, bevor sie gewichtet wird — der Wurf hängt dann nur von Seed und Besitz-**Menge** ab. Gate-Test: derselbe Seed + dieselbe Besitz-Menge in unterschiedlicher Array-Reihenfolge ⇒ identisches Kind. Dieser Fix ändert bestehende Wurf-Ergebnisse (Balancing) und wird deshalb bewusst separat ausgerollt.
+
+### B15.5 DoD für B15
+
+- [ ] Aussäen → Welle(n) → Beanspruchen ist in einem Score-Durchlauf **ohne** Screen-Wechsel-Verlust möglich
+- [ ] Gate-Test: Rekonstruktion des Kindes aus `PendingCross.seed` == beim Aussäen angezeigtes Kind
+- [ ] Gate-Test B15.4 (Reihenfolge-Unabhängigkeit) grün
+- [ ] Kein Eintrag verschwindet aus der Queue, ohne beansprucht worden zu sein
+- [ ] 390×844 geprüft (Queue-Zeile + Knopf ≥ 44 px, kein Hover-Zwang)
+- [ ] `tsc` clean, Suite grün, `vite build` grün
