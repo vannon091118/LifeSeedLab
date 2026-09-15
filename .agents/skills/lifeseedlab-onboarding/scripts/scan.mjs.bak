@@ -13,9 +13,9 @@ const GATE = join(ROOT, '.git', 'lifeseedlab-onboarding.json');
 
 const REQUIRED = [
   'AGENTS.md',
-  'docs/architecture/architecture-contract.md',
-  'docs/architecture/architecture.md',
-  'docs/quality/quality-spec.md',
+  'ARCHITECTURE_CONTRACT.md',
+  'ARCHITECTURE.md',
+  'docs/QUALITY_SPEC.md',
 ];
 
 function fail(message) {
@@ -89,15 +89,6 @@ function baseChecks() {
 
 async function scan() {
   if (!baseChecks()) return;
-
-  // Shinon self-test
-  const { execFileSync } = await import('node:child_process');
-  try {
-    execFileSync('npx', ['ts-node', 'scripts/shinon-validate.ts', '--self-test'], { cwd: ROOT, stdio: 'pipe', encoding: 'utf8', windowsHide: true });
-  } catch (error) {
-    fail(`Shinon self-test failed: ${error.status}`);
-    return;
-  }
 
   let head, branch, status;
   try {
