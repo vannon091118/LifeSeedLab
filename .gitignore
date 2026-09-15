@@ -26,6 +26,23 @@ Thumbs.db
 
 # Test caches
 .vitest/
-node_modules/
 package-lock.json
 bun.lock
+
+# Agent / Dev tooling — nicht ins Repo (lokal nur)
+# Ausnahme: Onboarding-Skill bleibt bewusst oeffentlich
+.agents/**
+!.agents/skills/
+!.agents/skills/lifeseedlab-onboarding/
+!.agents/skills/lifeseedlab-onboarding/**
+.claude/
+.freebuff/
+git-noir/
+memory/
+repo_structure_summary.md
+playwright-report/
+test-results/
+docs/art/
+/scripts/
+CHANGELOG.md
+CLAUDE.md
