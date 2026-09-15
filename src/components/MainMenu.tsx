@@ -10,7 +10,7 @@ import type { MenuScreen } from './NavIndicators';
 // Basis der Sammlung = createBaseVariants (eine Quelle — A2).
 // Gacha: Gewächshaus = Samen-Shop + Aussaat; keine Elternwahl.
 
-export const BREED_NEKTAR_COST = 40; // Anzeige Legacy; Preise kommen aus economy.source
+
 
 type Props = {
   meta: MetaSave;

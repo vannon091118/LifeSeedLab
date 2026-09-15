@@ -15,7 +15,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, info: React.ErrorInfo): void {
     // visible on-screen (below); console for tooling
-    console.error('[LifeGameLab] render crash:', error, info.componentStack);
+    console.error('[LifeSeedLab] render crash:', error, info.componentStack);
   }
 
   render() {

@@ -7,6 +7,7 @@ import { Camera } from '../render/camera';
 import { ScoreSystem } from './scoreSystem';
 import { ComboSystem } from './comboSystem';
 import { makeRng } from '../core/rng';
+import type { GameEvent } from '../bus/events';
 
 const SEED = 771123;
 
@@ -121,37 +122,35 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
   });
 
   it('Tag/Nacht-Wechsel emittiert NIGHT_STARTED / DAY_STARTED (Producer in Root)', () => {
-    const root = new SimulationRoot({ seed: SEED });
+    // Resume-Fixture: hohe Lives sind Teil des Resume-Vertrags (snapshotOf-Pfad),
+    // kein Live-State-Zugriff. Run bleibt am Leben über beide 2400-Tick-Zyklen.
+    const resume = {
+      waveNumber: 1, energy: 200, lives: 1_000_000_000, score: 0,
+      combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
+      plants: [], inventory: {}, discoveredVariants: [], mapTiles: {}, nektarEarned: 0,
+    };
+    const root = new SimulationRoot({ seed: SEED, resume });
     let sawNight = false;
     let sawDay = false;
     root.bus.subscribe('NIGHT_STARTED', () => { sawNight = true; });
     root.bus.subscribe('DAY_STARTED', () => { sawDay = true; });
-    // Run am Leben halten: ohne das friert der Game-Over-Freeze (P1) die Uhr
-    // nach dem ersten Totalverlust ein — die Grenze von 2400 würde nie erreicht.
-    const s = root.getSnapshot();
-    s.lives = 1_000_000_000;
     // 2 × 2400 Ticks — garantiert je einen Tag- und einen Nacht-Übergang (CYCLE_TICKS)
     for (let i = 0; i < 12000; i++) root.stepOnce();
     expect(sawNight).toBe(true);
     expect(sawDay).toBe(true);
   });
 
-  it('Lives auf 0 ⇒ phase gameover + GAME_OVER Event', () => {
+  it('Lives auf 0 ⇒ phase gameover + GAME_OVER Event (echter Leak-Pfad, kein Live-State-Zugriff)', () => {
     const root = new SimulationRoot({ seed: SEED });
     let sawGameOver = false;
     root.bus.subscribe('GAME_OVER', () => { sawGameOver = true; });
     root.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
     root.stepOnce();
-    const s = root.getSnapshot();
-    s.lives = 1;
-    // Gegner ans Pfadende schieben → leak
-    const spawned = (root as unknown as { enemies: { spawn: (s: unknown, id: string, idx: number) => void } }).enemies.spawn(s, 'grunt', 0);
-    void spawned;
-    for (const e of s.enemies) e.pathIndex = 99;
-    root.stepOnce();
-    root.stepOnce();
-    expect(root.getSnapshot().phase).toBe('gameover');
+    // Keine Pflanzen platziert ⇒ jeder Gegner leakt am Pfadende; Auto-Wellen ketten nach.
+    // Snapshot-Härtung: Game Over entsteht ausschließlich über die Sim-Pipeline (Commands/Events).
+    for (let i = 0; i < 30000 && !sawGameOver; i++) root.stepOnce();
     expect(sawGameOver).toBe(true);
+    expect(root.getSnapshot().phase).toBe('gameover');
   });
 
   it('Pierce-Pflanze erzeugt Projektil mit remainingPierce=2', () => {
@@ -234,5 +233,60 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
     const hpBefore = e2.hp;
     (root as unknown as { enemies: { chainFrom: (s: unknown, x: number, y: number, amt: number, range: number) => void } }).enemies.chainFrom(s, e1.px, e1.py, 50, 2);
     expect(e2.hp).toBeLessThan(hpBefore);
+  });
+});
+
+describe('Gate B — Snapshot-Härtung (Audit Fix 1: kein Live-State-Leak)', () => {
+  beforeEach(() => resetIds());
+
+  it('getSnapshot() ist eine defensive Kopie — Mutationen sickern nicht in die Sim', () => {
+    const root = new SimulationRoot({ seed: SEED });
+    root.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 1, gy: 2 }));
+    root.stepOnce();
+    const snap = root.getSnapshot();
+    expect(snap.plants.length).toBe(1);
+    snap.lives = 0;
+    snap.phase = 'gameover';
+    snap.plants.push({ ...snap.plants[0], id: 'plant-FAKE' });
+    snap.inventory['sprout'] = 999;
+    root.stepOnce(); // Sim läuft unbeeindruckt weiter
+    const after = root.getSnapshot();
+    expect(after.phase).toBe('prep');
+    expect(after.plants.some(p => p.id === 'plant-FAKE')).toBe(false);
+    expect(after.inventory['sprout']).not.toBe(999);
+  });
+
+  it('Zwei Snapshots sind unabhängige Objekte', () => {
+    const root = new SimulationRoot({ seed: SEED });
+    root.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 1, gy: 2 }));
+    root.stepOnce();
+    const a = root.getSnapshot();
+    const b = root.getSnapshot();
+    expect(a.plants.length).toBe(b.plants.length);
+    a.plants.pop();
+    expect(b.plants.length).toBe(a.plants.length + 1);
+  });
+
+  it('getEventLog() ist eine Tiefkopie — Event-Objekte teilen keine Referenz mit der Sim', () => {
+    // Der Log lebt nur WÄHREND eines Ticks (stepOnce leert ihn am Tick-Ende).
+    // Beweis in EINEM Tick: Wir mutieren das getEventLog()-Ergebnis im Handler
+    // und prüfen, dass ein zweiter Aufruf davon unberührt bleibt.
+    const root = new SimulationRoot({ seed: SEED });
+    let leakedThroughCopy = false;
+    root.bus.subscribe('PLANT_PLACED', () => {
+      const log = root.getEventLog();
+      expect(log.length).toBeGreaterThan(0);
+      (log[0].payload as Record<string, unknown>).hacked = true; // Mutation auf der Kopie
+      (log as GameEvent[]).push({ ...log[0], eventId: 'FAKE' });
+      const again = root.getEventLog();       // zweiter, unabhängiger Aufruf
+      leakedThroughCopy =
+        again.some(e => e.eventId === 'FAKE') ||
+        JSON.stringify(again).includes('hacked');
+    });
+    root.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 1, gy: 2 }));
+    root.stepOnce();
+    expect(leakedThroughCopy).toBe(false);
+    // Tick-Ende: Log geleert — keine Referenz aus dem Handler lebt in der Sim weiter.
+    expect(root.getEventLog().length).toBe(0);
   });
 });

@@ -48,6 +48,8 @@ export class SimulationRoot {
   private waves: WaveSystem;
   private map: MapSystem;
   private eventLog: GameEvent[] = [];
+  /** Kill-Verwertung separat vom (öffentlichen) Event-Log — Reihenfolge-stabil, kein Log-Scraping. */
+  private pendingKills: Extract<GameEvent, { type: 'ENEMY_DIED' }>[] = [];
   private accumulator = 0;
   private rejectSeq = 0;
 
@@ -69,6 +71,7 @@ export class SimulationRoot {
   }
 
   private publish(e: GameEvent): void {
+    if (e.type === 'ENEMY_DIED') this.pendingKills.push(e);
     this.eventLog.push(e);
     this.bus.publish(e);
   }
@@ -156,7 +159,10 @@ export class SimulationRoot {
     }
 
     // 4) react to kills (score + combo) — authoritative consumers of ENEMY_DIED.
-    const killEvents = this.eventLog.filter(e => e.type === 'ENEMY_DIED');
+    //    Consumed from pendingKills (private buffer), NOT via eventLog.filter: external
+    //    readers of getEventLog()/late side effects can never double-count or drop kills.
+    const killEvents = this.pendingKills;
+    this.pendingKills = [];
     for (const e of killEvents) {
       // combo multiplier applies to score (Defect A4-2) — energy stays flat by design
       this.score.onEnemyDied(state, e.payload.enemyId, e.payload.reward, e.payload.reward * state.combo.multiplier, e.payload.px, e.payload.py);
@@ -164,7 +170,8 @@ export class SimulationRoot {
     }
     this.clearEventLog();
 
-    // 4b) chain effect (B6): kills by chain plants arc 50% damage to the nearest enemy
+    // 4b) chain effect (B6): kills by chain plants arc 50% damage to the nearest enemy.
+    //     Kills published here land in the fresh pendingKills → processed next tick (deferred, deterministic).
     for (const e of killEvents) {
       const plant = e.payload.killerPlantId
         ? state.plants.find(p => p.id === e.payload.killerPlantId) : null;
@@ -211,8 +218,9 @@ export class SimulationRoot {
   }
 
   // ── State access ────────────────────────────────────────────
+  /** Defensive Kopie — der autoritative SimState verlässt NIE diese Klasse als Referenz. */
   getSnapshot(): SimState {
-    return this.state;
+    return structuredClone(this.state);
   }
 
   /** P5: Route aus dem Map-Grid ableiten und an EnemySystem geben (Fallback: null = DEFAULT).
@@ -233,8 +241,9 @@ export class SimulationRoot {
     });
   }
 
+  /** Tiefkopie des Debug-Logs — auch die Event-Objekte teilen keine Referenz mit der Sim. */
   getEventLog(): readonly GameEvent[] {
-    return this.eventLog;
+    return structuredClone(this.eventLog);
   }
 
   clearEventLog(): void {

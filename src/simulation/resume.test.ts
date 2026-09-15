@@ -27,15 +27,15 @@ describe('Gate B — Resume-Vertrag der Sim', () => {
     source.commands.push(makeCommand(0, 'START_WAVE', 2, {}));
     for (let i = 0; i < 120; i++) source.stepOnce();
 
-    const before = source.getSnapshot();
-    before.wave.number = 4;
+    // Snapshot-Härtung: getSnapshot() ist eine Kopie — der Resume-Vertrag wird über die
+    // echte Pipeline geprüft; die wiederhergestellte Wellennummer kommt aus dem Snapshot.
     const snapshot = snapshotOf(source);
 
     const resumed = new SimulationRoot({ seed: 7, runId: 3, resume: snapshot });
     const after = resumed.getSnapshot();
 
     expect(after.phase).toBe('prep');
-    expect(after.wave.number).toBe(4);
+    expect(after.wave.number).toBe(snapshot.waveNumber);
     expect(after.plants).toEqual(snapshot.plants);
     expect(after.resources.energy).toBe(snapshot.energy);
     expect(after.lives).toBe(snapshot.lives);

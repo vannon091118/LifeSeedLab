@@ -4,15 +4,12 @@ import { resetIds } from '../core/ids';
 
 const SEED = 424242;
 
-/** Treibt den Run in den Game-Over-Zustand (Leak am Pfadende). */
+/** Treibt den Run in den Game-Over-Zustand (Leak am Pfadende — nur Commands, kein Live-State). */
 function forceGameOver(root: SimulationRoot): void {
   root.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
-  root.stepOnce();
-  const s = root.getSnapshot();
-  s.lives = 1;
-  (root as unknown as { enemies: { spawn: (s: unknown, id: string, idx: number) => unknown } }).enemies.spawn(s, 'grunt', 0);
-  for (const e of s.enemies) e.pathIndex = 99;
-  root.stepOnce();
+  // Keine Pflanzen ⇒ jeder Gegner leakt; zwei Leaks beenden den Run (20 Leben, 10/Leak).
+  let guard = 0;
+  while (root.getSnapshot().phase !== 'gameover' && guard++ < 30000) root.stepOnce();
   expect(root.getSnapshot().phase).toBe('gameover');
 }
 

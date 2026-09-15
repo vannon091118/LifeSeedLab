@@ -34,21 +34,22 @@ describe('Gate B — Resume-Shape (RunSave v2)', () => {
     root.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 2, gy: 2 }));
     root.commands.push(makeCommand(0, 'START_WAVE', 2, {}));
     for (let i = 0; i < 200; i++) root.stepOnce();
-    // falls noch kein Gegner: einen erzwingen
-    const s = root.getSnapshot();
-    if (s.enemies.length === 0) {
-      (root as unknown as { enemies: { spawn: (s: unknown, id: string, idx: number) => void } }).enemies.spawn(s, 'grunt', 0);
-      // Projektil erzwingen
-      s.projectiles.push({ id: 'proj-0001', px: 0, py: 0, dx: 1, dy: 0, speed: 0.15, damage: 10, remainingPierce: 0, plantId: 'plant-0001', effectId: null } as never);
-    }
+    // Snapshot-Härtung: getSnapshot() liefert Kopien — der Save-Contract wird über die
+    // öffentliche Sim-Pipeline verifiziert, nicht über Live-State-Manipulation.
     saveRun(root.getSnapshot());
     const raw = localStorage.getItem('lifegamelab') ?? localStorage.getItem('run');
     // runSave nutzt idbSet → localStorage-Fallback ist nicht garantiert in jeder Umgebung.
     // Gate prüft daher den CONTRACT direkt: saveRun darf gameover nicht speichern + stripped shape.
     // Fallback: prüfe, dass gameover-Runs nicht gespeichert werden
     const gameoverRoot = new SimulationRoot({ seed: 123 });
-    (gameoverRoot.getSnapshot() as unknown as { phase: string }).phase = 'gameover';
-    saveRun(gameoverRoot.getSnapshot());
+    // Kein Live-Zugriff: gameover entsteht über die echte Sim-Pipeline (Leak-Pfad).
+    let ended = false;
+    gameoverRoot.bus.subscribe('GAME_OVER', () => { ended = true; });
+    gameoverRoot.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
+    gameoverRoot.stepOnce();
+    for (let i = 0; i < 30000 && !ended; i++) gameoverRoot.stepOnce();
+    expect(ended).toBe(true);
+    saveRun(gameoverRoot.getSnapshot()); // contract: gameover wird NICHT gespeichert
     // wenn localStorage-Pfad aktiv ist, prüfe envelope; sonst ist der Contract über idbSet erfüllt (kein Crash)
     if (raw) {
       const env = JSON.parse(raw);
@@ -70,19 +71,22 @@ describe('Gate B — Resume-Shape (RunSave v2)', () => {
   });
 
   it('Resume startet in prep und regeneriert Schedule aus (seed, waveNumber+1)', async () => {
-    // Resume-Contract: enemies/projectiles/schedule entfallen, Phase prep
+    // Resume-Contract: enemies/projectiles/schedule entfallen, Phase prep,
+    // tick 0 + erhaltene waveNumber (Regeneration aus seed+waveNumber+1).
     const root = new SimulationRoot({ seed: 42 });
     root.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
     root.stepOnce();
-    root.getSnapshot().wave.number = 3;
-    root.getSnapshot().phase = 'prep';
+    root.stepOnce();
+    // Snapshot-Härtung: getSnapshot() ist eine Kopie — der Save kommt aus der echten
+    // Sim-Pipeline (aktive Welle), nicht aus Live-State-Manipulation.
+    expect(root.getSnapshot().phase).toBe('wave');
     saveRun(root.getSnapshot());
     // loadRun ist idb-gebunden; der Contract-Test prüft, dass der gespeicherte tick/waveNumber prep-fähig ist
     const loaded = await import('../persistence/runSave').then(m => m.loadRun());
     // In idb-Mock-Umgebungen kann loadRun null liefern — Contract ist dennoch: tick=0 (prep), waveNumber erhalten
     if (loaded) {
       expect(loaded.tick).toBe(0);
-      expect(loaded.waveNumber).toBe(3);
+      expect(loaded.waveNumber).toBe(1);
       expect(loaded.version).toBe(2);
     } else {
       expect(true).toBe(true); // idb nicht verfügbar in diesem Runner — Shape-Gate oben deckt den Contract ab

@@ -3,13 +3,13 @@ import type { MetaSave, PlantVariant } from '../types';
 import type { TranslationKey } from '../i18n';
 import { useI18n } from '../i18n';
 import { rollGachaCross, deriveGachaSeed, createBaseVariants, type GachaRoll } from '../genome';
-import { consumeSeed, enqueueCross, keepCross } from '../meta';
+import { consumeSeedAndEnqueueCross, keepCross } from '../meta';
 import { wavesToUnlockFor } from '../config/economy.source';
 
 // Owner: UI (Greenhouse screen). LOC ≤ 400.
 // GEWÄCHSHAUS — fachlich getrennt vom SeedShop (P2): Hier wird AUSSÄT + REIFUNG +
 // ERGEBNIS-Übernahme gespielt. Kauf von Samen gehört in den SeedShop (eigene Datei,
-// gleiche Meta-Owner). Keine Dopplung: consumeSeed/enqueueCross/registerVariant
+// gleiche Meta-Owner). Keine Dopplung: consumeSeedAndEnqueueCross/keepCross
 // bleiben die einzigen Writer in persistence/.
 
 const BASES: PlantVariant[] = createBaseVariants();
@@ -35,9 +35,10 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
     const gachaSeed = deriveGachaSeed(crossIndex);
     const roll = rollGachaCross(owned, gachaSeed, crossIndex);
     if (!roll) return;
-    if (!consumeSeed()) return;
-    // Kind ist fest (seed); Reifung startet JETZT
-    const m = enqueueCross(gachaSeed, crossIndex, meta.totalWavesSurvived);
+    // ATOMAR: Seed-Verbrauch + Cross-Enqueue in EINEM Persistenzschritt —
+    // kein Zustand mehr möglich, in dem der Seed verbrannt ist, aber keine Kreuzung wartet.
+    const m = consumeSeedAndEnqueueCross(gachaSeed, crossIndex, meta.totalWavesSurvived);
+    if (!m) return;
     setLastRoll(roll);
     onMetaChange(m);
   };

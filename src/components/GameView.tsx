@@ -153,7 +153,19 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
     }
     root.bus.subscribe('NIGHT_STARTED', () => renderer.setNight(true));
     root.bus.subscribe('DAY_STARTED', () => renderer.setNight(false));
-    root.bus.subscribe('GAME_OVER', () => setShowGameOver(true));
+    // Run-Ende ist eventgetrieben (BUS = Handover, B7.5): recordRunEnd genau einmal
+    // im Event-Ack statt im RAF/HUD-Intervall. Guard nur gegen StrictMode-Remount.
+    root.bus.subscribe('GAME_OVER', (e) => {
+      if (runEndedRef.current) return;
+      runEndedRef.current = true;
+      try {
+        const next = recordRunEnd(e.payload.wave, root.getSnapshot().nektarEarned);
+        advanceCrossMaturation(e.payload.wave); // Reifungszähler — sonst friert die Cross-Queue ein
+        onMetaChange(next);
+        void clearRun(); // B2: ein beendeter Run ist nicht resumierbar
+      } catch { /* meta persist must never break the run screen */ }
+      setShowGameOver(true);
+    });
 
     const onResize = () => {
       renderer.resize();
@@ -190,13 +202,6 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
       if (hudAccum > 100) {
         hudAccum = 0;
         const s = root.getSnapshot();
-        if (s.phase === 'gameover' && !runEndedRef.current) {
-          runEndedRef.current = true;
-          const next = recordRunEnd(s.wave.number, s.nektarEarned);
-          advanceCrossMaturation(s.wave.number);
-          onMetaChange(next);
-          void clearRun(); // B2: ein beendeter Run ist nicht resumierbar
-        }
         setHud({ wave: s.wave.number, energy: s.resources.energy, lives: s.lives, combo: s.combo.count, inventory: { ...s.inventory }, paused: pausedRef.current, phase: s.phase, beetleDeployed: s.deployedBeetle !== null });
         if (devActive) setDevTick(v => v + 1);
       }
@@ -302,7 +307,7 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
       <div style={styles.topBar}>
         <div style={styles.topLeft}>
           <span style={styles.logo}>LifeSeedLab</span>
-          <span style={styles.sub}>Forschungsbuch • Welle {hud?.wave ?? 1}</span>
+          <span style={styles.sub}>{t('hud.journal')} • {t('game.wave')} {hud?.wave ?? 1}</span>
         </div>
         <div style={styles.topRight}>
           <button onClick={togglePause} style={styles.btn} aria-label={hud?.paused ? 'Fortsetzen' : 'Pause'}>{hud?.paused ? '▶' : '❚❚'}</button>
@@ -371,7 +376,7 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
             onResume={() => { setSuspended(false); pausedRef.current = false; rootRef.current?.clock.setPaused(false); }}
           />
         </div>
-        <div style={styles.paperNote} aria-hidden><span style={styles.paperNotePin}/> Pflanze antippen, Geist übers Feld ziehen — Loslassen setzt, ✕ bricht ab. Grün heißt „die Sim nimmt sie an", rot heißt „nicht hier".</div>
+        <div style={styles.paperNote} aria-hidden><span style={styles.paperNotePin}/> {t('game.hint')}</div>
       </div>
     </div>
   );

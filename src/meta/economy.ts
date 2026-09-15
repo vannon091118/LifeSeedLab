@@ -3,11 +3,33 @@ import { loadMeta, updateMeta } from './store';
 import { wavesToUnlockFor } from '../config/economy.source';
 
 // Owner: PersistenceSystem (meta economy). LOC ≤ 200.
+// Atomare Meta-Operationen: consume+enqueue sind EIN Persistenzschritt (kein Zwischenzustand,
+// in dem Seed verbrannt, aber kein Cross gequeued ist — Tab-Konkurrenz/Error-Safety).
 
 export function buySeed(price: number): MetaSave | null {
   const meta = loadMeta();
   if (meta.nektar < price) return null;
   return updateMeta({ nektar: meta.nektar - price, seedStash: meta.seedStash + 1 });
+}
+
+/**
+ * ATOMAR: prüft Stash, verbraucht 1 Seed und queued die Kreuzung in einem einzigen
+ * load→mutate→persist-Zyklus. Rückgabe null = nichts passiert (kein Seed verbrannt).
+ */
+export function consumeSeedAndEnqueueCross(gachaSeed: number, crossIndex: number, currentWave: number): MetaSave | null {
+  const meta = loadMeta();
+  if (meta.seedStash <= 0) return null;
+  const entry: PendingCross = {
+    crossIndex,
+    seed: gachaSeed,
+    neededWaves: wavesToUnlockFor(crossIndex),
+    startedWave: currentWave,
+  };
+  return updateMeta({
+    seedStash: meta.seedStash - 1,
+    pendingCrosses: [...meta.pendingCrosses, entry],
+    breedGeneration: meta.breedGeneration + 1,
+  });
 }
 
 export function enqueueCross(seed: number, crossIndex: number, currentWave: number): MetaSave {

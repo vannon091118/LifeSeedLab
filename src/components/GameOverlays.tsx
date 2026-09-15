@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { useI18n } from '../i18n';
 
 // Owner: UI (Game-Over- und Suspend-Overlays). LOC ≤ 400.
 // B2: „Tippen zum Fortsetzen" nach App-Wechsel. B7: Game-Over-Karte mit Ergebnis und Ausstieg.
@@ -15,23 +16,24 @@ export interface GameOverlaysProps {
 }
 
 export function GameOverlays({ gameOver, suspended, wave, score, onNewRun, onMenu, onResume }: GameOverlaysProps) {
+  const { t } = useI18n();
   return (
     <>
       {gameOver && (
         <div style={styles.backdrop}>
           <div style={styles.card}>
-            <div style={styles.title}>Game Over</div>
-            <div style={styles.sub}>Welle {wave} • Score {score}</div>
+            <div style={styles.title}>{t('game.gameover')}</div>
+            <div style={styles.sub}>{t('game.wave')} {wave} • {t('over.score')} {score}</div>
             <div style={styles.row}>
-              <button onClick={onNewRun} style={{ ...styles.btn, ...styles.btnPrimary }}>Neuer Run</button>
-              <button onClick={onMenu} style={styles.btn}>Menü</button>
+              <button onClick={onNewRun} style={{ ...styles.btn, ...styles.btnPrimary }}>{t('over.retry')}</button>
+              <button onClick={onMenu} style={styles.btn}>{t('over.toMenu')}</button>
             </div>
           </div>
         </div>
       )}
       {suspended && (
-        <button onClick={onResume} style={styles.resumeOverlay} aria-label="Fortsetzen">
-          <span style={styles.resumeCard}>Tippen zum Fortsetzen</span>
+        <button onClick={onResume} style={styles.resumeOverlay} aria-label={t('game.resumeTap')}>
+          <span style={styles.resumeCard}>{t('game.resumeTap')}</span>
         </button>
       )}
     </>

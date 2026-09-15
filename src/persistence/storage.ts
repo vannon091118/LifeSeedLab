@@ -122,11 +122,33 @@ export async function idbGet<T>(key: string, opts: StoreOptions<T>): Promise<T> 
     });
     db.close();
     if (!raw) return opts.fallback();
-    const env = JSON.parse(raw) as Envelope;
-    if (fnv1a(JSON.stringify(env.data)) !== env.checksum || env.v !== opts.version) {
+
+    // PARITÄT zum localStorage-Backend (Contract: EIN Integritätsvertrag):
+    // parse-fail / Envelope-Defekt / Checksum-Mismatch → Quarantäne + fallback.
+    let env: Envelope;
+    try { env = JSON.parse(raw) as Envelope; } catch {
+      quarantine(key, raw);
       return opts.fallback();
     }
-    return env.data as T;
+    if (typeof env.v !== 'number' || typeof env.checksum !== 'number' || env.data == null) {
+      quarantine(key, raw);
+      return opts.fallback();
+    }
+    if (fnv1a(JSON.stringify(env.data)) !== env.checksum) {
+      quarantine(key, raw);
+      return opts.fallback();
+    }
+
+    if (env.v === opts.version) return env.data as T;
+    if (env.v > opts.version) return opts.fallback(); // newer save (downgrade) → defaults
+    if (!opts.migrate) return opts.fallback();
+    const migrated = opts.migrate(env.data, env.v);
+    if (migrated === null) {
+      quarantine(key, raw);
+      return opts.fallback();
+    }
+    await idbSet(key, migrated, opts.version);
+    return migrated;
   } catch {
     return opts.fallback();
   }
