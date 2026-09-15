@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { exec } from 'node:child_process';
+import { exec, execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -49,14 +49,7 @@ async function runTask(command) {
 }
 
 function git(args) {
-  const { execFileSync } = awaitImportGit();
   return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', windowsHide: true }).trim();
-}
-
-function awaitImportGit() {
-  // Synchronous git call wrapper
-  const { execFileSync } = import('node:child_process');
-  return { execFileSync };
 }
 
 function readPackage() {
@@ -93,7 +86,7 @@ async function scan() {
   // Shinon self-test
   const { execFileSync } = await import('node:child_process');
   try {
-    execFileSync('npx', ['ts-node', 'scripts/shinon-validate.ts', '--self-test'], { cwd: ROOT, stdio: 'pipe', encoding: 'utf8', windowsHide: true });
+    execFileSync('node', ['git-noir/shinon/cli.ts', 'message', '--self-test'], { cwd: ROOT, stdio: 'pipe', encoding: 'utf8', windowsHide: true });
   } catch (error) {
     fail(`Shinon self-test failed: ${error.status}`);
     return;
@@ -168,7 +161,6 @@ function check() {
   }
 
   try {
-    const { execFileSync } = import('node:child_process');
     const head = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8', windowsHide: true }).trim();
     if (gate.head !== head) {
       fail('Git-HEAD hat sich verändert. Scanner erneut ausführen.');

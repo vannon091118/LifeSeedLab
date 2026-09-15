@@ -29,6 +29,9 @@ Thumbs.db
 package-lock.json
 bun.lock
 
+# Shinon — vorbereitete Commit-Nachricht des Komponisten (lokal nur)
+commit_msg.txt
+
 # Agent / Dev tooling — nicht ins Repo (lokal nur)
 # Ausnahme: Onboarding-Skill bleibt bewusst oeffentlich
 .agents/**

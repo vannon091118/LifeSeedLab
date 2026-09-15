@@ -2,8 +2,8 @@
 
 ## 1. Projekt-Status
 - **Status:** Onboarding-Phase abgeschlossen, Architektur-Verträge etabliert.
-- **Gate-Status:** Repository-Struktur konsolidiert, Shinon-Validator aktiv.
-- **Onboarding:** Scanner (`scripts/scan.mjs`) implementiert und verifiziert.
+- **Gate-Status:** Shinon als Commit+Push-Executor aktiv (Gate → Komponist → Push-Executor).
+- **Onboarding:** Scanner (`.agents/skills/lifeseedlab-onboarding/scripts/scan.mjs`) implementiert und verifiziert.
 
 ## 2. Dokumentationskarte
 Alle relevanten Dokumente befinden sich nun unter `docs/`:
@@ -24,19 +24,22 @@ Alle relevanten Dokumente befinden sich nun unter `docs/`:
 **Root-Files:** `AGENTS.md`, `CLAUDE.md`, `README.md`, `LICENSE`
 
 ## 3. Qualität & Automation
-- **Shinon-Validator:** Überprüft Commit-Messages auf das geforderte Format:
-  - `type(scope): description` (Conventional Commits)
-  - Special-Prefixes: `[FOLD]`, `[CUT]`, `[SEED]`, `[STAMP]`
-- **Git-Hooks:**
-  - `commit-msg`: Verhindert Commits mit ungültigen Messages.
-  - `post-commit`: Automatisiert den Push auf `origin main` bei Commits im Main-Branch.
-- **Onboarding-Scanner:** `node scripts/scan.mjs` prüft die Integrität der Pflichtdateien und den Validator-Status.
+- **Shinon (Commit + Push Executor):** Einziger Weg zum Git-Abschluss —
+  Vorbereitung (Starter) → Gate → Komponist → Push-Executor. Details: `docs/setup/script-readme.md`.
+  - **Nachrichtenregel:** `type(scope): description` (Conventional Commits) oder Prefix `[FOLD]`, `[CUT]`, `[SEED]`, `[STAMP]`
+  - **Gate-Prüfungen:** LOC-Caps, Architektur-Constraints, Typecheck, Tests (Fail-Fast bei teuren Prüfungen)
+  - **Push:** nur nach grünem Gate und Commit, mit Auth- und Upstream-Prüfung
+- **Git-Hooks** (`core.hooksPath` → `git-noir/hooks`):
+  - `pre-commit`: Gate-Stufe (Modulgrenzen, Constraints, Typecheck, Tests).
+  - `commit-msg`: dieselbe Nachrichtenregel wie der Komponist.
+  - `post-commit`: Push-Stufe (abschaltbar über `push.autoAfterCommit`).
+- **Onboarding-Scanner:** `.agents/skills/lifeseedlab-onboarding/scripts/scan.mjs` prüft Pflichtdateien und Gate-Zustand.
 
 ## 4. Nächste Meilensteine
 
 ### 🟢 Short-Term (Stabilisierung)
 - [ ] Abschluss der Basis-Features B1-B3.
-- [ ] Feinabstimmung des Shinon-Validators und der Hooks.
+- [x] Shinon zum vollständigen Commit+Push-Executor ausgebaut (Gate, Komponist, Push, Hooks).
 - [ ] Vollständige Typisierung des Simulation-Roots.
 
 ### 🟡 Mid-Term (Kern-Gameplay)

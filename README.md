@@ -289,6 +289,26 @@ npm run test:e2e
 
 ---
 
+## 🧭 Projektstatus
+
+Diese Tabelle wird von **Shinon** aus dem realen Repository-Zustand erzeugt (`node git-noir/shinon/cli.ts prepare`) und vor jedem Commit aktualisiert — sie ist Messwert, keine Behauptung.
+
+<!-- SHINON:STATUS:BEGIN -->
+_Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manuell pflegen._
+
+| Kennzahl | Stand |
+|---|---|
+| Branch | `main` · Upstream: `origin/main` (+0/-0) |
+| HEAD | `8f8f58d` — [FOLD] Konsolidierung der Struktur und Aktivierung der Shinon Gates |
+| Arbeitsbaum | 0 gestaged, 5 geändert, 0 neu |
+| Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
+| Letzter Shinon-Commit | noch keiner |
+| Letzter Push | noch keiner |
+| LOC-Hotspots | `src/components/GameView.tsx` 401/400 (100 %)<br>`src/config/map.source.ts` 198/200 (99 %)<br>`src/simulation/enemySystem.ts` 288/300 (96 %)<br>`src/simulation/plantSystem.ts` 287/300 (96 %)<br>`src/simulation/root.ts` 275/300 (92 %) |
+<!-- SHINON:STATUS:END -->
+
+---
+
 ## 🗺️ Roadmap & Arbeitsliste
 
 Die verbindliche Arbeitsliste liegt in [`docs/QUALITY_SPEC.md`](docs/QUALITY_SPEC.md) (Part A: Befunde, Part B: Specs B0–B13).
