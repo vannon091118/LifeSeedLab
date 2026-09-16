@@ -64,5 +64,11 @@
     <text x="893" y="250" text-anchor="middle" fill="#60a5fa">Canvas</text>
   </g>
 
+  <!-- Signature (B31): an den Banner angepasst — gleiche Schriftfamilie, gedeckte Töne unter
+       der Tagline, keine eigene Farbachse. Als Text im Bild, weil ein <img>-Banner keine Links
+       tragen kann; der klickbare Weg steht in der README direkt unter dem Banner. -->
+  <text x="1168" y="256" text-anchor="end" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#9ca3af" letter-spacing="1.4">created by VANNON</text>
+  <text x="1168" y="277" text-anchor="end" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="11.5" fill="#6b7280" letter-spacing="0.4" font-style="italic">Volatile Agent Needing No Other Nonsense — Never Overly Nice, Never Average Vibe.</text>
+
   <rect x="1.5" y="1.5" width="1197" height="297" rx="18" fill="none" stroke="#1e293b" stroke-width="3"/>
 </svg>

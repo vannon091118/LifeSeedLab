@@ -91,6 +91,27 @@ button:focus-visible {
   to   { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
 }
 
+/* B31/B0.7: Krickz LÄUFT ins Bild — vom Blattrand an seinen Platz, mit Beinwechsel.
+   Der Einzug hängt am Wrapper (Position), der Schritt an den Beinen (Geometrie); beide
+   starten beim Mount und sind damit synchron (950 ms = 2 × 475 ms Schrittdauer). */
+.tut-walk-left  { animation: tutWalkInLeft 950ms cubic-bezier(.3,.7,.3,1) both; }
+.tut-walk-right { animation: tutWalkInRight 950ms cubic-bezier(.3,.7,.3,1) both; }
+@keyframes tutWalkInLeft {
+  from { opacity: 0; transform: translateX(-130px) rotate(-4deg); }
+  40%  { opacity: 1; }
+  to   { opacity: 1; transform: translateX(0) rotate(0deg); }
+}
+@keyframes tutWalkInRight {
+  from { opacity: 0; transform: translateX(130px) rotate(4deg); }
+  40%  { opacity: 1; }
+  to   { opacity: 1; transform: translateX(0) rotate(0deg); }
+}
+.tut-leg { transform-box: view-box; transform-origin: 58px 112px; }
+.tut-legL { animation: tutStepL 475ms ease-in-out 2; }
+.tut-legR { animation: tutStepR 475ms ease-in-out 2; }
+@keyframes tutStepL { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(13deg); } }
+@keyframes tutStepR { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-13deg); } }
+
 /* Fineliner-Striche zeichnen sich selbst (pathLength=1 ⇒ lauflängenunabhängig). */
 .tut-ink { stroke-dasharray: 1; stroke-dashoffset: 1; animation: tutInk 620ms ease-out forwards; }
 @keyframes tutInk { to { stroke-dashoffset: 0; } }
@@ -110,14 +131,22 @@ button:focus-visible {
 @keyframes tutWave { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(10deg); } }
 .tut-mark { animation: tutFaceIn 320ms ease-out forwards, tutBob 1.6s ease-in-out infinite 320ms; }
 
-/* Sprechblase: Comicknall (Papierverschluss, harter Schatten). */
-.tut-bubble { animation: tutBubblePop 300ms cubic-bezier(.2,.9,.3,1.35) both; }
+/* Sprechblase: Comicknall (Papierverschluss, harter Schatten). Sie ploppt erst auf, wenn
+   Krickz halb da ist (Verzögerung = halbe Lauf-Eisenbahn) — vorher redete schon jemand,
+   der noch gar nicht im Bild war. */
+.tut-bubble { animation: tutBubblePop 340ms cubic-bezier(.2,.9,.3,1.45) 620ms both; }
 @keyframes tutBubblePop {
-  from { opacity: 0; transform: scale(.86) rotate(-1.6deg); }
+  from { opacity: 0; transform: scale(.55) rotate(-4deg); }
+  70%  { transform: scale(1.06) rotate(1.2deg); }
   to   { opacity: 1; transform: scale(1) rotate(0deg); }
 }
 .tut-caret { animation: tutCaret 700ms steps(1) infinite; color: var(--leaf-dark); }
 @keyframes tutCaret { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+
+/* Ruhige Hände: kein Einlauf, kein Schritt, kein Knall — der Text steht sofort. */
+@media (prefers-reduced-motion: reduce) {
+  .tut-walk-left, .tut-walk-right, .tut-legL, .tut-legR, .tut-bubble { animation: none; }
+}
 
 /* Der Handlungsknopf blinkt mit — er IST die Anweisung. */
 .tut-cta { animation: tutCta 1.15s ease-in-out infinite; }

@@ -11,6 +11,22 @@ export function SproutIcon() {
   );
 }
 
+/** GitHub-Marke der Signatur (B31): kleine gezeichnete Katze in Tusche-Optik — kein Stock-Icon,
+ *  kein Emoji (Art-Direction B0). 16px, damit sie das Label nicht dominiert. */
+export function GitHubIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M8.9 3.7 7.5 6.3C5.7 7.1 4.6 8.8 4.6 11c0 1 .3 1.9.8 2.6-.2.7-.3 1.4-.1 2 .6.4 1.5.2 2.3-.2.9.3 1.9.4 3 .4s2.1-.1 3-.4c.8.4 1.7.6 2.3.2.2-.6.1-1.3-.1-2 .5-.7.8-1.6.8-2.6 0-2.2-1.1-3.9-2.9-4.7L15.1 3.7 13 5c-.7-.1-1.4-.1-2 0L8.9 3.7Z"
+        fill="#f5efdc" stroke="#2b2b26" strokeWidth="1.7" strokeLinejoin="round"
+      />
+      <circle cx="9.5" cy="10.8" r="1.15" fill="#2b2b26" />
+      <circle cx="14.5" cy="10.8" r="1.15" fill="#2b2b26" />
+      <path d="M10 14.2c1.2.85 2.8.85 4 0" stroke="#2b2b26" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function WaveIcon() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>

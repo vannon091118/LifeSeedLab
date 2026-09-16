@@ -124,11 +124,18 @@ export function TutorialOverlay({ step, index, total, onPress, onSkip }: Tutoria
         </div>
       )}
 
-      <div ref={stickRef} style={step.stick === 'bottomRight' ? styles.stickRight : styles.stickLeft}>
+      <div
+        ref={stickRef}
+        className={step.stick === 'bottomRight' ? 'tut-walk-right' : 'tut-walk-left'}
+        style={step.stick === 'bottomRight' ? styles.stickRight : styles.stickLeft}
+      >
         <Stickman pose={step.pose} aim={aim} speaking={!complete} />
       </div>
 
-      <div style={bubbleStyle(step.bubble)}>
+      {/* Die Blase ploppt BEI KRICKEZ auf (gleiche Seite wie die Figur) — nicht mittig schwebend:
+          er ist am Rand, sie hängt über ihm, der Schwanz zeigt auf ihn. Auf dem Feld bleibt 'center'
+          für die Leseschritte, damit Blase und Cue-Ring sich nicht in die Quere kommen. */}
+      <div style={step.bubble === 'center' ? bubbleStyle('center') : bubbleBesideStick(step.stick)}>
         <SpeechBubble
           speaker={tutorialText('tut.name', lang)}
           role={tutorialText('tut.role', lang)}
@@ -179,6 +186,15 @@ function bubbleStyle(anchor: BubbleAnchor): CSSProperties {
     case 'bottom': return { position: 'absolute', bottom: BUBBLE_BOTTOM, left: 10, maxWidth: '72%' };
     default: return { position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
   }
+}
+
+/**
+ * Blase über der Figur am Blattrand (Schwanzrichtung zeigt ohnehin auf sie). 'bottom' behält
+ * seinen Platz (Tray-Höhe), 'top' rückt von der Mitte zur Figur-Seite.
+ */
+function bubbleBesideStick(stick: TutorialStep['stick']): CSSProperties {
+  const base: CSSProperties = { position: 'absolute', bottom: BUBBLE_BOTTOM, maxWidth: '72%' };
+  return stick === 'bottomRight' ? { ...base, right: 12 } : { ...base, left: 12 };
 }
 
 const styles: Record<string, CSSProperties> = {

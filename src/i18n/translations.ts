@@ -14,6 +14,9 @@ export const translations = {
     'menu.runs': 'Läufe',
     'menu.marquee': '*** WILLKOMMEN IM LABOR *** DEIN GENOM, DEIN GLUECK *** KEINE HAFTUNG FUER MUTATIONEN ***',
     'menu.footer': 'LifeSeedLab {v} — hier wurde nicht gespart, hier wurde gesparst. popup-blocker empfohlen.',
+    // B31: Bedienhilfe der Signatur (der Name/das Motto selbst bleiben original — eine Signatur
+    // wird nicht übersetzt, Regel 1).
+    'signature.github': 'GitHub-Repository öffnen',
     'menu.greenhouse': '🌱 Gewächshaus — Samen mischen',
     'menu.greenhouseDesc': 'Kreuze zwei Pflanzen und entdecke neue Varianten. Kostet Nektar.',
     'menu.shop': '🛒 Samen-Shop — Nektar → Samen',
@@ -161,6 +164,8 @@ export const translations = {
     'menu.runs': 'Runs',
     'menu.marquee': '*** WELCOME TO THE LAB *** YOUR GENOME, YOUR FORTUNE *** NO LIABILITY FOR MUTATIONS ***',
     'menu.footer': 'LifeSeedLab {v} — nothing was spared here, we economized on it. popup blocker recommended.',
+    // B31: accessibility label of the signature link (name and motto stay original by design).
+    'signature.github': 'Open GitHub repository',
     'menu.greenhouse': '🌱 Greenhouse — Mix Seeds',
     'menu.greenhouseDesc': 'Cross two plants and discover new variants. Costs Nectar.',
     'menu.shop': '🛒 Seed Shop — Nectar → Seeds',

@@ -1181,3 +1181,51 @@ Save weg, dessen Seed nicht zur aktuellen Ableitung passt).
 - [ ] Offen (Content, nicht Teil von B30): bei `leafhopper`×`shellbeetle` tragen zwei der drei
       Kandidaten identische Stats (nur Genome/IDs unterscheiden sich) — der P7-Test prüft nur das
       Bumble-Paar. Die Merge-Regel ist unverändert, das ist eine Vielfalts-Frage des Contents
+
+---
+
+## B31. Signatur sichtbar, Easter Egg am Blattrand (Befund: Autorität ohne Namen)
+
+### B31.1 Befund
+
+Das Projekt trug keinen Namen auf dem Schirm: weder Titelkarte noch Hub-Fußzeile nannten den
+Autor, und der Weg zum Quellcode existierte nur in der Git-Remote. Der Auftrag lautete: „unauffällig
+aber sichtbar" — dazu README, ein Easter Egg, und eine Anpassung des SVG-Banners.
+
+### B31.2 Umsetzung
+
+1. **Eine Quelle, drei Flächen:** `components/CreatedBy.tsx` besitzt Name (`VANNON`), Motto
+   („Volatile Agent Needing No Other Nonsense — Never Overly Nice, Never Average Vibe.") und URL.
+   `CreatedBy` sitzt auf Titelkarte und Hub-Fußzeile; die README trägt dieselben Zeilen unter den
+   Badges. Drei Kopien, die nicht auseinanderlaufen können, weil der Gate-Test die Wörter gegen den
+   Namen prüft: der erste Motto-Halbsatz buchstabiert V-A-N-N-O-N.
+2. **Der Name wird nicht übersetzt** (Regel 1 — eine Signatur bleibt original); zweisprachig ist
+   nur die Bedienhilfe des Links (`signature.github`).
+3. **Easter Egg, fragmentiert aber logisch:** je Papierfläche ein Wort der Randnotiz — Titelkarte
+   „Volatile 1/6", Hub „Agent 2/6", Gewächshaus „Needing 3/6", Shop „No 4/6", Brutstätte
+   „Other 5/6", Codex „Nonsense 6/6". Klein, kursiv, leicht gedreht, in Bleistiftgrau
+   (Register der Kritzeleien aus B0), `aria-hidden` + `pointer-events:none`, Ecke alternierend
+   links/rechts. Die Nummer verrät, dass es eine Reihe ist; die Zuordnung Fläche → Wort ist eine
+   Map (`FRAGMENT_BY_SCREEN`), kein Zufall.
+4. **SVG-Banner angepasst:** „created by VANNON" + Motto rechts unten, in der Banner-Schriftfamilie
+   und gedeckten Tönen (keine eigene Farbachse). Als Bildtext, weil ein `img`-Banner keine Links
+   trägt — der klickbare Weg steht in der README direkt unter dem Banner. Der Vitest-Badge wurde
+   auf den aktuellen Stand gezogen (311).
+5. **GitHub-Marke gezeichnet, nicht gestockt:** kleine Tusche-Katze im B0-Register
+   (`MenuIcons.GitHubIcon`), 16px, kein Emoji, kein Stock-Icon.
+
+### B31.3 Gate-Tests
+
+`src/components/createdBy.test.ts` (5 Fälle): Motto-Halbsatz 1 buchstabiert den Namen,
+Halbsatz 2 die eigene Abkürzung (NONNAV); Fragmente == Wörter des Halbsatzes; die Flächen-Map
+deckt 0–5 lückenlos und doppelfrei ab; die URL zeigt auf dieses Repository; die Bedienhilfe ist
+zweisprachig. Das Easter Egg selbst ist absichtlich **nicht** in E2E verdrahtet — es ist Deko;
+ein Auffinden-Test würde die Versteckstelle dokumentieren statt schützen.
+
+### B31.4 DoD für B31
+
+- [x] Signatur auf Titelkarte, Hub und in der README; eine Quelle für Name/Motto/URL
+- [x] Easter Egg: 6 Fragmente, 6 Flächen, logische Reihenfolge, unauffällig im Papier-Register
+- [x] SVG-Banner mit Signatur; README-Badge auf 311 Tests
+- [x] Kein Stock-Icon/Emoji (gezeichnete Marke), Name unübersetzt, Bedienhilfe zweisprachig
+- [x] Gate-Tests grün, tsc clean, `vite build` grün, E2E grün

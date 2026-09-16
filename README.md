@@ -9,9 +9,14 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React 19](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=white)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6-646cff?logo=vite&logoColor=white)](https://vite.dev/)
-[![Vitest](https://img.shields.io/badge/tests-282%20passing-6e9f18?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/tests-311%20passing-6e9f18?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![Determinismus](https://img.shields.io/badge/sim-deterministisch-4ade80)](docs/architecture/architecture-contract.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+<p>
+  <sub><i>created by</i> <strong>VANNON</strong> · <a href="https://github.com/vannon091118/LifeSeedLab">GitHub</a></sub><br/>
+  <sub><i>Volatile Agent Needing No Other Nonsense — Never Overly Nice, Never Average Vibe.</i></sub>
+</p>
 
 </div>
 
@@ -315,11 +320,11 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `d49a36d` — feat(bus): Event-Audience — jede stille Zeile ist jetzt entschieden |
-| Arbeitsbaum | 9 gestaged, 0 geändert, 0 neu |
-| Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
+| HEAD | `c1322d4` — refactor(rng): Brut-Identitaet in eigener Domaene, Migration entschieden |
+| Arbeitsbaum | 12 gestaged, 10 geändert, 0 neu |
+| Letztes Gate | 🛑 geschlossen (preflight, 0 Fehler, 1 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `d49a36d` feat(bus): Event-Audience — jede stille Zeile ist jetzt entschieden |
+| Letzter Shinon-Commit | `c1322d4` refactor(rng): Brut-Identitaet in eigener Domaene, Migration entschieden |
 | Letzter Push | ✅ origin/main |
 | LOC-Hotspots | `src/config/map.source.ts` 200/200 (100 %)<br>`src/simulation/root.ts` 292/300 (97 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/simulation/plantSystem.ts` 283/300 (94 %)<br>`src/simulation/enemySystem.ts` 279/300 (93 %) |
 <!-- SHINON:STATUS:END -->

@@ -3,6 +3,7 @@ import { useI18n } from '../i18n';
 import { NavIndicators, type MenuScreen } from './NavIndicators';
 import { ScreenTransition } from './ScreenTransition';
 import { TutorialLayer } from './tutorial/TutorialLayer';
+import { FRAGMENT_BY_SCREEN, MarginMark } from './CreatedBy';
 
 // Owner: UI (MenuScreenShell — Vollbild-Rahmen für Menü-Screens). LOC ≤ 200.
 // JEDER Menübereich ist ein eigener Screen: Vollbild, mit NavIndicators (Tabs/Chips/
@@ -37,6 +38,9 @@ export function MenuScreenShell({ meta, current, onNavigate, onBack, children }:
           bleibt dadurch deckungsgleich, während die Inhaltsfläche scrollt. */}
       <TutorialLayer />
       {isHub && <span aria-hidden />}
+      {/* Easter Egg (B31): ein Wort der Signatur am Blattrand, eines je Fläche. Die Fläche
+          bestimmt das Fragment — keine Zufallswahl, keine zwei Flächen mit demselben Wort. */}
+      <MarginMark index={FRAGMENT_BY_SCREEN[current]} corner={FRAGMENT_BY_SCREEN[current] % 2 ? 'right' : 'left'} />
     </div>
   );
 }

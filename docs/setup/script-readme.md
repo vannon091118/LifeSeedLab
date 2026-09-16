@@ -111,8 +111,10 @@ in `checks.test.ts` als exakte Liste gelockt, damit sie nicht still wächst.
 ## Tests des Toolings
 
 ```bash
-npx tsc -p git-noir/tsconfig.json                        # Typecheck des Toolings
-npx vitest run --config git-noir/vitest.config.ts        # Gate, Enforcement, Komponist, Starter
+node node_modules/typescript/bin/tsc -p git-noir/tsconfig.json     # Typecheck des Toolings
+node node_modules/vitest/vitest.mjs run --config git-noir/vitest.config.ts   # Gate, Enforcement, Komponist, Starter
 ```
 
-Die Projekt-Suite (`npx vitest run`) bleibt unberührt und prüft weiterhin ausschließlich `src/**`.
+Die Projekt-Suite (`node node_modules/vitest/vitest.mjs run`) bleibt unberührt und prüft weiterhin
+ausschließlich `src/**`. Kein `npx`/`npm run` — das npm-Startup kostet auf dieser Maschine ~3 s pro
+Kommando (siehe AGENTS.md, Verifizierung).

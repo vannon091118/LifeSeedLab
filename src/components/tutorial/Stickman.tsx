@@ -88,10 +88,10 @@ export function Stickman({ pose, aim, speaking, size = 132 }: StickmanProps) {
           </g>
         </g>
 
-        {/* Rumpf + Beine */}
+        {/* Rumpf + Beine — die Beine tragen `tut-leg` (Schritt beim Einlaufen, CSS). */}
         <path className="tut-ink" pathLength={1} d="M58 55 L58 112" fill="none" stroke={INK} strokeWidth="3.4" strokeLinecap="round" style={{ animationDelay: '120ms' }} />
-        <path className="tut-ink" pathLength={1} d="M58 112 L45 150 L41 178" fill="none" stroke={INK} strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" style={{ animationDelay: '160ms' }} />
-        <path className="tut-ink" pathLength={1} d="M58 112 L72 150 L79 178" fill="none" stroke={INK} strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" style={{ animationDelay: '180ms' }} />
+        <path className="tut-ink tut-leg tut-legL" pathLength={1} d="M58 112 L45 150 L41 178" fill="none" stroke={INK} strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" style={{ animationDelay: '160ms' }} />
+        <path className="tut-ink tut-leg tut-legR" pathLength={1} d="M58 112 L72 150 L79 178" fill="none" stroke={INK} strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" style={{ animationDelay: '180ms' }} />
         <path className="tut-ink" pathLength={1} d="M34 179 L46 179" fill="none" stroke={INK} strokeWidth="3.4" strokeLinecap="round" style={{ animationDelay: '220ms' }} />
         <path className="tut-ink" pathLength={1} d="M73 179 L85 179" fill="none" stroke={INK} strokeWidth="3.4" strokeLinecap="round" style={{ animationDelay: '240ms' }} />
 

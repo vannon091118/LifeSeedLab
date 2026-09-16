@@ -83,38 +83,56 @@ Verdichten bestehender Zeilen oder Splitten, nie durch Erhöhen.
 - Alle Zufälligkeit via `core/rng.ts`: `deriveSeed(rootSeed, namespace, entityId, eventId, version)`. Gameplay-Namespaces `world|wave|enemy|plant|brood|loot`, Präsentation `visual|particle|cosmetic` — dürfen sich nie gegenseitig advanced/stören. (`brood` = Käferzucht, seit B30 eigene Domäne; vorher lief sie unter `enemy`. Namespace-Änderungen sind Identitätsbrüche: Migrationsentscheidung in quality-spec B30, Seeds test-gepinnt in `genome/genome_brood_domain.test.ts`.) FX ON/OFF muss bit-identisches Gameplay liefern.
 - Seeds sind ableitbar, nie Zustand: Run-Identität = `runId` (eine Autorität, persistiert in Meta).
 
-## Verifizierung (immer vor Abschluss — ohne Diskussion)
+## Verifizierung (einmal am Ende der Aufgabe — NICHT nach jedem Edit)
+
+Typecheck und Tests laufen **genau einmal**, wenn die Aufgabe inhaltlich fertig ist — unmittelbar
+vor dem Commit (`shinon finish` fährt ohnehin das Gate). Während der Umsetzung: schreiben, nicht
+in Dauerschleife prüfen. Ausnahme: eine gezielte, einzelne Testdatei zur Fehlersuche
+(`node node_modules/vitest/vitest.mjs run <datei>`), kein kompletter Lauf zwischendurch.
+
+**Kein `npx`/`npm run` in der Verifizierung** — das npm-Startup kostet auf dieser Maschine ~3 s
+**pro Kommando** bei jedem Aufruf. Die Werkzeuge werden direkt über Node gerufen (identisch zum
+Gate, `gate.commands` in `shinon.config.json`):
 
 ```bash
-npx tsc -b --noEmit      # Typecheck muss 0 Fehler sein
-npx vitest run           # komplette Suite muss grün sein
-npx vite build           # muss durchbauen (nur wenn Build-relevant geändert)
+node node_modules/typescript/bin/tsc -b --noEmit   # Typecheck muss 0 Fehler sein
+node node_modules/vitest/vitest.mjs run            # komplette Suite muss grün sein
+node node_modules/vite/bin/vite.js build           # nur wenn Build-relevant geändert
 ```
 
-Kein „sollte passen", kein claims ohne Ausführung. Dev-Server/Preview wird **nie** manuell gestartet/gestoppt/killt (Plattform-managed). `vite.config.ts` ist **tabu**.
+Kein „sollte passen", kein claims ohne Ausführung — aber auch kein Ressourcen-Verbrennen durch
+wiederholte Läufe innerhalb einer Aufgabe. Dev-Server/Preview wird **nie** manuell gestartet/gestoppt/killt (Plattform-managed). `vite.config.ts` ist **tabu**.
 
 Kosten & Haken der Werkzeuge: die Hooks in `git-noir/hooks` (`core.hooksPath`) fahren bei **jedem**
-Commit das Gate — LOC-Caps, Architektur-Constraints, Typecheck, Test-Suite, **warm ~7–9 s**,
+Commit das Gate — LOC-Caps, Architektur-Constraints, Typecheck, Test-Suite, **warm ~4 s**
+(gemessen 17.09.2026: pre-commit-Gate 4,2 s gesamt — Tests 3,8 s, Typecheck 0,3 s, Changelog 0,07 s),
 fail-closed (rot ⇒ Commit abgebrochen). Die E2E-Stufe liegt bewusst **nicht** im Commit-Pfad
 (`gate.checks.e2e=false` in `shinon.config.json`): sie kostet Minuten und läuft getrennt vor dem
-Sprint-Abschluss (`npm run test:e2e`).
-Die drei Posten, die den Commit früher auf Minuten zogen, sind an der Wurzel abgestellt — nicht per
-abgeschwächter Prüfung:
+Sprint-Abschluss (`node node_modules/playwright/test/cli.js test`).
+Die Posten, die den Commit früher auf Minuten zogen (60-s-Gate vom 16.09.), sind an der Wurzel
+abgestellt — nicht per abgeschwächter Prüfung:
 
 1. **Typecheck** läuft inkrementell: `incremental: true` + `tsBuildInfoFile` in der `tsconfig.json`
    (Cache in `node_modules/.tmp`, `*.tsbuildinfo` ist gitignoriert). Vorher prüfte `tsc -b --noEmit`
    jede Datei neu (~8 s); warm sind es ~0,3 s. Der Cache schlägt über Inhalts-Hashes fehl, nie über
    Zeitstempel: neue und geänderte Dateien werden geprüft, gelöschte Dateien fallen aus dem Cache.
-2. **Tests** laufen mit `fsModuleCache: true` (`vitest.config.ts`): die Transformate werden
-   inhaltsgehasht in `node_modules/.vitest-cache` gehalten statt pro Lauf neu erzeugt
-   (vorher ~65 % der Laufzeit).
+2. **Tests** laufen mit `isolate: false` (`vitest.config.ts`): ein Worker-Pool statt 41 Isolaten
+   (je ~3,7 s Spawn-Overhead = ~27 s vor dem ersten Test); dazu `fsModuleCache: true` — die
+   Transformate werden inhaltsgehasht gecacht statt pro Lauf neu erzeugt. Test-Suite kalt ~10 s,
+   warm ~4 s (vorher 44–56 s), und die Parallelitäts-Timeouts in `meta/capping.test.ts` sind weg.
 3. **Kein `npx` im Gate.** `npx` kostet auf dieser Maschine ~3 s npm-Startup **pro Kommando**; das
-   Gate ruft die Werkzeuge direkt über Node auf (`gate.commands` in `shinon.config.json`). Inhaltlich
-   identisch, gemessen an denselben Werkzeugen — 255 Tests, 0 Typfehler.
+   Gate ruft die Werkzeuge direkt über Node auf (`gate.commands` in `shinon.config.json`). Der
+   Changelog-Check läuft über `spawnSync` (GitHelfer) statt `execSync`-Shell: ~1,1 s → ~0,1 s je
+   Lauf, Fehlerpfad (CHG002) in `git-noir/shinon/tests/changelog-check.test.ts` gepinnt.
 
 Kalt (frisches `node_modules`, erster Lauf nach Änderungen) kostet der erste Durchlauf einmalig
 ~15 s; das ist der Cache-Aufbau, kein Deckel auf das Ergebnis.
-Deshalb vorher `npx tsc -b --noEmit` + `npx vitest run` selbst laufen lassen. Nachrichten per
+**Gate-Timeout ≠ echter Fehler:** ein `finish --all` kann unter kaltem Cache an einem Test-Timeout
+hängen bleiben (Befund: `capping.test.ts`, 100-Register-Schleife ~2–3 s) — vorher zweimal grün,
+danach einzeln grün. Reaktion: die Datei einzeln messen, nichts "fixen", Gate einfach erneut
+fahren; der abgebrochene Lauf hat nichts committet (Push-Wahrheit prüfen).
+Deshalb **einmal am Aufgabenende** `node node_modules/typescript/bin/tsc -b --noEmit` +
+`node node_modules/vitest/vitest.mjs run` selbst laufen lassen (ohne `npx`-Overhead). Nachrichten per
 `git commit -F <datei>` oder `git commit -F -` mit Heredoc übergeben; der `commit-message`-Check liest
 die vorbereitete Nachricht aus `commit_msg.txt` im Repo-Root (bzw. die übergebene Nachricht).
 Selbsttest der Nachrichtenregel: `node git-noir/shinon/cli.ts message --self-test`.
@@ -143,7 +161,11 @@ Werkzeug-/Regel-Haken beim Gate:
 Nach einem **erfolgreichen Umsetzungssprint** (Code steht, Typecheck/Tests/Build grün) ist der Abschluss fest vorgeschrieben. Die Reihenfolge ist bindend und keine Stufe ist optional:
 
 1. **Preview prüfen.** Das Ergebnis in der laufenden Vorschau ansehen — mindestens der geänderte Screen, bei UI-Arbeit zusätzlich **390×844** und Desktop. Die Vorschau wird dabei nur betrachtet, nicht selbst gestartet/gestoppt (Plattform-managed, siehe oben).
-2. **E2E laufen lassen.** `npm run test:e2e` (`playwright test`, `tests/`, Chromium, baseURL `http://localhost:5173`). Playwright verwaltet seinen Dev-Server selbst (`webServer` mit `reuseExistingServer`) — nicht von Hand dazwischenfunken. Rote E2E ⇒ der Sprint ist **nicht** abgeschlossen.
+   Quirk `register_preview { htmlPath }`: es wird **nur diese eine Datei** serviert — ein
+   `<img src="…">` daneben bleibt kaputt. Workaround: SVG direkt ins Prüf-HTML inlinen; Details
+   (z. B. eine Signatur-Ecke) über eine zweite Instanz mit `viewBox`-Crop vergößern. Prüfdatei in
+   `dist/` anlegen und danach löschen (landet nicht im Commit).
+2. **E2E laufen lassen** — einmal, am Sprint-Ende: `node node_modules/playwright/test/cli.js test` (`tests/`, Chromium, baseURL `http://localhost:5173`). Playwright verwaltet seinen Dev-Server selbst (`webServer` mit `reuseExistingServer`) — nicht von Hand dazwischenfunken. Rote E2E ⇒ der Sprint ist **nicht** abgeschlossen.
 3. **Erst dann Shinon.** Commit und Push laufen **ausschließlich** über Shinon:
 
 ```bash
@@ -192,6 +214,7 @@ Details: [`docs/setup/script-readme.md`](docs/setup/script-readme.md). Das Tooli
 | Was ist der Save-/Resume-Vertrag? | `docs/architecture/architecture.md` §4 |
 | Wie starte ich einen Run / wo wird der Seed hergeleitet? | `App.tsx` (`deriveSeed(GAME_SEED,'world','run',runId)`) → `SimulationRoot` |
 | Was wird als nächstes gebaut? | `ROADMAP.md` §4 + `docs/quality/quality-spec.md` B1→B2→B3→B4–B6→B7/B9/B10→B12/B13 (DoD B13) |
+| Signatur/Easter-Egg ändern (Name, Motto, Fragmente)? | `components/CreatedBy.tsx` + Gate `createdBy.test.ts` — Motto-Halbsatz 1 buchstabiert VANNON (test-gepinnt); neuer Menü-Screen ⇒ Eintrag in `FRAGMENT_BY_SCREEN` + Test nachziehen |
 | Wie schließe ich einen Sprint ab (Preview/E2E/Shinon)? | Sprint-Abschluss oben + `docs/setup/script-readme.md` |
 
 ## Definition of Done (pro Aufgabe)
@@ -209,7 +232,11 @@ Eine Aufgabe ist nicht „fertig, weil es im Browser läuft" — sie ist fertig,
 
 ## Arbeitsrhythmus
 
-Sequenziell: **Phase/Arbeitspaket → Test → Gate → nächstes.** Gate rot ⇒ STOP, Ursache lokalisieren, Owner identifizieren, fixen, Test wiederholen. Nie „weiterbauen und hoffen". Große Umbauten zuerst im Spec dokumentieren (quality-spec-Muster: Befund → Spec → DoD), dann umsetzen.
+Sequenziell: **Phase/Arbeitspaket → einmalige Verifizierung am Ende → Gate → nächstes.** Gate rot ⇒ STOP, Ursache lokalisieren, Owner identifizieren, fixen, Test wiederholen. Nie „weiterbauen und hoffen". Große Umbauten zuerst im Spec dokumentieren (quality-spec-Muster: Befund → Spec → DoD), dann umsetzen.
+
+**Keine Dauerprüfung:** Typecheck/Tests laufen nicht nach jedem Edit und nicht pro Zwischenschritt —
+nur einmal am Aufgabenende. Der Agent darf das Gate nicht dadurch billiger machen, dass er selbst
+in Schleifen verifiziert; die Cost-Wache ist das einmalige End-Gate, nicht ein Lauf-Teppich.
 
 ## Skill-/Pass-Kontext (user-seitig, nicht aus dem Code rekonstruierbar)
 

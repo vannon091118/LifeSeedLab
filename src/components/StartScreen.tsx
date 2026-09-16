@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useI18n, type Lang } from '../i18n';
 import type { MetaSave } from '../types';
 import { TutorialLayer } from './tutorial/TutorialLayer';
+import { CreatedBy, MarginMark } from './CreatedBy';
 
 // Owner: UI (StartScreen). LOC ≤ 400.
 // B7.1/B0: Papierwelt-Titel — keine Blur-Glass-Karte, kein Emoji-Logo, kein zufälliger Gradient.
@@ -79,6 +80,11 @@ export function StartScreen({ onBegin }: Props) {
         </div>
 
         <p style={styles.hint}>{t('start.hint')}</p>
+
+        {/* Signatur (B31): unten auf der Titelkarte — wie auf einem unterschriebenen Blatt. */}
+        <CreatedBy />
+        {/* Easter Egg: das erste Wort der Randnotiz-Reihe (die Shell trägt 2/6 bis 6/6). */}
+        <MarginMark index={0} corner="left" />
       </div>
 
       <TutorialLayer langChosen={langChosen} />
@@ -203,4 +209,5 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#8a8065',
     fontWeight: 600,
   },
+  // Die Signatur bringt ihr eigenes Register mit (components/CreatedBy.tsx).
 };
