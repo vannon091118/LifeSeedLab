@@ -9,6 +9,7 @@ const { enqueueBrood, claimBrood, keepCross } = await import('./run');
 const { isCrossReady, consumeSeedAndEnqueueCross, advanceCrossMaturation } = await import('./economy');
 const { rollBrood } = await import('../genome/beetle');
 const { createBaseVariants } = await import('../genome/bases');
+const { rollGachaCross } = await import('../genome/gacha');
 
 const A = 'leafhopper';
 const B = 'shellbeetle';
@@ -163,7 +164,8 @@ describe('B14 — Reife-Gate (fail-closed)', () => {
 
   it('meldet Reife erst nach dem Fortschritt des Zählers', () => {
     updateMeta({ seedStash: 1, totalWavesSurvived: 0, pendingCrosses: [] });
-    expect(consumeSeedAndEnqueueCross(1234, 0, 0)).not.toBeNull();
+    const roll = rollGachaCross(createBaseVariants(), 1234, 0)!;
+    expect(consumeSeedAndEnqueueCross(1234, 0, 0, roll.child, roll.parentA.id, roll.parentB.id)).not.toBeNull();
 
     expect(isCrossReady(loadMeta(), 0)).toBe(false); // neededWaves(0) = 2
     advanceCrossMaturation(2);
@@ -172,7 +174,8 @@ describe('B14 — Reife-Gate (fail-closed)', () => {
 
   it('räumt die Queue NICHT mehr auf (A13.12: Reifung zerstörte bisher das Ergebnis)', () => {
     updateMeta({ seedStash: 1, totalWavesSurvived: 0, pendingCrosses: [] });
-    consumeSeedAndEnqueueCross(1234, 0, 0);
+    const roll = rollGachaCross(createBaseVariants(), 1234, 0)!;
+    consumeSeedAndEnqueueCross(1234, 0, 0, roll.child, roll.parentA.id, roll.parentB.id);
 
     advanceCrossMaturation(9);
 
@@ -187,7 +190,11 @@ describe('B14 — Reife-Gate (fail-closed)', () => {
 
   it('begrenzt die Queue auf PENDING_CROSSES_MAX Einträge', () => {
     updateMeta({ seedStash: 100, totalWavesSurvived: 0, pendingCrosses: [] });
-    for (let i = 0; i < 20; i++) consumeSeedAndEnqueueCross(1000 + i, i, 0);
+    const bases = createBaseVariants();
+    for (let i = 0; i < 20; i++) {
+      const roll = rollGachaCross(bases, 1000 + i, i)!;
+      consumeSeedAndEnqueueCross(1000 + i, i, 0, roll.child, roll.parentA.id, roll.parentB.id);
+    }
 
     const meta = loadMeta();
     expect(meta.pendingCrosses.length).toBe(12);

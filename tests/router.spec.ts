@@ -28,7 +28,8 @@ test.describe('Screen-Router', () => {
     await expect(page.getByText(/LOADOUT/i).first()).toBeVisible();
 
     await page.getByRole('tab', { name: /greenhouse/i }).click();
-    await expect(page.getByRole('button', { name: /sow \(uses 1 seed\)/i })).toBeVisible();
+    // B18.3: Aussaat ist frei (Kosten beim Behalten) — Label entsprechend geändert.
+    await expect(page.getByRole('button', { name: /sow \(crosses two plants/i })).toBeVisible();
 
     await page.getByRole('button', { name: /^back$/i }).click();
     await expect(page.getByRole('button', { name: RUN_CARD }).first()).toBeVisible();

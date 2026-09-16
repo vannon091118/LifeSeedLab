@@ -117,7 +117,7 @@ test.describe('Run', () => {
   test('Pflanze platzieren: die Sim nimmt sie an und der Tray-Bestand sinkt', async ({ page }) => {
     await startRun(page);
 
-    const sprout = page.getByRole('button', { name: /sprout\s*×1/i });
+    const sprout = page.getByRole('button', { name: /Spross\s*×1/i });
     await expect(sprout).toBeVisible();
     expect(await devValue(page, 'PLANTS')).toBe(0);
 
@@ -126,7 +126,7 @@ test.describe('Run', () => {
 
     expect(cell, 'Keine erreichbare Zelle wurde von der Sim angenommen').not.toBeNull();
     expect(await devValue(page, 'PLANTS')).toBe(1);
-    await expect(page.getByRole('button', { name: /sprout\s*×0/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Spross\s*×0/i })).toBeVisible();
   });
 
   test('Pause friert die Sim ein, Fortsetzen startet sie wieder', async ({ page }) => {

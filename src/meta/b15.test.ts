@@ -64,7 +64,7 @@ describe('B15.1 — Kind aus dem persistierten Seed rekonstruiert', () => {
     const gachaSeed = deriveGachaSeed(crossIndex);
     const shown = rollGachaCross(BASES, gachaSeed, crossIndex)!;
 
-    consumeSeedAndEnqueueCross(gachaSeed, crossIndex, loadMeta().totalWavesSurvived);
+    consumeSeedAndEnqueueCross(gachaSeed, crossIndex, loadMeta().totalWavesSurvived, shown.child, shown.parentA.id, shown.parentB.id);
 
     // Wellen vergehen — Screen-Wechsel, Resume, was auch immer
     advanceCrossMaturation(wavesToUnlockFor(crossIndex));
@@ -96,7 +96,8 @@ describe('B15.1 — Kind aus dem persistierten Seed rekonstruiert', () => {
     });
     const crossIndex = loadMeta().breedGeneration;
     const gachaSeed = deriveGachaSeed(crossIndex);
-    consumeSeedAndEnqueueCross(gachaSeed, crossIndex, 0);
+    const roll = rollGachaCross(BASES, gachaSeed, crossIndex)!;
+    consumeSeedAndEnqueueCross(gachaSeed, crossIndex, 0, roll.child, roll.parentA.id, roll.parentB.id);
 
     // Zwischenzeit: sprout wird woanders verbraucht (Menge ändert sich)
     updateMeta({ variantCounts: { sprout: 0, rootwall: 1, mycelia: 1 } });
@@ -120,7 +121,9 @@ describe('B15.2 — Reifung tickt an WAVE_COMPLETED', () => {
   it('X Wellen überstehen ⇒ Kreuzung reif, OHNE dass ein Run endet', () => {
     updateMeta({ seedStash: 1, totalWavesSurvived: 0 });
     const crossIndex = loadMeta().breedGeneration;
-    consumeSeedAndEnqueueCross(deriveGachaSeed(crossIndex), crossIndex, 0);
+    const gachaSeed = deriveGachaSeed(crossIndex);
+    const roll = rollGachaCross(BASES, gachaSeed, crossIndex)!;
+    consumeSeedAndEnqueueCross(gachaSeed, crossIndex, 0, roll.child, roll.parentA.id, roll.parentB.id);
 
     for (let w = 0; w < wavesToUnlockFor(crossIndex); w++) advanceCrossMaturation(1);
 
@@ -132,7 +135,9 @@ describe('B15.2 — Reifung tickt an WAVE_COMPLETED', () => {
   it('Queue-Eintrag überlebt das Run-Ende (kein Datenverwerfen, A13.12)', () => {
     updateMeta({ seedStash: 1, totalWavesSurvived: 0 });
     const crossIndex = loadMeta().breedGeneration;
-    consumeSeedAndEnqueueCross(deriveGachaSeed(crossIndex), crossIndex, 0);
+    const gachaSeed = deriveGachaSeed(crossIndex);
+    const roll = rollGachaCross(BASES, gachaSeed, crossIndex)!;
+    consumeSeedAndEnqueueCross(gachaSeed, crossIndex, 0, roll.child, roll.parentA.id, roll.parentB.id);
 
     advanceCrossMaturation(wavesToUnlockFor(crossIndex));
 

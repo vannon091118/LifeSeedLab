@@ -50,4 +50,15 @@ describe('Phase 5 gate: source validation', () => {
       expect(extras.length, base.id).toBeGreaterThan(0);
     }
   });
+
+  it('route resolution: one fallback truth for every consumer', async () => {
+    const { resolveActiveRoute, ENEMY_PATH } = await import('./world.source');
+    // null ⇒ DEFAULT-Pfad (dieselbe Referenz wie die Konfiguration — keine Kopien)
+    expect(resolveActiveRoute(null)).toBe(ENEMY_PATH);
+    // Zu kurz (keine Verbindung) ⇒ ebenfalls DEFAULT
+    expect(resolveActiveRoute([{ x: 0, y: 0 }])).toBe(ENEMY_PATH);
+    // Gültige Route ⇒ unverändert durchgereicht
+    const route = [{ x: 1, y: 1 }, { x: 2, y: 1 }];
+    expect(resolveActiveRoute(route)).toBe(route);
+  });
 });

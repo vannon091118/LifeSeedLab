@@ -1,8 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { SimulationRoot, makeCommand } from './root';
 import { resetIds } from '../core/ids';
+import { resolveActiveRoute } from '../config/world.source';
 
 const SEED = 555001;
+
+/** B16.1-Vertrag: die Route wird aus dem STATE gelesen (public contract) —
+ *  kein Griff in private System-Felder mehr (der alte getRoute-Umweg ist tot). */
+function routeOf(root: SimulationRoot) {
+  return root.getSnapshot().currentRoute;
+}
 
 describe('Map-System (P5) — Laufweg reagiert REAL auf Platzierungen', () => {
   beforeEach(() => resetIds());
@@ -17,18 +24,16 @@ describe('Map-System (P5) — Laufweg reagiert REAL auf Platzierungen', () => {
     expect(s.resources.energy).toBeLessThan(energyBefore);
   });
 
-  it('Weg-Tiles verlängern die Route (Gegner laufen REAL länger — Umweg wird begehbar)', () => {
-    // Mit leerer Map läuft die DEFAULT-Route (9 Wegpunkte, ENEMY_PATH)
-    const plain = new SimulationRoot({ seed: SEED });
-    plain.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
-    plain.stepOnce();
-    const routePlain = (plain as unknown as { enemies: { getRoute(): unknown } }).enemies.getRoute();
-    expect(routePlain).toBeNull(); // keine Tiles ⇒ DEFAULT-Pfad
-
-    // Findlings-Mauer im Baubereich (gx 4, gy 2-7 = 6 Zellen, maxCount 6)
-    // Die Route MUSS real durch Gy 8/9 ausweichen
+  it('Ohne Spieler-Tiles ist currentRoute NULL (bewusster Wert, keine leere Route)', () => {
     const root = new SimulationRoot({ seed: SEED });
-    root.getSnapshot().resources.energy = 1000;
+    root.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
+    root.stepOnce();
+    expect(routeOf(root)).toBeNull();
+  });
+
+  it('Weg-Tiles verlängern die Route (Gegner laufen REAL länger — Umweg wird begehbar)', () => {
+    // Findlings-Mauer im Baubereich (gx 4, gy 2-7 = 6 Zellen, maxCount 6)
+    const root = new SimulationRoot({ seed: SEED });
     const walls: [number, number][] = [
       [4, 2], [4, 3], [4, 4], [4, 5], [4, 6], [4, 7],
     ];
@@ -39,8 +44,8 @@ describe('Map-System (P5) — Laufweg reagiert REAL auf Platzierungen', () => {
     root.stepOnce();
     root.commands.push(makeCommand(1, 'START_WAVE', seq++, {}));
     root.stepOnce();
-    const route = (root as unknown as { enemies: { getRoute(): { x: number; y: number }[] | null } }).enemies.getRoute();
-    // Die Route MUSS existieren (Umweg über Gy 8/9) und dort ausweichen
+
+    const route = routeOf(root);
     expect(route).not.toBeNull();
     expect(route!.length).toBeGreaterThan(8);
     // Kein Wegpunkt in einer MAUER-Zelle (Spalte 4, Zeilen 2–7) …
@@ -50,19 +55,26 @@ describe('Map-System (P5) — Laufweg reagiert REAL auf Platzierungen', () => {
       const isWallCell = cellX === 4 && cellY >= 2 && cellY <= 7;
       expect(isWallCell).toBe(false);
     }
-    // … und die Route läuft unten vorbei (Zeile 8 oder 9)
-    // Die Route ist länger als die DEFAULT-Route (9 Wegpunkte)
-    expect(route!.length).toBeGreaterThan(8);
-    // Die Route verläuft entweder oberhalb (y<2) oder unterhalb (y>7) der Mauer
-    const goesAbove = route!.some(wp => {
-      const cellY = Math.round(wp.y - 0.5);
-      return cellY < 2;
-    });
-    const goesBelow = route!.some(wp => {
-      const cellY = Math.round(wp.y - 0.5);
-      return cellY > 7;
-    });
+    // … und die Route läuft oberhalb (y<2) oder unterhalb (y>7) der Mauer vorbei
+    const goesAbove = route!.some(wp => Math.round(wp.y - 0.5) < 2);
+    const goesBelow = route!.some(wp => Math.round(wp.y - 0.5) > 7);
     expect(goesAbove || goesBelow).toBe(true);
+  });
+
+  it('B16.1-Vertrag: EnemySystem liest dieselbe aktive Route wie Rendering/UI (keine zweite Kopie)', () => {
+    const root = new SimulationRoot({ seed: SEED });
+    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 6, gy: 3, tile: 'path' }));
+    root.stepOnce();
+    root.commands.push(makeCommand(1, 'START_WAVE', 2, {}));
+    root.stepOnce();
+
+    const enemies = (root as unknown as { enemies: { activePath(s: unknown): ReadonlyArray<{ x: number; y: number }> } }).enemies;
+    const snap = root.getSnapshot();
+    const stateRoute = snap.currentRoute;
+    expect(stateRoute).not.toBeNull();
+    // Parität: die Wegpunkte der Gegner SIND die State-Route (Auflösung: eine Quelle).
+    // Identität gilt je Snapshot — getSnapshot() klont tief, zwei Snaps wären zwei Arrays.
+    expect(enemies.activePath(snap)).toBe(resolveActiveRoute(stateRoute));
   });
 
   it('TILE_REJECTED bei max_count (Boulder-Limit 6 schützt vor Weg-Mauern)', () => {
@@ -71,7 +83,6 @@ describe('Map-System (P5) — Laufweg reagiert REAL auf Platzierungen', () => {
     let lastReason = '';
     root.bus.subscribe('TILE_REJECTED', (e) => { rejected++; lastReason = (e as unknown as { payload: { reason: string } }).payload.reason; });
     // 7 unterscheidliche Zellen im Baubereich (gx 2-9, gy 2-9)
-    root.getSnapshot().resources.energy = 1000;
     let seq = 1;
     for (let i = 0; i < 7; i++) {
       root.commands.push(makeCommand(0, 'PLACE_TILE', seq++, { gx: 2 + i, gy: 6, tile: 'boulder' }));

@@ -148,12 +148,10 @@ describe('B17.3 → Keep: die Sackgasse ist zu (Ende-zu-Ende)', () => {
 
     // … Kreuzung reifen lassen und behalten (2→1: jetzt 1 Pflanze im Bestand)
     updateMeta({ totalWavesSurvived: 99 });
-    consumeSeedAndEnqueueCross(1234, crossIndex, 0);
-    const meta1 = loadMeta();
-    const entry = meta1.pendingCrosses.find(c => c.crossIndex === crossIndex)!;
-    const owned = createBaseVariants().filter(v => (meta1.variantCounts[v.id] ?? 0) > 0);
-    const roll = rollGachaCross(owned, entry.seed, entry.crossIndex)!;
-    const kept = keepCross(roll.child, roll.parentA.id, roll.parentB.id, entry.crossIndex)!;
+    const gachaSeed = 1234;
+    const roll = rollGachaCross(createBaseVariants(), gachaSeed, crossIndex)!;
+    consumeSeedAndEnqueueCross(gachaSeed, crossIndex, 0, roll.child, roll.parentA.id, roll.parentB.id);
+    const kept = keepCross(roll.child, roll.parentA.id, roll.parentB.id, crossIndex)!;
     expect(kept.variantCounts.sprout + kept.variantCounts.rootwall).toBeLessThanOrEqual(1);
 
     // … der Ausweg: Kaufen keimt zur Pflanze — Bestand wächst wieder
