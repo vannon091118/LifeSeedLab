@@ -7,7 +7,7 @@
 - **Gate-Status:** Shinon als Commit+Push-Executor aktiv (Gate → Komponist → Push-Executor).
 - **Onboarding:** Scanner (`.agents/skills/lifeseedlab-onboarding/scripts/scan.mjs`) implementiert und verifiziert.
 - **Zuletzt gehärtet (`ebb4913`):** Snapshot-Kopien (`getSnapshot`/`getEventLog`), atomares Aussäen (`consumeSeedAndEnqueueCross`), IDB-Parität im Quarantäne-/Checksum-Vertrag, event-getriebenes Run-Ende statt RAF-Polling.
-- **Befundlage:** `docs/quality/quality-spec.md` **A13** (Identitäts-/Lifecycle-Lücken). **B14 ist umgesetzt** (A13.1–A13.7, A13.9, A13.10). Offen: **A13.8** (Snapshot-Budget), **A13.11** (Prüfpunkt `nextScopedId`), **A13.12** (Zucht-Schleife unerreichbar) und **A13.13** (`rollGachaCross` ist reihenfolge-abhängig) — die letzten beiden gehen in Auftrag **B15**.
+- **Befundlage:** `docs/quality/quality-spec.md` **A13** (Identitäts-/Lifecycle-Lücken). **B14 ist umgesetzt** (A13.1–A13.7, A13.9, A13.10). Offen: **A13.8** (Snapshot-Budget), **A13.11** (Prüfpunkt `nextScopedId`); **B16.1 (Route sichtbar) ist umgesetzt** (2026-09-16), B16.2–B16.5 bleiben offen.
 
 ## 2. Dokumentationskarte
 Alle relevanten Dokumente befinden sich nun unter `docs/`:
@@ -78,14 +78,14 @@ Alle relevanten Dokumente befinden sich nun unter `docs/`:
 3. ✅ **B17.3 — Bestandsquelle = Option A.** Ein Kauf keimt **direkt** zur Pflanze (`buySeedAndGerminate`, ein atomarer Schritt, fail-closed ohne Nektar); Keim-Identität `seed_{index}` deterministisch aus dem Spiel-Seed (Discovery-Chain-Vertrag). Der test-gelockte Elternverbrauch (Keep 2→1) bleibt unangetastet.
 4. ✅ **B17.4 — Fortschrittsregel = Option A.** Jede angebrochene Welle zählt +1 (`WAVE_STARTED`); Tod in Welle 1 bringt genau +1. „Keine Runde bringt was" ist strukturell unmöglich; das E2E-Gate lockt +0 und +2 als Defekte.
 
-**Nächster offener Block — B16** (Route sichtbar machen, Genom-Modell schärfen, E2E-Geometrie), danach die Mid-Term-Messschiene (B14.7 Snapshot-Budget, Bibliotheks-Wachstum).
+**Nächster offener Block — B16** (Genom-Modell schärfen B16.2–B16.5, E2E-Geometrie B16.9; Route sichtbar = B16.1 ✅ umgesetzt), danach die Mid-Term-Messschiene (B14.7 Snapshot-Budget, Bibliotheks-Wachstum).
 
 **B18.1 — Loadout bedienbar (umgesetzt):** Das Menü trennt **Loadout (n/4, Mitnehmen/Ablegen über `toggleLoadout`)** von der Sammlung; gezüchtete Pflanzen erreichen den Run. Offen: **B18.2** Sichtbeweis, dass ein Kind im Run sichtbar anders spielt/aussieht (Verdrahtung steht, Bestätigung im Spielbetrieb).
 
 ### 🟡 Mid-Term — Messen statt hoffen
 
 6. **B14.7 — Snapshot-Budget.** Der 10-Hz-HUD-Pfad klont den vollen `SimState`; gegen **B12** (frame ≤ 16 ms, sim ≤ 2 ms, 390×844) messen und entdrosseln (A13.8).
-7. **E2E-Suite in den Sprint-Abschluss einhängen — erledigt, zu verifizieren bleibt die Disziplin.** Die Suite liegt jetzt in `tests/` (11 Tests: Router, Platzierung, Run-Screen, Preview) und läuft grün; Stufe 2 des verbindlichen Sprint-Abschlusses (`AGENTS.md`) ist damit ausführbar und über `git-noir/shinon` als eigene Gate-Stufe registriert. Offen: die Specs decken den glücklichen Pfad ab — Spielverlust, Wellen-Ende und das Fortschreiten der Reifung fehlen.
+7. **E2E-Suite in den Sprint-Abschluss einhängen — erledigt; die Lücken sind geschlossen.** Die Suite liegt jetzt in `tests/` (25 Tests: Router, Platzierung, Run-Screen, Preview, Mechanik-Schnellchecks, Progression) und läuft grün; Stufe 2 des verbindlichen Sprint-Abschlusses (`AGENTS.md`) ist damit ausführbar und über `git-noir/shinon` als eigene Gate-Stufe registriert. **Spielverlust, Wellen-Ende und Reifungs-Fortschritt sind abgedeckt** (`tests/progression.spec.ts`): Der DevGate-Fast-Forward (`window.__ff`, nur hinter `?dev=1`, `src/dev/testHooks.ts`) führt deterministische `stepOnce()`-Ticks synchron aus — derselbe öffentliche Pipeline-Einstieg wie der RAF-Loop, keine State-Injection. Dabei aufgedeckt und behoben: **B19.1** Zombie-Sim nach Game-Over (Sim-Effect-Rebuild durch mid-run `onMetaChange` — frischer Root hinter dem Overlay auto-startete Wellen, blähte die Reifung auf und machte tote Runs resumierbar; Fix: Effect-Deps auf `[seed, runId, onMetaChange, devActive]`, Remount nur via `key={meta.runId}`) und **B19.2** Sow-Gate ohne Stash (B17.3 Option A lässt `seedStash` strukturell bei 0 — `consumeSeedAndEnqueueCross` forderte trotzdem 1 Stash ⇒ Zucht-Schleife unerreichbar, A13.12-Regression; Fix: Aussaat frei, Kosten verbleiben im Elternverbrauch beim Keep).
 8. **`nextScopedId`-Injektivität prüfen.** Hash- statt Zähler-Kennung (`% 9000`) ist kollisionstheoretisch offen (A13.11).
 9. **Entscheidung Track-Zugehörigkeit des Styleframes** (`docs/art/` gitignoriert) — entweder Ausnahme in `.gitignore` oder Verweis aus B0.9 entfernen (A13.9).
 10. **Bibliotheks-Wachstum messen (B16.8-Nachlauf).** Die Kappungs-Entscheidung („Identität ist unverletzlich") beruht auf der 2ⁿ-Kostenkurve als natürlicher Bremse; das reale Save-Wachstum wird gegen B12 gemessen, nicht behauptet.

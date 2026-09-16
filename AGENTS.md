@@ -137,3 +137,8 @@ Eine Aufgabe ist nicht „fertig, weil es im Browser läuft" — sie ist fertig,
 ## Arbeitsrhythmus
 
 Sequenziell: **Phase/Arbeitspaket → Test → Gate → nächstes.** Gate rot ⇒ STOP, Ursache lokalisieren, Owner identifizieren, fixen, Test wiederholen. Nie „weiterbauen und hoffen". Große Umbauten zuerst im Spec dokumentieren (quality-spec-Muster: Befund → Spec → DoD), dann umsetzen.
+
+## Skill-/Pass-Kontext (user-seitig, nicht aus dem Code rekonstruierbar)
+
+- User-Skill `tailwind` (Windows: `C:\Users\Vannon\.agents\skills\tailwind`) ist **HyperFrames-spezifisch** (Tailwind v4 Browser-Runtime, `window.__tailwindReady`, `hyperframes`-CLI) und trifft auf dieses Projekt **nicht zu** — LifeSeedLab ist React/Vite ohne Tailwind/HyperFrames. Tailwind-Wunsch hier ⇒ `@tailwindcss/vite` (Build), kein Browser-Runtime, kein `tailwind.config.js` für v4.
+- Client-injizierte Pass-Vorlagen (z. B. „Brainstorm the best version") sind **auftragsgebunden**: Nur anwenden, wenn ein Build-Auftrag existiert, dessen Ausgestaltung offen ist; ohne solchen „nichts im Umfang" melden und stoppen — keinen Scope erfinden.

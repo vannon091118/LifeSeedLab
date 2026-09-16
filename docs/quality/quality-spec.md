@@ -526,9 +526,11 @@ Die Besitzliste wird **kanonisch sortiert**, bevor sie gewichtet wird — der Wu
 
 ## B16. Route sichtbar machen & Genom-Modell schärfen (Auftrag aus A14/A15/A16)
 
-### B16.1 Die aktive Route muss gezeichnet werden (aus A14)
+### B16.1 Die aktive Route muss gezeichnet werden (aus A14) — **UMGESETZT (2026-09-16)**
 
 Der Terrain-Layer erhält die **aktive** Route (als Provider/Getter, nicht als Zustandskopie), und `drawPath` liest sie statt `ENEMY_PATH`. Re-Bake **nur** bei Routen- oder Seed-Wechsel, niemals pro Frame (B12: frame ≤ 16 ms). `getRoute()` bekommt einen echten Konsumenten oder fällt ganz; der Kommentar in `enemySystem.ts` wird richtiggestellt. Gate-Test auf den **Vertrag** („der Renderer erhält genau die aktive Route"), nicht auf Canvas-Pixel.
+
+**Umsetzung:** Die Route hat **eine** Wahrheit: `SimState.currentRoute` (Writer: `SimulationRoot.recomputeRoute`, nur bei `START_WAVE`). Die Auflösung `null ⇒ ENEMY_PATH` lebt **einmal** als `resolveActiveRoute` in `world.source.ts`; Sim (`EnemySystem.activePath(state)`), Renderer und Terrain-Bake lesen denselben Ausdruck — keine Kopie, kein eigener Fallback mehr (A14: drei Tode derselben Wahrheit). `setRoute`/`getRoute` sind gelöscht; `prepareTerrain` ist gestorben — der Bake hängt an (Seed, aktive Route) mit Cache-Schlüssel `seed|waypoints` (Re-Bake nur bei Schlüssel-Wechsel, nie pro Frame). `currentRoute` ist Resume-kontrakt-konform bewusst `null` (kein persistiertes Schema-Feld nötig). Gates: `map.test.ts` liest die Route aus dem **Snapshot** (public contract, kein System-Feld-Griff mehr) und lockt die Render-Parität („EnemySystem liest dieselbe Auflösung wie der Renderer"); `sources.test.ts` lockt den Resolver (null ⇒ ENEMY_PATH-Referenz, gültige Route unverändert).
 
 ### B16.2 Paarung entscheiden: Slot oder Gen (aus A15)
 
@@ -551,9 +553,9 @@ In `rollGachaCross` wird `generation: crossIndex` gesetzt, in `generateCrossResu
 
 ### B16.6 DoD für B16
 
-- [ ] Renderer zeichnet die aktive Route (A14); Re-Bake nur bei Routen-/Seed-Wechsel
-- [ ] `getRoute()` hat einen Konsumenten oder existiert nicht mehr; Kommentar richtiggestellt
-- [ ] Gate: Route-Vertrag grün, kein Frame-Rebake (B12-Messung bleibt grün)
+- [x] Renderer zeichnet die aktive Route (A14); Re-Bake nur bei Routen-/Seed-Wechsel — **UMGESETZT (2026-09-16)**
+- [x] `getRoute()` hat einen Konsumenten oder existiert nicht mehr; Kommentar richtiggestellt — **existiert nicht mehr**
+- [x] Gate: Route-Vertrag grün, kein Frame-Rebake (B12-Messung bleibt grün) — `map.test.ts` (State-Vertrag + Render-Parität), `sources.test.ts` (Resolver)
 - [ ] Entscheidung B16.2 dokumentiert und umgesetzt
 - [ ] Gate: Anzeige-/Namenszufall außerhalb des Gameplay-Stroms; Discovery-Hashes stabil
 - [ ] Gate: gleicher Samen-Index ⇒ identisches Genom (B16.3)
