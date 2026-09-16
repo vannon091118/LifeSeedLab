@@ -9,6 +9,8 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ## Unreleased (Arbeitsstand 16.09.2026, noch nicht committet)
 
+- [Gate] Agenten-Footer verboten (MSG006): „🤖 Generated with …“ und „Co-Authored-By: Codebuff <noreply@codebuff.com>“ schließen das Commit-Gate jetzt als Fehler — maschinelle Signaturen haben in der Historie nichts verloren. Menschliche Co-Authored-By-Zeilen bleiben erlaubt. Selbsttest um vier Fälle erweitert (14 bestanden).
+
 - [B26] Audit-Freigabe: Die Audit-Änderungen (Genom→Visual-Split, Farb-Utils-Eine-Quelle, GameView/MainMenu-Memoisierung, i18n-Bereinigung, Versions-Bump-Schutz) sind committed. Dabei stellte sich heraus, dass der vorausgehende B24-Commit (`38564d5`) den verschobenen Tutorial-Test mit alter Import-Pfade-Fassung enthielt — der Cloudflare-Build lief deshalb rot (TS2307, `./controller` nicht gefunden). Lokal war der Stand längst korrekt; der Commit enthielt nur die halbe Strecke. Der Befund ist mit dem Commit `7c01208` behoben.
 - [Chore] README-Aktualisierung (Shinon-Starter) und Versions-Bump 0.0.24 als eigener Commit nachgeschoben.
 
