@@ -3,6 +3,7 @@ import { createBaseVariants } from '../genome';
 import { toggleLoadout } from '../meta';
 import { useI18n } from '../i18n';
 import { SproutIcon, WaveIcon, BookIcon, SwordIcon, SeedIcon, BugIcon } from './MenuIcons';
+import { APP_VERSION_LABEL } from '../version';
 import type { MenuScreen } from './NavIndicators';
 
 // Owner: UI (MainMenu = Hub-Kärtchen). LOC ≤ 400.
@@ -136,7 +137,7 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onNavigate, resumeWav
       </div>
 
       <p style={styles.footer} aria-hidden>
-        LifeSeedLab v0.1 — hier wurde nicht gespart, hier wurde gesparst. popup-blocker empfohlen.
+        LifeSeedLab {APP_VERSION_LABEL} — hier wurde nicht gespart, hier wurde gesparst. popup-blocker empfohlen.
       </p>
     </div>
   );

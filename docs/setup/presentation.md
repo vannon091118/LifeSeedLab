@@ -194,8 +194,8 @@ Observer: Event → VisualCommand (color/palette IN Payload)
 
 | Version | Fokus | Ziel |
 |---|---|---|
-| **v0.1** (Current) | Core deterministisch, Zucht-Logik, Basis-Render | ✅ Done |
-| **v0.2** | B1–B3: Run-Identity, Persistenz, Placement UX | 🔄 In Arbeit |
+| **v0.1** | Core deterministisch, Zucht-Logik, Basis-Render | ✅ Done |
+| **v0.2** (Current) | B1–B3: Run-Identity, Persistenz, Placement UX | ✅ Ausgeliefert (B21.3/B22) |
 | **v0.3** | B4–B6: Genome→Visual, FX-Matrix, Effect-Chain | ⏳ Q1 2025 |
 | **v0.4** | B7/B9/B10: Screens, Art, Renderer-Rewrite | ⏳ Q2 2025 |
 | **v0.5** | B12/B13: Mobile Perf, DoD, Polish | ⏳ Q2 2025 |
