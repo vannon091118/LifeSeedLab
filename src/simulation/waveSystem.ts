@@ -5,7 +5,8 @@ import type { SimState } from './state';
 import { makeEvent, type GameEvent } from '../bus/events';
 import { generateWaveSchedule, waveEnemyCount, type WaveSchedule } from '../config/enemies.source';
 import { makeRng } from '../core/rng';
-import { AUTO_WAVE_DELAY_TICKS } from '../config/economy.source';
+import { autoStartDue } from './waveTiming';
+import { PREP_WAITS_FOR_FIRST_PLANT } from '../config/economy.source';
 
 export class WaveSystem {
   private seq = 0;
@@ -72,15 +73,28 @@ export class WaveSystem {
     return reward;
   }
 
-  /** Auto-Wellen: in prep nach AUTO_WAVE_DELAY_TICKS automatisch die nächste Welle starten. */
+  /**
+   * Auto-Wellen: in prep nach AUTO_WAVE_DELAY_TICKS automatisch die nächste Welle starten.
+   *
+   * B23.1: Solange nichts steht, wartet das Labor — und das Fenster beginnt erst mit der ersten
+   * Pflanze: der Anker (`prepStartTick`, Besitz dieses Systems) wird nachgezogen, solange das Feld
+   * leer ist. Warten kostet also keine Zeit; vorher lief Welle 1 drei Sekunden nach Betreten des
+   * Feldes los und der Spieler verlor mit Score 0, bevor er eine Entscheidung treffen konnte.
+   */
   maybeAutoStart(state: SimState): boolean {
     if (state.phase !== 'prep') return false;
-    const start = state.wave.prepStartTick;
-    if (start == null) return false;
-    if (state.clock.tick - start >= AUTO_WAVE_DELAY_TICKS) {
-      return this.startWave(state);
+    if (state.wave.prepStartTick === null) return false;
+    if (PREP_WAITS_FOR_FIRST_PLANT && state.plants.length === 0) {
+      state.wave.prepStartTick = state.clock.tick;
+      return false;
     }
-    return false;
+    if (!autoStartDue({
+      phase: state.phase,
+      prepStartTick: state.wave.prepStartTick,
+      tick: state.clock.tick,
+      plantCount: state.plants.length,
+    })) return false;
+    return this.startWave(state);
   }
 
   /** Current schedule accessor (pre-generation for UI previews). */

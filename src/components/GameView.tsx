@@ -30,6 +30,7 @@ import { recordRunEnd, advanceCrossMaturation, updateMeta } from '../meta';
 import { GameDevPanel } from './GameDevPanel';
 import { GameTopBar } from './GameTopBar';
 import { TutorialLayer } from './tutorial/TutorialLayer';
+import { FieldToast } from './FieldToast';
 import { DropChipIcon, LivesChipIcon, WaveChipIcon } from './GameIcons';
 import { gameViewStyles as styles } from './gameViewStyles';
 import { hudOf, type HudSnapshot } from './hudSnapshot';
@@ -312,6 +313,8 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
       <GameTopBar
         wave={hud?.wave ?? 1}
         paused={hud?.paused ?? false}
+        phase={hud?.phase ?? 'prep'}
+        prepTicksLeft={hud?.prepTicksLeft ?? null}
         canDeployBeetle={beetles.length > 0 && !hud?.beetleDeployed}
         deployLabel={beetles[beetles.length - 1]?.name ?? ''}
         onTogglePause={togglePause}
@@ -342,6 +345,8 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
           {placement.variantId !== null || placement.mode !== 'plant' ? (
             <button onClick={cancelPlacement} style={styles.cancelBtn} aria-label="Platzierung abbrechen">✕ Abbrechen</button>
           ) : null}
+          {/* B23.3: Der Grund stand im Controller, nur nie auf dem Schirm. */}
+          <FieldToast rejection={placement.rejection} tick={hud?.tick ?? 0} />
           <GameDevPanel
             active={devActive && rootRef.current !== null}
             revision={devTick}

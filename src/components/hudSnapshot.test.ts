@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SimulationRoot } from '../simulation/root';
+import { SimulationRoot, makeCommand } from '../simulation/root';
 import { hudOf } from './hudSnapshot';
 
 /**
@@ -26,6 +26,20 @@ describe('HudSnapshot — Bestand ab dem ersten Bild', () => {
     expect(hud.combo).toBe(0);
     expect(hud.beetleDeployed).toBe(false);
     expect(hud.paused).toBe(false);
+    expect(hud.tick).toBe(0);
+    // B23.1: leeres Feld ⇒ kein Auto-Start. Das HUD sagt damit dieselbe Wahrheit wie das WaveSystem.
+    expect(hud.prepTicksLeft).toBeNull();
+  });
+
+  it('meldet die Restzeit, sobald eine Pflanze steht (B23.1/2)', () => {
+    const root = new SimulationRoot({ seed: SEED, runId: 1 });
+    root.commands.push(makeCommand(root.clock.get().tick, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 1, gy: 2 }));
+    root.stepOnce();
+    root.stepOnce();
+
+    const hud = hudOf(root.getSnapshot(), false);
+    expect(hud.prepTicksLeft).not.toBeNull();
+    expect(hud.prepTicksLeft as number).toBeGreaterThan(0);
   });
 
   it('kopiert das Inventar — das Abbild darf die Sim nicht aliasing-verkoppeln', () => {

@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import { useI18n } from '../i18n';
+import { formatScore } from './numberFormat';
 
 // Owner: UI (Game-Over- und Suspend-Overlays). LOC ≤ 400.
 // B2: „Tippen zum Fortsetzen" nach App-Wechsel. B7: Game-Over-Karte mit Ergebnis und Ausstieg.
@@ -23,7 +24,7 @@ export function GameOverlays({ gameOver, suspended, wave, score, onNewRun, onMen
         <div style={styles.backdrop}>
           <div style={styles.card}>
             <div style={styles.title}>{t('game.gameover')}</div>
-            <div style={styles.sub}>{t('game.wave')} {wave} • {t('over.score')} {score}</div>
+            <div style={styles.sub}>{t('game.wave')} {wave} • {t('over.score')} {formatScore(score)}</div>
             <div style={styles.row}>
               <button onClick={onNewRun} style={{ ...styles.btn, ...styles.btnPrimary }}>{t('over.retry')}</button>
               <button onClick={onMenu} style={styles.btn}>{t('over.toMenu')}</button>

@@ -803,3 +803,56 @@ in den Sim-State hinein).
 - [ ] HUD-Aufbau existiert genau einmal (Takt + Mount teilen `hudOf`) — kein zweites Snapshot-Literal
 - [ ] `GameView` bleibt ≤ 400 LOC; `tsc` clean, Suite grün, `vite build` grün
 - [ ] `progression.spec.ts:142 → :169` in Folge grün (vorher reproduzierbar rot)
+
+---
+
+## B23. Aufbauphase, phasenrichtiger Wellen-Knopf, sichtbare Ablehnung (Befund: zwei Spielerberichte)
+
+### B23.1 Befund
+
+Zwei unabhängige Spielerberichte (16.09., Erstspieler-Test und externer Playtest) melden denselben
+Kern: „Ich verliere in Welle 1, bevor ich eine Pflanze stehen habe" (beide: Game Over in Welle 1–2
+mit Score 0), „bei ungültigem Platzieren passierte sichtbar nichts", „Start Wave tut mitten in der
+Welle nichts", und das Game-Over-Blatt zeigte „243.09999999999997".
+
+Im Code verifiziert:
+
+1. `root.ts` setzt `prepStartTick` beim Run-Start, `maybeAutoStart` zündet nach
+   `AUTO_WAVE_DELAY_TICKS` (90 Ticks = 3 s) — unabhängig davon, ob etwas steht.
+2. Der `PlacementController` kennt jeden Ablehnungsgrund (`rejection.reason`) — **gerendert wurde
+   davon nichts**. Der FX (Shake, roter Blitz) feuerte; ein Text, WARUM, gab es nie.
+3. `GameTopBar` zeichnete den Wellen-Knopf phasenblind: immer „Start Wave", auch während der
+   laufenden Welle (wo `START_WAVE` in der Sim `false` zurückgibt).
+4. Der Score ist eine Kombi-vervielfachte Sim-Größe und legitim gebrochen — angezeigt wurde er roh.
+
+### B23.2 Spec
+
+1. **Eine Quelle für Wellen-Timing** (`simulation/waveTiming.ts`): `autoStartTicksLeft` beantwortet,
+   wann die Welle von selbst startet — das WaveSystem entscheidet damit, das HUD zeigt damit. Die
+   Regel steht einmal, nicht als Verhalten UND Anzeige.
+2. **Aufbauphase** (`PREP_WAITS_FOR_FIRST_PLANT` in `economy.source`): mit leerem Feld startet
+   keine Welle von selbst — und der Anker (`prepStartTick`) wird nachgezogen, solange nichts
+   steht. Warten kostet also keine Zeit; der Wellen-Knopf bleibt der Ausweg (kein Softlock), und
+   ab der ersten Pflanze gilt wieder das normale Fenster.
+3. **Der Knopf bleibt die Handlung**: in der Vorbereitung steht er immer als „Welle starten" da
+   (erkennbar drückbar), der Countdown und der Wartehinweis stehen als Hinweiszeile darunter.
+   Während der Welle wird aus dem Knopf eine Anzeige („Welle n läuft", deaktiviert).
+4. **Ablehnung sichtbar** (`FieldToast`): der Grund aus dem Controller wird als Papier-Toast
+   übersetzt — „Auf dem Weg ist kein Platz", „Zu wenig Energie", … Zeitbasis ist der Sim-Tick
+   (keine Wanduhr), die Meldung verblasst nach `TOAST_TICKS` und überlebt keinen Run-Neustart.
+5. **Score als Spielerzahl** (`numberFormat.formatScore`): gerundet wird nur in der Anzeige, nie
+   in der Sim.
+6. **i18n paritätisch**: alle neuen Schlüssel (`wave.*`, `field.reject.*`) in DE und EN.
+
+### B23.3 DoD für B23
+
+- [ ] Leeres Feld ⇒ nach 20 Sim-Sekunden noch Welle 0, keine Gegner, Score 0 — Lock: `prep.test.ts` (gegen den echten `SimulationRoot`)
+- [ ] Mit Pflanze läuft das Fenster und die Welle startet von selbst; der Knopf kann jederzeit
+      starten (kein Softlock) — Lock: `prep.test.ts`
+- [ ] Knopf-Zustand rein aus Phase + Restzeit abgeleitet; Beschriftung in prep ist immer die
+      Handlung — Lock: `waveButton.test.ts`
+- [ ] Jeder Ablehnungsgrund hat einen eigenen DE/EN-Text; Toast-Lebensdauer am Sim-Tick, kein
+      Überleben des Run-Neustarts — Lock: `waveButton.test.ts`
+- [ ] Game-Over-Score gerundet (`243.09999999999997 → 243`) — Lock: `waveButton.test.ts`
+- [ ] E2E ohne Warten: `run.spec.ts:163` stößt die Welle selbst an (der Test verteidigt ja nicht)
+- [ ] `tsc` clean, Suite grün, E2E 27/27, `vite build` grün

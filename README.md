@@ -309,13 +309,13 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `cfcbd99` — feat(tutorial): Onboarding beginnt direkt nach der Sprachwahl |
-| Arbeitsbaum | 0 gestaged, 3 geändert, 2 neu |
+| HEAD | `6daac50` — chore(release): Version 0.2.0 aus einer Quelle anzeigen |
+| Arbeitsbaum | 0 gestaged, 11 geändert, 6 neu |
 | Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `cfcbd99` feat(tutorial): Onboarding beginnt direkt nach der Sprachwahl |
+| Letzter Shinon-Commit | `6daac50` chore(release): Version 0.2.0 aus einer Quelle anzeigen |
 | Letzter Push | ✅ origin/main |
-| LOC-Hotspots | `src/config/map.source.ts` 200/200 (100 %)<br>`src/simulation/root.ts` 292/300 (97 %)<br>`src/components/GameView.tsx` 388/400 (97 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/simulation/plantSystem.ts` 283/300 (94 %) |
+| LOC-Hotspots | `src/config/map.source.ts` 200/200 (100 %)<br>`src/components/GameView.tsx` 393/400 (98 %)<br>`src/simulation/root.ts` 292/300 (97 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/simulation/plantSystem.ts` 283/300 (94 %) |
 <!-- SHINON:STATUS:END -->
 
 ---

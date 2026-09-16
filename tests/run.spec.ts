@@ -166,6 +166,11 @@ test.describe('Run', () => {
 
     const before = await metaWaves(page);
 
+    // B23.1: Seit der Aufbauphase startet keine Welle mehr von selbst, solange nichts steht —
+    // dieser Test verteidigt absichtlich NICHT. Er stößt die Welle deshalb selbst an: genau so
+    // kommt der Spieler in dieselbe Lage, und der Tod bleibt deterministisch.
+    await page.getByRole('button', { name: /start wave/i }).click();
+
     // Ohne Verteidigung laufen die Grunts durch — der Run endet in Welle 1.
     await expect(page.getByText(/game over/i).first()).toBeVisible({ timeout: 90_000 });
 

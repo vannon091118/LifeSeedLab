@@ -35,6 +35,15 @@ export const COINS_PER_KILL_MAX = 5;
 /** Auto-Wellen: Ticks in 'prep' bis die nächste Welle automatisch startet. */
 export const AUTO_WAVE_DELAY_TICKS = 90; // 3s bei 30tps
 
+/**
+ * B23.1 (Befund beider Spielerberichte): Solange KEINE Pflanze steht, startet keine Welle von
+ * selbst — das Labor wartet auf die erste Platzierung. Vorher lief Welle 1 drei Sekunden nach
+ * Betreten des Feldes los: wer erst las oder ausprobierte, verlor mit Score 0.
+ * Der Wellen-Knopf bleibt der Ausweg (kein Softlock), und sobald etwas steht, gilt wieder
+ * AUTO_WAVE_DELAY_TICKS. Gilt für jede Vorbereitung mit leerem Feld, nicht nur für Welle 1.
+ */
+export const PREP_WAITS_FOR_FIRST_PLANT = true;
+
 /** Wachstum:Ticks bis zur Reife je Seltenheit (düngen nur währenddessen). */
 export const GROWTH_TICKS_BY_RARITY: Record<'common' | 'rare' | 'exotic', number> = {
   common: 90,  // 3s

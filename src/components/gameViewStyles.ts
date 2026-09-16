@@ -13,6 +13,9 @@ export const gameViewStyles: Record<string, CSSProperties> = {
   btn: { padding: '10px 14px', background: '#fff', border: '2px solid var(--ink)', borderRadius: 10, color: 'var(--ink)', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '3px 3px 0 var(--ink)', lineHeight: 1, minHeight: 44, minWidth: 44 },
   btnPrimary: { background: 'var(--leaf)', color: '#fff', borderColor: 'var(--ink)' },
   btnBeetle: { background: '#d9a441', color: '#2b2b26', borderColor: 'var(--ink)' },
+  // B23.2: während die Welle läuft ist der Knopf eine Anzeige, kein Knopf mehr.
+  btnDisabled: { background: '#e6dfc9', color: '#6b6250', cursor: 'not-allowed', boxShadow: 'none' },
+  prepHint: { flexBasis: '100%', fontSize: 11, fontWeight: 700, color: '#6b6250', textAlign: 'center', letterSpacing: 0.3 },
   stage: { flex: 1, position: 'relative', minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '10px 10px 8px', background: 'var(--paper)' },
   canvasFrame: { position: 'relative', width: '100%', maxWidth: 860, flex: 1, minHeight: 0, background: '#fff', border: '2px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink), 0 14px 32px rgba(43,43,38,0.16)', overflow: 'hidden', display: 'flex' },
   canvas: { width: '100%', height: '100%', display: 'block', touchAction: 'none', flex: 1 },
