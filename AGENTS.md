@@ -22,9 +22,9 @@ Diese Regeln sind PFLICHT und dürfen nicht übersprungen werden.
 
 ---
 
-## Regel 0 — Changelog‑Pflicht
+## Regel 0 — Changelog‑Pflicht**Vor jedem Commit muss das Changelog (CHANGELOG.md) mit einem neuen Eintrag aktualisiert werden.** Der Eintrag beschreibt die getätigte Änderung im Stil einer einfachen Aufgabenliste (z. B. "- [Ticket] Beschreibung der Änderung"). Danach muss das Changelog staged sein (`git add CHANGELOG.md`). Der pre‑commit‑Hook prüft, dass das Changelog geändert wurde und erhöht automatisch die Patch‑Version in package.json.
 
-**Vor jedem Commit muss das Changelog (CHANGELOG.md) mit einem neuen Eintrag aktualisiert werden.** Der Eintrag beschreibt die getätigte Änderung im Stil einer einfachen Aufgabenliste (z. B. "- [Ticket] Beschreibung der Änderung"). Danach muss das Changelog staged sein (`git add CHANGELOG.md`). Der pre‑commit‑Hook prüft, dass das Changelog geändert wurde und erhöht automatisch die Patch‑Version in package.json.
+Der Hook hebt die Version **nach** der Index-Aufnahme an: `package.json`/`src/version.ts` bleiben danach uncommitted um +1 zurück und werden erst vom nächsten Commit eingesammelt — eingebautes Muster, kein Fehler.
 
 ## Regel 1 — Sprache
 
@@ -115,8 +115,17 @@ abgeschwächter Prüfung:
 Kalt (frisches `node_modules`, erster Lauf nach Änderungen) kostet der erste Durchlauf einmalig
 ~15 s; das ist der Cache-Aufbau, kein Deckel auf das Ergebnis.
 Deshalb vorher `npx tsc -b --noEmit` + `npx vitest run` selbst laufen lassen. Nachrichten per
-`git commit -F <datei>` übergeben (Heredocs hängen in dieser Shell); der `commit-message`-Check liest
-die vorbereitete Nachricht aus `commit_msg.txt` im Repo-Root.
+`git commit -F <datei>` oder `git commit -F -` mit Heredoc übergeben; der `commit-message`-Check liest
+die vorbereitete Nachricht aus `commit_msg.txt` im Repo-Root (bzw. die übergebene Nachricht).
+Selbsttest der Nachrichtenregel: `node git-noir/shinon/cli.ts message --self-test`.
+
+Werkzeug-/Regel-Haken beim Gate:
+- Betreff muss `type(scope): …` folgen (MSG002), > 72 Zeichen ist nur Warnung (MSG003), „#“-Zeilen
+  und fehlende Leerzeile sind Warnungen (MSG004/005).
+- Die File-Lese-/Edit-Werkzeuge liefern für `git-noir/`-Dateien `[BLOCKED]` — Dateien dort per
+  Terminal lesen/schreiben (`cat`/`sed`, python für Zeichen-genaue Ersetzungen).
+- JS-Regex-Quirk beim Bearbeiten der Footer-Regel: `/^🤖?…/` matcht überraschend **nichts** ohne
+  Emoji — Emoji-optional als `/^[\u{1F916}]?…/iu` schreiben.
 
 ## Tests: Determinismus statt E2E für Mechanik-Fragen
 
@@ -148,7 +157,14 @@ node git-noir/shinon/cli.ts finish --all   # Vorbereitung → Gate → Commit �
 Der `post-commit`-Hook ruft zusätzlich Shinons Push-Stufe (`push --auto`): ein grüner Commit liegt
 **automatisch** auf `origin/main` — ein anschließendes `git push` meldet „Everything up-to-date".
 Push-Wahrheit ist deshalb `git ls-remote origin main` gegen `git rev-parse HEAD`, nicht die lokale
-Tracking-Ref.
+Tracking-Ref. Cloudflare deployt jeden Push auf `main` sofort (Build: `npm run build`, Deploy:
+`npx wrangler deploy`).
+
+**Deploy-Parität (grün-lokal ≠ grün-remote):** Der lokale Typecheck prüft den **Worktree**, Cloudflare
+baut den **Commit**. Ein Commit kann dadurch rot deployen, obwohl lokal alles grün war (Befund
+16.09.2026: eine Datei lag im Index in der alten Fassung, der Fix nur im Worktree). Vor dem Abschluss
+prüfen, was wirklich im Commit landet; Reproduktions-Snapshot: `git stash push --keep-index
+--include-untracked` (danach `git stash pop`) zeigt den Index-Stand, den der Commit bekommt.
 
 Details: [`docs/setup/script-readme.md`](docs/setup/script-readme.md). Das Tooling in `git-noir/` ist lokal (gitignoriert): Werkzeug, nicht Inhalt.
 
@@ -163,6 +179,7 @@ Details: [`docs/setup/script-readme.md`](docs/setup/script-readme.md). Das Tooli
 7. Caps erhöhen, um Code unterbringen zu wollen.
 8. Neue Dependencies ohne dokumentierte Begründung + Katalog-Prüfung; nie: Game Engine, State-Manager (derzeit).
 9. Git-Abschluss von Hand: `git commit`/`git push` (siehe Sprint-Abschluss) — nur über Shinon.
+10. Maschinelle Commit-Signaturen: „Generated with …“ und „Co-Authored-By: Codebuff …/@codebuff.com“ sind Gate-Fehler (MSG006) — menschliche Co-Authored-By-Zeilen bleiben erlaubt.
 
 ## Ressourcenkarte (wo schaue ich nach?)
 

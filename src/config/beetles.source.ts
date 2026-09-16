@@ -91,6 +91,8 @@ export const BEETLE_BREED = {
   deployFreezeTicks: 600,
   /** Brutlinge: Werte-Faktor gegen den Specimen (halbe Werte — P6-Spec). */
   broodlingFactor: 0.5,
+  /** Nektar-Kosten je Brutvorgang in der Brutstätte (B27: eine Quelle — vorher hardcoded in BeetleLab). */
+  nektarCost: 35,
 } as const;
 
 /** Brut-Familie: deterministischer Brutlingstyp (ENEMIES_SOURCE-Eintrag, B10). */

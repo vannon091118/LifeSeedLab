@@ -4,7 +4,7 @@ import type { TranslationKey } from '../i18n';
 import { useI18n } from '../i18n';
 import { enqueueBrood, readyBroods, claimBrood } from '../meta';
 import { rollBrood, broodGenomeHash, beetlePower } from '../genome/beetle';
-import { BEETLES_SOURCE, beetleWavesToUnlock } from '../config/beetles.source';
+import { BEETLES_SOURCE, beetleWavesToUnlock, BEETLE_BREED } from '../config/beetles.source';
 import { BugIcon } from './MenuIcons';
 
 // Owner: UI (BeetleLab screen). LOC ≤ 400.
@@ -19,7 +19,8 @@ type Props = {
   onClose: () => void;
 };
 
-const BREED_COST = 35; // Nektar pro Brut (Source: BEETLE_BREED bleibt Sim-Parameter)
+// Befund Übergang UI→Gameplay: der Brut-Kosten-Wert ist Content-Truth (BEETLE_BREED.nektarCost)
+// und wird hier nur noch angezeigt/geprüft — keine Regel im UI (B27).
 
 export function BeetleLab({ meta, onMetaChange, onClose }: Props) {
   const { t } = useI18n();
@@ -41,7 +42,7 @@ export function BeetleLab({ meta, onMetaChange, onClose }: Props) {
 
   const handleBreed = () => {
     if (!parentA || !parentB) { setNote(t('beetle.needTwo')); return; }
-    if (meta.nektar < BREED_COST) { setNote(t('beetle.notEnoughNektar')); return; }
+    if (meta.nektar < BEETLE_BREED.nektarCost) { setNote(t('beetle.notEnoughNektar')); return; }
     const waves = beetleWavesToUnlock(
       preview.reduce((s, c) => s + beetlePower(c.genome), 0) / Math.max(1, preview.length)
     );
@@ -92,8 +93,8 @@ export function BeetleLab({ meta, onMetaChange, onClose }: Props) {
           })}
         </div>
 
-        <button onClick={handleBreed} style={{ ...styles.breedBtn, opacity: meta.nektar < BREED_COST ? 0.5 : 1 }} disabled={!parentA || !parentB}>
-          {t('beetle.breed')} (🍯 {BREED_COST})
+        <button onClick={handleBreed} style={{ ...styles.breedBtn, opacity: meta.nektar < BEETLE_BREED.nektarCost ? 0.5 : 1 }} disabled={!parentA || !parentB}>
+          {t('beetle.breed')} (🍯 {BEETLE_BREED.nektarCost})
         </button>
 
         {/* Live-Brutvorschau: die 3 deterministischen Kandidaten */}

@@ -35,12 +35,6 @@ export type PlantVariant = {
   sourceId?: 'sprout' | 'rootwall' | 'mycelia';
 };
 
-// ── Run economy (in-run currency) ────────────────────────────
-export type RunEconomy = {
-  energy: number;
-  nektarEarned: number;
-};
-
 // ── Meta save (persistent across runs) ───────────────────────
 // ── v3 (Gacha-Ökonomie): genau 2 Startpflanzen, Seed-Shop-Besitz, Reifungs-Queue.
 // ── v4 (P6): Käferzucht — Brut-Lager, ein eingesetzter Käfer, Brut-Reifungs-Queue.
@@ -151,12 +145,4 @@ export type BeetleSpecimen = {
   generation?: number;
   parentA?: string;
   parentB?: string;
-};
-
-// ── Seed shop ────────────────────────────────────────────────
-export type SeedOffer = {
-  id: string;          // stabile Angebots-ID (deterministisch aus Meta-Seed)
-  price: number;
-  rarity: 'common' | 'rare' | 'exotic';
-  label: string;       // i18n-agnostischer Hinweis (Rarity-Name im UI übersetzt)
 };

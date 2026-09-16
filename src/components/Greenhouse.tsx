@@ -6,6 +6,9 @@ import { rollGachaCross, deriveGachaSeed, createBaseVariants, type GachaRoll } f
 import { consumeSeedAndEnqueueCross, keepCross, isCrossReady } from '../meta';
 import { wavesToUnlockFor, PENDING_CROSSES_MAX } from '../config/economy.source';
 import { helpText } from '../i18n/help';
+import { resolveVisual, type ResolvedVisual } from '../visual/generator';
+import { genomeToVisualInput } from '../genome/visualMap';
+import { GAME_SEED } from '../config';
 
 // Owner: UI (Greenhouse screen). LOC ≤ 400.
 // GEWÄCHSHAUS — fachlich getrennt vom SeedShop (P2): Hier wird AUSSÄT + REIFUNG +
@@ -136,7 +139,7 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
           <div style={styles.resultCard}>
             <div style={styles.resultTitle}>{t('gacha.result')}</div>
             <div style={styles.childRow}>
-              <div style={{ ...styles.preview, background: lastRoll.child.color }} />
+              <div style={{ ...styles.preview, background: previewColor(lastRoll.child) }} />
               <div style={styles.childInfo}>
                 <strong style={styles.childName}>{lastRoll.child.name}</strong>
                 <div style={styles.traitRow}>
@@ -191,7 +194,7 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
               return (
                 <div key={c.crossIndex} style={styles.pendingReady}>
                   <div style={styles.childRow}>
-                    <div style={{ ...styles.preview, background: roll?.child.color ?? '#ddd' }} />
+                    <div style={{ ...styles.preview, background: roll ? previewColor(roll.child) : '#ddd' }} />
                     <div style={styles.childInfo}>
                       <strong style={styles.childName}>{roll?.child.name ?? t('shop.parentsGone')}</strong>
                       <div style={styles.parentsLine}>
@@ -216,7 +219,7 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
   );
 }
 
-// ── Helpers (pure, module-level) ─────────────────────────────
+// ── Helpers (pure, module-level) ─────────────────────────────────
 // Reife-Prüfung lebt ausschließlich in `meta/economy.ts` (isCrossReady) — keine zweite
 // Ableitung mehr im Screen (A13.7/B14.4). Vorher stand hier eine zweite, die bei unbekanntem
 // `crossIndex` `true` zurückgab (fail-open).
@@ -228,6 +231,15 @@ function useMemoOwned(meta: MetaSave): PlantVariant[] {
     .map(id => BASES.find(v => v.id === id) ?? meta.savedVariants.find(v => v.id === id))
     .filter((v): v is PlantVariant => v !== undefined);
 }
+
+/** Befund Übergang Breeding→Visual (B27): die Vorschau zeigt dieselbe Palette wie der Run —
+ *  `ResolvedVisual.palette.base` aus der echten Pipeline (genomeToVisualInput → resolveVisual),
+ *  nicht den flachen `variant.color`-String. Eine Quelle: dieselbe Ableitung wie GameView. */
+function previewColor(variant: PlantVariant): string {
+  return resolveVisual(genomeToVisualInput(variant, GAME_SEED)).palette.base;
+}
+
+export type { ResolvedVisual };
 
 const styles: Record<string, React.CSSProperties> = {
   // Screen-Betrieb: Vollbild-Inhalt in MenuScreenShell (kein Fixed-Overlay mehr)
