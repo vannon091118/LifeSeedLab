@@ -18,6 +18,9 @@ export interface PlacementTrayProps {
 }
 
 export function PlacementTray({ plantIds, inventory, energy, mode, variantId, onSelectPlant, onSelectTile }: PlacementTrayProps) {
+  // B21: Die ERSTE Karte mit Bestand ist das Cue-Ziel des Onboardings (`data-tut="card"`) — genau
+  // ein Element, damit der blinkende Ring eindeutig ist. Kein State, keine Auswahl-Logik.
+  const firstPlayable = plantIds.find(id => (inventory[id] ?? 0) > 0) ?? null;
   return (
     <div style={styles.tray} role="toolbar" aria-label="Pflanzenauswahl">
       {plantIds.map(id => {
@@ -29,6 +32,7 @@ export function PlacementTray({ plantIds, inventory, energy, mode, variantId, on
           <button
             key={id}
             onPointerDown={() => onSelectPlant(id, count)}
+            data-tut={id === firstPlayable ? 'card' : undefined}
             style={{ ...styles.trayItem, ...(isSelected ? styles.trayItemSelected : {}), ...(disabled ? styles.trayItemDisabled : {}) }}
             aria-pressed={isSelected} aria-disabled={disabled} title={label}
           >

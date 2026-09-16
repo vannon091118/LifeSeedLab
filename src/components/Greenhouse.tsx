@@ -4,7 +4,8 @@ import type { TranslationKey } from '../i18n';
 import { useI18n } from '../i18n';
 import { rollGachaCross, deriveGachaSeed, createBaseVariants, type GachaRoll } from '../genome';
 import { consumeSeedAndEnqueueCross, keepCross, isCrossReady } from '../meta';
-import { wavesToUnlockFor } from '../config/economy.source';
+import { wavesToUnlockFor, PENDING_CROSSES_MAX } from '../config/economy.source';
+import { helpText } from '../i18n/help';
 
 // Owner: UI (Greenhouse screen). LOC ≤ 400.
 // GEWÄCHSHAUS — fachlich getrennt vom SeedShop (P2): Hier wird AUSSÄT + REIFUNG +
@@ -21,15 +22,19 @@ type Props = {
 };
 
 export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [lastRoll, setLastRoll] = useState<GachaRoll | null>(null);
   const [shareNote, setShareNote] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const owned: PlantVariant[] = useMemoOwned(meta);
 
   // B18.3: Aussaat ist frei (B17.3 keimt Käufe direkt — ein Stash-Gate würde die Zucht
   // für immer sperren). Die Kosten liegen im Elternverbrauch beim Keep.
-  const canSow = owned.length >= 2;
+  // B20: fail-closed ODER je Quelle — volle Reifungs-Queue sperrt die Aussaat, sonst
+  // würde `capped()` stillschweigend den ÄLTESTEN (fast reifen) Eintrag werfen.
+  const queueFull = meta.pendingCrosses.length >= PENDING_CROSSES_MAX;
+  const canSow = owned.length >= 2 && !queueFull;
 
   const handleSow = () => {
     if (!canSow) return;
@@ -102,17 +107,28 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
         <div style={styles.header}>
           <h2 style={styles.title}>{t('greenhouse.title')}</h2>
           <div style={styles.headerRight}>
-            <span style={styles.stash}>{t('shop.stash')}: {meta.seedStash}</span>
+            <span style={styles.stash}>{t('shop.pending').replace('{n}', String(meta.pendingCrosses.length)).replace('{m}', String(PENDING_CROSSES_MAX))}</span>
             <button onClick={onClose} style={styles.closeBtn}>✕</button>
           </div>
         </div>
         <p style={styles.desc}>{t('greenhouse.desc')}</p>
         {shareNote && <div style={styles.shareNote}>{shareNote}</div>}
 
+        {/* Spieler-Hilfe (B20): zusammenklappbar — erklärt den kostenlosen Loop */}
+        <button
+          onClick={() => setHelpOpen(o => !o)}
+          aria-expanded={helpOpen}
+          style={styles.helpToggle}
+        >
+          {helpText('help.greenhouse.toggle', lang)}
+        </button>
+        {helpOpen && <div style={styles.helpBox}>{helpText('help.greenhouse', lang)}</div>}
+
         {/* Aussaat */}
         <button onClick={handleSow} disabled={!canSow} style={{ ...styles.sowBtn, opacity: canSow ? 1 : 0.4 }}>
           🌱 {t('shop.sow')}
         </button>
+        {!canSow && queueFull && <div style={styles.hint}>{t('shop.sowEmpty').replace('{n}', String(meta.pendingCrosses.length)).replace('{m}', String(PENDING_CROSSES_MAX))}</div>}
         {!canSow && owned.length < 2 && <div style={styles.hint}>{t('shop.needTwo')}</div>}
 
         {/* Gacha-Ergebnis */}
@@ -134,7 +150,7 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
               {t('gacha.parents')} {lastRoll.parentA.name} × {lastRoll.parentB.name}
             </div>
             <div style={styles.maturationLine}>
-              {wavesToUnlockFor(lastRoll.crossIndex)} — {t('shop.maturing').replace('{n}', String(wavesToUnlockFor(lastRoll.crossIndex)))}
+              {t('shop.maturing').replace('{n}', String(wavesToUnlockFor(lastRoll.crossIndex)))}
             </div>
             <div style={styles.resultActions}>
               <button
@@ -155,7 +171,7 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
         {meta.pendingCrosses.length > 0 && (
           <div style={styles.pendingRow}>
             <span style={styles.sectionTitle}>
-              {t('shop.pending').replace('{n}', String(meta.pendingCrosses.length))}
+              {t('shop.pending').replace('{n}', String(meta.pendingCrosses.length)).replace('{m}', String(PENDING_CROSSES_MAX))}
             </span>
             {meta.pendingCrosses.map((c) => {
               const remaining = Math.max(0, c.neededWaves - (meta.totalWavesSurvived - c.startedWave));
@@ -232,6 +248,8 @@ const styles: Record<string, React.CSSProperties> = {
   shareNote: { marginBottom: 10, padding: '8px 10px', background: '#fff', border: '2px solid var(--leaf-dark)', borderRadius: 8, color: 'var(--leaf-dark)', fontSize: 12, fontWeight: 700, wordBreak: 'break-all' as const },
   sowBtn: { width: '100%', padding: 14, fontSize: 15, fontWeight: 800, color: '#fff', background: 'var(--leaf)', border: '2.5px solid var(--ink)', borderRadius: 8, cursor: 'pointer', boxShadow: '3px 3px 0 var(--ink)', marginBottom: 8 },
   hint: { fontSize: 11, color: '#8a8065', marginBottom: 10, fontWeight: 600 },
+  helpToggle: { width: '100%', padding: '8px 12px', marginBottom: 10, background: '#fff', border: '1.5px dashed var(--ink)', borderRadius: 8, color: '#6b6250', fontSize: 12, fontWeight: 700, cursor: 'pointer', textAlign: 'center' as const, minHeight: 44 },
+  helpBox: { marginBottom: 10, padding: '10px 12px', background: '#f7f3e8', border: '1.5px solid var(--ink)', borderRadius: 8, color: '#4a4437', fontSize: 12, fontWeight: 600, whiteSpace: 'pre-line' as const, lineHeight: 1.55 },
   resultCard: { padding: 16, background: '#fff', border: '2.5px solid var(--ink)', borderRadius: 8, boxShadow: '3px 3px 0 var(--ink)', marginBottom: 14 },
   resultTitle: { fontSize: 12, textTransform: 'uppercase' as const, letterSpacing: 1, color: '#6b6250', marginBottom: 6, fontWeight: 800 },
   childRow: { display: 'flex', gap: 12, alignItems: 'center' },

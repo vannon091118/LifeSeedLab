@@ -8,7 +8,8 @@ import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import type { MetaSave, BeetleSpecimen } from '../types';
 import { SimulationRoot, makeCommand } from '../simulation/root';
 import { saveRun, clearRun, type RunSave } from '../persistence/runSave';
-import { Renderer, type RenderGhost } from '../render/renderer';
+import { Renderer } from '../render/renderer';
+import { ghostForRender } from './ghostPreview';
 import { Camera } from '../render/camera';
 import { FeedbackLayer } from '../render/layers/feedback';
 import { VisualObserver } from '../observers/visualObserver';
@@ -27,9 +28,11 @@ import { PLANTS_SOURCE } from '../config/plants.source';
 import { MAP_TILES_SOURCE, type MapTileType } from '../config/map.source';
 import { recordRunEnd, advanceCrossMaturation, updateMeta } from '../meta';
 import { GameDevPanel } from './GameDevPanel';
+import { GameTopBar } from './GameTopBar';
+import { TutorialOverlay } from './tutorial/TutorialOverlay';
 import { DropChipIcon, LivesChipIcon, WaveChipIcon } from './GameIcons';
 import { gameViewStyles as styles } from './gameViewStyles';
-import { isDevActive } from '../dev/gate';
+import { isDevActive, isOnboardingAutoStart } from '../dev/gate';
 import { bindSimRoot, installTestHooks, unbindSimRoot } from '../dev/testHooks';
 
 interface Props {
@@ -38,32 +41,17 @@ interface Props {
   bredStats: NonNullable<MetaSave['bredStats']>;
   beetles: BeetleSpecimen[];
   audioOn: boolean;
+  /** B21: Onboarding schon gesehen (startet dann nie wieder). */
+  tutorialSeen: boolean;
   /** B2: gespeicherter Run-Zustand — nur gesetzt, wenn der Spieler „Fortsetzen" wählt. */
   resume?: RunSave | null;
   onMetaChange: (meta: MetaSave) => void; onExit: () => void;
 }
 interface HudSnapshot { wave: number; energy: number; lives: number; combo: number; inventory: Record<string, number>; paused: boolean; phase: import('../simulation/state').RunPhase; beetleDeployed: boolean; }
 
-/** Ablehnungs-Shake: tick-basiert (deterministisch), Präsentation-only. */
-const SHAKE_TICKS = 16;
-
-function ghostForRender(placement: PlacementState, tick: number): RenderGhost | null {
-  const ghost = placement.ghost;
-  if (!ghost) return null;
-  const rejection = placement.rejection;
-  let shake: { x: number; y: number } | null = null;
-  if (rejection && rejection.gx === ghost.gx && rejection.gy === ghost.gy) {
-    const age = tick - rejection.tick;
-    if (age >= 0 && age < SHAKE_TICKS) {
-      shake = { x: Math.sin(age * 1.7) * 4 * (1 - age / SHAKE_TICKS), y: 0 };
-    }
-  }
-  return { visual: ghost.visual, gx: ghost.gx, gy: ghost.gy, valid: ghost.valid, range: ghost.range, shake };
-}
-
 const IDLE: PlacementState = { mode: 'plant', variantId: null, ghost: null, rejection: null };
 
-export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetles, audioOn, resume, onMetaChange, onExit }: Props){
+export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetles, audioOn, tutorialSeen, resume, onMetaChange, onExit }: Props){
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rootRef = useRef<SimulationRoot | null>(null);
   const rendererRef = useRef<Renderer | null>(null);
@@ -71,7 +59,7 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
   const observerRef = useRef<VisualObserver | null>(null);
   const audioRef = useRef<AudioObserver | null>(null);
   const placementRef = useRef<PlacementController | null>(null);
-  const pausedRef = useRef(false);
+  const pausedRef = useRef(false); const holdRef = useRef(false); // B21: Tutorial-Hold (Präsentation)
   const runEndedRef = useRef(false);
 
   const [placement, setPlacement] = useState<PlacementState>(IDLE);
@@ -80,11 +68,16 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
   const [showGameOver, setShowGameOver] = useState(false);
   const [fxOn, setFxOn] = useState(audioOn); // B8: audioOn aus dem Meta-Save ist der Startwert
   const [devTick, setDevTick] = useState(0);
+  const [placedCount, setPlacedCount] = useState(0); // B21: UI-Zähler angenommener Drops
   const [dpr, setDpr] = useState(1);
   const { t } = useI18n();
   const cmdSeq = useRef(0);
   const placementMirror = useRef<PlacementState>(IDLE);
   const devActive = useMemo(() => isDevActive(), []);
+  // B21: Onboarding-Sichtbarkeit (DevGate überspringt es, s. dev/gate.ts) + einmal pro Profil.
+  const tutorialEnabled = useMemo(() => !tutorialSeen && isOnboardingAutoStart(), [tutorialSeen]);
+  const tutorialHold = useCallback((hold: boolean) => { holdRef.current = hold; }, []);
+  const tutorialDone = useCallback(() => onMetaChange(updateMeta({ tutorialDone: true })), [onMetaChange]);
 
   const ghostVisual = useCallback((variantId: string) => {
     const bred = resolveBredVisuals(savedVariants.filter(v => loadout.includes(v.id)), seed).get(variantId);
@@ -156,15 +149,12 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
     }
     root.bus.subscribe('NIGHT_STARTED', () => renderer.setNight(true));
     root.bus.subscribe('DAY_STARTED', () => renderer.setNight(false));
-    // B17.4: die Reifung zählt die ANGEBROCHENE Welle — Fortschritt an der Anstrengung statt
-    // am Sieg. WAVE_STARTED feuert genau einmal pro Welle (nur startWave), also keine
-    // Doppelzählung; der Tod in Welle 1 bringt genau +1 (A19.5: „keine Runde bringt was"
-    // ist strukturell unmöglich). Ein Writer: meta/economy.ts.
+    // B17.4: die Reifung zählt die ANGEBROCHENE Welle — WAVE_STARTED feuert genau einmal pro
+    // Welle (nur startWave), also keine Doppelzählung: Tod in Welle 1 bringt genau +1 (A19.5).
+    // Ein Writer: meta/economy.ts.
     root.bus.subscribe('WAVE_STARTED', () => { advanceCrossMaturation(1); });
-    // Run-Ende ist eventgetrieben (BUS = Handover, B7.5): recordRunEnd genau einmal
-    // im Event-Ack statt im RAF/HUD-Intervall. Guard nur gegen StrictMode-Remount.
-    // Kein advanceCrossMaturation hier mehr: die Wellen sind bereits gezählt worden —
-    // eine zweite Addition wäre Doppelzählung.
+    // Run-Ende ist eventgetrieben (BUS = Handover, B7.5): recordRunEnd genau einmal im Event-Ack,
+    // Guard nur gegen StrictMode-Remount. Kein advanceCrossMaturation: Wellen sind schon gezählt.
     root.bus.subscribe('GAME_OVER', (e) => {
       if (runEndedRef.current) return;
       runEndedRef.current = true;
@@ -202,7 +192,7 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
     let raf = 0; let last = performance.now(); let saveAccum = 0; let hudAccum = 0;
     const tick = (now: number) => {
       const dt = now - last; last = now;
-      if (!pausedRef.current) root.advance(dt);
+      if (!pausedRef.current && !holdRef.current) root.advance(dt);
       for (const c of observer.drain()) executeVisualCommand(c, particles, camera, feedback);
       particles.update(); feedback.update(); camera.update(); adaptBudget();
       const cs = camera.get();
@@ -231,16 +221,13 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
       placementRef.current = null;
       unbindSimRoot(root);
     };
-    // fxOn is deliberately NOT a dependency: FX is presentation-only and must never
-    // tear down + rebuild the simulation root (that would restart the run). The
-    // observers expose setFxEnabled/setEnabled for live toggling instead.
-    // loadout/savedVariants/bredStats/resume are deliberately NOT dependencies either:
-    // the sim is built from the meta AT RUN START (A19 — during the run the Sim writes
-    // meta directly). A mid-run onMetaChange (GAME_OVER banking, FX toggle) must not
-    // rebuild the sim: a rebuild would resurrect a fresh root BEHIND the Game-Over
-    // overlay (zombie sim — auto-started waves inflate totalWavesSurvived = free
-    // maturation, and saveRun overwrites the dead run, making it resumable). New runs
-    // remount via key={meta.runId} in App.tsx.
+    // fxOn is deliberately NOT a dependency: FX is presentation-only and must never tear down +
+    // rebuild the root (that restarts the run); observers toggle live via setFxEnabled/setEnabled.
+    // loadout/savedVariants/bredStats/resume are NOT dependencies either: the sim is built from
+    // meta AT RUN START (A19). A mid-run onMetaChange (GAME_OVER banking, FX toggle, B21
+    // onboarding) must not rebuild it — a rebuild resurrects a fresh root BEHIND the Game-Over
+    // overlay (zombie sim: auto-started waves inflate totalWavesSurvived, saveRun overwrites the
+    // dead run and makes it resumable). New runs remount via key={meta.runId} in App.tsx.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seed, runId, onMetaChange, devActive]);
 
@@ -271,6 +258,7 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
     const cell = cellFromEvent(e); if (!cell) return;
     const decision = controller.drop(cell);
     if (decision.kind === 'plant') {
+      setPlacedCount(n => n + 1); // B21: UI-Signal — greift auch, solange das Tutorial die Sim hält.
       root.commands.push(makeCommand(root.clock.get().tick, 'PLACE_PLANT', ++cmdSeq.current, { variantId: decision.variantId, gx: decision.gx, gy: decision.gy }));
     } else if (decision.kind === 'tile') {
       // Tiles entscheidet die Sim (TILE_REJECTED fängt Baubereich/Korridor ab) — gleicher Command-Pfad.
@@ -321,22 +309,16 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
 
   return (
     <div style={styles.shell}>
-      <div style={styles.topBar}>
-        <div style={styles.topLeft}>
-          <span style={styles.logo}>LifeSeedLab</span>
-          <span style={styles.sub}>{t('hud.journal')} • {t('game.wave')} {hud?.wave ?? 1}</span>
-        </div>
-        <div style={styles.topRight}>
-          <button onClick={togglePause} style={styles.btn} aria-label={hud?.paused ? 'Fortsetzen' : 'Pause'}>{hud?.paused ? '▶' : '❚❚'}</button>
-          <button onClick={handleStartWave} style={{ ...styles.btn, ...styles.btnPrimary }}>{t('game.startWave')}</button>
-          <button onClick={onExit} style={styles.btn}>{t('game.exitRun')}</button>
-          {beetles.length > 0 && !hud?.beetleDeployed && (
-            <button onClick={handleDeployBeetle} style={{ ...styles.btn, ...styles.btnBeetle }} title={`${beetles[beetles.length - 1].name} einsetzen`}>
-              {t('game.deployBeetle')}
-            </button>
-          )}
-        </div>
-      </div>
+      <GameTopBar
+        wave={hud?.wave ?? 1}
+        paused={hud?.paused ?? false}
+        canDeployBeetle={beetles.length > 0 && !hud?.beetleDeployed}
+        deployLabel={beetles[beetles.length - 1]?.name ?? ''}
+        onTogglePause={togglePause}
+        onStartWave={handleStartWave}
+        onDeployBeetle={handleDeployBeetle}
+        onExit={onExit}
+      />
 
       <div style={styles.stage}>
         <div style={styles.canvasFrame}>
@@ -345,10 +327,11 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerLeave={() => placementRef.current && applyPlacement(placementRef.current.hover(null))}
+            data-tut="board"
             style={{ ...styles.canvas, cursor: placement.variantId ? 'crosshair' : 'default' }}
           />
           {hud && (
-            <div style={styles.hud} aria-label="Spielstatus">
+            <div style={styles.hud} aria-label="Spielstatus" data-tut="hud">
               <span style={styles.hudChip}><DropChipIcon/> {hud.energy}</span>
               <span style={styles.hudChip}><LivesChipIcon/> {hud.lives}</span>
               <span style={styles.hudChip}><WaveChipIcon/> W {hud.wave}</span>
@@ -393,6 +376,12 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
             onResume={() => { setSuspended(false); pausedRef.current = false; rootRef.current?.clock.setPaused(false); }}
           />
         </div>
+        <TutorialOverlay
+          enabled={tutorialEnabled}
+          signals={{ selectedVariant: placement.variantId, placements: placedCount, phase: hud?.phase ?? 'prep', paused: hud?.paused ?? false }}
+          onHold={tutorialHold}
+          onDone={tutorialDone}
+        />
         <div style={styles.paperNote} aria-hidden><span style={styles.paperNotePin}/> {t('game.hint')}</div>
       </div>
     </div>

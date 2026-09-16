@@ -45,8 +45,9 @@ export type RunEconomy = {
 // ── v3 (Gacha-Ökonomie): genau 2 Startpflanzen, Seed-Shop-Besitz, Reifungs-Queue.
 // ── v4 (P6): Käferzucht — Brut-Lager, ein eingesetzter Käfer, Brut-Reifungs-Queue.
 // ── v5 (A13.1): monotoner Brut-Zähler — Identität darf nie aus einem Fenster abgeleitet werden.
+// ── v6 (B21): `tutorialDone` — das Krix-Onboarding startet genau einmal pro Spielerprofil.
 export type MetaSave = {
-  version: 5;
+  version: 6;
   nektar: number;
   bestWave: number;
   runs: number;
@@ -78,6 +79,8 @@ export type MetaSave = {
   /** Monotoner Brut-Generation-Zähler (A13.1) — einzige Quelle für `PendingBrood.broodIndex`.
    *  Nie aus `pendingBroods` ableiten: das Fenster schrumpft beim Claim und würde Indizes recyceln. */
   broodGeneration: number;
+  /** B21: Onboarding abgeschlossen (oder bewusst übersprungen) — startet danach nie wieder. */
+  tutorialDone: boolean;
 };
 
 /** Eine Kreuzung wartet auf Reifung: verfügbar nach `wavesToUnlockFor(index)` Wellen. */

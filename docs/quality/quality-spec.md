@@ -652,3 +652,60 @@ Mit gefülltem Loadout greifen die bereits vorhandenen Pfade: `inventory[id] = 2
 - [x] Überschrift und Inhalt des Loadout-Abschnitts stimmen überein (A19.6) — **umgesetzt**: zwei Abschnitte (Loadout n/4 mit Mitnehmen/Ablegen über `toggleLoadout`, darunter die Sammlung); Menü liest nach Run-Exit frisch (B17.1). Lock: `b18.test.ts`
 - [ ] Eine gezüchtete Pflanze ist im Run platzierbar und visuell unterscheidbar (Verdrahtung steht: `root.ts` Inventar, `resolveBredVisuals`; Sichtbeweis offen)
 - [x] `tsc` clean, Suite grün (214/214), E2E 11/11, Shinon-Gate offen (Enforcement)
+
+---
+
+## B21. Onboarding „Krix" — animiertes Dialog-System (Auftrag: Tutorial/Onboarding)
+
+### B21.1 Befund
+
+Es gibt **kein** Onboarding. Ein neuer Spieler landet im Run-Screen mit einer Notizzettel-Zeile
+(`game.hint`) und muss die Bedienung aus dem Text erschließen: welcher Knopf startet die Welle, was
+bedeuten die HUD-Chips, dass ein Tap aufs Feld platziert. Die Hilfetexte (`i18n/help.ts`) decken nur
+das Gewächshaus ab. Kein Screen hat einen Dialog-Layer, keine Sprechblase, keine Figur, keinen
+Hinweis am Ziel-Element. Die Vorbereitungsphase startet die erste Welle zusätzlich nach
+`AUTO_WAVE_DELAY_TICKS` (90 Ticks = 3 s) automatisch — wer in Ruhe liest, wird beim Lesen angegriffen.
+
+### B21.2 Spec
+
+1. **Ein Dialog-System, ein Owner.** `src/components/tutorial/` hält Schrittmodell (`script.ts`),
+   Zustandsmaschine (`controller.ts`) und Präsentation (`TutorialOverlay`, `Stickman`,
+   `SpeechBubble`). Die Spielertexte liegen in der i18n-Schicht (`src/i18n/tutorial.ts`, DE + EN
+   paritätisch) — Sprache ist kein Sonderfall (Regel 1).
+2. **Figur = Krix**, ein Fineliner-Strichmännchen mit Klemmbrett (B0.7/B0.9: Papierwelt, Ink-Kontur,
+   kein Emoji, kein Stock-Icon). Er wird animiert **eingeblendet** (Ink-Draw über `stroke-dashoffset`,
+   Anschieben von unten) und atmet danach weiter (Idle-Bob, Blinzeln, Mund beim Sprechen).
+3. **Comic-Sprechblase** mit Papierverschluss, harter Ink-Kontur, Offset-Schatten, Schwanz und
+   Schreibmaschinen-Reveal; erster Tipp auf die Blase = voller Text, zweiter Tipp = nächster Schritt.
+4. **Blinkende Handlungsanweisung:** jeder Schritt zielt auf **genau ein** reales Bedienelement
+   (`data-tut="card|board|wave|pause|hud"`). Der Cue-Ring blinkt dort (marchierende Ink-Striche,
+   Ecken-Marker, Label) und der Arm der Figur zeigt auf das Ziel. Der Overlay-Rahmen ist
+   `pointer-events: none` — der Spieler bedient **die echten Knöpfe**, nie eine Attrappe.
+5. **Ein Writer pro Wahrheit:** Das Tutorial besitzt ausschließlich Präsentations-State. Es liest
+   Sim-Signale (Phase, Pause, Auswahl) und **schreibt** nur `meta.tutorialDone` (beim Abschluss) und
+   den Tutorial-Hold (`holdRef`, Präsentations-Gate im RAF — kein Sim-Schreibzugriff).
+6. **Kein Zeitdruck beim Lesen:** Schritt 1–3 setzen den Hold (die Sim tickt nicht ⇒ auch der
+   Auto-Start-Timer steht). Der Hold wird am Ende von Schritt 3 (nach dem platzierten Drop)
+   gelöst — die Pflanze erscheint dadurch im nächsten Frame.
+7. **Persistenz:** `MetaSave.tutorialDone` (v6, Migration 1→5 bleibt lesbar) entscheidet, ob das
+   Onboarding automatisch startet. Kein zweiter Speicher, kein `localStorage`-Zugriff außerhalb
+   `persistence/`.
+8. **DevGate (B7.6):** `?dev=1` überspringt das Onboarding (Entwickler-Werkzeug), `tutorial=1`
+   erzwingt es auch hinter dem Gate, `tutorial=0` unterdrückt es explizit. Die Release-Fläche
+   (ohne DevGate) zeigt es automatisch — der E2E-Beweis läuft über den echten Release-Pfad.
+
+### B21.3 Schrittfolge (eine Quelle: `script.ts`)
+
+`ankunft` (Hold, eigener Knopf) → `karte` (Cue Tray-Karte, Hold) → `pflanzen` (Cue Feld, Hold,
+fortschritt bei angenommenem Drop) → `welle` (Cue „Welle starten") → `pause` (Cue Pause-Knopf) →
+`weiter` (Cue Pause-Knopf, erwartet Fortsetzen) → `chips` (Cue HUD) → `abschluss` (eigener Knopf,
+schreibt `tutorialDone`).
+
+### B21.4 DoD für B21
+
+- [ ] Schrittmodell und i18n-Texte deckungsgleich (jeder Schritt hat DE- und EN-Text) — Lock: `tutorial.test.ts`
+- [ ] Zustandsmaschine deterministisch (kein `Math.random`, keine Wanduhr) — Lock: `tutorial.test.ts`
+- [ ] Genau ein Writer (`tutorialDone` über `updateMeta`, Hold über `holdRef`) — Lock: Gate + `onboarding.test.ts`
+- [ ] `MetaSave` v6 liest v1–v5 verlustfrei — Lock: `onboarding.test.ts`
+- [ ] Cue-Ziele existieren im DOM (`data-tut`), Overlay blockiert die echten Knöpfe nicht — E2E `tests/tutorial.spec.ts`
+- [ ] `tsc` clean, Suite grün, `vite build` grün; GameView bleibt ≤ 400 LOC (GameTopBar extrahiert)

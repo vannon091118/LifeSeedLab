@@ -1,5 +1,8 @@
 {
   "gate": {
-    "enforcement": "strict"
+    "enforcement": "strict",
+    "checks": {
+      "e2e": false
+    }
   }
 }

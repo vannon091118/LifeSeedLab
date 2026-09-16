@@ -79,6 +79,74 @@ button:focus-visible {
   border-radius: 3px;
 }
 
+/* ── Krix-Onboarding (B21): Einblenden, Atmen, Blinken ──────────────────────
+   Alle Zeiten sind Präsentation (keine Sim, kein Zufall). Bei `prefers-reduced-motion` greift
+   weiter oben der harte Schnitt — die Endzustände bleiben sichtbar. */
+
+/* Figur erscheint: von unten angeschoben, leicht schief, dann ruhig. */
+.tut-stick { animation: tutStickIn 620ms cubic-bezier(.2,.9,.3,1.1) both; }
+@keyframes tutStickIn {
+  from { opacity: 0; transform: translateY(26px) rotate(-3deg) scale(.94); }
+  60%  { opacity: 1; }
+  to   { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
+}
+
+/* Fineliner-Striche zeichnen sich selbst (pathLength=1 ⇒ lauflängenunabhängig). */
+.tut-ink { stroke-dasharray: 1; stroke-dashoffset: 1; animation: tutInk 620ms ease-out forwards; }
+@keyframes tutInk { to { stroke-dashoffset: 0; } }
+.tut-fill { fill-opacity: 0; animation: tutFillIn 420ms ease-out forwards; }
+@keyframes tutFillIn { to { fill-opacity: 1; } }
+.tut-face, .tut-mark { opacity: 0; animation: tutFaceIn 320ms ease-out forwards; }
+@keyframes tutFaceIn { to { opacity: 1; } }
+
+/* Idle: atmen (Bob) + blinzeln + reden. */
+.tut-bob { transform-box: fill-box; transform-origin: bottom center; animation: tutBob 2.8s ease-in-out infinite; }
+@keyframes tutBob { 0%, 100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(-3px) scaleY(1.012); } }
+.tut-eyes { animation: tutBlink 4.4s infinite; }
+@keyframes tutBlink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+.tut-mouth.tut-talking { animation: tutTalk 240ms ease-in-out infinite; }
+@keyframes tutTalk { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.9); } }
+.tut-arm.tut-wave { transform-box: fill-box; transform-origin: 20% 90%; animation: tutWave 1.1s ease-in-out infinite; }
+@keyframes tutWave { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(10deg); } }
+.tut-mark { animation: tutFaceIn 320ms ease-out forwards, tutBob 1.6s ease-in-out infinite 320ms; }
+
+/* Sprechblase: Comicknall (Papierverschluss, harter Schatten). */
+.tut-bubble { animation: tutBubblePop 300ms cubic-bezier(.2,.9,.3,1.35) both; }
+@keyframes tutBubblePop {
+  from { opacity: 0; transform: scale(.86) rotate(-1.6deg); }
+  to   { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.tut-caret { animation: tutCaret 700ms steps(1) infinite; color: var(--leaf-dark); }
+@keyframes tutCaret { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+
+/* Der Handlungsknopf blinkt mit — er IST die Anweisung. */
+.tut-cta { animation: tutCta 1.15s ease-in-out infinite; }
+@keyframes tutCta {
+  0%, 100% { box-shadow: 2px 2px 0 var(--ink); background: var(--leaf); }
+  50% { box-shadow: 2px 2px 0 var(--ink), 0 0 0 5px rgba(90,143,78,.35); background: #6ea75e; }
+}
+
+/* Cue-Ring: blinkt hart, läuft wie Handzeichnung, Ecken gegenphasig. */
+.tut-ring { position: absolute; pointer-events: none; animation: tutCueBlink 1.15s ease-in-out infinite; }
+@keyframes tutCueBlink { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+.tut-ants { stroke-dasharray: 13 9; animation: tutAnts 1.2s linear infinite; }
+@keyframes tutAnts { to { stroke-dashoffset: -44; } }
+.tut-corners { animation: tutCueBlink 1.15s ease-in-out infinite; animation-delay: .3s; }
+.tut-cue-chip {
+  position: absolute;
+  display: inline-block;
+  padding: 4px 9px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  color: var(--paper-warm);
+  background: var(--danger);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  box-shadow: 2px 2px 0 var(--ink);
+  white-space: nowrap;
+}
+
 /* 390×844 portrait-first: kein Hover-Pfad, Touch-Ziele ≥44px (B9/D) */
 @media (max-width: 420px) {
   /* Komposition bleibt identisch — nur Spacing straffen, Typo leicht kleiner */

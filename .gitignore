@@ -52,3 +52,8 @@ CLAUDE.md
 
 # PROPSA-History (lokal, nie committen)
 .propsa/
+
+# Lokale Scratch-Ausgaben (Seiten-Dump, Test-Log) — Werkzeugspuren, kein Inhalt
+page.html
+test-out.txt
+

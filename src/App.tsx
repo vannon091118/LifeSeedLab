@@ -98,6 +98,7 @@ function AppInner() {
           bredStats={meta.bredStats}
           beetles={meta.beetles}
           audioOn={meta.audioOn}
+          tutorialSeen={meta.tutorialDone}
           resume={resuming ? pendingRun : null}
           onMetaChange={setMeta}
           onExit={handleExitRun}

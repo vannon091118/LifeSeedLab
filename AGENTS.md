@@ -61,6 +61,8 @@ Konkret:
 ## LOC-Caps (hart)
 
 `300` Simulationssysteme/Bus/Clock/RNG/IDs/Hash · `400` Renderer/Generator/Partikel/Observer/UI-Komponenten · `200` Types/Source/Meta/i18n/Persistenz. Über dem Cap → STOP, Verantwortungs-Audit, splitten. Ausnahme nur mit Einzeiler-Begründung im Dateiheader.
+Ist-Stand: `src/components/GameView.tsx` liegt exakt am Cap (400) — Zusatzzeilen nur durch Verdichten
+bestehender Zeilen oder Splitten, nie durch Erhöhen.
 
 ## Determinismus (nie antasten)
 
@@ -78,6 +80,26 @@ npx vite build           # muss durchbauen (nur wenn Build-relevant geändert)
 
 Kein „sollte passen", kein claims ohne Ausführung. Dev-Server/Preview wird **nie** manuell gestartet/gestoppt/killt (Plattform-managed). `vite.config.ts` ist **tabu**.
 
+Kosten & Haken der Werkzeuge: die Hooks in `git-noir/hooks` (`core.hooksPath`) fahren bei **jedem**
+Commit das Gate — LOC-Caps, Architektur-Constraints, Typecheck, Test-Suite, also ~15 s, fail-closed
+(rot ⇒ Commit abgebrochen). Die E2E-Stufe liegt bewusst **nicht** im Commit-Pfad
+(`gate.checks.e2e=false` in `shinon.config.json`): sie kostet Minuten und läuft getrennt vor dem
+Sprint-Abschluss (`npm run test:e2e`).
+Deshalb vorher `npx tsc -b --noEmit` + `npx vitest run` selbst laufen lassen. Nachrichten per
+`git commit -F <datei>` übergeben (Heredocs hängen in dieser Shell); der `commit-message`-Check liest
+die vorbereitete Nachricht aus `commit_msg.txt` im Repo-Root.
+
+## Tests: Determinismus statt E2E für Mechanik-Fragen
+
+- Mechanik-/Balance-Fragen **in vitest gegen `SimulationRoot`** messen, nicht im Browser: der echte
+  Run-Seed ist `deriveSeed(GAME_SEED,'world','run',runId,1)` mit `runId = max(meta.runId, meta.runs)+1`
+  (frischer Run ⇒ 1 ⇒ Seed `2447771834`). Eine Zellen-/Wellen-Karte kostet so Sekunden statt Minuten.
+- E2E-Platzierung: Sim **vor** dem Aufbau pausieren (der Prep-Auto-Start beginnt Welle 1 nach
+  `AUTO_WAVE_DELAY_TICKS`, während der Test noch klickt ⇒ realzeit-abhängiges Ergebnis); Erfolg am
+  **eigenen `variantId`** im Sim-Zustand verifizieren (nicht an `plants.length > 0`) und bei
+  eingefrorener Sim die Commands per `__ff(1)` drainieren. `isEnabled()` folgt `aria-disabled`,
+  der Auswahlzustand einer Tray-Karte ist `aria-pressed`.
+
 ## Sprint-Abschluss: Preview → E2E → Shinon (verbindlich)
 
 Nach einem **erfolgreichen Umsetzungssprint** (Code steht, Typecheck/Tests/Build grün) ist der Abschluss fest vorgeschrieben. Die Reihenfolge ist bindend und keine Stufe ist optional:
@@ -93,6 +115,11 @@ node git-noir/shinon/cli.ts finish --all   # Vorbereitung → Gate → Commit �
    Auch dort gilt die Reihenfolge: **ohne grünes Gate kein Commit, ohne Commit kein Push.** `git commit`/`git push` von Hand sind tabu — Shinon ist der einzige Git-Abschlusspfad.
 
    Das Gate läuft im **Enforcement-Modus**: Warnungen blockieren wie Fehler (`gate.enforcement=strict`, persistiert in `shinon.config.json`). „Grün" heißt damit **0 Fehler und 0 Warnungen**. Der Modus ist Konfiguration, kein Per-Lauf-Flag — er gilt auch für die Hooks, und es gibt bewusst keinen Schalter, der ihn für einen einzelnen Lauf aushebelt. Umschalten ausschließlich über `node git-noir/shinon/cli.ts enforce advisory|strict`.
+
+Der `post-commit`-Hook ruft zusätzlich Shinons Push-Stufe (`push --auto`): ein grüner Commit liegt
+**automatisch** auf `origin/main` — ein anschließendes `git push` meldet „Everything up-to-date".
+Push-Wahrheit ist deshalb `git ls-remote origin main` gegen `git rev-parse HEAD`, nicht die lokale
+Tracking-Ref.
 
 Details: [`docs/setup/script-readme.md`](docs/setup/script-readme.md). Das Tooling in `git-noir/` ist lokal (gitignoriert): Werkzeug, nicht Inhalt.
 

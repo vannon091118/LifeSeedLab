@@ -7,7 +7,7 @@ import { genomeEffectIds } from '../visual/generator';
 // Owner: PersistenceSystem (meta store — the only persistence owner remains storage.ts).
 
 export const META_KEY = 'lifegamelab_meta';
-export const META_VERSION = 5;
+export const META_VERSION = 6;
 
 /** Legacy-Basen-IDs (vor der PLANTS_SOURCE-Vereinheitlichung) → kanonische PlantTypeId. */
 const LEGACY_BASE_ID: Record<string, 'sprout' | 'rootwall' | 'mycelia'> = {
@@ -40,7 +40,7 @@ export function defaultMeta(): MetaSave {
   const counts: Record<string, number> = {};
   for (const v of starters) counts[v.id] = 1;
   return {
-    version: 5,
+    version: 6,
     nektar: 60,
     bestWave: 0,
     runs: 0,
@@ -61,6 +61,8 @@ export function defaultMeta(): MetaSave {
     beetleDeployed: null,
     pendingBroods: [],
     broodGeneration: 0,
+    // B21: einmal gesehen heißt gesehen — Altsaves bekommen das Onboarding genau einmal.
+    tutorialDone: false,
   };
 }
 
@@ -146,11 +148,13 @@ function toCurrent(base: MetaSave, raw: Partial<MetaSave>): MetaSave {
     pendingBroods: broods,
     // v5 (A13.1): monotoner Zähler, aus Altdaten einmalig abgeleitet.
     broodGeneration: deriveBroodGeneration(raw, broods, beetles),
+    // v6 (B21): Altsaves kennen kein Onboarding ⇒ es läuft einmal (Datenverlust ist hier keiner).
+    tutorialDone: raw.tutorialDone === true,
   };
 }
 
 function migrate(raw: unknown, fromVersion: number): MetaSave | null {
-  if (fromVersion < 1 || fromVersion > 4) return null;
+  if (fromVersion < 1 || fromVersion > 5) return null;
   const old = raw as Partial<MetaSave> & { version?: number };
   if (typeof old.nektar !== 'number') return null;
   return toCurrent(defaultMeta(), old);

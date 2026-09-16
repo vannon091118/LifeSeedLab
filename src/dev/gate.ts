@@ -20,3 +20,30 @@ export function isDevActive(): boolean {
     return false;
   }
 }
+
+/**
+ * B21: Sichtbarkeit des Onboardings (Krix-Tutorial).
+ *
+ * Das DevGate ist ein Werkzeug: wer mit `?dev=1` arbeitet, will nicht bei jedem Run durch die
+ * acht Feldnotizen — das Onboarding startet dort **nicht** automatisch. Zwei ausdrückliche
+ * Parameter überstimmen das: `tutorial=1` erzwingt es (so läuft der E2E-Beweis hinter dem Gate)
+ * und `tutorial=0` unterdrückt es (z. B. für eine schnelle Messung ohne Gate).
+ *
+ * Die Release-Fläche (kein DevGate) zeigt es automatisch — der DevGate-Zustand ist die einzige
+ * Abweichung, kein zweiter Zustandsspeicher.
+ */
+export function onboardingAutoStart(search: string, hash: string): boolean {
+  const forced = new URLSearchParams(search).get('tutorial');
+  if (forced === '1') return true;
+  if (forced === '0') return false;
+  return !isDevMode(search, hash);
+}
+
+export function isOnboardingAutoStart(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return onboardingAutoStart(window.location.search, window.location.hash);
+  } catch {
+    return false;
+  }
+}

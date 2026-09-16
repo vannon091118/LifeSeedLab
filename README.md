@@ -309,13 +309,13 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `1d2bfa7` — fix(meta): fail-closed-Gates für Zucht/Reifung, Save-Downgrade in Quarantäne |
-| Arbeitsbaum | 22 gestaged, 0 geändert, 0 neu |
-| Letztes Gate | ✅ offen (preflight, 0 Fehler, 0 Warnungen) |
+| HEAD | `6140b98` — docs: Arbeitsvertrag, Roadmap und Quality-Spec nachziehen |
+| Arbeitsbaum | 29 gestaged, 2 geändert, 0 neu |
+| Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `1d2bfa7` fix(meta): fail-closed-Gates für Zucht/Reifung, Save-Downgrade in Quarantäne |
+| Letzter Shinon-Commit | `a97daf7` feat(meta): Keim-Bestand, Wellen-Anbruch, Loadout (B17.3/B17.4/B18.1) |
 | Letzter Push | ✅ origin/main |
-| LOC-Hotspots | `src/config/map.source.ts` 198/200 (99 %)<br>`src/components/GameView.tsx` 390/400 (98 %)<br>`src/simulation/root.ts` 291/300 (97 %)<br>`src/simulation/enemySystem.ts` 288/300 (96 %)<br>`src/persistence/storage.ts` 191/200 (96 %) |
+| LOC-Hotspots | `src/config/map.source.ts` 200/200 (100 %)<br>`src/components/GameView.tsx` 390/400 (98 %)<br>`src/simulation/root.ts` 292/300 (97 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/simulation/plantSystem.ts` 283/300 (94 %) |
 <!-- SHINON:STATUS:END -->
 
 ---
