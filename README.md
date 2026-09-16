@@ -314,10 +314,10 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 
 | Kennzahl | Stand |
 |---|---|
-| Branch | `main` · Upstream: `origin/main` (+1/-0) |
-| HEAD | `38564d5` — refactor(e2e): Test-Harness als eine Quelle, Redundanzen abgebaut |
-| Arbeitsbaum | 8 gestaged, 22 geändert, 3 neu |
-| Letztes Gate | 🛑 geschlossen (preflight, 0 Fehler, 1 Warnungen) |
+| Branch | `main` · Upstream: `origin/main` (+0/-0) |
+| HEAD | `7c01208` — fix(build): Audit-Fläche + Reparatur des roten Cloudflare-Builds |
+| Arbeitsbaum | 0 gestaged, 2 geändert, 0 neu |
+| Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
 | Letzter Shinon-Commit | `4a30d7d` fix(field): Aufbauphase, phasenrichter Wellen-Knopf, sichtbare Ablehnung |
 | Letzter Push | ✅ origin/main |
