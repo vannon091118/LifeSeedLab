@@ -236,6 +236,10 @@ export class Renderer {
     else if (v.animation === 'bob') oy = Math.sin(tick * 0.05 + plant.gy) * cell * 0.02;
     if (anim?.anim === 'attack') { const p = anim.phase; const lunge = Math.sin(p * Math.PI) * cell * 0.12; ox = lunge * 0.3; oy = -lunge * 0.4; sq = 1 + Math.sin(p * Math.PI) * 0.08; }
     else if (anim?.anim === 'placement') { const p = anim.phase; sq = p < 0.3 ? 0.6 + p * 1.5 : p < 0.8 ? 1.05 : 1; }
+    // B29: 'recoil' war im VisualCommand-Vertrag deklariert, aber nie gezeichnet — die
+    // Ablehnung an einer Pflanze wäre damit trotz FX-Kommando stumm geblieben (drei Schläge
+    // seitwärts = „nein“, ohne die Entity zu verschieben).
+    else if (anim?.anim === 'recoil') { const p = anim.phase; ox = Math.sin(p * Math.PI * 3) * cell * 0.1; }
     ctx.save(); ctx.translate(cx + ox, cy + oy); ctx.rotate(rot);
     const genomScale = v.scale; // Kästchenblock-CGI: Skala ist Genom-Aussage (0.85–1.25)
     // B28: die Layer sind einmal pro variantKey gebacken — hier bleibt nur drawImage.

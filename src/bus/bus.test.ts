@@ -42,7 +42,7 @@ describe('Phase 3.1/3.2 EventBus + contract', () => {
   });
 
   it('events carry version 1', () => {
-    const e = makeEvent(0, 'RUN_STARTED', 'system:run', 0, { seed: 583921 });
+    const e = makeEvent(0, 'WAVE_STARTED', 'system:run', 0, { wave: 1, enemyCount: 3 });
     expect(e.version).toBe(1);
   });
 

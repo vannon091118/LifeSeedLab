@@ -113,7 +113,9 @@ describe('PlacementController (B3)', () => {
     board.energy = 1;
     controller.selectTile('pot');
     const decision = controller.drop(FREE);
-    expect(decision).toEqual({ kind: 'reject', reason: 'no_energy_tile', gx: 11, gy: 10 });
+    // B29: die Vorprüfung spricht die Sim-Sprache (`no_energy`) — der Grund war vorher ein
+    // eigener UI-Wert mit eigenem Text, obwohl nur der Modus den Unterschied machte.
+    expect(decision).toEqual({ kind: 'reject', reason: 'no_energy', gx: 11, gy: 10 });
   });
 
   it('cancel setzt alles auf idle zurück', () => {

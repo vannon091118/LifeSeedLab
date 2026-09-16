@@ -63,7 +63,12 @@ export class AudioObserver {
       case 'WAVE_STARTED': return 'wave_horn';
       case 'WAVE_COMPLETED': return 'chime';
       case 'GAME_OVER': return 'ko';
-      case 'PLACEMENT_REJECTED': return 'blub';
+      // B29: jede Ablehnung klingt gleich — „das ging nicht" ist eine Sprache, nicht vier.
+      case 'PLACEMENT_REJECTED':
+      case 'TILE_REJECTED':
+      case 'FERTILIZE_REJECTED':
+      case 'PROPAGATE_REJECTED':
+      case 'BEETLE_REJECTED': return 'blub';
       // Pflanzenlebenszyklus (B4): Reife, Setzling, Welken, Dünger.
       case 'PLANT_GROWN': return 'chime';
       case 'PLANT_PROPAGATED': return 'hum';

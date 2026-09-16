@@ -20,6 +20,7 @@ import { GameDevPanel } from './GameDevPanel';
 import { GameTopBar } from './GameTopBar';
 import { TutorialLayer } from './tutorial/TutorialLayer';
 import { FieldToast } from './FieldToast';
+import type { FieldNotice } from './fieldNotice';
 import { DropChipIcon, LivesChipIcon, WaveChipIcon } from './GameIcons';
 import { gameViewStyles as styles } from './gameViewStyles';
 import type { HudSnapshot } from './hudSnapshot';
@@ -46,6 +47,10 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
   const holdRef = useRef(false); // B21: Tutorial-Hold (Präsentation)
 
   const [placement, setPlacement] = useState<PlacementState>(IDLE);
+  // B29: EIN Schreiber für die Feldmeldung — die Runtime (UI-Vorprüfung und Sim-Ablehnung laufen
+  // dort durch denselben Kanal). Vorher hing der Toast am Controller-Zustand und die Sim-Gründe
+  // hatten gar keinen Weg auf den Schirm.
+  const [notice, setNotice] = useState<FieldNotice | null>(null);
   const [hud, setHud] = useState<HudSnapshot | null>(null);
   const [suspended, setSuspended] = useState(false);
   const [showGameOver, setShowGameOver] = useState(false);
@@ -77,6 +82,7 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
       {
         onPlacement: applyPlacement,
         onHud: setHud,
+        onNotice: setNotice,
         onSuspended: () => setSuspended(true),
         onGameOver: () => setShowGameOver(true),
         onMetaChange,
@@ -206,8 +212,8 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
           {placement.variantId !== null || placement.mode !== 'plant' ? (
             <button onClick={cancelPlacement} style={styles.cancelBtn} aria-label={t('common.cancel')}>✕ {t('common.cancel')}</button>
           ) : null}
-          {/* B23.3: Der Grund stand im Controller, nur nie auf dem Schirm. */}
-          <FieldToast rejection={placement.rejection} tick={hud?.tick ?? 0} />
+          {/* B23.3/B29: Der Grund stand im Controller bzw. im Sim-Event, nur nie auf dem Schirm. */}
+          <FieldToast notice={notice} tick={hud?.tick ?? 0} />
           <GameDevPanel
             active={devActive && runtimeRef.current !== null}
             revision={devTick}

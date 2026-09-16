@@ -24,8 +24,11 @@ import type { ResolvedVisual } from '../visual/generator';
 import { resolveBredVisuals, resolveVisual } from '../visual/generator';
 import { strHash } from '../core/rng';
 import { makePlacementRejected } from '../bus/commands';
+import type { GameEvent } from '../bus/events';
+import { FX_EVENT_TYPES, NOTICE_EVENT_TYPES, OBSERVED_EVENT_TYPES } from '../bus/eventAudience';
+import { noticeFromEvent, type FieldNotice } from '../components/fieldNotice';
 import { resolvePlantStats } from '../simulation/plantSystem';
-import { PlacementController, type PlacementState } from '../components/placementController';
+import { PlacementController, type PlacementState, type UiRejectReason } from '../components/placementController';
 import { MAP_TILES_SOURCE, type MapTileType } from '../config/map.source';
 import { recordRunEnd, advanceCrossMaturation, updateMeta } from '../meta';
 import type { MetaSave, BeetleSpecimen } from '../types';
@@ -39,6 +42,8 @@ const IDLE: PlacementState = { mode: 'plant', variantId: null, ghost: null, reje
 export interface RunRuntimeCallbacks {
   onPlacement(next: PlacementState): void;
   onHud(h: HudSnapshot): void;
+  /** Ablehnung, die der Spieler sehen muss — einzige Quelle für den Feld-Toast (B29). */
+  onNotice(notice: FieldNotice): void;
   onSuspended(): void;
   onGameOver(): void;
   onMetaChange(meta: MetaSave): void;
@@ -140,10 +145,24 @@ export class RunRuntime {
     });
     this.controller = controller;
 
-    // Nur Events mit FX-Vertrag (B5-Matrix); SCORE/COMBO/COINS/TILE/BEETLE_REJECTED haben
-    // keinen — HUD liest den Snapshot via hudOf, die Subscriptions waren reine No-ops.
-    for (const type of ['PROJECTILE_HIT','ENEMY_DIED','PLANT_PLACED','WAVE_COMPLETED','GAME_OVER','CRITICAL_HIT','PLACEMENT_REJECTED','DAMAGE_DEALT','WAVE_STARTED','NIGHT_STARTED','DAY_STARTED','REWARD_GRANTED','PLANT_GROWN','PLANT_WEAKENED','PLANT_WITHERED','PLANT_PROPAGATED','PLANT_FERTILIZED','BEETLE_DEPLOYED','BEETLE_DOWN'] as const){
-      root.bus.subscribe(type, (e) => { observer.observe(e as never); audio.observe(e as never); });
+    // B5/B29: Die Liste kommt aus der Registry (`bus/eventAudience`), nicht mehr aus dieser Datei.
+    // Vorher stand hier eine handgepflegte Aufzählung — und genau das war der Befund: was fehlte,
+    // fehlte lautlos (TILE/BEETLE_REJECTED, COINS_GRANTED). Jetzt hat jedes Event dort einen
+    // Eintrag mit Begründung, ein Gate-Test beweist für jede `fx`-Zeile den Kommandos-Ausgang.
+    for (const type of FX_EVENT_TYPES) {
+      root.bus.subscribe(type, (e) => observer.observe(e as never));
+    }
+    // Ton hört auf alles Beobachtete: welcher Ton existiert, entscheidet der AudioObserver.
+    for (const type of OBSERVED_EVENT_TYPES) {
+      root.bus.subscribe(type, (e) => audio.observe(e as never));
+    }
+    // Ablehnungen aus der Sim erreichen den Spieler als Text. Ein Weg, ein Schreiber für die
+    // Meldung: hier — nicht zusätzlich im Controller-Zustand (sonst zwei Quellen für einen Toast).
+    for (const type of NOTICE_EVENT_TYPES) {
+      root.bus.subscribe(type, (e) => {
+        const notice = noticeFromEvent(e as GameEvent);
+        if (notice) this.cbs.onNotice(notice);
+      });
     }
     root.bus.subscribe('NIGHT_STARTED', () => renderer.setNight(true));
     root.bus.subscribe('DAY_STARTED', () => renderer.setNight(false));
@@ -215,12 +234,22 @@ export class RunRuntime {
     this.cbs.onPlacement(next);
   }
 
-  /** Ablehnung der UI zeigt exakt die FX der Sim-Ablehnung (eine FX-Wahrheit, kein Bus-Write). */
-  emitRejectionFx(reason: string, gx: number, gy: number): void {
-    const contract = reason === 'no_energy_tile' || reason === 'unknown' ? 'on_path' : reason;
-    const event = makePlacementRejected(this.root.getSnapshot().clock.tick, ++this.cmdSeq, gx, gy, contract as never);
+  /**
+   * Ablehnung der UI zeigt exakt die FX der Sim-Ablehnung (eine FX-Wahrheit, kein Bus-Write).
+   *
+   * Das synthetische Event ist NUR der FX-Träger (rote Welle an der Zelle); der Ablehnungssprache
+   * des Observers ist der Grund gleich. Deshalb wird 'unknown' hier auf die Sim-Vokabel `on_path`
+   * abgebildet und NICHT als Payload-Wahrheit behandelt: was der Spieler liest, kommt aus dem
+   * Notice-Kanal mit dem echten UI-Grund (unten). Vorher war der Toast am Controller-Zustand
+   * aufgehängt — damit hatte die Meldung zwei Quellen (UI-Vorprüfung und Sim-Event).
+   */
+  emitRejectionFx(reason: UiRejectReason, gx: number, gy: number): void {
+    const tick = this.root.getSnapshot().clock.tick;
+    const contract = reason === 'unknown' ? 'on_path' : reason;
+    const event = makePlacementRejected(tick, ++this.cmdSeq, gx, gy, contract as never);
     this.observer.observe(event as never);
     this.audio.observe(event as never);
+    this.cbs.onNotice({ reason, tick });
   }
 
   pointerMove(cell: { gx: number; gy: number } | null): void {

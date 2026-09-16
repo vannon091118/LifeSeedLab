@@ -2,7 +2,6 @@
 
 export type EventType =
   // lifecycle / waves
-  | 'RUN_STARTED'
   | 'DAY_STARTED'
   | 'NIGHT_STARTED'
   | 'WAVE_STARTED'
@@ -27,7 +26,6 @@ export type EventType =
   | 'SCORE_CHANGED'
   | 'COMBO_CHANGED'
   | 'REWARD_GRANTED'
-  | 'COINS_GRANTED'
   // placement feedback
   | 'PLACEMENT_REJECTED'
   | 'FERTILIZE_REJECTED'
@@ -42,10 +40,26 @@ export type EventType =
   | 'BEETLE_DOWN'
   | 'BEETLE_REJECTED';
 
+// ── Ablehnungs-Vokabular (v1) ────────────────────────────────
+// Die Gründe sind hier EINMAL typisiert, weil drei Stellen sie teilen: die Sim (Emittent),
+// der Notice-Kanal (`components/fieldNotice.ts`) und die Anzeige (`components/FieldToast.tsx`).
+// Die Anzeige bildet `RejectReason` erschöpfend auf i18n-Schlüssel ab — ein neuer Grund ohne
+// Text ist deshalb ein Compile-Fehler, kein stiller `field.reject.unknown` (B29).
+
+/** Sim-Ablehnung einer Pflanzen-Platzierung (`PLACEMENT_REJECTED`). */
+export type PlacementRejectReason = 'occupied' | 'on_path' | 'no_inventory' | 'no_energy';
+/** Pflanzen-Aktionen: Düngen/Vermehrung (`FERTILIZE_REJECTED`/`PROPAGATE_REJECTED`). */
+export type PlantRejectReason = 'not_growing' | 'max_reached' | 'not_found' | 'not_mature' | 'on_path' | 'occupied';
+/** Karten-Bau (`TILE_REJECTED`) — alle sieben Gründe kommen aus `simulation/mapSystem.ts`. */
+export type TileRejectReason = 'unknown_tile' | 'no_energy' | 'max_count' | 'occupied_plant' | 'spawn_corridor' | 'not_expandable' | 'already_buildable';
+/** Brutling-Einsatz (`BEETLE_REJECTED`). */
+export type BeetleRejectReason = 'already_deployed' | 'no_energy' | 'none_available';
+/** Alles, was dem Spieler als Ablehnungsgrund gezeigt werden kann. */
+export type RejectReason = PlacementRejectReason | PlantRejectReason | TileRejectReason | BeetleRejectReason;
+
 // ── Payload contracts (v1) ───────────────────────────────────
 
 export interface EventPayloads {
-  RUN_STARTED: { seed: number };
   DAY_STARTED: { cycle: number };
   NIGHT_STARTED: { cycle: number };
   WAVE_STARTED: { wave: number; enemyCount: number };
@@ -68,17 +82,16 @@ export interface EventPayloads {
   SCORE_CHANGED: { score: number; delta: number };
   COMBO_CHANGED: { count: number; multiplier: number };
   REWARD_GRANTED: { energy: number; sourceId: string };
-  COINS_GRANTED: { coins: number; sourceId: string; enemyId: string };
-  PLACEMENT_REJECTED: { reason: 'occupied' | 'on_path' | 'no_inventory' | 'no_energy'; gx: number; gy: number };
-  FERTILIZE_REJECTED: { plantId: string; reason: 'not_growing' | 'max_reached' | 'not_found' };
-  PROPAGATE_REJECTED: { plantId: string; reason: 'not_mature' | 'not_found' | 'on_path' | 'occupied' };
+  PLACEMENT_REJECTED: { reason: PlacementRejectReason; gx: number; gy: number };
+  FERTILIZE_REJECTED: { plantId: string; reason: Exclude<PlantRejectReason, 'not_mature'> };
+  PROPAGATE_REJECTED: { plantId: string; reason: Exclude<PlantRejectReason, 'not_growing' | 'max_reached'> };
   TILE_PLACED: { gx: number; gy: number; tile: string; cost: number };
-  TILE_REJECTED: { gx: number; gy: number; tile: string; reason: 'unknown_tile' | 'no_energy' | 'max_count' | 'occupied_plant' | 'spawn_corridor' | 'not_expandable' | 'already_buildable' };
+  TILE_REJECTED: { gx: number; gy: number; tile: string; reason: TileRejectReason };
   ROUTE_CHANGED: { waypoints: number };
   MAP_EXPANDED: { gx: number; gy: number; cost: number };
   BEETLE_DEPLOYED: { beetleId: string; name: string; px: number; py: number; spawnCount: number };
   BEETLE_DOWN: { beetleId: string; px: number; py: number };
-  BEETLE_REJECTED: { reason: 'already_deployed' | 'no_energy' | 'none_available' };
+  BEETLE_REJECTED: { reason: BeetleRejectReason };
 }
 
 export type GameEvent = {
@@ -96,7 +109,15 @@ export type GameEvent = {
 // ScoreSystem         → SCORE_CHANGED       → —                 → ui
 // ComboSystem         → COMBO_CHANGED       → —                 → visual, ui
 // ScoreSystem         → REWARD_GRANTED      → —                 → visual (reward flight)
-// InventorySystem     → PLACEMENT_REJECTED  → —                 → ui, visual
+// InventorySystem     → PLACEMENT_REJECTED  → —                 → visual (Zelle) + Notice
+// SimulationRoot      → TILE_REJECTED       → —                 → visual (Zelle) + Notice
+// SimulationRoot      → BEETLE_REJECTED     → —                 → Notice (HUD-Ursache, kein Welt-FX)
+// PlantSystem         → FERTILIZE/PROPAGATE_REJECTED → —          → visual (Entity) + Notice
+//
+// B29: „Wer hört zu?“ ist keine verstreute Comment-Tabelle mehr, sondern `bus/eventAudience.ts`.
+// Dort hat JEDES Event einen Eintrag (fx / notice / snapshot / internal) samt Begründung; ein
+// Test beweist für jede `fx`-Zeile, dass der Observer wirklich Kommandos erzeugt. Ein neues Event
+// ohne Eintrag fällt im Typecheck auf, nicht erst als stille Zeile im Feld.
 
 export function makeEvent<K extends EventType>(
   tick: number,

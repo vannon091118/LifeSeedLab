@@ -6,7 +6,10 @@
 //
 // Tiles (P5) werden bewusst NICHT lokal abgelehnt: das Map-Regelwerk (Baubereich, Korridor,
 // maxCount pro Typ) ist reicher als eine Zellenprüfung, deshalb entscheidet dort die Sim über
-// TILE_REJECTED — die UI zeigt nur Bedienbarkeit (Energie) vorab an.
+// TILE_REJECTED — die UI zeigt nur Bedienbarkeit (Energie) vorab an. B29: die Sim-Antwort ist
+// damit KEIN Nebenschauplatz mehr — sie kommt als rote Welle und Grund-Text beim Spieler an
+// (`bus/eventAudience` → `components/fieldNotice`). Wer hier eine Vorprüfung ergänzt, nimmt dem
+// Spieler den Grund, den nur die Sim kennt.
 
 import type { MapTileType } from '../config/map.source';
 import type { ResolvedVisual } from '../visual/generator';
@@ -14,8 +17,10 @@ import { placementRejectReason, type PlacementRejectReason } from '../simulation
 
 export type PlaceMode = 'plant' | MapTileType;
 
-/** Ablehnungsgrund in der UI: Zell-/Ökonomie-Regel der Sim plus Tile-Vorprüfung. */
-export type UiRejectReason = PlacementRejectReason | 'no_energy_tile' | 'unknown';
+/** Ablehnungsgrund in der UI. Die Energie-Vorprüfung spricht dieselbe Sprache wie die Sim
+ *  (`no_energy`) — vorher gab es dafür einen eigenen Grund mit eigenem Text, obwohl der
+ *  Unterschied „für Pflanze" / „für Feld" nur aus dem Modus kam. */
+export type UiRejectReason = PlacementRejectReason | 'unknown';
 
 export interface Cell {
   gx: number;
@@ -167,7 +172,7 @@ export class PlacementController {
     const board = this.env.board();
     if (this.mode !== 'plant') {
       if (board.mapTiles[`${cell.gx},${cell.gy}`] === this.mode) return null;
-      return board.energy < this.env.tileCost(this.mode) ? 'no_energy_tile' : null;
+      return board.energy < this.env.tileCost(this.mode) ? 'no_energy' : null;
     }
     if (this.variantId === null) return 'unknown';
 

@@ -113,7 +113,19 @@ export class VisualObserver {
         break;
 
       case 'PLACEMENT_REJECTED':
+      // B29: dieselbe Ablehnungssprache für den Karten-Bau. Der Controller delegiert die
+      // Map-Regeln bewusst an die Sim — die Antwort muss dort ankommen, wo der Finger war.
+      case 'TILE_REJECTED':
         this.push({ type: 'SpawnParticleBurst', profile: 'warn_pulse', x: e.payload.gx + 0.5, y: e.payload.gy + 0.5, seed: (e.tick * 7) | 0, intensity: 1, color: '#a94438' });
+        break;
+
+      // B29: pflanzgebundene Ablehnung. Diese Payloads tragen keinen Ort, sondern die Entity —
+      // also antwortet die Pflanze selbst (Rückstoß), und der Grund steht im Notice-Text.
+      // `recoil` war im Command-Vertrag längst vorgesehen, aber im Renderer nie umgesetzt:
+      // die Animation muss auch sichtbar sein, sonst wäre die Ablehnung erneut stumm.
+      case 'FERTILIZE_REJECTED':
+      case 'PROPAGATE_REJECTED':
+        this.push({ type: 'PlayAnimation', entityId: e.payload.plantId, anim: 'recoil', ticks: 10 });
         break;
 
       case 'PLANT_PROPAGATED':

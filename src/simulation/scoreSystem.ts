@@ -26,9 +26,11 @@ export class ScoreSystem {
     this.emit(makeEvent(state.clock.tick, 'REWARD_GRANTED', 'system:score', ++this.seq, {
       energy: reward, sourceId: enemyId,
     }));
-    this.emit(makeEvent(state.clock.tick, 'COINS_GRANTED', 'system:score', ++this.seq, {
-      coins, sourceId: enemyId, enemyId,
-    }));
+    // B29: kein COINS_GRANTED mehr. `resources.coins` bleibt State (deterministisch, testbar),
+    // aber das Event war ein Contract ohne Consumer UND ohne Senke: kein Positionsfeld (also kein
+    // Welt-FX möglich), der Stand ist Snapshot (HUD liest ihn selbst), und die Münzen haben
+    // derzeit keinen Ausgabepunkt. Es kommt mit seiner Senke wieder — dann zusammen mit dem
+    // Consumer, nicht davor.
     void px; void py;
   }
 
