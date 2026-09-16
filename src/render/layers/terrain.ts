@@ -1,10 +1,11 @@
 // Owner: TerrainLayerSystem (render layer 1, pre-baked). LOC ≤ 300.
 // Kästchenblock-CGI (docs/art/papier-trifft-cgi.md): Schul-Mathe-Collageblock als
 // Bühne — warmes Papier, blaue Rasterlinien exakt auf CELL_SIZE, Blockrand + Lochung,
-// Bleistift-Kritzeleien, Collage-Fetzen. EINMAL pro Seed gebacken (B10), zero Kosten
-// pro Frame. Alle Streuung aus dem 'visual'-Namespace (deterministisch).
+// Bleistift-Kritzeleien, Collage-Fetzen. Gebacken pro (Seed, aktive Route) — zero
+// Kosten pro Frame; Re-Bake NUR bei Routen- oder Seed-Wechsel (B16.1, B12).
+// Alle Streuung aus dem 'visual'-Namespace (deterministisch).
 
-import { GRID_COLS, GRID_ROWS, ENEMY_PATH } from '../../config/world.source';
+import { GRID_COLS, GRID_ROWS, resolveActiveRoute, type RoutePoint } from '../../config/world.source';
 import { makeRng, deriveSeed } from '../../core/rng';
 
 const PAPER = '#f5efdc';
@@ -15,8 +16,10 @@ const DIRT = '#d9c9a3';
 const DIRT_EDGE = '#b7a986';
 const PENCIL = 'rgba(43,43,38,0.09)';
 
-export function bakeTerrain(seed: number): HTMLCanvasElement {
+export function bakeTerrain(seed: number, route: ReadonlyArray<RoutePoint> | null): HTMLCanvasElement {
   const cell = 64;
+  // B16.1: der gezeichnete Weg IST der aktive Laufweg der Gegner (Auflösung: eine Quelle
+  // in world.source) — der Renderer kennt keinen eigenen Fallback mehr.
   const canvas = document.createElement('canvas');
   canvas.width = GRID_COLS * cell;
   canvas.height = GRID_ROWS * cell;
@@ -74,7 +77,7 @@ export function bakeTerrain(seed: number): HTMLCanvasElement {
   drawCollageScraps(ctx, rng, cell);
 
   // ── Route: handgezeichneter Tinten-/Erden-Strich ÜBER dem Raster ──
-  drawPath(ctx, rng, cell);
+  drawPath(ctx, rng, cell, resolveActiveRoute(route));
 
   return canvas;
 }
@@ -168,13 +171,13 @@ function drawCollageScraps(ctx: CanvasRenderingContext2D, rng: ReturnType<typeof
 }
 
 // ── Route: geschichteter Erdstreifen mit Wackelkontur (lesbar über dem Raster) ──
-function drawPath(ctx: CanvasRenderingContext2D, rng: ReturnType<typeof makeRng>, cell: number): void {
+function drawPath(ctx: CanvasRenderingContext2D, rng: ReturnType<typeof makeRng>, cell: number, path: ReadonlyArray<RoutePoint>): void {
   const HALF = 0.42;
   const wobble = (base: number, salt: number) => base + (rng.next() - 0.5) * 0.05 * (salt || 1);
   const drawStrip = (width: number, color: string) => {
     ctx.fillStyle = color;
-    for (let i = 0; i < ENEMY_PATH.length - 1; i++) {
-      const a = ENEMY_PATH[i], b = ENEMY_PATH[i + 1];
+    for (let i = 0; i < path.length - 1; i++) {
+      const a = path[i], b = path[i + 1];
       const ax = a.x * cell, ay = a.y * cell, bx = b.x * cell, by = b.y * cell;
       const ang = Math.atan2(by - ay, bx - ax);
       const px = Math.sin(ang) * width, py = -Math.cos(ang) * width;
@@ -193,8 +196,8 @@ function drawPath(ctx: CanvasRenderingContext2D, rng: ReturnType<typeof makeRng>
 
   // Abnutzungs-Sprenkel + Trittsteine
   for (let i = 0; i < 220; i++) {
-    const seg = Math.floor(rng.next() * (ENEMY_PATH.length - 1));
-    const a = ENEMY_PATH[seg], b = ENEMY_PATH[seg + 1];
+    const seg = Math.floor(rng.next() * (path.length - 1));
+    const a = path[seg], b = path[seg + 1];
     const t = rng.next();
     const off = (rng.next() - 0.5) * HALF * 1.7;
     const x = (a.x + (b.x - a.x) * t) * cell - Math.sin(Math.atan2(b.y - a.y, b.x - a.x)) * off * cell;
@@ -202,10 +205,10 @@ function drawPath(ctx: CanvasRenderingContext2D, rng: ReturnType<typeof makeRng>
     ctx.fillStyle = rng.next() < 0.5 ? 'rgba(183,169,134,0.5)' : 'rgba(245,239,220,0.55)';
     ctx.beginPath(); ctx.arc(x, y, 1 + rng.next() * 2, 0, Math.PI * 2); ctx.fill();
   }
-  for (let i = 0; i < ENEMY_PATH.length - 1; i++) {
+  for (let i = 0; i < path.length - 1; i++) {
     const stones = 1 + Math.floor(rng.next() * 2);
     for (let s = 0; s < stones; s++) {
-      const a = ENEMY_PATH[i], b = ENEMY_PATH[i + 1];
+      const a = path[i], b = path[i + 1];
       const t = 0.25 + rng.next() * 0.5;
       const x = (a.x + (b.x - a.x) * t) * cell;
       const y = (a.y + (b.y - a.y) * t) * cell;
@@ -220,8 +223,8 @@ function drawPath(ctx: CanvasRenderingContext2D, rng: ReturnType<typeof makeRng>
   // Wackelkontur an den Rändern (handgezeichnet)
   ctx.strokeStyle = 'rgba(43,43,38,0.5)';
   ctx.lineWidth = 2;
-  for (let i = 0; i < ENEMY_PATH.length - 1; i++) {
-    const a = ENEMY_PATH[i], b = ENEMY_PATH[i + 1];
+  for (let i = 0; i < path.length - 1; i++) {
+    const a = path[i], b = path[i + 1];
     const ax = a.x * cell, ay = a.y * cell, bx = b.x * cell, by = b.y * cell;
     const ang = Math.atan2(by - ay, bx - ax);
     for (const side of [-1, 1] as const) {

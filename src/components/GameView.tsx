@@ -30,6 +30,7 @@ import { GameDevPanel } from './GameDevPanel';
 import { DropChipIcon, LivesChipIcon, WaveChipIcon } from './GameIcons';
 import { gameViewStyles as styles } from './gameViewStyles';
 import { isDevActive } from '../dev/gate';
+import { bindSimRoot, installTestHooks, unbindSimRoot } from '../dev/testHooks';
 
 interface Props {
   seed: number; runId: number;
@@ -113,9 +114,11 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
     const canvas = canvasRef.current; if (!canvas) return;
     const root = new SimulationRoot({ seed, runId, loadout, bredStats, beetles, resume: resume ?? undefined });
     rootRef.current = root;
+    installTestHooks(); bindSimRoot(root); // DevGate-only E2E-Brücke (Release: no-op)
     const renderer = new Renderer(canvas);
     rendererRef.current = renderer;
-    renderer.prepareTerrain(seed);
+    // B16.1: kein Terrain-Prime mehr — der Bake hängt an (Seed, aktive Route) und
+    // passiert lazy im Render aus dem State (leere Map ⇒ DEFAULT-Pfad, wie bisher).
     renderer.setBredVisuals(resolveBredVisuals(savedVariants.filter(v => loadout.includes(v.id)), seed));
     const camera = new Camera();
     const observer = new VisualObserver(camera, fxOn);
@@ -226,12 +229,20 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
       window.removeEventListener('pointerdown', unlockOnce);
       saveRun(root.getSnapshot());
       placementRef.current = null;
+      unbindSimRoot(root);
     };
     // fxOn is deliberately NOT a dependency: FX is presentation-only and must never
     // tear down + rebuild the simulation root (that would restart the run). The
     // observers expose setFxEnabled/setEnabled for live toggling instead.
+    // loadout/savedVariants/bredStats/resume are deliberately NOT dependencies either:
+    // the sim is built from the meta AT RUN START (A19 — during the run the Sim writes
+    // meta directly). A mid-run onMetaChange (GAME_OVER banking, FX toggle) must not
+    // rebuild the sim: a rebuild would resurrect a fresh root BEHIND the Game-Over
+    // overlay (zombie sim — auto-started waves inflate totalWavesSurvived = free
+    // maturation, and saveRun overwrites the dead run, making it resumable). New runs
+    // remount via key={meta.runId} in App.tsx.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seed, runId, loadout, savedVariants, bredStats, resume, onMetaChange, devActive]);
+  }, [seed, runId, onMetaChange, devActive]);
 
   /** Ablehnung der UI zeigt exakt die FX der Sim-Ablehnung (eine FX-Wahrheit, kein Bus-Write). */
   const emitRejectionFx = useCallback((reason: UiRejectReason, gx: number, gy: number) => {

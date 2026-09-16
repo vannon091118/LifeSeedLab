@@ -8,6 +8,8 @@ export type MapTileType = 'pot' | 'path' | 'boulder' | 'decor';
 
 export interface MapTileSource {
   id: MapTileType;
+  /** Anzeigename (UI/Tray) — die Spielwelt benennt deutsch (vgl. names.source). */
+  label: string;
   /** Energie-Kosten pro Platzierung (In-Run-Währung, wie Pflanzen). */
   cost: number;
   /** Pathfinding-Beteiligung: walkable = Gegner laufen darüber, block = Wand. */
@@ -20,14 +22,14 @@ export interface MapTileSource {
 
 export const MAP_TILES_SOURCE: Record<MapTileType, MapTileSource> = {
   // Blumentopf: PLATZIERFLÄCHE für Pflanzen (Pflanzen brauchen jetzt einen Topf!)
-  pot:     { id: 'pot',     cost: 15, walkable: false, weight: 999, maxCount: 24 },
+  pot:     { id: 'pot',     label: 'Blumentopf', cost: 15, walkable: false, weight: 999, maxCount: 24 },
   // Weg-Tile: Gegner BEVORZUGEN es (weight < 1) — der Spieler lenkt den Laufweg
-  path:    { id: 'path',    cost: 5,  walkable: true,  weight: 0.45, maxCount: 30 },
+  path:    { id: 'path',    label: 'Weg',        cost: 5,  walkable: true,  weight: 0.45, maxCount: 30 },
   // Findling: BLOCKIERT den Weg — Gegner müssen umlaufen. maxCount 6 < 8 Zeilen:
   // eine komplette Spalten-Mauer ist UNMÖGLICH (Softlock-Schutz an der Quelle).
-  boulder: { id: 'boulder', cost: 20, walkable: false, weight: 999, maxCount: 6 },
+  boulder: { id: 'boulder', label: 'Findling',   cost: 20, walkable: false, weight: 999, maxCount: 6 },
   // Deko: rein kosmetisch, begehbar, keine Path-Bedeutung
-  decor:   { id: 'decor',   cost: 3,  walkable: true,  weight: 1, maxCount: 20 },
+  decor:   { id: 'decor',   label: 'Deko',       cost: 3,  walkable: true,  weight: 1, maxCount: 20 },
 };
 
 export const MAP_TILE_IDS = Object.keys(MAP_TILES_SOURCE) as MapTileType[];

@@ -37,7 +37,7 @@ export class Renderer {
   private ctx: CanvasRenderingContext2D;
   private w = 0; private h = 0; private dpr = 1;
   private terrain: HTMLCanvasElement | null = null;
-  private terrainSeed = -1;
+  private terrainKey = '';
   private nightAlpha = 0; private nightTarget = 0;
   private bredVisuals = new Map<string, ResolvedVisual>();
 
@@ -75,9 +75,18 @@ export class Renderer {
     this.w = w; this.h = h;
   }
 
-  prepareTerrain(seed: number): void {
-    if (this.terrainSeed === seed) return;
-    this.terrain = bake(seed); this.terrainSeed = seed;
+  /**
+   * B16.1: der Terrain-Bake hängt an (Seed, aktive Route) — der gezeichnete Weg IST der
+   * Laufweg der Gegner. Lazy Re-Bake bei Schlüssel-Wechsel (Recompute passiert nur bei
+   * START_WAVE) — nie pro Frame (B12). Kein Render-Konsument hält eine ENEMY_PATH-Kopie.
+   */
+  private terrainFor(state: SimState): HTMLCanvasElement | null {
+    const sig = state.currentRoute?.map(p => `${p.x},${p.y}`).join(';') ?? 'default';
+    const key = `${state.seed}|${sig}`;
+    if (this.terrain && this.terrainKey === key) return this.terrain;
+    this.terrain = bake(state.seed, state.currentRoute);
+    this.terrainKey = key;
+    return this.terrain;
   }
 
   setNight(night: boolean): void { this.nightTarget = night ? 0.35 : 0; }
@@ -118,7 +127,8 @@ export class Renderer {
     ctx.fillStyle = PAPER; ctx.fillRect(0, 0, this.w, this.h);
     ctx.translate(ox + shakeX, oy + shakeY);
 
-    if (this.terrain) ctx.drawImage(this.terrain, 0, 0, GRID_COLS * cell, GRID_ROWS * cell);
+    const terrain = this.terrainFor(state);
+    if (terrain) ctx.drawImage(terrain, 0, 0, GRID_COLS * cell, GRID_ROWS * cell);
 
     // P5: Spieler-Tiles unter allem Gameplay zeichnen (read-only aus dem State)
     for (const [key, tile] of Object.entries(state.mapTiles)) {

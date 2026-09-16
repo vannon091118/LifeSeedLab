@@ -6,6 +6,8 @@ export type PlantTypeId = 'sprout' | 'rootwall' | 'mycelia';
 
 export interface PlantSource {
   id: PlantTypeId;
+  /** Anzeigename (UI/Tray) — die Spielwelt benennt deutsch (vgl. names.source). */
+  label: string;
   role: 'shooter' | 'wall' | 'support';
   cost: number;
   stats: {
@@ -21,6 +23,7 @@ export interface PlantSource {
 export const PLANTS_SOURCE: Record<PlantTypeId, PlantSource> = {
   sprout: {
     id: 'sprout',
+    label: 'Spross',
     role: 'shooter',
     cost: 50,
     stats: { hp: 100, damage: 15, range: 3, cooldown: 30 },
@@ -32,6 +35,7 @@ export const PLANTS_SOURCE: Record<PlantTypeId, PlantSource> = {
   },
   rootwall: {
     id: 'rootwall',
+    label: 'Wurzelmauer',
     role: 'wall',
     cost: 40,
     stats: { hp: 300, damage: 5, range: 0.5, cooldown: 60 },
@@ -43,6 +47,7 @@ export const PLANTS_SOURCE: Record<PlantTypeId, PlantSource> = {
   },
   mycelia: {
     id: 'mycelia',
+    label: 'Myzel',
     role: 'support',
     cost: 60,
     stats: { hp: 80, damage: 0, range: 2, cooldown: 45 },

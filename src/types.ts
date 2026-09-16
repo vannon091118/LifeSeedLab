@@ -86,6 +86,12 @@ export type PendingCross = {
   seed: number;        // gacha seed — Kind ist bei Aussaat schon deterministisch fest
   neededWaves: number; // wavesToUnlockFor(crossIndex)
   startedWave: number; // totalWavesSurvived bei Aussaat
+  /** B19: das Kind WIRD bei Aussaat persistiert — der Claim hängt nur am globalen
+   *  Wellen-Timer, nie am zufälligen Eltern-Bestand (Schwesterkreuzungen konkurrieren
+   *  sonst um dieselben Eltern). Alte Saves ohne child rekonstruieren aus dem Seed. */
+  child?: PlantVariant;
+  parentAId?: string;
+  parentBId?: string;
 };
 
 /** P6: Ein Brutvorgang wartet auf Reifung nach Kinderstärke (beetleWavesToUnlock). */

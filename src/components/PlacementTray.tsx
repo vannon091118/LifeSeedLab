@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import { MAP_TILES_SOURCE, type MapTileType } from '../config/map.source';
+import { PLANTS_SOURCE, type PlantTypeId } from '../config/plants.source';
 import type { PlaceMode } from './placementController';
 
 // Owner: UI (PlacementTray). LOC ≤ 400.
@@ -23,15 +24,16 @@ export function PlacementTray({ plantIds, inventory, energy, mode, variantId, on
         const count = inventory[id] ?? 0;
         const isSelected = variantId === id && mode === 'plant';
         const disabled = count <= 0;
+        const label = PLANTS_SOURCE[id as PlantTypeId]?.label ?? id;
         return (
           <button
             key={id}
             onPointerDown={() => onSelectPlant(id, count)}
             style={{ ...styles.trayItem, ...(isSelected ? styles.trayItemSelected : {}), ...(disabled ? styles.trayItemDisabled : {}) }}
-            aria-pressed={isSelected} aria-disabled={disabled} title={id}
+            aria-pressed={isSelected} aria-disabled={disabled} title={label}
           >
             <span style={styles.trayDot} aria-hidden/>
-            <span style={styles.trayName}>{id}</span>
+            <span style={styles.trayName}>{label}</span>
             <span style={styles.trayCount}>×{count}</span>
           </button>
         );
@@ -46,10 +48,10 @@ export function PlacementTray({ plantIds, inventory, energy, mode, variantId, on
             onPointerDown={() => onSelectTile(tile)}
             style={{ ...styles.trayItem, ...(isSelected ? styles.trayItemSelected : {}), ...(affordable ? {} : styles.trayItemDisabled) }}
             aria-pressed={isSelected} aria-disabled={!affordable}
-            title={`${tile} (${MAP_TILES_SOURCE[tile].cost} Energie)`}
+            title={`${MAP_TILES_SOURCE[tile].label} (${MAP_TILES_SOURCE[tile].cost} Energie)`}
           >
             <span style={{ ...styles.trayDot, background: tileSwatch(tile) }} aria-hidden/>
-            <span style={styles.trayName}>{tile}</span>
+            <span style={styles.trayName}>{MAP_TILES_SOURCE[tile].label}</span>
             <span style={styles.trayCount}>{MAP_TILES_SOURCE[tile].cost}⚡</span>
           </button>
         );

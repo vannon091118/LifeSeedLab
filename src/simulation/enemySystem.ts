@@ -1,10 +1,12 @@
 // Owner: EnemySystem (enemies slice). LOC ≤ 300.
 // May: move, target, receive damage, die, carry statuses.
 // May not: render, spawn particles, shake camera (contract Phase 4.2).
+// B16.1: die aktive Route liegt im State (`currentRoute`, Writer: SimulationRoot)
+// — dieses System hält KEINE zweite Kopie mehr (A14: drei Tode derselben Wahrheit).
 
 import type { SimState, EnemyEntity } from './state';
 import { ENEMIES_SOURCE, type EnemySource } from '../config/enemies.source';
-import { ENEMY_PATH } from '../config/world.source';
+import { resolveActiveRoute, type RoutePoint } from '../config/world.source';
 import { makeEvent, type GameEvent } from '../bus/events';
 import { nextId } from '../core/ids';
 import { makeRng } from '../core/rng';
@@ -26,24 +28,12 @@ export interface BeetleDeploySpec {
 
 export class EnemySystem {
   private seq = 0;
-  /** Aktive Route (P5): vom Map-Grid abgeleitet oder null = DEFAULT (ENEMY_PATH). */
-  private route: ReadonlyArray<{ x: number; y: number }> | null = null;
 
   constructor(private emit: (e: GameEvent) => void) {}
 
-  /** P5: Route vom MapSystem setzen (SimulationRoot ruft das bei START_WAVE). */
-  setRoute(route: ReadonlyArray<{ x: number; y: number }> | null): void {
-    this.route = route && route.length >= 2 ? route : null;
-  }
-
-  /** Aktive Wegpunkte (Renderer zeigt die Route — read-only). */
-  getRoute(): ReadonlyArray<{ x: number; y: number }> | null {
-    return this.route;
-  }
-
-  /** Wegpunkte dieser Welle: Map-Route wenn vorhanden, sonst DEFAULT-Pfad. */
-  private activePath(): ReadonlyArray<{ x: number; y: number }> {
-    return this.route ?? ENEMY_PATH;
+  /** Aktive Wegpunkte DIESER Tick: aus dem State — dieselbe Wahrheit wie Rendering/UI (B16.1). */
+  activePath(state: SimState): ReadonlyArray<RoutePoint> {
+    return resolveActiveRoute(state.currentRoute);
   }
 
   /** Deterministic per (rootSeed, waveNumber, spawnIndex) — no stream state (A4-6 pattern). */
@@ -56,11 +46,12 @@ export class EnemySystem {
     const hp = Math.round(src.hp * mult);
     const reward = src.reward + Math.floor(seed.next() * 6); // ± deterministic jitter
 
+    const start = this.activePath(state)[0];
     const e: EnemyEntity = {
       id: nextId('enemy'),
       typeId: typeId as EnemyEntity['typeId'],
       hp, maxHp: hp,
-      px: this.activePath()[0].x, py: this.activePath()[0].y,
+      px: start.x, py: start.y,
       pathIndex: 0,
       pathProgress: 0,
       damage: src.damage,
@@ -78,7 +69,7 @@ export class EnemySystem {
   /** Move all enemies along the ACTIVE path; returns lives leaked this tick. */
   update(state: SimState): number {
     let leaked = 0;
-    const path = this.activePath();
+    const path = this.activePath(state);
     for (const e of state.enemies) {
       if (e.pathIndex >= path.length - 1) {
         leaked += e.damage;
@@ -185,7 +176,7 @@ export class EnemySystem {
     if (state.deployedBeetle) return { ok: false, reason: 'already_deployed' };
     if (state.resources.energy < spec.cost) return { ok: false, reason: 'no_energy' };
     state.resources.energy -= spec.cost;
-    const start = this.activePath()[0];
+    const start = this.activePath(state)[0];
     state.deployedBeetle = {
       id: `beetle_${spec.id}`,
       specimenId: spec.specimenId,

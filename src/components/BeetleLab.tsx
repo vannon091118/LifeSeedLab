@@ -84,7 +84,7 @@ export function BeetleLab({ meta, onMetaChange, onClose }: Props) {
                 }}
               >
                 <span style={{ ...styles.specimenDot, background: s.color }} aria-hidden />
-                <span style={styles.specimenName}>{s.name}</span>
+                <span style={styles.specimenName}>{s.label}</span>
                 <span style={styles.specimenStats}>HP {s.hp} · ATK {s.attack}</span>
                 {(selA || selB) && <span style={styles.specimenTag}>{selA ? 'A' : 'B'}</span>}
               </button>

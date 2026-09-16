@@ -84,31 +84,52 @@ export function registerVariant(variant: PlantVariant): MetaSave {
 }
 
 /**
- * B1 „Keep" einer Kreuzung: verbraucht je 1× beider Eltern und registriert das Kind.
- * Ohne diesen Verbrauch wäre Zucht unbegrenzt wiederholbar (dieselben Eltern, beliebig viele
- * Nachkommen). Rückgabe null ⇒ nicht reif oder Elternbestand reicht nicht — dann passiert nichts.
+ * B19 „Keep" einer Kreuzung: registriert das Kind aus dem PERSISTIERTEN Queue-Eintrag und
+ * bucht die Queue aus. Der Elternverbrauch ist best-effort (was da ist, wird gezogen) —
+ * der Claim selbst hängt NUR an der globalen Reife (isMatured), nie am zufälligen
+ * Eltern-Bestand: Schwesterkreuzungen konkurrieren sonst um dieselben Eltern und die
+ * zweite verfällt, obwohl ihr Kind längst deterministisch feststeht.
  *
  * A18.2: `crossIndex` ist VERPFLICHTEND und wird HIER auf Reife geprüft (isCrossReady,
- * fail-closed). Vorher war er optional — jeder Aufrufer konnte die Queue umgehen, und genau
- * das war als Vertrag test-gelockt. Die Ausbuchung ist nicht verhandelbar: das ist der
- * EINZIGE Ort, an dem die Warteschlange schrumpft (A13.12/B14.4) — jetzt wirklich.
+ * fail-closed). Die Ausbuchung ist nicht verhandelbar: das ist der EINZIGE Ort, an dem
+ * die Warteschlange schrumpft (A13.12/B14.4).
+ *
+ * Alte Saves (vor B19) ohne persistiertes `child`: Fallback — Kind + Eltern aus dem Seed
+ * über den aktuellen Bestand rekonstruieren (wie vor B19); schlägt das fehl (Bestand < 2
+ * Varianten), gibt es kein Keep (null) — der historische parentsGone-Zustand bleibt.
  */
 export function keepCross(child: PlantVariant, parentAId: string, parentBId: string, crossIndex: number): MetaSave | null {
   const meta = loadMeta();
   if (!isCrossReady(meta, crossIndex)) return null;
-  const a = canonicalVariantId(parentAId);
-  const b = canonicalVariantId(parentBId);
-  const costA = a === b ? 2 : 1;
-  if ((meta.variantCounts[a] ?? 0) < costA || (meta.variantCounts[b] ?? 0) < 1) return null;
+  const entry = meta.pendingCrosses.find(c => c.crossIndex === crossIndex);
 
+  // B19-Pfad: Kind aus dem persistierten Eintrag (Autorität), Eltern-IDs ebenfalls.
+  let resolvedChild = entry?.child ?? null;
+  let a: string, b: string;
+  if (resolvedChild && entry?.parentAId && entry?.parentBId) {
+    a = canonicalVariantId(entry.parentAId);
+    b = canonicalVariantId(entry.parentBId);
+  } else {
+    // Legacy-Fallback (Altsave ohne child): historischer Vertrag wie vor B19 —
+    // Elternbestand ist eine Harte Bedingung (kein Kind ohne erreichbaren Wurf).
+    a = canonicalVariantId(parentAId);
+    b = canonicalVariantId(parentBId);
+    const costA = a === b ? 2 : 1;
+    if ((meta.variantCounts[a] ?? 0) < costA || (meta.variantCounts[b] ?? 0) < 1) return null;
+    resolvedChild = child;
+  }
+
+  // B19: Elternverbrauch best-effort — was vorhanden ist, wird gezogen (nie unter 0).
   const counts = { ...meta.variantCounts };
-  counts[a] = (counts[a] ?? 0) - costA;
-  if (a !== b) counts[b] = (counts[b] ?? 0) - 1;
+  const costA = a === b ? 2 : 1;
+  counts[a] = Math.max(0, (counts[a] ?? 0) - costA);
+  if (a !== b) counts[b] = Math.max(0, (counts[b] ?? 0) - 1);
+
   const base: MetaSave = { ...meta, variantCounts: counts };
   const booked: MetaSave = { ...base, pendingCrosses: base.pendingCrosses.filter(c => c.crossIndex !== crossIndex) };
   // B14.5: Elternverbrauch + Queue-Ausbuchung + Kind-Registrierung + bredStats in EINEM
   // Persistenzschritt. Vorher drei Schreiber ⇒ Zwischenzustand „Eltern verbraucht, kein Kind".
-  const next = applyRegisterVariant(booked, child);
+  const next = applyRegisterVariant(booked, resolvedChild);
   persistMeta(next);
   return next;
 }

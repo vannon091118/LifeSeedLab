@@ -15,7 +15,7 @@ export function createBaseVariants(): PlantVariant[] {
       : null;
     return {
       id: src.id,
-      name: src.id.charAt(0).toUpperCase() + src.id.slice(1),
+      name: src.label,
       type: src.role,
       genome: src.genome.map(g => ({ ...g })),
       traits: deriveTraits(src.genome as Genome),

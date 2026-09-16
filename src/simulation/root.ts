@@ -229,8 +229,9 @@ export class SimulationRoot {
   private recomputeRoute(state: SimState): void {
     const hasTiles = Object.keys(state.mapTiles).length > 0;
     const route = hasTiles ? this.map.computeRoute(state) : null;
+    // B16.1: die Route lebt NUR im State (Ein-Writer); EnemySystem liest sie pro Tick
+    // aus dem State — keine zweite Kopie im System mehr (A14: getRoute/setRoute gestorben).
     state.currentRoute = route;
-    this.enemies.setRoute(route);
     this.publish({
       eventId: `${state.clock.tick}:system:map:ROUTE_CHANGED:${++this.rejectSeq}`,
       tick: state.clock.tick,

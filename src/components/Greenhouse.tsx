@@ -27,7 +27,9 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
 
   const owned: PlantVariant[] = useMemoOwned(meta);
 
-  const canSow = meta.seedStash > 0 && owned.length >= 2;
+  // B18.3: Aussaat ist frei (B17.3 keimt Käufe direkt — ein Stash-Gate würde die Zucht
+  // für immer sperren). Die Kosten liegen im Elternverbrauch beim Keep.
+  const canSow = owned.length >= 2;
 
   const handleSow = () => {
     if (!canSow) return;
@@ -37,7 +39,8 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
     if (!roll) return;
     // ATOMAR: Seed-Verbrauch + Cross-Enqueue in EINEM Persistenzschritt —
     // kein Zustand mehr möglich, in dem der Seed verbrannt ist, aber keine Kreuzung wartet.
-    const m = consumeSeedAndEnqueueCross(gachaSeed, crossIndex, meta.totalWavesSurvived);
+    // B19: das Kind + Eltern werden MIT persistiert — der Claim hängt nur am Wellen-Timer.
+    const m = consumeSeedAndEnqueueCross(gachaSeed, crossIndex, meta.totalWavesSurvived, roll.child, roll.parentA.id, roll.parentB.id);
     if (!m) return;
     setLastRoll(roll);
     onMetaChange(m);
@@ -110,8 +113,7 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
         <button onClick={handleSow} disabled={!canSow} style={{ ...styles.sowBtn, opacity: canSow ? 1 : 0.4 }}>
           🌱 {t('shop.sow')}
         </button>
-        {!canSow && meta.seedStash <= 0 && <div style={styles.hint}>{t('shop.sowEmpty')}</div>}
-        {!canSow && meta.seedStash > 0 && owned.length < 2 && <div style={styles.hint}>{t('shop.needTwo')}</div>}
+        {!canSow && owned.length < 2 && <div style={styles.hint}>{t('shop.needTwo')}</div>}
 
         {/* Gacha-Ergebnis */}
         {lastRoll && (
@@ -164,9 +166,12 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
                   </div>
                 );
               }
-              // Reif ⇒ Kind aus dem gespeicherten Seed rekonstruieren (B15.1).
-              // null ⇒ Eltern nicht mehr im Besitz (Kandidat bleibt, Meldung beim Versuch).
-              const roll = rollGachaCross(owned, c.seed, c.crossIndex);
+              // B19: Reif ⇒ das PERSISTIERTE Kind anzeigen (Autorität), kein Neu-Wurf aus
+              // dem inzwischen veränderten Bestand. Legacy (Altsave ohne child): aus dem
+              // Seed rekonstruieren; null ⇒ parentsGone-Meldung wie bisher.
+              const roll = c.child
+                ? { child: c.child, parentA: BASES.find(v => v.id === c.parentAId) ?? owned.find(v => v.id === c.parentAId), parentB: BASES.find(v => v.id === c.parentBId) ?? owned.find(v => v.id === c.parentBId), probability: 1, crossIndex: c.crossIndex } as GachaRoll
+                : rollGachaCross(owned, c.seed, c.crossIndex);
               return (
                 <div key={c.crossIndex} style={styles.pendingReady}>
                   <div style={styles.childRow}>
@@ -174,7 +179,7 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
                     <div style={styles.childInfo}>
                       <strong style={styles.childName}>{roll?.child.name ?? t('shop.parentsGone')}</strong>
                       <div style={styles.parentsLine}>
-                        {roll ? `${t('gacha.parents')} ${roll.parentA.name} × ${roll.parentB.name}` : ''}
+                        {roll ? `${t('gacha.parents')} ${roll.parentA?.name ?? '?'} × ${roll.parentB?.name ?? '?'}` : ''}
                       </div>
                     </div>
                     <button

@@ -48,7 +48,8 @@ export const BEETLE_GENE_POOL: Record<string, { dominant: boolean; weight: numbe
 /** Basen-Tiere: der Ausgangsbestand (wie PlantVariant-Basen). */
 export interface BeetleSpecimenSource {
   id: string;
-  name: string;
+  /** Anzeigename (UI/Brut) — die Spielwelt benennt deutsch (vgl. names.source). */
+  label: string;
   hp: number;
   speed: number;   // Zellen/Tick (Gegner-Kaliber)
   attack: number;  // Schaden pro Biss gegen Gegner
@@ -58,17 +59,17 @@ export interface BeetleSpecimenSource {
 
 export const BEETLES_SOURCE: Record<string, BeetleSpecimenSource> = {
   leafhopper: {
-    id: 'leafhopper', name: 'Leafhopper',
+    id: 'leafhopper', label: 'Blatthüpfer',
     hp: 60, speed: 0.030, attack: 4,
     genes: ['sprinter'], color: '#86b34a',
   },
   shellbeetle: {
-    id: 'shellbeetle', name: 'Shellbeetle',
+    id: 'shellbeetle', label: 'Schildkäfer',
     hp: 180, speed: 0.016, attack: 2,
     genes: ['carapace'], color: '#8a7f5e',
   },
   bumble: {
-    id: 'bumble', name: 'Bumble',
+    id: 'bumble', label: 'Hummel',
     hp: 90, speed: 0.024, attack: 3,
     genes: ['swarmborn'], color: '#d9a441',
   },

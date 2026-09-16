@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import type { MetaSave } from './types';
 import { translations, type TranslationKey } from './i18n/translations';
 
@@ -15,6 +15,11 @@ const I18nContext = createContext<I18nContextType | null>(null);
 
 export function I18nProvider({ children, initialLang }: { children: ReactNode; initialLang: Lang }) {
   const [lang, setLangState] = useState<Lang>(initialLang);
+
+  // QA-01: <html lang> folgt der UI-Sprache (Screenreader/Rechtschreibung).
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
 
   const setLang = useCallback((l: Lang) => {
     setLangState(l);

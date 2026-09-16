@@ -53,20 +53,27 @@ function capped(queue: PendingCross[]): PendingCross[] {
 }
 
 /**
- * ATOMAR: prüft Stash, verbraucht 1 Seed und queued die Kreuzung in einem einzigen
- * load→mutate→persist-Zyklus. Rückgabe null = nichts passiert (kein Seed verbrannt).
+ * ATOMAR: queued die Kreuzung in einem einzigen load→mutate→persist-Zyklus.
+ * B18.3: KEIN Stash-Verbrauch mehr — seit B17.3 (Option A) keimt ein Kauf direkt zur
+ * Pflanze, der Stash ist strukturell immer 0. Das alte `if (meta.seedStash <= 0)
+ * return null` machte die Zucht-Schleife unerreichbar (A13.12-Regression). Die
+ * Aussaat ist jetzt frei; die Kosten liegen im Elternverbrauch beim Keep (2→1,
+ * test-gelockt in keep.test.ts).
  */
-export function consumeSeedAndEnqueueCross(gachaSeed: number, crossIndex: number, currentWave: number): MetaSave | null {
+export function consumeSeedAndEnqueueCross(gachaSeed: number, crossIndex: number, currentWave: number, child: PlantVariant, parentAId: string, parentBId: string): MetaSave | null {
   const meta = loadMeta();
-  if (meta.seedStash <= 0) return null;
+  // B19: das Kind + Eltern werden beim Aussaat persistiert — der Claim hängt nur am
+  // globalen Wellen-Timer (isMatured), nie am zufälligen Eltern-Bestand.
   const entry: PendingCross = {
     crossIndex,
     seed: gachaSeed,
     neededWaves: wavesToUnlockFor(crossIndex),
     startedWave: currentWave,
+    child,
+    parentAId,
+    parentBId,
   };
   return updateMeta({
-    seedStash: meta.seedStash - 1,
     pendingCrosses: capped([...meta.pendingCrosses, entry]),
     breedGeneration: meta.breedGeneration + 1,
   });

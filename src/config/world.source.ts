@@ -24,6 +24,19 @@ export const ENEMY_PATH: ReadonlyArray<{ x: number; y: number }> = [
   { x: 12, y: 2.5 },
 ];
 
+/** Wegpunkt in Zell-Koordinaten (B16.1: ein Typ für Sim-, Renderer- und Terrain-Sicht). */
+export type RoutePoint = { x: number; y: number };
+
+/**
+ * B16.1 — EINE Quelle der Routen-Auflösung: `null` ist der bewusste Wert für
+ * „keine Spieler-Route“ (leere Map oder nicht abgeleitet), `ENEMY_PATH` ist der
+ * gestaltete DEFAULT-Pfad. Sim (EnemySystem), Renderer und Terrain lesen
+ * denselben Ausdruck — kein Konsument hält eine eigene Fallback-Kopie.
+ */
+export function resolveActiveRoute(route: ReadonlyArray<RoutePoint> | null): ReadonlyArray<RoutePoint> {
+  return route && route.length >= 2 ? route : ENEMY_PATH;
+}
+
 /** Min distance (cells) from any path waypoint for a legal plant cell center. */
 export const PLACEMENT_PATH_MARGIN = 1.2;
 

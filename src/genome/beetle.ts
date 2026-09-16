@@ -91,7 +91,7 @@ export function rollBrood(
     const stats = deriveBeetleStats(specimenId, genome);
     brood.push({
       id: `brood_${seed.toString(36)}_${i}`,
-      name: `${a.name.slice(0, 4)}${b.name.slice(0, 4)}-Brut ${i + 1}`,
+      name: `${a.label.slice(0, 4)}${b.label.slice(0, 4)}-Brut ${i + 1}`,
       specimenId,
       genome,
       stats,

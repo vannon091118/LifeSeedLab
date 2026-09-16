@@ -89,7 +89,11 @@ export interface SimState {
   resources: { energy: number; coins: number };
   /** Map-Slice (P5): vom Spieler platzierte Tiles. Owner: MapSystem. */
   mapTiles: MapTiles;
-  /** Aktueller Feind-Laufweg (nur für Rendering/UI). Owner: SimulationRoot (setzt in recomputeRoute). */
+  /**
+   * B16.1: Der FEIND-Laufweg dieser Welle — Sim (EnemySystem liest hier), Rendering und
+   * Terrain lesen dieselbe Wahrheit. Owner: SimulationRoot (recomputeRoute, ein Writer);
+   * `null` = bewusster Wert für „keine Spieler-Route“ (Auflösung via resolveActiveRoute).
+   */
   currentRoute: Route;
   /** Player lives. Owned by SimulationRoot (run state); reduced only via leak events. */
   lives: number;
