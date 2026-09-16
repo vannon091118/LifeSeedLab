@@ -315,11 +315,11 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `846ea7b` — feat(genome): fire als Paar — Ornament und Effekt aus einer Zeile |
-| Arbeitsbaum | 21 gestaged, 0 geändert, 0 neu |
+| HEAD | `d49a36d` — feat(bus): Event-Audience — jede stille Zeile ist jetzt entschieden |
+| Arbeitsbaum | 9 gestaged, 0 geändert, 0 neu |
 | Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `846ea7b` feat(genome): fire als Paar — Ornament und Effekt aus einer Zeile |
+| Letzter Shinon-Commit | `d49a36d` feat(bus): Event-Audience — jede stille Zeile ist jetzt entschieden |
 | Letzter Push | ✅ origin/main |
 | LOC-Hotspots | `src/config/map.source.ts` 200/200 (100 %)<br>`src/simulation/root.ts` 292/300 (97 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/simulation/plantSystem.ts` 283/300 (94 %)<br>`src/simulation/enemySystem.ts` 279/300 (93 %) |
 <!-- SHINON:STATUS:END -->

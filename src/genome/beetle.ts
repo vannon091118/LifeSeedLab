@@ -47,7 +47,9 @@ export function deriveBeetleStats(specimenId: string, genome: Genome): BeetleSpe
   };
 }
 
-/** Deterministischer Brut-Seed ('enemy'-Namespace — Gegner-Domain, getrennt von 'plant'). */
+/** Deterministischer Brut-Seed — eigene Domäne 'brood' (B30), getrennt von 'plant' (Pflanzenzucht)
+ *  und 'enemy' (Gegner-Spawn/Crit). Die Zuchtwirtschaft ist ein eigener Spielbereich: wer hier
+ *  die Ableitung ändert, darf nicht versehentlich Gegnerverhalten mitziehen. */
 export function deriveBroodSeed(specimenAId: string, specimenBId: string, generation: number): number {
   return deriveSeed(GAME_SEED, BROOD_SEED_NAMESPACE, specimenAId, `${specimenBId}:${generation}`, 1);
 }
@@ -81,7 +83,8 @@ export function rollBrood(
   if (!a || !b) return [];
 
   const seed = deriveBroodSeed(specimenAId, specimenBId, generation);
-  const rng = makeRng('enemy', seed);
+  // Aus der Konstante, nicht aus einem zweiten Literal: Ableitung und Wurf-Strom sind EINE Domäne.
+  const rng = makeRng(BROOD_SEED_NAMESPACE, seed);
   const brood: BeetleSpecimen[] = [];
 
   for (let i = 0; i < BEETLE_BREED.broodSize; i++) {

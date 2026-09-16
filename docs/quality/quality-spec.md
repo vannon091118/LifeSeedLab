@@ -1101,3 +1101,83 @@ Ergänzend beschlossen (gleiche Klasse, ausdrücklich statt zufällig): `PLANT_R
 - [ ] Offen (eigene Politur, nicht Teil von B29): `PLANT_REMOVED` (Rückerstattung als Zahl, braucht
       Position im Payload), `TILE_PLACED` (der Bau hat keinen Moment), `PLANT_ATTACKED` (Duplikat
       prüfen), `grow`/`death`-Animationen (emittiert, im Renderer ohne Wirkung)
+
+---
+
+## B30. Brut-Seed in eigener Domäne — Migrationsentscheidung statt Namensleihe (Befund: Source → Runtime)
+
+### B30.1 Befund
+
+Die Käferzucht lief unter dem RNG-Namespace `enemy`. Unter diesem einen Namen lagen drei
+verschiedene Spielbereiche: Gegner-Spawns (`enemySystem`), Crit-Rolls (`projectileSystem`) und die
+Brut-Identität (`deriveBroodSeed` plus der Brut-Wurf-Strom in `rollBrood`). Geteilter Strom-State
+war dabei **kein** Problem — `makeRng` erzeugt je Aufruf einen unabhängigen Strom aus
+(namespace, seed), es gab also keinen zufälligen Übersprecher. Falsch war die **Benennung der
+Domäne**: wer die Brut-Ableitung anfasst, zieht lautlos das Gegnerverhalten mit (und umgekehrt).
+Zusätzlich trug `rollBrood` den Namen zweimal — einmal als Konstante `BROOD_SEED_NAMESPACE`,
+ einmal als Literal im `makeRng`-Aufruf; die zwei Stellen hätten auseinanderlaufen können.
+
+Die Zuchtwirtschaft ist außerdem die einzige **bezahlte** Ableitung im Spiel (35 Nektar je Brut),
+während Gegnerverhalten nichts kostet. Genau deshalb braucht der Wechsel eine ausgewiesene
+Migrationsentscheidung — nicht nur ein umbenanntes Literal.
+
+### B30.2 Migrationsentscheidung
+
+**Scharfer Schnitt, keine Datenmigration.** Die Ableitungs-Eingaben bleiben (Eltern-IDs +
+`broodIndex` aus dem monotonen Zähler), nur die Domäne wechselt. Die Folgen sind benannt:
+
+| Was passiert | Warum das vertretbar ist |
+|---|---|
+| Ein **noch nicht abgeholter** Wurf zeigt einmalig drei andere Kandidaten | Die bezahlte Zusage lautet „drei Kandidaten, du wählst einen“ — sie bleibt unverletzt. Sichtbar wird der Unterschied nur, wer Kandidaten gemerkt hat und **vor** dem Abholen aktualisiert: ein Fenster innerhalb eines Besuchs, denn Ansehen und Abholen sind derselbe Vorgang |
+| `neededWaves`, `startedWave`, `broodIndex`, `broodGeneration` | unverändert — kein Nektar, keine Queue, kein Zähler betroffen |
+| Bereits abgeholte Käfer (`meta.beetles`) | unverändert: Specimen sind **Daten**, keine Ableitung |
+| Save-Schema | **kein Bump** — es wird keine Datenform geändert. Der Eintrag trägt weiterhin nur Eingaben (kein Seed, keine Kandidaten) |
+
+Verworfen wurden zwei Alternativen, beide bewusst: **(a)** ein pro Brut gespeichertes
+Namespace-/Versionsfeld — hätte eine Legacy-Verzweigung für alle Zeiten etabliert (genau die
+Parallelwahrheit, die B26/B29 gerade abgebaut haben) für einen Effekt im Sekundenbereich;
+**(b)** die drei Kandidaten beim Buchen einzufrieren — widerspricht dem Vertrag „Seeds sind
+ableitbar, nie Zustand“ und hätte ein größeres Feldschema plus Migrationspfad gekostet.
+Der etablierte Präzedenzfall im Repo ist derselbe Schnitt: `RUN_SEED_VERSION` (App wirft einen
+Save weg, dessen Seed nicht zur aktuellen Ableitung passt).
+
+### B30.3 Spec
+
+1. **Eigene Spiel-Domäne:** `RngNamespace` und `GAMEPLAY_NAMESPACES` erhalten `brood`; die
+   Präsentations-Listen bleiben unberührt (FX ON/OFF darf die Zucht nie stören).
+2. **Eine Konstante, zwei Verwendungen:** `BROOD_SEED_NAMESPACE = 'brood'` gilt für die
+   Seed-Ableitung **und** den Wurf-Strom (`makeRng(BROOD_SEED_NAMESPACE, seed)`) — das frühere
+   zweite Literal ist weg, die beiden Stellen können nicht mehr driften.
+3. **Der Schnitt ist test-gepinnt:** Seeds, Kandidaten-IDs und Genome-Hashes sind eingefroren;
+   zusätzlich ein Literal der **Gegner**-Domäne, das sich nicht bewegen darf.
+4. **Die Invariante, die den Schnitt trägt:** jede persistierte Brut bleibt abholbar (für
+   gespeicherte `broodIndex`-Werte liefert `rollBrood` genau drei gültige, eindeutig
+   identifizierte und einsatzfähige Kandidaten).
+5. **Die Entscheidung selbst ist gepinnt:** ein `PendingBrood`-Eintrag trägt genau seine sechs
+   Eingabefelder. Wer ein Seed-/Namespace-Feld ergänzt, muss diese Sperre bewusst ändern und die
+   Migrationsfrage neu beantworten.
+
+### B30.4 Gate-Tests
+
+`src/genome/genome_brood_domain.test.ts` (7 Fälle):
+
+1. Domäne vorhanden (gameplay) und **nicht** in den Präsentations-Namespaces
+2. Dieselben Eingaben ergeben in `brood`, `enemy` und `plant` verschiedene Seeds; der alte
+   `enemy`-Wert kommt nicht mehr heraus
+3. Literale eingefroren: `deriveBroodSeed`, Kandidaten-IDs + Genome-Hashes, `makeRng('enemy')`
+   unverändert, `makeRng('brood')` als anderer Strom bei gleichem Zahlen-Seed
+4. Migrations-Invariante über die gespeicherten `broodIndex`-Werte 0/1/2/7/42
+5. Kein Schema-Bump: Schlüsselmenge des gespeicherten Eintrags
+6. Abholung eines **unveränderten Alteintrags** ohne Migrationscode — Vorschau == Abholung
+7. Eine neu gebuchte Brut reift und wird zum Specimen der neuen Domäne
+
+### B30.5 DoD für B30
+
+- [x] `brood` ist eine eigene Spiel-Domäne; Ableitung und Wurf-Strom nutzen EINE Konstante
+- [x] Migrationsentscheidung dokumentiert (scharfer Schnitt) samt verworfenen Alternativen
+- [x] Kein Schema-Bump; Alteinträge werden ohne Migrationscode abgeholt
+- [x] Gegner-Domäne nachweislich unberührt (Literal-Test)
+- [x] Gate-Tests grün, tsc clean, `vite build` grün, E2E grün
+- [ ] Offen (Content, nicht Teil von B30): bei `leafhopper`×`shellbeetle` tragen zwei der drei
+      Kandidaten identische Stats (nur Genome/IDs unterscheiden sich) — der P7-Test prüft nur das
+      Bumble-Paar. Die Merge-Regel ist unverändert, das ist eine Vielfalts-Frage des Contents

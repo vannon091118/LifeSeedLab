@@ -105,6 +105,16 @@ export function beetleWavesToUnlock(childPower: number): number {
   return Math.min(6, 1 + Math.floor(childPower / 0.5));
 }
 
-/** Deterministischer Brut-Seed: Ableitung macht genome/beetle.ts über core/rng
- *  (deriveSeed, 'enemy'-Namespace — Gegner-Domain). Hier nur Domänen-Konstante. */
-export const BROOD_SEED_NAMESPACE = 'enemy' as const;
+/** Deterministischer Brut-Seed: Ableitung macht genome/beetle.ts über core/rng.
+ *  Hier nur die Domänen-Konstante — sie gilt für die SEED-Ableitung UND den Brut-Stream
+ *  (`makeRng(BROOD_SEED_NAMESPACE, …)`), damit beide nicht auseinanderlaufen können.
+ *
+ *  B30-Migration: 'enemy' → 'brood'. Die Zuchtwirtschaft ist keine Gegner-Domäne; unter 'enemy'
+ *  lagen Gegner-Spawn, Crit-Roll und Brut-Identität unter einem Namen. Die Folge des Schnitts ist
+ *  bewusst gewählt und dokumentiert (quality-spec B30): die Ableitungs-Eingaben (Eltern,
+ *  `broodIndex`) bleiben, der Namespace wechselt — ein noch nicht abgeholter Wurf zeigt deshalb
+ *  EINMALIG drei andere Kandidaten. Kein Nektar, keine Queue, kein bereits registrierter Käfer ist
+ *  betroffen (`meta.beetles` speichert Specimen als Daten); die bezahlte Zusage „drei Kandidaten,
+ *  du wählst einen" bleibt unverletzt. Wer diese Konstante künftig ändert, beantwortet die
+ *  Migrationsfrage erneut — der Gate-Test pinnt Seed und Kandidatensatz. */
+export const BROOD_SEED_NAMESPACE = 'brood' as const;

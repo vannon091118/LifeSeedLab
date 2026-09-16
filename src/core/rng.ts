@@ -1,15 +1,22 @@
 // Owner: RngSystem (core). The ONLY RNG implementation. LOC ≤ 300.
-// Contract: gameplay namespaces (world/wave/enemy/plant/loot) never share stream state
+// Contract: gameplay namespaces (world/wave/enemy/plant/brood/loot) never share stream state
 // with presentation namespaces (visual/particle/cosmetic).
+//
+// B30: 'brood' ist eine eigene Spiel-Domäne (Käferzucht). Vorher lief sie unter 'enemy' —
+// Gegner-Spawn (`enemySystem`), Crit-Rolls (`projectileSystem`) und die Brut-Identität
+// (`deriveBroodSeed` + Brut-Stream) trugen denselben Namen, obwohl es drei verschiedene
+// Spielbereiche sind. Kein Stream wurde dabei geteilt (`makeRng` erzeugt je Aufruf einen
+// unabhängigen Strom) — falsch war die BENENNUNG der Domäne, und die wird erst scharf, wenn
+// jemand die eine Ableitung ändert und die andere mitzieht.
 // FNV-1a string hashing lives in core/hash.ts (fnv1aHex/fnv1a core) — single hash owner.
 
 import { fnv1a } from './hash';
 
 export type RngNamespace =
-  | 'world' | 'wave' | 'enemy' | 'plant' | 'loot'   // gameplay
-  | 'visual' | 'particle' | 'cosmetic';              // presentation
+  | 'world' | 'wave' | 'enemy' | 'plant' | 'brood' | 'loot'   // gameplay
+  | 'visual' | 'particle' | 'cosmetic';                       // presentation
 
-export const GAMEPLAY_NAMESPACES: RngNamespace[] = ['world', 'wave', 'enemy', 'plant', 'loot'];
+export const GAMEPLAY_NAMESPACES: RngNamespace[] = ['world', 'wave', 'enemy', 'plant', 'brood', 'loot'];
 export const VISUAL_NAMESPACES: RngNamespace[] = ['visual', 'particle', 'cosmetic'];
 
 function mulberry32(state: number): () => number {

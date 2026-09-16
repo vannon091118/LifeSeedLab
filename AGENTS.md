@@ -80,7 +80,7 @@ Verdichten bestehender Zeilen oder Splitten, nie durch Erhöhen.
 ## Determinismus (nie antasten)
 
 - `Math.random`/`Date.now` sind in Spiel- und Präsentationslogik **verboten**. `performance.now` nur im Frame-Timing (GameView-Loop).
-- Alle Zufälligkeit via `core/rng.ts`: `deriveSeed(rootSeed, namespace, entityId, eventId, version)`. Gameplay-Namespaces `world|wave|enemy|plant|loot`, Präsentation `visual|particle|cosmetic` — dürfen sich nie gegenseitig advanced/stören. FX ON/OFF muss bit-identisches Gameplay liefern.
+- Alle Zufälligkeit via `core/rng.ts`: `deriveSeed(rootSeed, namespace, entityId, eventId, version)`. Gameplay-Namespaces `world|wave|enemy|plant|brood|loot`, Präsentation `visual|particle|cosmetic` — dürfen sich nie gegenseitig advanced/stören. (`brood` = Käferzucht, seit B30 eigene Domäne; vorher lief sie unter `enemy`. Namespace-Änderungen sind Identitätsbrüche: Migrationsentscheidung in quality-spec B30, Seeds test-gepinnt in `genome/genome_brood_domain.test.ts`.) FX ON/OFF muss bit-identisches Gameplay liefern.
 - Seeds sind ableitbar, nie Zustand: Run-Identität = `runId` (eine Autorität, persistiert in Meta).
 
 ## Verifizierung (immer vor Abschluss — ohne Diskussion)
