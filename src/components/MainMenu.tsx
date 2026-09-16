@@ -82,6 +82,7 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onNavigate, resumeWav
           desc={t('menu.endlessDesc')}
           onClick={() => onStartRun('endless')}
           highlight={!onResume}
+          tut="endless"
         />
         <ModeCard
           icon={<BookIcon />}
@@ -152,14 +153,17 @@ function StatBox({ label, value }: { label: string; value: number }) {
   );
 }
 
-function ModeCard({ icon, title, desc, onClick, disabled, highlight }: {
+function ModeCard({ icon, title, desc, onClick, disabled, highlight, tut }: {
   icon: React.ReactNode; title: string; desc: string;
   onClick: () => void; disabled?: boolean; highlight?: boolean;
+  /** B21.3: Cue-Ziel des Onboardings (`data-tut`) — die Karte bleibt Eigentum des Hubs. */
+  tut?: string;
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
+      data-tut={tut}
       style={{ ...styles.modeCard, ...(highlight ? styles.modeCardHighlight : {}), ...(disabled ? styles.modeCardDisabled : {}) }}
     >
       <div style={styles.modeIcon}>{icon}</div>

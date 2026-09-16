@@ -678,35 +678,53 @@ Hinweis am Ziel-Element. Die Vorbereitungsphase startet die erste Welle zusätzl
 3. **Comic-Sprechblase** mit Papierverschluss, harter Ink-Kontur, Offset-Schatten, Schwanz und
    Schreibmaschinen-Reveal; erster Tipp auf die Blase = voller Text, zweiter Tipp = nächster Schritt.
 4. **Blinkende Handlungsanweisung:** jeder Schritt zielt auf **genau ein** reales Bedienelement
-   (`data-tut="card|board|wave|pause|hud"`). Der Cue-Ring blinkt dort (marchierende Ink-Striche,
-   Ecken-Marker, Label) und der Arm der Figur zeigt auf das Ziel. Der Overlay-Rahmen ist
-   `pointer-events: none` — der Spieler bedient **die echten Knöpfe**, nie eine Attrappe.
+   (`data-tut="language|begin|endless|card|board|wave|pause|hud"`). Der Cue-Ring blinkt dort
+   (marchierende Ink-Striche, Ecken-Marker, Label) und der Arm der Figur zeigt auf das Ziel. Der
+   Overlay-Rahmen ist `pointer-events: none` — der Spieler bedient **die echten Knöpfe**, nie eine
+   Attrappe. Liegt ein Ziel außerhalb der Falz (Hub), holt der Overlay es einmal ins Bild.
 5. **Ein Writer pro Wahrheit:** Das Tutorial besitzt ausschließlich Präsentations-State. Es liest
-   Sim-Signale (Phase, Pause, Auswahl) und **schreibt** nur `meta.tutorialDone` (beim Abschluss) und
-   den Tutorial-Hold (`holdRef`, Präsentations-Gate im RAF — kein Sim-Schreibzugriff).
-6. **Kein Zeitdruck beim Lesen:** Schritt 1–3 setzen den Hold (die Sim tickt nicht ⇒ auch der
-   Auto-Start-Timer steht). Der Hold wird am Ende von Schritt 3 (nach dem platzierten Drop)
-   gelöst — die Pflanze erscheint dadurch im nächsten Frame.
-7. **Persistenz:** `MetaSave.tutorialDone` (v6, Migration 1→5 bleibt lesbar) entscheidet, ob das
-   Onboarding automatisch startet. Kein zweiter Speicher, kein `localStorage`-Zugriff außerhalb
-   `persistence/`.
+   Sim-Signale (Phase, Pause, Auswahl) und **schreibt** nur `meta.tutorialVersion` (beim Abschluss)
+   und den Tutorial-Hold (`holdRef`, Präsentations-Gate im RAF — kein Sim-Schreibzugriff).
+6. **Kein Zeitdruck beim Lesen:** die Leseschritte `karte`/`pflanzen` setzen den Hold (die Sim tickt
+   nicht ⇒ auch der Auto-Start-Timer steht). Der Hold fällt mit dem platzierten Drop — die Pflanze
+   erscheint dadurch im nächsten Frame.
+7. **Persistenz:** `MetaSave.tutorialVersion` (v7, Migration 1→6 bleibt lesbar) entscheidet, ob das
+   Onboarding automatisch startet: `tutorialVersion < TUTORIAL_VERSION` ⇒ es läuft genau einmal.
+   Ein Bool konnte die überarbeitete Tour nicht ausdrücken (s. B21.6). Kein zweiter Speicher, kein
+   `localStorage`-Zugriff außerhalb `persistence/`.
 8. **DevGate (B7.6):** `?dev=1` überspringt das Onboarding (Entwickler-Werkzeug), `tutorial=1`
    erzwingt es auch hinter dem Gate, `tutorial=0` unterdrückt es explizit. Die Release-Fläche
    (ohne DevGate) zeigt es automatisch — der E2E-Beweis läuft über den echten Release-Pfad.
 
 ### B21.3 Schrittfolge (eine Quelle: `script.ts`)
 
-`ankunft` (Hold, eigener Knopf) → `karte` (Cue Tray-Karte, Hold) → `pflanzen` (Cue Feld, Hold,
-fortschritt bei angenommenem Drop) → `welle` (Cue „Welle starten") → `pause` (Cue Pause-Knopf) →
-`weiter` (Cue Pause-Knopf, erwartet Fortsetzen) → `chips` (Cue HUD) → `abschluss` (eigener Knopf,
-schreibt `tutorialDone`).
+Jeder Schritt liegt auf genau **einem** Screen: `start` (Titel), `menu` (Hub), `run` (Feld).
+
+| Screen | Schritt | Cue | geht weiter durch |
+|---|---|---|---|
+| start | `ankunft` | Sprachwahl | eigener Tap auf eine Sprache (`langChosen`) |
+| start | `startknopf` | „Spiel starten" | Verlassen des Screens |
+| menu | `labor` | „Endlos"/Hub-Karten | Verlassen des Screens |
+| run | `karte` (Hold) | Tray-Karte | angenommene Karten-Auswahl |
+| run | `pflanzen` (Hold) | Feld | angenommener Drop (neue Platzierung) |
+| run | `welle` | „Welle starten" | `phase !== 'prep'` |
+| run | `pause` | Pause-Knopf | pausiert |
+| run | `weiter` | Pause-Knopf | läuft wieder |
+| run | `chips` | HUD | eigener Knopf |
+| run | `abschluss` | — | eigener Knopf, schreibt `tutorialVersion` |
+
+**Sprungregel** (`controller.met`): liegt der offene Schritt auf einem Screen, dessen Rang der
+Spieler schon hinter sich hat (`screenRank(screen) > SCREEN_RANK[step.screen]`), ist er vorbei —
+ohne Zutun. Wer vorrennt (Sprache nicht angefasst, Hub übersprungen), wird nie ausgebremst; wer den
+Run verlässt, findet seinen Schritt beim Wiedereintritt unverändert vor (Rang ist einseitig).
 
 ### B21.4 DoD für B21
 
 - [ ] Schrittmodell und i18n-Texte deckungsgleich (jeder Schritt hat DE- und EN-Text) — Lock: `tutorial.test.ts`
 - [ ] Zustandsmaschine deterministisch (kein `Math.random`, keine Wanduhr) — Lock: `tutorial.test.ts`
-- [ ] Genau ein Writer (`tutorialDone` über `updateMeta`, Hold über `holdRef`) — Lock: Gate + `onboarding.test.ts`
-- [ ] `MetaSave` v6 liest v1–v5 verlustfrei — Lock: `onboarding.test.ts`
+- [ ] Genau ein Writer (`tutorialVersion` über `updateMeta`, Hold über `holdRef`) — Lock: Gate + `onboarding.test.ts`
+- [ ] `MetaSave` v7 liest v1–v6 verlustfrei, das v6-Ja wird zu Fassung 1 — Lock: `onboarding.test.ts`
+- [ ] Sprungregel einseitig: übersprungene Screens fallen, künftige warten — Lock: `tutorial.test.ts`
 - [ ] Cue-Ziele existieren im DOM (`data-tut`), Overlay blockiert die echten Knöpfe nicht — E2E `tests/tutorial.spec.ts`
 - [ ] `tsc` clean, Suite grün, `vite build` grün; GameView bleibt ≤ 400 LOC (GameTopBar extrahiert)
 
@@ -716,6 +734,42 @@ Der Onboarding-E2E (`tests/tutorial.spec.ts`) ist auf Wunsch entfallen (er koste
 und deckte dieselben DOM-Verträge ab, die `tutorial.test.ts` deterministisch prüft). Damit gilt für
 B21: Cue-Ziele und Hold-Verhalten sind **unit-gelockt**, der Sichtpfad ist nur noch manuell
 (Preview) belegt — nicht E2E.
+
+### B21.6 Nachtrag — die Tour begann zu spät (Befund: Erstspieler-Test)
+
+**Befund.** Der Erstspieler-Bericht (16.09., Version 0.1) führt als Onboarding-Risiko genau das:
+„Guter Hook, wenig Erklärung — erklärt nicht die konkrete erste Entscheidung: Wo darf ich bauen,
+wie weit reicht ein Turm, wann startet eine Welle?" Im Spiel nachgestellt: Die Sprechblasen
+erscheinen **erst beim Klick auf „Endlos“** — also nach Sprachwahl, Titel-Screen und Hub. Wer den
+Titel-Screen verlässt, ohne ins Feld zu gehen (Shop, Gewächshaus, Codex), begegnet der Figur nie.
+
+Ursache war nicht Kaputtheit, sondern **Ownership**: Die Zustandsmaschine lebte in `GameView`, also
+konnte die Tour nur existieren, solange der Feld-Screen gemountet war. Zweite Folge derselben
+Ursache: jeder neue Run ist ein neues `GameView` (`key={runId}`) und begann die Notizen wieder bei 1.
+
+**Spec.**
+
+1. Der **Screen-Router besitzt** die Tour: `TutorialProvider` hält den einen Controller, die
+   gesehene Fassung aus dem Meta und den Abschluss-Writer. Die Screens hängen nur noch
+   `TutorialLayer` ein (Titel, Menü-Rahmen, Feld) und melden Signale — kein Screen besitzt State.
+2. Die Tour hat **drei Stationen** (Titel → Hub → Feld) mit der Sprungregel aus B21.3.
+3. `TutorialOverlay` ist rein präsentational (der Schritt kommt als Prop) — die Zustandsmaschine
+   kennt kein DOM, das DOM kennt keine Zustandsmaschine.
+4. Persistenz wird zur **Fassung** (`tutorialVersion`, MetaSave v7): die überarbeitete Tour läuft
+   bei Bestandsspielern genau einmal neu. Ein Bool hätte sie genau denen vorenthalten, die die
+alte Tour schon kannten — inklusive des Spielers, der den Bericht geschrieben hat.
+5. Der DevGate-Vertrag bleibt unverändert (`?dev=1` überspringt, `tutorial=1` erzwingt,
+   `tutorial=0` unterdrückt). Router- und Preview-E2E fahren mit `?tutorial=0` — sie messen
+   Navigation und Layout, nicht die Tour.
+
+**DoD.**
+
+- [ ] Erster Schritt erscheint auf dem **Titel-Screen** (Cue: Sprachwahl) — Lock: `tutorial.test.ts`
+- [ ] Sprungregel: `screen: 'run'` überspringt die drei Stationen davor, `screen: 'greenhouse'`
+      wartet — Lock: `tutorial.test.ts`
+- [ ] Hold nur in `karte`/`pflanzen`, nie auf Titel oder Hub — Lock: `tutorial.test.ts`
+- [ ] Genau ein Controller (Provider); kein Screen hält eigenen Tutorial-State
+- [ ] Router-/Preview-E2E unverändert grün mit `?tutorial=0`
 
 ---
 

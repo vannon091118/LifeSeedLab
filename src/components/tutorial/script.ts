@@ -4,17 +4,28 @@
 // `tut.<id>.title|text`) und werden per Test an diese Liste gekoppelt — kein Schritt ohne Text,
 // kein Text ohne Schritt.
 //
+// B21.3: die Tour beginnt auf dem START-SCREEN (Sprachwahl → Startknopf), führt über den HUB und
+// erst dann ins Feld. Jeder Schritt liegt auf genau EINEM Screen (`screen`). Wer schneller ist als
+// die Tour, wird nicht ausgebremst: Schritte auf bereits passierten Screens werden übersprungen
+// (Sprungregel im Controller, `screenRank`).
+//
 // Warum die Cues als `data-tut`-Selektoren und nicht als Refs: Das Tutorial darf die Bedienelemente
-// NICHT besitzen (sie gehören GameTopBar/PlacementTray/GameView). Es zeigt auf sie — der Spieler
-// drückt die echten Knöpfe, das Overlay ist ansonsten `pointer-events: none`.
+// NICHT besitzen (sie gehören StartScreen/MainMenu/GameTopBar/PlacementTray/GameView). Es zeigt auf
+// sie — der Spieler drückt die echten Knöpfe, das Overlay ist ansonsten `pointer-events: none`.
 
 export type StickmanPose = 'arrive' | 'point' | 'cheer' | 'think' | 'thumbsUp' | 'panic';
 
-/** Ziel der blinkenden Handlungsanweisung. `none` ⇒ nur der Knopf an der Sprechblase. */
-export type TutorialCue = 'none' | 'card' | 'board' | 'wave' | 'pause' | 'hud';
+/** Wo ein Schritt spielt. Menü-Unterseiten zählen als `menu` (Rang), sichtbar ist nur der Hub. */
+export type TutorialScreen = 'start' | 'menu' | 'run';
 
-/** Wodurch ein Schritt weitergeht. `press` = nur der Knopf an der Blase. */
-export type TutorialSignal = 'press' | 'cardSelected' | 'placed' | 'waveStarted' | 'paused' | 'running';
+/** Ziel der blinkenden Handlungsanweisung. `none` ⇒ nur der Knopf an der Sprechblase. */
+export type TutorialCue = 'none' | 'language' | 'begin' | 'endless' | 'card' | 'board' | 'wave' | 'pause' | 'hud';
+
+/** Wodurch ein Schritt weitergeht. `press` = nur der Knopf an der Blase.
+ *  `screenLeft` = der Spieler zieht weiter (Sprungregel im Controller — der Schritt wird nie
+ *  durch Warten erfüllt, sondern durch den Screen-Wechsel). */
+export type TutorialSignal =
+  | 'press' | 'langChosen' | 'screenLeft' | 'cardSelected' | 'placed' | 'waveStarted' | 'paused' | 'running';
 
 export type BubbleAnchor = 'top' | 'center' | 'bottom';
 export type StickAnchor = 'bottomLeft' | 'bottomRight';
@@ -22,6 +33,8 @@ export type StickAnchor = 'bottomLeft' | 'bottomRight';
 export interface TutorialStep {
   /** Zugleich i18n-Schlüssel (`tut.<id>.title`, `tut.<id>.text`). */
   id: TutorialStepId;
+  /** Heimat-Screen des Schritts (exakt — nur dort wird er gezeigt). */
+  screen: TutorialScreen;
   pose: StickmanPose;
   cue: TutorialCue;
   advanceOn: TutorialSignal;
@@ -32,21 +45,44 @@ export interface TutorialStep {
 }
 
 export type TutorialStepId =
-  | 'ankunft' | 'karte' | 'pflanzen' | 'welle' | 'pause' | 'weiter' | 'chips' | 'abschluss';
+  | 'ankunft' | 'startknopf' | 'labor'
+  | 'karte' | 'pflanzen' | 'welle' | 'pause' | 'weiter' | 'chips' | 'abschluss';
+
+export const SCREEN_RANK: Record<TutorialScreen, number> = { start: 0, menu: 1, run: 2 };
+
+/** Rang eines beliebigen App-Screens: alles außer `start`/`run` ist Menü-Bereich. */
+export function screenRank(screen: string): number {
+  if (screen === 'start') return SCREEN_RANK.start;
+  if (screen === 'run') return SCREEN_RANK.run;
+  return SCREEN_RANK.menu;
+}
+
+/** Fassung der Tour. Erhöhen ⇒ jeder Spieler sieht die überarbeitete Tour genau einmal neu. */
+export const TUTORIAL_VERSION = 2;
 
 export const TUTORIAL_STEPS: readonly TutorialStep[] = [
-  { id: 'ankunft',   pose: 'arrive',   cue: 'none',  advanceOn: 'press',        hold: true,  bubble: 'center', stick: 'bottomLeft' },
-  { id: 'karte',     pose: 'point',    cue: 'card',  advanceOn: 'cardSelected', hold: true,  bubble: 'center', stick: 'bottomRight' },
-  { id: 'pflanzen',  pose: 'point',    cue: 'board', advanceOn: 'placed',       hold: true,  bubble: 'bottom', stick: 'bottomRight' },
-  { id: 'welle',     pose: 'cheer',    cue: 'wave',  advanceOn: 'waveStarted',  hold: false, bubble: 'top',    stick: 'bottomLeft' },
-  { id: 'pause',     pose: 'think',    cue: 'pause', advanceOn: 'paused',       hold: false, bubble: 'center', stick: 'bottomLeft' },
-  { id: 'weiter',    pose: 'point',    cue: 'pause', advanceOn: 'running',      hold: false, bubble: 'center', stick: 'bottomLeft' },
-  { id: 'chips',     pose: 'point',    cue: 'hud',   advanceOn: 'press',        hold: false, bubble: 'center', stick: 'bottomRight' },
-  { id: 'abschluss', pose: 'thumbsUp', cue: 'none',  advanceOn: 'press',        hold: false, bubble: 'center', stick: 'bottomLeft' },
+  // ── Start-Screen: Krix kommt, bevor der Spieler das Labor betritt ──
+  // Die Blasen dieser drei Stationen sitzen OBEN: die Blase nimmt Zeiger an (Tippen zeigt den
+  // ganzen Text) — läge sie über dem Ziel, könnte der Spieler den echten Knopf nicht drücken.
+  { id: 'ankunft',    screen: 'start', pose: 'arrive', cue: 'language', advanceOn: 'langChosen',  hold: false, bubble: 'top', stick: 'bottomLeft' },
+  { id: 'startknopf', screen: 'start', pose: 'point',  cue: 'begin',    advanceOn: 'screenLeft', hold: false, bubble: 'top', stick: 'bottomRight' },
+  // ── Hub: was liegt hier herum ──
+  { id: 'labor',      screen: 'menu',  pose: 'cheer',  cue: 'endless',  advanceOn: 'screenLeft', hold: false, bubble: 'top', stick: 'bottomLeft' },
+  // ── Feld: die Handgriffe ──
+  { id: 'karte',      screen: 'run',   pose: 'point',  cue: 'card',     advanceOn: 'cardSelected', hold: true,  bubble: 'center', stick: 'bottomRight' },
+  { id: 'pflanzen',   screen: 'run',   pose: 'point',  cue: 'board',    advanceOn: 'placed',       hold: true,  bubble: 'bottom', stick: 'bottomRight' },
+  { id: 'welle',      screen: 'run',   pose: 'cheer',  cue: 'wave',     advanceOn: 'waveStarted',  hold: false, bubble: 'top',    stick: 'bottomLeft' },
+  { id: 'pause',      screen: 'run',   pose: 'think',  cue: 'pause',    advanceOn: 'paused',       hold: false, bubble: 'center', stick: 'bottomLeft' },
+  { id: 'weiter',     screen: 'run',   pose: 'point',  cue: 'pause',    advanceOn: 'running',      hold: false, bubble: 'center', stick: 'bottomLeft' },
+  { id: 'chips',      screen: 'run',   pose: 'point',  cue: 'hud',      advanceOn: 'press',        hold: false, bubble: 'center', stick: 'bottomRight' },
+  { id: 'abschluss',  screen: 'run',   pose: 'thumbsUp', cue: 'none',   advanceOn: 'press',        hold: false, bubble: 'center', stick: 'bottomLeft' },
 ];
 
-/** CSS-Selektoren der Cue-Ziele — genau ein Element je Ziel im Run-Screen. */
+/** CSS-Selektoren der Cue-Ziele — genau ein Element je Ziel in seinem Screen. */
 export const CUE_SELECTORS: Record<Exclude<TutorialCue, 'none'>, string> = {
+  language: '[data-tut="language"]',
+  begin: '[data-tut="begin"]',
+  endless: '[data-tut="endless"]',
   card: '[data-tut="card"]',
   board: '[data-tut="board"]',
   wave: '[data-tut="wave"]',

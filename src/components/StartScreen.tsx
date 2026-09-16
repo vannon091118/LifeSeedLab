@@ -1,9 +1,13 @@
+import { useState } from 'react';
 import { useI18n, type Lang } from '../i18n';
 import type { MetaSave } from '../types';
+import { TutorialLayer } from './tutorial/TutorialLayer';
 
 // Owner: UI (StartScreen). LOC ≤ 400.
 // B7.1/B0: Papierwelt-Titel — keine Blur-Glass-Karte, kein Emoji-Logo, kein zufälliger Gradient.
 // Wordmark als SVG, großer Ink-Button, Sprache als Post-its.
+// B21.3: Der Titel-Screen ist die erste Station des Onboardings — Sprache und Startknopf sind
+// Cue-Ziele (`data-tut`), ein Tap auf eine Sprache ist das Signal `langChosen`.
 
 type Props = {
   meta: MetaSave;
@@ -17,6 +21,9 @@ const LANGS: { id: Lang; label: string }[] = [
 
 export function StartScreen({ onBegin }: Props) {
   const { lang, setLang, t } = useI18n();
+  // B21.3: nur ein EIGENER Tap zählt als Sprachwahl — die vorgewählte Sprache ist keine.
+  const [langChosen, setLangChosen] = useState(false);
+  const chooseLang = (id: Lang) => { setLang(id); setLangChosen(true); };
 
   return (
     <div style={styles.wrap}>
@@ -48,17 +55,17 @@ export function StartScreen({ onBegin }: Props) {
         <p style={styles.subtitle}>{t('start.subtitle')}</p>
         <p style={styles.tagline}>{t('start.tagline')}</p>
 
-        <button onClick={onBegin} style={styles.beginBtn}>
+        <button onClick={onBegin} style={styles.beginBtn} data-tut="begin">
           {t('start.begin')} →
         </button>
 
         <div style={styles.langBlock}>
           <div style={styles.langLabel}>{t('start.language')}</div>
-          <div style={styles.langRow}>
+          <div style={styles.langRow} data-tut="language">
             {LANGS.map(l => (
               <button
                 key={l.id}
-                onClick={() => setLang(l.id)}
+                onClick={() => chooseLang(l.id)}
                 style={{
                   ...styles.langBtn,
                   ...(lang === l.id ? styles.langBtnActive : {}),
@@ -73,6 +80,8 @@ export function StartScreen({ onBegin }: Props) {
 
         <p style={styles.hint}>{t('start.hint')}</p>
       </div>
+
+      <TutorialLayer langChosen={langChosen} />
     </div>
   );
 }

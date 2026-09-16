@@ -27,7 +27,9 @@ for (const vp of VIEWPORTS) {
     page.on('pageerror', (err) => pageErrors.push(err.message));
 
     await page.setViewportSize({ width: vp.width, height: vp.height });
-    await page.goto('/');
+    // B21.3: Das Onboarding startet jetzt auf dem Titel-Screen. Diese Suite prüft Boot und Layout,
+    // nicht die Tour — abgeschaltet über das dokumentierte Gate-Werkzeug `?tutorial=0`.
+    await page.goto('/?tutorial=0');
     await page.waitForLoadState('networkidle');
 
     // Etwas Sichtbares muss gerendert sein (kein leeres Gerüst).

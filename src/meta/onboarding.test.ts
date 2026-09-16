@@ -16,28 +16,31 @@ function writeLegacyEnvelope(key: string, data: unknown, v: number): void {
   ensureLocalStorage().setItem(key, JSON.stringify({ v, checksum: fnv1a(0x811c9dc5, raw), data }));
 }
 
-// B21: Das Onboarding braucht genau EIN persistiertes Bit. Es liegt im Meta-Save (v6) — nicht in
-// einem zweiten Speicher und nicht in `localStorage` außerhalb von persistence/.
+// B21.3: Das Onboarding braucht genau EINE Zahl im Meta-Save — welche Fassung der Tour der
+// Spieler gesehen hat. Nicht in einem zweiten Speicher, nicht in `localStorage` außerhalb von
+// persistence/. Das Ja/Nein aus v6 wird dabei zur Fassung 1 (die alte Run-only-Tour), damit die
+// überarbeitete Tour bei Bestandsspielern genau einmal läuft — sonst hätte der Umbau für genau
+// die Spieler nie sichtbar werden können, die die alte Tour schon kannten.
 
-describe('B21 — Onboarding-Flag (MetaSave v6)', () => {
+describe('B21 — Tour-Fassung (MetaSave v7)', () => {
   beforeEach(() => { resetMeta(); clearTestStorage(); });
 
-  it('startet mit einem ungesehenen Onboarding', () => {
+  it('startet mit einer ungesehenen Tour', () => {
     const meta = loadMeta();
     expect(meta.version).toBe(META_VERSION);
-    expect(meta.version).toBe(6);
-    expect(meta.tutorialDone).toBe(false);
+    expect(meta.version).toBe(7);
+    expect(meta.tutorialVersion).toBe(0);
   });
 
-  it('persistiert Abschluss (und Überspringen) über den einen Writer', () => {
-    updateMeta({ tutorialDone: true });
-    expect(loadMeta().tutorialDone).toBe(true);
+  it('persistiert die gesehene Fassung über den einen Writer', () => {
+    updateMeta({ tutorialVersion: 2 });
+    expect(loadMeta().tutorialVersion).toBe(2);
 
-    updateMeta({ tutorialDone: false });
-    expect(loadMeta().tutorialDone).toBe(false);
+    updateMeta({ tutorialVersion: 0 });
+    expect(loadMeta().tutorialVersion).toBe(0);
   });
 
-  it('liest einen v5-Save verlustfrei und zeigt das Onboarding genau einmal', () => {
+  it('liest einen v5-Save verlustfrei und zeigt die Tour genau einmal', () => {
     writeLegacyEnvelope(META_KEY, {
       version: 5, nektar: 321, bestWave: 9, runs: 4, runId: 5, breedGeneration: 2,
       variantCounts: { sprout: 2 }, savedVariants: [], loadout: ['sprout'], language: 'de',
@@ -48,7 +51,7 @@ describe('B21 — Onboarding-Flag (MetaSave v6)', () => {
 
     const meta = loadMeta();
 
-    expect(meta.version).toBe(6);
+    expect(meta.version).toBe(7);
     expect(meta.nektar).toBe(321);
     expect(meta.bestWave).toBe(9);
     expect(meta.runId).toBe(5);
@@ -57,29 +60,51 @@ describe('B21 — Onboarding-Flag (MetaSave v6)', () => {
     expect(meta.loadout).toEqual(['sprout']);
     expect(meta.totalWavesSurvived).toBe(12);
     expect(meta.broodGeneration).toBe(7);          // monotoner Zähler bleibt unangetastet
-    expect(meta.tutorialDone).toBe(false);         // Altsave ⇒ einmal ansehen
+    expect(meta.tutorialVersion).toBe(0);          // Altsave ⇒ einmal ansehen
 
     // Nach dem Abschluss bleibt der Rest des Saves unverändert.
-    const after = updateMeta({ tutorialDone: true });
+    const after = updateMeta({ tutorialVersion: 2 });
     expect(after.nektar).toBe(321);
     expect(after.broodGeneration).toBe(7);
-    expect(loadMeta().tutorialDone).toBe(true);
+    expect(loadMeta().tutorialVersion).toBe(2);
   });
 
-  it('verliert beim v6-Roundtrip keine Brut-Daten (Identität bleibt)', () => {
+  it('hebt das v6-Ja auf Fassung 1 — die neue Tour läuft dadurch einmal', () => {
+    writeLegacyEnvelope(META_KEY, {
+      version: 6, nektar: 60, bestWave: 3, runs: 2, runId: 2, breedGeneration: 0,
+      variantCounts: { sprout: 1 }, savedVariants: [], loadout: [], language: 'de',
+      audioOn: true, pvpPayouts: 0, seedStash: 0, pendingCrosses: [], totalWavesSurvived: 3,
+      bredStats: {}, mapLayouts: {}, beetles: [], beetleDeployed: null, pendingBroods: [],
+      broodGeneration: 0, tutorialDone: true,
+    }, 6);
+
+    expect(loadMeta().tutorialVersion).toBe(1);    // gesehen war die alte Fassung
+    expect(loadMeta().bestWave).toBe(3);           // und sonst geht nichts verloren
+  });
+
+  it('lässt ein v6-Nein bei null — nichts wird doppelt gezeigt', () => {
+    writeLegacyEnvelope(META_KEY, {
+      version: 6, nektar: 60, runs: 0, runId: 0, variantCounts: { sprout: 1 },
+      tutorialDone: false,
+    }, 6);
+
+    expect(loadMeta().tutorialVersion).toBe(0);
+  });
+
+  it('verliert beim Roundtrip keine Brut-Daten (Identität bleibt)', () => {
     const created = enqueueBrood(A, B, 1);
-    updateMeta({ tutorialDone: true });
+    updateMeta({ tutorialVersion: 2 });
 
     const meta = loadMeta();
     expect(meta.pendingBroods.map(p => p.broodIndex)).toEqual([0]);
     expect(meta.broodGeneration).toBe(created.broodGeneration);
   });
 
-  it('schreibt das Flag im selben Save-Format wie alles andere (kanonische Checksumme)', () => {
-    updateMeta({ tutorialDone: true });
-    const stored = JSON.parse(ensureLocalStorage().getItem(META_KEY) as string) as { v: number; data: { tutorialDone: boolean } };
+  it('schreibt die Fassung im selben Save-Format wie alles andere (kanonische Checksumme)', () => {
+    updateMeta({ tutorialVersion: 2 });
+    const stored = JSON.parse(ensureLocalStorage().getItem(META_KEY) as string) as { v: number; data: { tutorialVersion: number } };
     expect(stored.v).toBe(META_VERSION);
-    expect(stored.data.tutorialDone).toBe(true);
-    expect(loadMeta().tutorialDone).toBe(true);
+    expect(stored.data.tutorialVersion).toBe(2);
+    expect(loadMeta().tutorialVersion).toBe(2);
   });
 });

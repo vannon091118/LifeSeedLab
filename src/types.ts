@@ -46,8 +46,11 @@ export type RunEconomy = {
 // ── v4 (P6): Käferzucht — Brut-Lager, ein eingesetzter Käfer, Brut-Reifungs-Queue.
 // ── v5 (A13.1): monotoner Brut-Zähler — Identität darf nie aus einem Fenster abgeleitet werden.
 // ── v6 (B21): `tutorialDone` — das Krix-Onboarding startet genau einmal pro Spielerprofil.
+// ── v7 (B21.3): `tutorialVersion` ersetzt das Ja/Nein. Die Tour begann früher erst im Feld;
+//    jetzt startet sie auf dem Titel-Screen. Ein Bool konnte diesen Umbau nicht ausdrücken:
+//    wer die alte Tour gesehen hatte, hätte die neue nie zu sehen bekommen.
 export type MetaSave = {
-  version: 6;
+  version: 7;
   nektar: number;
   bestWave: number;
   runs: number;
@@ -79,8 +82,9 @@ export type MetaSave = {
   /** Monotoner Brut-Generation-Zähler (A13.1) — einzige Quelle für `PendingBrood.broodIndex`.
    *  Nie aus `pendingBroods` ableiten: das Fenster schrumpft beim Claim und würde Indizes recyceln. */
   broodGeneration: number;
-  /** B21: Onboarding abgeschlossen (oder bewusst übersprungen) — startet danach nie wieder. */
-  tutorialDone: boolean;
+  /** B21.3: Tour-Fassung, die dieser Spieler gesehen hat (0 = nie). `TUTORIAL_VERSION` in
+   *  components/tutorial/script.ts ist die aktuelle — höher ⇒ es läuft genau einmal neu. */
+  tutorialVersion: number;
 };
 
 /** Eine Kreuzung wartet auf Reifung: verfügbar nach `wavesToUnlockFor(index)` Wellen. */

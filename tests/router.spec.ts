@@ -15,8 +15,14 @@ import { test, expect, type Page } from '@playwright/test';
 
 const RUN_CARD = /endless/i;
 
+/**
+ * B21.3: Das Onboarding beginnt jetzt auf dem TITEL-Screen — in der Release-Fläche also auch hier.
+ * Diese Suite prüft den Router, nicht die Tour, und schaltet sie deshalb über das dokumentierte
+ * Gate-Werkzeug ab (`?tutorial=0`, s. dev/gate.ts). Was die Tour selbst leistet, prüft die
+ * Tutorial-Suite im Vitest gegen Controller und Schrittmodell.
+ */
 async function bootToMenu(page: Page): Promise<void> {
-  await page.goto('/');
+  await page.goto('/?tutorial=0');
   await page.waitForLoadState('networkidle');
   await page.getByRole('button', { name: /start game/i }).click();
   await expect(page.getByRole('button', { name: RUN_CARD }).first()).toBeVisible();

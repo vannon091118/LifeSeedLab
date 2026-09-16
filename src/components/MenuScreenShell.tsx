@@ -2,6 +2,7 @@ import type { MetaSave } from '../types';
 import { useI18n } from '../i18n';
 import { NavIndicators, type MenuScreen } from './NavIndicators';
 import { ScreenTransition } from './ScreenTransition';
+import { TutorialLayer } from './tutorial/TutorialLayer';
 
 // Owner: UI (MenuScreenShell — Vollbild-Rahmen für Menü-Screens). LOC ≤ 200.
 // JEDER Menübereich ist ein eigener Screen: Vollbild, mit NavIndicators (Tabs/Chips/
@@ -32,6 +33,9 @@ export function MenuScreenShell({ meta, current, onNavigate, onBack, children }:
       <div style={styles.body}>
         <ScreenTransition screenKey={current}>{children}</ScreenTransition>
       </div>
+      {/* B21.3: Das Onboarding liegt über dem Rahmen, nicht IM scrollenden Body — der Cue-Ring
+          bleibt dadurch deckungsgleich, während die Inhaltsfläche scrollt. */}
+      <TutorialLayer />
       {isHub && <span aria-hidden />}
     </div>
   );

@@ -61,8 +61,8 @@ Konkret:
 ## LOC-Caps (hart)
 
 `300` Simulationssysteme/Bus/Clock/RNG/IDs/Hash · `400` Renderer/Generator/Partikel/Observer/UI-Komponenten · `200` Types/Source/Meta/i18n/Persistenz. Über dem Cap → STOP, Verantwortungs-Audit, splitten. Ausnahme nur mit Einzeiler-Begründung im Dateiheader.
-Ist-Stand: `src/components/GameView.tsx` liegt exakt am Cap (400) — Zusatzzeilen nur durch Verdichten
-bestehender Zeilen oder Splitten, nie durch Erhöhen.
+Ist-Stand: `src/components/GameView.tsx` liegt knapp unter dem Cap (387/400) — Zusatzzeilen nur durch
+Verdichten bestehender Zeilen oder Splitten, nie durch Erhöhen.
 
 ## Determinismus (nie antasten)
 

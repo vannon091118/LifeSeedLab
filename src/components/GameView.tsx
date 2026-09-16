@@ -29,11 +29,11 @@ import { MAP_TILES_SOURCE, type MapTileType } from '../config/map.source';
 import { recordRunEnd, advanceCrossMaturation, updateMeta } from '../meta';
 import { GameDevPanel } from './GameDevPanel';
 import { GameTopBar } from './GameTopBar';
-import { TutorialOverlay } from './tutorial/TutorialOverlay';
+import { TutorialLayer } from './tutorial/TutorialLayer';
 import { DropChipIcon, LivesChipIcon, WaveChipIcon } from './GameIcons';
 import { gameViewStyles as styles } from './gameViewStyles';
 import { hudOf, type HudSnapshot } from './hudSnapshot';
-import { isDevActive, isOnboardingAutoStart } from '../dev/gate';
+import { isDevActive } from '../dev/gate';
 import { bindSimRoot, installTestHooks, unbindSimRoot } from '../dev/testHooks';
 
 interface Props {
@@ -42,8 +42,6 @@ interface Props {
   bredStats: NonNullable<MetaSave['bredStats']>;
   beetles: BeetleSpecimen[];
   audioOn: boolean;
-  /** B21: Onboarding schon gesehen (startet dann nie wieder). */
-  tutorialSeen: boolean;
   /** B2: gespeicherter Run-Zustand — nur gesetzt, wenn der Spieler „Fortsetzen" wählt. */
   resume?: RunSave | null;
   onMetaChange: (meta: MetaSave) => void; onExit: () => void;
@@ -51,7 +49,7 @@ interface Props {
 
 const IDLE: PlacementState = { mode: 'plant', variantId: null, ghost: null, rejection: null };
 
-export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetles, audioOn, tutorialSeen, resume, onMetaChange, onExit }: Props){
+export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetles, audioOn, resume, onMetaChange, onExit }: Props){
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rootRef = useRef<SimulationRoot | null>(null);
   const rendererRef = useRef<Renderer | null>(null);
@@ -74,10 +72,9 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
   const cmdSeq = useRef(0);
   const placementMirror = useRef<PlacementState>(IDLE);
   const devActive = useMemo(() => isDevActive(), []);
-  // B21: Onboarding-Sichtbarkeit (DevGate überspringt es, s. dev/gate.ts) + einmal pro Profil.
-  const tutorialEnabled = useMemo(() => !tutorialSeen && isOnboardingAutoStart(), [tutorialSeen]);
+  // B21: Der Hold ist das einzige, was das Onboarding von hier braucht — Sichtbarkeit, Schritt
+  // und Persistenz besitzt der Screen-Router (TutorialProvider). Kein zweiter Zustand.
   const tutorialHold = useCallback((hold: boolean) => { holdRef.current = hold; }, []);
-  const tutorialDone = useCallback(() => onMetaChange(updateMeta({ tutorialDone: true })), [onMetaChange]);
 
   const ghostVisual = useCallback((variantId: string) => {
     const bred = resolveBredVisuals(savedVariants.filter(v => loadout.includes(v.id)), seed).get(variantId);
@@ -379,11 +376,9 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
             onResume={() => { setSuspended(false); pausedRef.current = false; rootRef.current?.clock.setPaused(false); }}
           />
         </div>
-        <TutorialOverlay
-          enabled={tutorialEnabled}
-          signals={{ selectedVariant: placement.variantId, placements: placedCount, phase: hud?.phase ?? 'prep', paused: hud?.paused ?? false }}
+        <TutorialLayer
+          run={{ selectedVariant: placement.variantId, placements: placedCount, phase: hud?.phase ?? 'prep', paused: hud?.paused ?? false }}
           onHold={tutorialHold}
-          onDone={tutorialDone}
         />
         <div style={styles.paperNote} aria-hidden><span style={styles.paperNotePin}/> {t('game.hint')}</div>
       </div>
