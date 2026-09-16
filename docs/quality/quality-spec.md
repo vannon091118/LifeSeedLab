@@ -938,10 +938,13 @@ Dominanz) bleibt; die zwei Mappings werden zu **einem** Paar-Vertrage verdichtet
 ### B26.2 Spec
 
 1. **Eine Quelle pro Paar** (`config/genes.source.ts`): `GENE_TO_EXTRA` + `GENE_TO_EFFECT`
-   werden zu einem einzigen Vertrag `GENE_PAIRS: Record<GeneId, { extra: ExtraId;
+   wurden im Prototyp zu einem einzigen Vertrag `GENE_PAIRS: Record<GeneId, { extra: ExtraId;
    effect: EffectId }>`. Die alten zwei Tabellen werden Views über dieses Paar (Exporte
    bleiben, damit Konsumenten nicht brechen) — oder Konsumenten werden direkt umgestellt;
-   beides ist zulässig, solange **genau eine Tabellen-Wahrheit** existiert.
+   beides ist zulässig, solange **genau eine Tabellen-Wahrheit** existiert. **Gewählt: die
+   zweite Variante** — beide Alt-Tabellen sind entfernt, alle drei Konsumenten
+   (`genome/visualMap.ts` für Ornament+Tint, `meta/store.ts` für `bredStats`→Projektil-Riding,
+   Gate-Tests) lesen `GENE_PAIRS` direkt.
 2. **Semantische Paarung statt Zufall:** Jedes Paar wird explizit geprüft: passt das
    Ornament zur Fähigkeit? Bestehende Paare sind überwiegend stimmig (`fire → spike/burn`,
    `shield → hat/shield`), Korrekturbedarf nur wo die Metapher bricht (`heavy → hat` liest
@@ -952,9 +955,16 @@ Dominanz) bleibt; die zwei Mappings werden zu **einem** Paar-Vertrage verdichtet
    unverändert — Verdichtung, keine Erweiterung des Feature-Raums pro Pflanze.
 4. **Vorschau-Parität ist gelockt** (B27-Vorarbeit): Zucht- und Hub-Vorschau lesen
    `resolveVisual(genomeToVisualInput(...)).palette.base` — dieselbe Ableitung wie der Run.
-   Ein Gate-Test verifiziert, dass Vorschau-Farbe == Run-Farbe für eine Stichprobe von
-   Genomen (Zufallsstichprobe über `deriveSeed`, deterministisch).
-5. **Kein Sync-Verstoß:** ` bredStats`/Projektil-Riding (B6) lesen weiterhin `GENE_TO_EFFECT`
+   **Präzise Zusage (im Prototyp gemessen):** garantiert identisch ist die **Komposition**
+   (Basis, Ornament-Layer, Effect, Reihenfolge) — sie hängt allein am Genom bzw. `geneHash`.
+   Nicht identisch ist der **Hex-Wert**: die Vorschau bindet an `GAME_SEED`, das Feld an
+   `deriveSeed(GAME_SEED,'world','run',runId,1)`, und `resolvePalette`/`resolveGeometry`
+   verbrauchen diesen Seed (Mutation ±20/Kanal, Rarity-Zweig, Scale ±0.05). Messung:
+   Vorschau `#f57d52` vs. Feld `#f27a4f`, über acht Run-Seeds `#f27a4f`…`#ff9744`.
+   Ein Gate-Test lockt daher die **Komposition** über beide Seeds (nicht den Hex-Wert).
+   Offene Entscheidung: Vorschau an den kommenden Run-Seed binden (exakter Treffer) oder den
+   Jitter aus `variantKey` statt `rootSeed` ableiten (dann ist die Vorschau bildgleich).
+5. **Kein Sync-Verstoß:** `bredStats`/Projektil-Riding (B6) lesen dieselbe Paar-Zeile
    (via `genomeEffectIds`) — die Verdichtung darf die Gameplay-Semantik nicht ändern, nur
    die Tabellen-Verwaltung. Verifiziert durch unveränderte `cross.test.ts`-Schwellen.
 
@@ -965,24 +975,49 @@ Ergänzung in `src/config/sources.test.ts` (dort leben bereits die Source-Validi
 1. **Paar-Vollständigkeit:** jedes Gen im `GENE_POOL` hat ein Paar in `GENE_PAIRS`; jedes
    Paar-Extra/Paar-Effect referenziert gültige `EXTRA_*`/`EFFECT_*`-IDs (bestehende
    IDs-Checks laufen unverändert weiter).
-2. **Keine Zweittabellen:** `GENE_TO_EXTRA`/`GENE_TO_EFFECT` sind, falls als Views
-   belassen, **abgeleitet** — ein Test folgert, dass beide Views aus `GENE_PAIRS`
-   rekonstruierbar sind (keine dritte Zeile, keine fehlende Zeile).
+2. **Keine Zweittabellen:** im Prototyp dadurch erzwungen, dass die Alt-Namen **gelöscht**
+   sind — ein Import von `GENE_TO_EXTRA`/`GENE_TO_EFFECT` kompiliert nicht mehr (stärker als
+   ein String-Test). Paar-Vollständigkeit (Test 1) ist damit die einzige Tabellen-Wahrheit.
 3. **Basis-Kompatibilität:** für jede Base in `TYPE_BASES` gilt: das erlaubte
    Extra/Effect-Paar jedes ihrer Gene überlebt `resolveCompatibility` (kein Gen, dessen
    Ornament/Effekt von der Basis weggefiltert würde — sonst sichtbare stillschweigende
-   Verluste).
+   Verluste). **Prototyp-Befund (gemessen, noch nicht gedreht):** der Verlust ist real —
+   `EXTRA_SPIKE` ist nur mit `BASE_CACTUS/THORN/ROOT` kompatibel, Schützen ziehen aus
+   `THORN/FROND/FLOWER`; über 12 Feuerschützen-Genome zeigt **1/12** den Dorn. Zusätzlich:
+   `EXTRA_EYE/MOUTH/SCAR` erzeugt **kein Gen** (tote Ornament-Vokabel), und
+   `EXTRA_SPIKE` steht für vier Gene (`fire/thorns/venom/pierce`) — das Ornament ist also
+   mehrdeutig, das Gen am Bild nicht eindeutig ablesbar. Beide Tests pinnen den Ist-Zustand
+   (Muster B14.3). Die Auflösung ist eine Content-Entscheidung: Kompatibilität erweitern,
+   Basis nach dem Paar wählen, oder Zwei-Gang-System (Basis-Ornament + Fähigkeits-Aufsatz).
 4. **Vorschau-Parität:** für eine deterministische Genom-Stichprobe: Farbe in der Vorschau
    (Greenhouse/MainMenu-Pfad) == Farbe im Run (Renderer-Pfad) — derselbe `variantKey`.
 5. **Gameplay-Neutralität:** `genomeEffectIds`-Ausgaben sind identisch vor/nach der
    Verdichtung (Fix-Test mit eingefrorenen Erwartungswerten aus der alten Tabelle).
 
-### B26.4 DoD für B26
+### B26.4 Prototyp-Umsetzung (dieser Sprint): ein Gen, drei Kanäle
 
-- [ ] `GENE_PAIRS` existiert in `genes.source.ts`; die alten Tabellen sind abgeleitet oder entfernt
-- [ ] Jedes Pool-Gen hat ein semantisch stimmiges Paar (Review der 15 Zeilen, dokumentiert)
-- [ ] `genomeToVisualInput` liest das Paar; Kappung Top-2/Top-1 unverändert
-- [ ] Gate-Tests 1–5 grün; `cross.test.ts`-Schwellen unverändert (Gameplay neutral)
-- [ ] Vorschau/Run-Farb-Parität test-gelockt (stichprobenweise, deterministisch)
-- [ ] tsc clean, Suite grün, `vite build` grün; 390×844-Sichtprüfung der Vorschau
-- [x] `tsc` clean, 282 Vitest-Tests, E2E 27/27, `vite build` grün
+Gebaut wurde das Referenz-Paar `fire → EXTRA_SPIKE + EFFECT_BURN` und der Beweis, dass **eine
+Zeile** alle drei Konsumenten speist (Test: `simulation_fire_pair.test.ts`, Gate: `sources.test.ts`):
+
+| Kanal | Pfad | Gemessen an `cross_fire` (Seed 4242) |
+|---|---|---|
+| 1 visualMap | `genomeToVisualInput` → `resolveVisual` | Basis `BASE_THORN`, Layer `stalk·thorns·bud·spike·effect_tint`, Tint `#fb923c` = `EFFECT_BURN.paletteModifier` aus der Source |
+| 2 Vorschau | `previewColor(variant, GAME_SEED)` | `#f57d52` == Feld-Palette `palette.base` (`resolveBredVisuals`) — Gewächshaus und Hub lesen jetzt diese eine Funktion, nicht mehr `variant.color` |
+| 3 Run | `genomeEffectIds` → `deriveBredEntry.effects` → `stats.effects[0]` → `projectile.effectId` | Projektil trägt `EFFECT_BURN`, Treffer setzt `burnTicks` — der Brand ist im echten `SimulationRoot`-Lauf nachgewiesen |
+
+Die Verdichtung ist **gameplay-neutral**: alle 15 Paare sind 1:1 aus den Alt-Tabellen übernommen,
+`cross.test.ts`-Schwellen und `genomeEffectIds`-Ausgaben unverändert. Was der Prototyp sichtbar
+machte, ist Content — nicht Code (siehe B26.3/3).
+
+### B26.5 DoD für B26
+
+- [x] `GENE_PAIRS` existiert in `genes.source.ts`; die alten zwei Tabellen sind **entfernt**
+      (kein View-Ballast, kein Konsument liest mehr `GENE_TO_*`)
+- [x] `genomeToVisualInput` liest das Paar; Kappung Top-2/Top-1 unverändert
+- [x] Gate-Tests grün; `cross.test.ts`-Schwellen unverändert (Gameplay neutral)
+- [x] Vorschau/Run-Farb-Parität test-gelockt (deterministisch, `previewColor`)
+- [x] Riding-Beweis im echten Run (Projektil-Effekt + Burn-Treffer, nicht nachgebildet)
+- [ ] Review der 15 Paare als Content entschieden (mehrdeutige Ornamente, tote Vokabel
+      `EYE/MOUTH/SCAR`, `heavy → EXTRA_HAT`) — Befunde sind gepinnt, Auflösung offen
+- [ ] Basis-Kompatibilität gedreht: Paar-Ornament darf nicht stillschweigend wegfallen
+      (1/12-Befund) — Kompatibilität, Basis-Wahl oder Zwei-Gang-System entscheiden

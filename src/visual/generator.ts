@@ -210,3 +210,16 @@ export function resolveBredVisuals(variants: readonly PlantVariant[], rootSeed: 
   }
   return visuals;
 }
+
+/**
+ * Vorschau-Farbe für Zucht-/Hub-Screens (B27/B26). EINE Quelle für beide Screens: dieselbe
+ * Ableitung wie das Feld (`genomeToVisualInput → resolveVisual → palette.base`), damit die
+ * Karte im Gewächshaus nicht mehr über einen flachen `variant.color`-String lügt.
+ *
+ * `rootSeed` bleibt Parameter, weil der Run-Seed erst beim Run-Start entsteht: die Vorschau
+ * bindet an `GAME_SEED`, der Run resolves über seinen Run-Seed — beide Wege nutzen aber exakt
+ * diese Pipeline, und beide lesen dasselbe Paar aus `GENE_PAIRS`.
+ */
+export function previewColor(variant: PlantVariant, rootSeed: number): string {
+  return resolveVisual(genomeToVisualInput(variant, rootSeed)).palette.base;
+}

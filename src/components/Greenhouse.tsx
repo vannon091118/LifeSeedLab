@@ -6,8 +6,7 @@ import { rollGachaCross, deriveGachaSeed, createBaseVariants, type GachaRoll } f
 import { consumeSeedAndEnqueueCross, keepCross, isCrossReady } from '../meta';
 import { wavesToUnlockFor, PENDING_CROSSES_MAX } from '../config/economy.source';
 import { helpText } from '../i18n/help';
-import { resolveVisual, type ResolvedVisual } from '../visual/generator';
-import { genomeToVisualInput } from '../genome/visualMap';
+import { previewColor } from '../visual/generator';
 import { GAME_SEED } from '../config';
 
 // Owner: UI (Greenhouse screen). LOC ≤ 400.
@@ -139,7 +138,7 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
           <div style={styles.resultCard}>
             <div style={styles.resultTitle}>{t('gacha.result')}</div>
             <div style={styles.childRow}>
-              <div style={{ ...styles.preview, background: previewColor(lastRoll.child) }} />
+              <div style={{ ...styles.preview, background: preview(lastRoll.child) }} />
               <div style={styles.childInfo}>
                 <strong style={styles.childName}>{lastRoll.child.name}</strong>
                 <div style={styles.traitRow}>
@@ -194,7 +193,7 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
               return (
                 <div key={c.crossIndex} style={styles.pendingReady}>
                   <div style={styles.childRow}>
-                    <div style={{ ...styles.preview, background: roll ? previewColor(roll.child) : '#ddd' }} />
+                    <div style={{ ...styles.preview, background: roll ? preview(roll.child) : '#ddd' }} />
                     <div style={styles.childInfo}>
                       <strong style={styles.childName}>{roll?.child.name ?? t('shop.parentsGone')}</strong>
                       <div style={styles.parentsLine}>
@@ -232,14 +231,9 @@ function useMemoOwned(meta: MetaSave): PlantVariant[] {
     .filter((v): v is PlantVariant => v !== undefined);
 }
 
-/** Befund Übergang Breeding→Visual (B27): die Vorschau zeigt dieselbe Palette wie der Run —
- *  `ResolvedVisual.palette.base` aus der echten Pipeline (genomeToVisualInput → resolveVisual),
- *  nicht den flachen `variant.color`-String. Eine Quelle: dieselbe Ableitung wie GameView. */
-function previewColor(variant: PlantVariant): string {
-  return resolveVisual(genomeToVisualInput(variant, GAME_SEED)).palette.base;
-}
-
-export type { ResolvedVisual };
+// Befund Breeding→Visual (B27/B26): die Vorschau-Farbe kommt aus `visual/generator.previewColor`
+// — EINE Quelle für Gewächshaus und Hub, dieselbe Paar-Ableitung wie das Feld.
+const preview = (variant: PlantVariant) => previewColor(variant, GAME_SEED);
 
 const styles: Record<string, React.CSSProperties> = {
   // Screen-Betrieb: Vollbild-Inhalt in MenuScreenShell (kein Fixed-Overlay mehr)

@@ -7,8 +7,7 @@ import { APP_VERSION_LABEL } from '../version';
 import { SproutIcon, WaveIcon, BookIcon, SwordIcon, SeedIcon, BugIcon } from './MenuIcons';
 import type { MenuScreen } from './NavIndicators';
 import { mainMenuStyles as styles } from './mainMenuStyles';
-import { resolveVisual } from '../visual/generator';
-import { genomeToVisualInput } from '../genome/visualMap';
+import { previewColor } from '../visual/generator';
 import { GAME_SEED } from '../config';
 
 // Owner: UI (MainMenu = Hub-Kärtchen). LOC ≤ 200.
@@ -128,7 +127,7 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onNavigate, resumeWav
               onClick={() => onMetaChange(toggleLoadout(v.id))}
               aria-label={`${t('menu.leave')}: ${v.name}`}
             >
-              <div style={{ ...styles.preview, background: previewColor(v) }} />
+              <div style={{ ...styles.preview, background: preview(v) }} />
               <span style={styles.name}>{v.name}</span>
               <span style={styles.count}>✓</span>
             </button>
@@ -141,7 +140,7 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onNavigate, resumeWav
               disabled={loadoutVariants.length >= 4}
               aria-label={`${t('menu.take')}: ${v.name}`}
             >
-              <div style={{ ...styles.preview, background: previewColor(v) }} />
+              <div style={{ ...styles.preview, background: preview(v) }} />
               <span style={styles.name}>{v.name}</span>
               <span style={styles.count}>×{meta.variantCounts[v.id]}</span>
             </button>
@@ -161,10 +160,10 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onNavigate, resumeWav
 
 // Icons (B9) leben in MenuIcons.tsx — eine Präsentations-Verantwortung pro Datei.
 
-/** Befund Übergang Breeding→Visual (B27): die Hub-Vorschau liest dieselbe Palette wie der Run
- *  (genomeToVisualInput → resolveVisual), nicht den flachen `variant.color`-String. */
-function previewColor(variant: PlantVariant): string {
-  return resolveVisual(genomeToVisualInput(variant, GAME_SEED)).palette.base;
+/** Befund Breeding→Visual (B27/B26): die Hub-Vorschau liest dieselbe Paar-Ableitung wie das
+ *  Feld — eine Quelle für beide Screens (`visual/generator.previewColor`). */
+function preview(variant: PlantVariant): string {
+  return previewColor(variant, GAME_SEED);
 }
 
 function StatBox({ label, value }: { label: string; value: number }) {

@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { BASES_SOURCE, BASE_IDS } from './bases.source';
 import { EXTRAS_SOURCE, EXTRA_IDS, isValidExtra } from './extras.source';
 import { EFFECTS_SOURCE, EFFECT_IDS, isValidEffect } from './effects.source';
+import { GENE_PAIRS, TYPE_BASES, type GenePair } from './genes.source';
+import { GENE_POOL } from '../genome/pool';
 
 describe('Phase 5 gate: source validation', () => {
   it('exactly 10 effects / extras / bases exist', () => {
@@ -49,6 +51,45 @@ describe('Phase 5 gate: source validation', () => {
       );
       expect(extras.length, base.id).toBeGreaterThan(0);
     }
+  });
+
+  describe('B26 gate: Gen-Paare (Extra + Effect aus einer Zeile)', () => {
+    it('jedes Pool-Gen hat genau ein Paar, beide Seiten sind gültige IDs', () => {
+      for (const geneId of Object.keys(GENE_POOL)) {
+        const pair: GenePair | undefined = GENE_PAIRS[geneId];
+        expect(pair, `Gen ohne Paar: ${geneId}`).toBeDefined();
+        expect(isValidExtra(pair!.extra), `${geneId} → ${pair!.extra}`).toBe(true);
+        expect(isValidEffect(pair!.effect), `${geneId} → ${pair!.effect}`).toBe(true);
+      }
+      expect(Object.keys(GENE_PAIRS)).toHaveLength(Object.keys(GENE_POOL).length);
+    });
+
+    it('Referenz-Paar des Prototyps: fire = EXTRA_SPIKE + EFFECT_BURN', () => {
+      expect(GENE_PAIRS['fire']).toEqual({ extra: 'EXTRA_SPIKE', effect: 'EFFECT_BURN' });
+    });
+
+    it('kein Paar-Ornament ist per Gen unerreichbar (mindestens eine Basis erlaubt es)', () => {
+      for (const [geneId, pair] of Object.entries(GENE_PAIRS)) {
+        const allowed = Object.values(BASES_SOURCE).some(b => b.allowedExtras.includes(pair.extra));
+        expect(allowed, `${geneId} → ${pair.extra} wird von keiner Basis erlaubt`).toBe(true);
+      }
+    });
+
+    // Befund des Prototyps (B26.2): Das Paar verspricht ein Ornament, das die Basis
+    // wegfiltern kann. Feuerschützen ziehen aus THORN/FROND/FLOWER, der Dorn ist aber nur
+    // mit CACTUS/THORN/ROOT kompatibel. Der Ist-Zustand wird hier gepinnt (Muster B14.3:
+    // Beweis zuerst, dann in den Soll-Zustand drehen), damit die Content-Entscheidung
+    // sichtbar wird: Kompatibilität erweitern oder Basis nach dem Paar wählen.
+    it('Befund: das Feuer-Ornament erreicht nur 1 von 3 Schützen-Basen', () => {
+      const compatible = TYPE_BASES.shooter.filter(b => EXTRAS_SOURCE.EXTRA_SPIKE.compatibility.includes(b));
+      expect(compatible).toEqual(['BASE_THORN']);
+    });
+
+    it('Befund: Eye/Mouth/Scar erzeugt kein Gen — tote Ornament-Vokabel', () => {
+      const used = new Set(Object.values(GENE_PAIRS).map(p => p.extra));
+      const orphaned = EXTRA_IDS.filter(id => !used.has(id));
+      expect([...orphaned].sort()).toEqual(['EXTRA_EYE', 'EXTRA_MOUTH', 'EXTRA_SCAR']);
+    });
   });
 
   it('route resolution: one fallback truth for every consumer', async () => {

@@ -315,13 +315,13 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `7c01208` — fix(build): Audit-Fläche + Reparatur des roten Cloudflare-Builds |
-| Arbeitsbaum | 0 gestaged, 2 geändert, 0 neu |
+| HEAD | `53fc968` — perf(render): Sprite-Cache + GameView-Split als Fundament für B26 |
+| Arbeitsbaum | 11 gestaged, 0 geändert, 0 neu |
 | Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
 | Letzter Shinon-Commit | `4a30d7d` fix(field): Aufbauphase, phasenrichter Wellen-Knopf, sichtbare Ablehnung |
 | Letzter Push | ✅ origin/main |
-| LOC-Hotspots | `src/components/GameView.tsx` 400/400 (100 %)<br>`src/config/map.source.ts` 200/200 (100 %)<br>`src/simulation/root.ts` 292/300 (97 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/simulation/plantSystem.ts` 283/300 (94 %) |
+| LOC-Hotspots | `src/config/map.source.ts` 200/200 (100 %)<br>`src/simulation/root.ts` 292/300 (97 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/simulation/plantSystem.ts` 283/300 (94 %)<br>`src/simulation/enemySystem.ts` 279/300 (93 %) |
 <!-- SHINON:STATUS:END -->
 
 
