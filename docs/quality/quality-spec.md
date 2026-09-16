@@ -913,4 +913,76 @@ Stellen gleichzeitig landen — eine vergessene Stelle prüfte still eine andere
 - [x] Geschwächte Pflanzen zeigen eine sichtbare Restzeit-Leiste am Feld
 - [x] Loadout-Zähler und Listeneinträge können nicht mehr auseinanderlaufen (eine Quelle)
 - [x] Kein englischer Literal im DE-Codex; der Lokalitätshinweis steht in beiden Sprachen
+
+## B26. Gene als Paare — die Style-Ebene trägt Fähigkeits-Semantik (Befund: GAP-Zucht→Visual)
+
+### B26.1 Befund
+
+Das Genom spricht über Gen-ID (15 Allele in `genome/pool.ts`) zwei getrennte Sprachen, die nur
+zufällig derselben Quelle entspringen: `GENE_TO_EXTRA` (visuelles Ornament) und
+`GENE_TO_EFFECT` (Gameplay-Effekt) in `config/genes.source.ts` sind **zwei lose Tabellen**. Das
+Größenproblem: `fire` gibt `EXTRA_SPIKE` UND `EFFECT_BURN`, aber nichts erzwingt, dass der
+Dorn visuell zum Brand passt — die Zuordnung ist ungewollt entkoppelt. Konsequenz in der Fläche:
+Ein Spieler, der eine Dornen-Pflanze sieht, kann nicht ableiten, was sie tut; umgekehrt hat
+eine Pflanze mit Effekt-Tint keinen erkennbaren Grund, diesen Tint zu tragen. Die Skala
+(`strength → scale`) ist die einzige sicher lesbare Genom-Aussage. Dazu die Vorschau-Lücke
+(seit B27 im Code behoben): Zucht- und Hub-Vorschau zeigten `variant.color` statt der
+`ResolvedVisual`-Palette — die Zucht entschied unterhalb der echten Pipeline.
+
+Ziel (Spielentscheidung): **Extras sind Style mit Fähigkeits-Semantik.** Jedes sichtbare
+Ornament trägt einen passenden Effekt („Dornen schießen durch = pierce“, „Hut schildet =
+shield“), bis hin zu komplexeren Mechaniken — das Gen ist die Quelle, das Paar
+(Gene → Extra+Effect) die Aussage. Kein Genom-Neubau: Das Pool-Modell (15 Gene, Power,
+Dominanz) bleibt; die zwei Mappings werden zu **einem** Paar-Vertrage verdichtet.
+
+### B26.2 Spec
+
+1. **Eine Quelle pro Paar** (`config/genes.source.ts`): `GENE_TO_EXTRA` + `GENE_TO_EFFECT`
+   werden zu einem einzigen Vertrag `GENE_PAIRS: Record<GeneId, { extra: ExtraId;
+   effect: EffectId }>`. Die alten zwei Tabellen werden Views über dieses Paar (Exporte
+   bleiben, damit Konsumenten nicht brechen) — oder Konsumenten werden direkt umgestellt;
+   beides ist zulässig, solange **genau eine Tabellen-Wahrheit** existiert.
+2. **Semantische Paarung statt Zufall:** Jedes Paar wird explizit geprüft: passt das
+   Ornament zur Fähigkeit? Bestehende Paare sind überwiegend stimmig (`fire → spike/burn`,
+   `shield → hat/shield`), Korrekturbedarf nur wo die Metapher bricht (`heavy → hat` liest
+   sich nicht als „schwerer Treffer“ — Vorschlag: ein sichtbar dichtes/dunkles Extra für
+   Masse). Neue Paare (Komplex-Mechanik) kommen künftig als Paar, nie als lose Tabellenzeile.
+3. **`visualMap.ts` bleibt die einzige Ableitung:** `genomeToVisualInput` liest das Paar
+   statt zweier Tabellen; die Top-2-Extras/Top-1-Effect-Kappung (B16.8-Kostenkurve) bleibt
+   unverändert — Verdichtung, keine Erweiterung des Feature-Raums pro Pflanze.
+4. **Vorschau-Parität ist gelockt** (B27-Vorarbeit): Zucht- und Hub-Vorschau lesen
+   `resolveVisual(genomeToVisualInput(...)).palette.base` — dieselbe Ableitung wie der Run.
+   Ein Gate-Test verifiziert, dass Vorschau-Farbe == Run-Farbe für eine Stichprobe von
+   Genomen (Zufallsstichprobe über `deriveSeed`, deterministisch).
+5. **Kein Sync-Verstoß:** ` bredStats`/Projektil-Riding (B6) lesen weiterhin `GENE_TO_EFFECT`
+   (via `genomeEffectIds`) — die Verdichtung darf die Gameplay-Semantik nicht ändern, nur
+   die Tabellen-Verwaltung. Verifiziert durch unveränderte `cross.test.ts`-Schwellen.
+
+### B26.3 Gate-Tests (Konzept)
+
+Ergänzung in `src/config/sources.test.ts` (dort leben bereits die Source-Validierungen):
+
+1. **Paar-Vollständigkeit:** jedes Gen im `GENE_POOL` hat ein Paar in `GENE_PAIRS`; jedes
+   Paar-Extra/Paar-Effect referenziert gültige `EXTRA_*`/`EFFECT_*`-IDs (bestehende
+   IDs-Checks laufen unverändert weiter).
+2. **Keine Zweittabellen:** `GENE_TO_EXTRA`/`GENE_TO_EFFECT` sind, falls als Views
+   belassen, **abgeleitet** — ein Test folgert, dass beide Views aus `GENE_PAIRS`
+   rekonstruierbar sind (keine dritte Zeile, keine fehlende Zeile).
+3. **Basis-Kompatibilität:** für jede Base in `TYPE_BASES` gilt: das erlaubte
+   Extra/Effect-Paar jedes ihrer Gene überlebt `resolveCompatibility` (kein Gen, dessen
+   Ornament/Effekt von der Basis weggefiltert würde — sonst sichtbare stillschweigende
+   Verluste).
+4. **Vorschau-Parität:** für eine deterministische Genom-Stichprobe: Farbe in der Vorschau
+   (Greenhouse/MainMenu-Pfad) == Farbe im Run (Renderer-Pfad) — derselbe `variantKey`.
+5. **Gameplay-Neutralität:** `genomeEffectIds`-Ausgaben sind identisch vor/nach der
+   Verdichtung (Fix-Test mit eingefrorenen Erwartungswerten aus der alten Tabelle).
+
+### B26.4 DoD für B26
+
+- [ ] `GENE_PAIRS` existiert in `genes.source.ts`; die alten Tabellen sind abgeleitet oder entfernt
+- [ ] Jedes Pool-Gen hat ein semantisch stimmiges Paar (Review der 15 Zeilen, dokumentiert)
+- [ ] `genomeToVisualInput` liest das Paar; Kappung Top-2/Top-1 unverändert
+- [ ] Gate-Tests 1–5 grün; `cross.test.ts`-Schwellen unverändert (Gameplay neutral)
+- [ ] Vorschau/Run-Farb-Parität test-gelockt (stichprobenweise, deterministisch)
+- [ ] tsc clean, Suite grün, `vite build` grün; 390×844-Sichtprüfung der Vorschau
 - [x] `tsc` clean, 282 Vitest-Tests, E2E 27/27, `vite build` grün

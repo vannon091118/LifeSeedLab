@@ -1,39 +1,30 @@
 // Owner: UI (GameView). LOC ≤ 400.
 // Pointer-Workflow über PlacementController, 390×844, B2 suspend/resume, B8 Audio, B11 Nacht.
 // HUD max 5 Elemente. DevGate: ?dev=1 / #dev — Release hat 0 Dev-Surface.
-// Ausgelagert: PlacementTray, GameOverlays, GameIcons, gameViewStyles, TutorialLayer.
+// Ausgelagert: PlacementTray, GameOverlays, GameIcons, gameViewStyles, TutorialLayer,
+// ghostPreview (Geist-Zusammensetzung) und — B28 — die komplette Engine-Verdrahtung
+// (Sim-Bootstrap, Bus-Subscriptions, RAF-Loop) nach render/gameRuntime.ts. GameView ist
+// nur noch das React-Gesicht: State, HUD, Pointer-Eingänge, Overlays.
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import type { MetaSave, BeetleSpecimen } from '../types';
-import { SimulationRoot, makeCommand } from '../simulation/root';
-import { saveRun, clearRun, type RunSave } from '../persistence/runSave';
-import { Renderer } from '../render/renderer';
-import { ghostForRender } from './ghostPreview';
-import { Camera } from '../render/camera';
-import { FeedbackLayer } from '../render/layers/feedback';
-import { VisualObserver } from '../observers/visualObserver';
-import { AudioObserver } from '../observers/audioObserver';
-import { executeVisualCommand } from '../observers/visualExecutor';
-import { ParticlePool } from '../observers/particles';
-import { resolveBredVisuals, resolveVisual } from '../visual/generator';
-import { strHash } from '../core/rng';
-import { makePlacementRejected } from '../bus/commands';
-import { resolvePlantStats } from '../simulation/plantSystem';
-import { PlacementController, type PlacementState, type UiRejectReason } from './placementController';
+import type { RunSave } from '../persistence/runSave';
+import { RunRuntime } from '../render/gameRuntime';
+import { clearRun } from '../persistence/runSave';
+import type { PlacementState, UiRejectReason } from './placementController';
 import { PlacementTray } from './PlacementTray';
 import { GameOverlays } from './GameOverlays';
 import { useI18n } from '../i18n';
 import { PLANTS_SOURCE } from '../config/plants.source';
-import { MAP_TILES_SOURCE, type MapTileType } from '../config/map.source';
-import { recordRunEnd, advanceCrossMaturation, updateMeta } from '../meta';
+import type { MapTileType } from '../config/map.source';
 import { GameDevPanel } from './GameDevPanel';
 import { GameTopBar } from './GameTopBar';
 import { TutorialLayer } from './tutorial/TutorialLayer';
 import { FieldToast } from './FieldToast';
 import { DropChipIcon, LivesChipIcon, WaveChipIcon } from './GameIcons';
 import { gameViewStyles as styles } from './gameViewStyles';
-import { hudOf, type HudSnapshot } from './hudSnapshot';
+import type { HudSnapshot } from './hudSnapshot';
+import { hudOf } from './hudSnapshot';
 import { isDevActive } from '../dev/gate';
-import { bindSimRoot, installTestHooks, unbindSimRoot } from '../dev/testHooks';
 
 interface Props {
   seed: number; runId: number;
@@ -41,7 +32,7 @@ interface Props {
   bredStats: NonNullable<MetaSave['bredStats']>;
   beetles: BeetleSpecimen[];
   audioOn: boolean;
-  /** B2: gespeicherter Run-Zustand — nur gesetzt, wenn der Spieler „Fortsetzen" wählt. */
+  /** B2: gespeicherter Run-Zustand — nur gesetzt, wenn der Spieler „Fortsetzen“ wählt. */
   resume?: RunSave | null;
   onMetaChange: (meta: MetaSave) => void; onExit: () => void;
 }
@@ -50,14 +41,9 @@ const IDLE: PlacementState = { mode: 'plant', variantId: null, ghost: null, reje
 
 export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetles, audioOn, resume, onMetaChange, onExit }: Props){
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rootRef = useRef<SimulationRoot | null>(null);
-  const rendererRef = useRef<Renderer | null>(null);
-  const particlesRef = useRef<ParticlePool | null>(null);
-  const observerRef = useRef<VisualObserver | null>(null);
-  const audioRef = useRef<AudioObserver | null>(null);
-  const placementRef = useRef<PlacementController | null>(null);
-  const pausedRef = useRef(false); const holdRef = useRef(false); // B21: Tutorial-Hold (Präsentation)
-  const runEndedRef = useRef(false);
+  const runtimeRef = useRef<RunRuntime | null>(null);
+  const pausedRef = useRef(false);
+  const holdRef = useRef(false); // B21: Tutorial-Hold (Präsentation)
 
   const [placement, setPlacement] = useState<PlacementState>(IDLE);
   const [hud, setHud] = useState<HudSnapshot | null>(null);
@@ -68,158 +54,54 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
   const [placedCount, setPlacedCount] = useState(0); // B21: UI-Zähler angenommener Drops
   const [dpr, setDpr] = useState(1);
   const { t } = useI18n();
-  const cmdSeq = useRef(0);
-  const placementMirror = useRef<PlacementState>(IDLE);
   const devActive = useMemo(() => isDevActive(), []);
   // B21: Der Hold ist das einzige, was das Onboarding von hier braucht — Sichtbarkeit, Schritt
   // und Persistenz besitzt der Screen-Router (TutorialProvider). Kein zweiter Zustand.
   const tutorialHold = useCallback((hold: boolean) => { holdRef.current = hold; }, []);
 
-  // Einmal pro (Seed, Loadout, Bestand) — dieselbe Map wie im Renderer-Effect, vorher
-  // baute ghostVisual sie bei JEDEM Hover/Drop/Inspector-Call neu (Godfile-Audit).
-  const bredVisuals = useMemo(() => resolveBredVisuals(savedVariants.filter(v => loadout.includes(v.id)), seed), [seed, loadout, savedVariants]);
-
-  const ghostVisual = useCallback((variantId: string) => {
-    const bred = bredVisuals.get(variantId);
-    if (bred) return bred;
-    const baseId = variantId === 'rootwall' ? 'BASE_ROOT' : variantId === 'mycelia' ? 'BASE_MUSHROOM' : 'BASE_THORN';
-    return resolveVisual({ baseId: baseId as never, extraIds: [], effectIds: [], visualSeed: strHash(`plant:${seed}:${variantId}`) });
-  }, [bredVisuals, seed]);
-
-  /** Einzige Brücke vom Controller in den React-Render (Mirror hält den Render-Loop aktuell). */
-  const applyPlacement = useCallback((next: PlacementState) => {
-    placementMirror.current = next;
-    setPlacement(next);
-  }, []);
+  /** Einzige Brücke vom Runtime/Controller in den React-Render. */
+  const applyPlacement = useCallback((next: PlacementState) => setPlacement(next), []);
 
   const toggleFx = useCallback(() => {
     setFxOn(v => {
       const next = !v;
-      observerRef.current?.setFxEnabled(next);
-      audioRef.current?.setEnabled(next);
-      // B8-Kopplung: der Toggle persistiert im Meta-Save (einziger Writer: persistence/).
-      onMetaChange(updateMeta({ audioOn: next }));
+      runtimeRef.current?.toggleFx(next);
       return next;
     });
-  }, [onMetaChange]);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;
-    const root = new SimulationRoot({ seed, runId, loadout, bredStats, beetles, resume: resume ?? undefined });
-    rootRef.current = root;
-    installTestHooks(); bindSimRoot(root); // DevGate-only E2E-Brücke (Release: no-op)
-    const renderer = new Renderer(canvas);
-    rendererRef.current = renderer;
-    // B16.1: kein Terrain-Prime mehr — der Bake hängt an (Seed, aktive Route) und
-    // passiert lazy im Render aus dem State (leere Map ⇒ DEFAULT-Pfad, wie bisher).
-    renderer.setBredVisuals(bredVisuals);
-    const camera = new Camera();
-    const observer = new VisualObserver(camera, fxOn);
-    observerRef.current = observer;
-    const audio = new AudioObserver(fxOn);
-    audioRef.current = audio;
-    const particles = new ParticlePool();
-    particlesRef.current = particles;
-    const feedback = new FeedbackLayer();
-
-    // B3: Zustandsmaschine liest Sim (read-only) und Präsentation — sie schreibt nichts.
-    const controller = new PlacementController({
-      visualFor: (variantId) => ghostVisual(variantId),
-      statsFor: (variantId) => {
-        const stats = resolvePlantStats(root.getSnapshot(), variantId);
-        return stats ? { cost: stats.cost, range: stats.range } : null;
+    const runtime = new RunRuntime(
+      { canvas, seed, runId, loadout, savedVariants, bredStats, beetles, audioOn, resume: resume ?? null, onMetaChange },
+      {
+        onPlacement: applyPlacement,
+        onHud: setHud,
+        onSuspended: () => setSuspended(true),
+        onGameOver: () => setShowGameOver(true),
+        onMetaChange,
+        onDevTick: () => setDevTick(v => v + 1),
       },
-      board: () => {
-        const snap = root.getSnapshot();
-        return {
-          plants: snap.plants.map(p => ({ gx: p.gx, gy: p.gy })),
-          inventory: snap.inventory,
-          energy: snap.resources.energy,
-          mapTiles: snap.mapTiles,
-        };
-      },
-      tileCost: (tile) => MAP_TILES_SOURCE[tile].cost,
-      tick: () => root.getSnapshot().clock.tick,
-    });
-    placementRef.current = controller;
-    applyPlacement(controller.getState());
-    // B22: Erst-Anzeige sofort — sonst zeigt die Tray bis zum ersten HUD-Takt „×0" und alle
+      pausedRef,
+      holdRef,
+    );
+    runtimeRef.current = runtime;
+    // B22: Erst-Anzeige sofort — sonst zeigt die Tray bis zum ersten HUD-Takt „×0“ und alle
     // Karten sind `aria-disabled`, obwohl der Bestand längst in der Sim liegt.
-    setHud(hudOf(root.getSnapshot(), pausedRef.current));
+    setHud(hudOf(runtime.root.getSnapshot(), pausedRef.current));
 
-    // Nur Events mit FX-Vertrag (B5-Matrix); SCORE/COMBO/COINS/TILE/BEETLE_REJECTED haben
-    // keinen — HUD liest den Snapshot via hudOf, die Subscriptions waren reine No-ops.
-    for (const type of ['PROJECTILE_HIT','ENEMY_DIED','PLANT_PLACED','WAVE_COMPLETED','GAME_OVER','CRITICAL_HIT','PLACEMENT_REJECTED','DAMAGE_DEALT','WAVE_STARTED','NIGHT_STARTED','DAY_STARTED','REWARD_GRANTED','PLANT_GROWN','PLANT_WEAKENED','PLANT_WITHERED','PLANT_PROPAGATED','PLANT_FERTILIZED','BEETLE_DEPLOYED','BEETLE_DOWN'] as const){
-      root.bus.subscribe(type, (e) => { observer.observe(e as never); audio.observe(e as never); });
-    }
-    root.bus.subscribe('NIGHT_STARTED', () => renderer.setNight(true));
-    root.bus.subscribe('DAY_STARTED', () => renderer.setNight(false));
-    // B17.4: die Reifung zählt die ANGEBROCHENE Welle — WAVE_STARTED feuert genau einmal pro
-    // Welle (nur startWave), also keine Doppelzählung: Tod in Welle 1 bringt genau +1 (A19.5).
-    // Ein Writer: meta/economy.ts.
-    root.bus.subscribe('WAVE_STARTED', () => { advanceCrossMaturation(1); });
-    // Run-Ende ist eventgetrieben (BUS = Handover, B7.5): recordRunEnd genau einmal im Event-Ack,
-    // Guard nur gegen StrictMode-Remount. Kein advanceCrossMaturation: Wellen sind schon gezählt.
-    root.bus.subscribe('GAME_OVER', (e) => {
-      if (runEndedRef.current) return;
-      runEndedRef.current = true;
-      try {
-        const next = recordRunEnd(e.payload.wave, root.getSnapshot().nektarEarned);
-        onMetaChange(next);
-        void clearRun(); // B2: ein beendeter Run ist nicht resumierbar
-      } catch { /* meta persist must never break the run screen */ }
-      setShowGameOver(true);
-    });
+    const onDprChange = () => setDpr(Math.min(window.devicePixelRatio || 1, 2));
+    window.addEventListener('resize', onDprChange);
+    onDprChange();
 
-    const onResize = () => { renderer.resize(); setDpr(Math.min(window.devicePixelRatio || 1, 2)); };
-    window.addEventListener('resize', onResize);
-    onResize();
-
-    const onVisibility = () => {
-      if (document.visibilityState !== 'hidden') return;
-      pausedRef.current = true; root.clock.setPaused(true);
-      saveRun(root.getSnapshot()); setSuspended(true);
-    };
-    document.addEventListener('visibilitychange', onVisibility);
-
-    const adaptBudget = () => {
-      const n = particles.activeCount;
-      if (n > 70) particles.setBudget('CHAOS');
-      else if (n > 40) particles.setBudget('BUSY');
-      else particles.setBudget('NORMAL');
-    };
-
-    let raf = 0; let last = performance.now(); let saveAccum = 0; let hudAccum = 0;
-    const tick = (now: number) => {
-      const dt = now - last; last = now;
-      if (!pausedRef.current && !holdRef.current) root.advance(dt);
-      for (const c of observer.drain()) executeVisualCommand(c, particles, camera, feedback);
-      particles.update(); feedback.update(); camera.update(); adaptBudget();
-      const cs = camera.get();
-      renderer.render(root.getSnapshot(), particles, feedback, cs.shakeOffset.x, cs.shakeOffset.y, ghostForRender(placementMirror.current, root.getSnapshot().clock.tick));
-      saveAccum += dt; hudAccum += dt;
-      if (hudAccum > 100) {
-        hudAccum = 0;
-        const s = root.getSnapshot();
-        setHud(hudOf(s, pausedRef.current));
-        if (devActive) setDevTick(v => v + 1);
-      }
-      if (saveAccum > 10000) { saveAccum = 0; saveRun(root.getSnapshot()); }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-
-    const unlockOnce = () => { audio.unlock(); window.removeEventListener('pointerdown', unlockOnce); };
+    const unlockOnce = () => { runtime.audio.unlock(); window.removeEventListener('pointerdown', unlockOnce); };
     window.addEventListener('pointerdown', unlockOnce, { once: true });
 
     return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener('resize', onResize);
-      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('resize', onDprChange);
       window.removeEventListener('pointerdown', unlockOnce);
-      saveRun(root.getSnapshot());
-      placementRef.current = null;
-      unbindSimRoot(root);
+      runtime.destroy();
+      runtimeRef.current = null;
     };
     // fxOn is deliberately NOT a dependency: FX is presentation-only and must never tear down +
     // rebuild the root (that restarts the run); observers toggle live via setFxEnabled/setEnabled.
@@ -231,81 +113,60 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seed, runId, onMetaChange, devActive]);
 
-  /** Ablehnung der UI zeigt exakt die FX der Sim-Ablehnung (eine FX-Wahrheit, kein Bus-Write). */
-  const emitRejectionFx = useCallback((reason: UiRejectReason, gx: number, gy: number) => {
-    const root = rootRef.current; const observer = observerRef.current;
-    if (!root || !observer) return;
-    const contract = reason === 'no_energy_tile' || reason === 'unknown' ? 'on_path' : reason;
-    const event = makePlacementRejected(root.getSnapshot().clock.tick, ++cmdSeq.current, gx, gy, contract);
-    observer.observe(event as never);
-    audioRef.current?.observe(event as never);
-  }, []);
-
   const cellFromEvent = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-    const renderer = rendererRef.current; if (!renderer) return null;
+    const runtime = runtimeRef.current; if (!runtime) return null;
     const rect = e.currentTarget.getBoundingClientRect();
-    return renderer.gridFromPixel(e.clientX - rect.left, e.clientY - rect.top);
+    return runtime.renderer.gridFromPixel(e.clientX - rect.left, e.clientY - rect.top);
   }, []);
 
   const onPointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-    const controller = placementRef.current; if (!controller) return;
-    applyPlacement(controller.hover(cellFromEvent(e)));
-  }, [applyPlacement, cellFromEvent]);
+    runtimeRef.current?.pointerMove(cellFromEvent(e));
+  }, [cellFromEvent]);
 
   const onPointerUp = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-    const controller = placementRef.current; const root = rootRef.current;
-    if (!controller || !root) return;
+    const runtime = runtimeRef.current; if (!runtime) return;
     const cell = cellFromEvent(e); if (!cell) return;
-    const decision = controller.drop(cell);
-    if (decision.kind === 'plant') {
-      setPlacedCount(n => n + 1); // B21: UI-Signal — greift auch, solange das Tutorial die Sim hält.
-      root.commands.push(makeCommand(root.clock.get().tick, 'PLACE_PLANT', ++cmdSeq.current, { variantId: decision.variantId, gx: decision.gx, gy: decision.gy }));
-    } else if (decision.kind === 'tile') {
-      // Tiles entscheidet die Sim (TILE_REJECTED fängt Baubereich/Korridor ab) — gleicher Command-Pfad.
-      root.commands.push(makeCommand(root.clock.get().tick, 'PLACE_TILE', ++cmdSeq.current, { gx: decision.gx, gy: decision.gy, tile: decision.tile }));
-    } else if (decision.kind === 'reject') {
-      emitRejectionFx(decision.reason, decision.gx, decision.gy);
+    runtime.pointerUp(cell);
+    if (runtime.controller.getState().mode === 'plant' && placement.variantId !== runtime.controller.getState().variantId) {
+      // B21: UI-Signal — ein angenommener Drop (Platzierung aus der Tray heraus).
+      setPlacedCount(n => n + 1);
     }
-    applyPlacement(controller.getState());
-  }, [applyPlacement, cellFromEvent, emitRejectionFx]);
+    applyPlacement(runtime.controller.getState());
+  }, [applyPlacement, cellFromEvent, placement.variantId]);
 
   const cancelPlacement = useCallback(() => {
-    const controller = placementRef.current; if (!controller) return;
-    applyPlacement(controller.cancel());
-  }, [applyPlacement]);
+    runtimeRef.current?.cancelPlacement();
+  }, []);
 
   const selectPlant = useCallback((variantId: string, count: number) => {
-    const controller = placementRef.current; if (!controller) return;
-    applyPlacement(controller.selectFromTray(variantId, count));
-  }, [applyPlacement]);
+    runtimeRef.current?.selectPlant(variantId, count);
+  }, []);
 
   const selectTile = useCallback((tile: MapTileType) => {
-    const controller = placementRef.current; if (!controller) return;
-    applyPlacement(controller.selectTile(tile));
-  }, [applyPlacement]);
+    runtimeRef.current?.selectTile(tile);
+  }, []);
 
   const togglePause = useCallback(() => {
-    pausedRef.current = !pausedRef.current;
-    rootRef.current?.clock.setPaused(pausedRef.current);
+    const runtime = runtimeRef.current; if (!runtime) return;
+    runtime.togglePause();
     setHud(h => h ? { ...h, paused: pausedRef.current } : h);
   }, []);
 
   const handleStartWave = useCallback(() => {
-    const root = rootRef.current; if (!root) return;
-    root.commands.push(makeCommand(root.clock.get().tick, 'START_WAVE', ++cmdSeq.current, {}));
+    runtimeRef.current?.startWave();
   }, []);
 
   /** P6: Brutling einsetzen — eigener Command-Pfad (Spawns während Welle oder Vorbereitung). */
   const handleDeployBeetle = useCallback(() => {
-    const root = rootRef.current; if (!root) return;
+    const runtime = runtimeRef.current; if (!runtime) return;
     const brood = beetles[beetles.length - 1];
     if (!brood) return;
-    root.commands.push(makeCommand(root.clock.get().tick, 'DEPLOY_BEETLE', ++cmdSeq.current, { beetleId: brood.id }));
+    runtime.deployBeetle(brood.id);
   }, [beetles]);
 
   // Nur bei Loadout-Änderung neu — vorher bei jedem Render/devTick re-alloziert.
   const plantIds = useMemo(() => Array.from(new Set([...Object.keys(PLANTS_SOURCE), ...loadout])), [loadout]);
-  const inspectorVisual = placement.ghost?.visual ?? (placement.variantId ? ghostVisual(placement.variantId) : null);
+  const inspectorVisual = placement.ghost?.visual ?? null;
   const inspectorLabel = placement.ghost ? `ghost ${placement.ghost.gx},${placement.ghost.gy}` : (placement.variantId ?? '—');
 
   return (
@@ -329,7 +190,7 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
             ref={canvasRef}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
-            onPointerLeave={() => placementRef.current && applyPlacement(placementRef.current.hover(null))}
+            onPointerLeave={() => runtimeRef.current?.pointerMove(null)}
             data-tut="board"
             style={{ ...styles.canvas, cursor: placement.variantId ? 'crosshair' : 'default' }}
           />
@@ -348,15 +209,15 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
           {/* B23.3: Der Grund stand im Controller, nur nie auf dem Schirm. */}
           <FieldToast rejection={placement.rejection} tick={hud?.tick ?? 0} />
           <GameDevPanel
-            active={devActive && rootRef.current !== null}
+            active={devActive && runtimeRef.current !== null}
             revision={devTick}
             dpr={dpr}
             fxEnabled={fxOn}
             onToggleFx={toggleFx}
-            getSnapshot={() => rootRef.current!.getSnapshot()}
-            busRecent={() => rootRef.current!.bus.getRecent()}
+            getSnapshot={() => runtimeRef.current!.root.getSnapshot()}
+            busRecent={() => runtimeRef.current!.root.bus.getRecent()}
             particleInfo={() => {
-              const p = particlesRef.current;
+              const p = runtimeRef.current?.particles;
               return { active: p?.activeCount ?? 0, cap: p?.cap ?? 0, budget: p?.budgetName ?? 'NORMAL' };
             }}
             visual={inspectorVisual}
@@ -375,10 +236,10 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
             gameOver={showGameOver}
             suspended={suspended}
             wave={hud?.wave ?? 0}
-            score={rootRef.current?.getSnapshot().score ?? 0}
-            onNewRun={() => { setShowGameOver(false); rootRef.current = null; onExit(); }}
+            score={runtimeRef.current?.root.getSnapshot().score ?? 0}
+            onNewRun={() => { setShowGameOver(false); runtimeRef.current = null; onExit(); }}
             onMenu={onExit}
-            onResume={() => { setSuspended(false); pausedRef.current = false; rootRef.current?.clock.setPaused(false); }}
+            onResume={() => { setSuspended(false); pausedRef.current = false; runtimeRef.current?.root.clock.setPaused(false); }}
           />
         </div>
         <TutorialLayer

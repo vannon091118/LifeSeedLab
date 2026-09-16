@@ -10,7 +10,7 @@ import { WEAKENED_THRESHOLD } from '../config/economy.source';
 import { resolveVisual, type ResolvedVisual } from '../visual/generator';
 import { getPlantStats } from '../simulation/plantSystem';
 import { strHash } from '../core/rng';
-import { drawLayerPrimitive } from './layers/primitives';
+import { drawSprite } from './spriteCache';
 import { drawMapTile } from './layers/mapTiles';
 import { drawEnemyBody } from './layers/enemies';
 import { drawParticle } from './layers/particlesDraw';
@@ -217,11 +217,7 @@ export class Renderer {
 
     ctx.save();
     ctx.globalAlpha = 0.6;
-    for (const layer of ghost.visual.layers) {
-      ctx.save(); ctx.translate(cx + layer.anchor.x * cell, cy + layer.anchor.y * cell);
-      ctx.rotate(layer.rotation); const s = layer.scale * cell * 0.3; ctx.scale(s, s);
-      drawLayerPrimitive(ctx, layer.key, layer.color, layer.outline); ctx.restore();
-    }
+    drawSprite(ctx, ghost.visual, cell, this.dpr, cx, cy, 1);
     ctx.restore();
   }
 
@@ -242,12 +238,9 @@ export class Renderer {
     else if (anim?.anim === 'placement') { const p = anim.phase; sq = p < 0.3 ? 0.6 + p * 1.5 : p < 0.8 ? 1.05 : 1; }
     ctx.save(); ctx.translate(cx + ox, cy + oy); ctx.rotate(rot);
     const genomScale = v.scale; // Kästchenblock-CGI: Skala ist Genom-Aussage (0.85–1.25)
-    ctx.scale(sq * punch * genomScale, sq * punch * genomScale);
-    for (const layer of v.layers) {
-      ctx.save(); ctx.translate(layer.anchor.x * cell, layer.anchor.y * cell);
-      ctx.rotate(layer.rotation); const s = layer.scale * cell * 0.3; ctx.scale(s, s);
-      drawLayerPrimitive(ctx, layer.key, layer.color, layer.outline); ctx.restore();
-    }
+    // B28: die Layer sind einmal pro variantKey gebacken — hier bleibt nur drawImage.
+    // Animation (sway/bob/punch/squash) lebt in den Transform-Variablen, nicht im Sprite.
+    drawSprite(ctx, v, cell, this.dpr, 0, 0, sq * punch * genomScale);
     ctx.restore();
     const stats = getPlantStats(plant.variantId, state.bredStats);
     if (stats && plant.hp < stats.hp) {
