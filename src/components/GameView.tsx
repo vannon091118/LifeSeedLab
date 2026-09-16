@@ -32,6 +32,7 @@ import { GameTopBar } from './GameTopBar';
 import { TutorialOverlay } from './tutorial/TutorialOverlay';
 import { DropChipIcon, LivesChipIcon, WaveChipIcon } from './GameIcons';
 import { gameViewStyles as styles } from './gameViewStyles';
+import { hudOf, type HudSnapshot } from './hudSnapshot';
 import { isDevActive, isOnboardingAutoStart } from '../dev/gate';
 import { bindSimRoot, installTestHooks, unbindSimRoot } from '../dev/testHooks';
 
@@ -47,7 +48,6 @@ interface Props {
   resume?: RunSave | null;
   onMetaChange: (meta: MetaSave) => void; onExit: () => void;
 }
-interface HudSnapshot { wave: number; energy: number; lives: number; combo: number; inventory: Record<string, number>; paused: boolean; phase: import('../simulation/state').RunPhase; beetleDeployed: boolean; }
 
 const IDLE: PlacementState = { mode: 'plant', variantId: null, ghost: null, rejection: null };
 
@@ -143,6 +143,9 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
     });
     placementRef.current = controller;
     applyPlacement(controller.getState());
+    // B22: Erst-Anzeige sofort — sonst zeigt die Tray bis zum ersten HUD-Takt „×0" und alle
+    // Karten sind `aria-disabled`, obwohl der Bestand längst in der Sim liegt.
+    setHud(hudOf(root.getSnapshot(), pausedRef.current));
 
     for (const type of ['PROJECTILE_HIT','ENEMY_DIED','PLANT_PLACED','WAVE_COMPLETED','GAME_OVER','CRITICAL_HIT','PLACEMENT_REJECTED','TILE_REJECTED','DAMAGE_DEALT','WAVE_STARTED','NIGHT_STARTED','DAY_STARTED','SCORE_CHANGED','COMBO_CHANGED','REWARD_GRANTED','COINS_GRANTED','PLANT_GROWN','PLANT_WEAKENED','PLANT_WITHERED','PLANT_PROPAGATED','PLANT_FERTILIZED','BEETLE_DEPLOYED','BEETLE_DOWN','BEETLE_REJECTED'] as const){
       root.bus.subscribe(type, (e) => { observer.observe(e as never); audio.observe(e as never); });
@@ -201,7 +204,7 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
       if (hudAccum > 100) {
         hudAccum = 0;
         const s = root.getSnapshot();
-        setHud({ wave: s.wave.number, energy: s.resources.energy, lives: s.lives, combo: s.combo.count, inventory: { ...s.inventory }, paused: pausedRef.current, phase: s.phase, beetleDeployed: s.deployedBeetle !== null });
+        setHud(hudOf(s, pausedRef.current));
         if (devActive) setDevTick(v => v + 1);
       }
       if (saveAccum > 10000) { saveAccum = 0; saveRun(root.getSnapshot()); }

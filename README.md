@@ -309,13 +309,13 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `6140b98` — docs: Arbeitsvertrag, Roadmap und Quality-Spec nachziehen |
-| Arbeitsbaum | 29 gestaged, 2 geändert, 0 neu |
-| Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
+| HEAD | `ffb9d37` — feat(ui): Krix-Onboarding, Gewächshaus-Hilfe und Doku-Stand |
+| Arbeitsbaum | 0 gestaged, 7 geändert, 2 neu |
+| Letztes Gate | 🛑 geschlossen (preflight, 0 Fehler, 1 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `a97daf7` feat(meta): Keim-Bestand, Wellen-Anbruch, Loadout (B17.3/B17.4/B18.1) |
+| Letzter Shinon-Commit | `ffb9d37` feat(ui): Krix-Onboarding, Gewächshaus-Hilfe und Doku-Stand |
 | Letzter Push | ✅ origin/main |
-| LOC-Hotspots | `src/config/map.source.ts` 200/200 (100 %)<br>`src/components/GameView.tsx` 390/400 (98 %)<br>`src/simulation/root.ts` 292/300 (97 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/simulation/plantSystem.ts` 283/300 (94 %) |
+| LOC-Hotspots | `src/config/map.source.ts` 200/200 (100 %)<br>`src/components/GameView.tsx` 393/400 (98 %)<br>`src/simulation/root.ts` 292/300 (97 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/simulation/plantSystem.ts` 283/300 (94 %) |
 <!-- SHINON:STATUS:END -->
 
 ---

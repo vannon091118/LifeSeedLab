@@ -81,10 +81,26 @@ npx vite build           # muss durchbauen (nur wenn Build-relevant geändert)
 Kein „sollte passen", kein claims ohne Ausführung. Dev-Server/Preview wird **nie** manuell gestartet/gestoppt/killt (Plattform-managed). `vite.config.ts` ist **tabu**.
 
 Kosten & Haken der Werkzeuge: die Hooks in `git-noir/hooks` (`core.hooksPath`) fahren bei **jedem**
-Commit das Gate — LOC-Caps, Architektur-Constraints, Typecheck, Test-Suite, also ~15 s, fail-closed
-(rot ⇒ Commit abgebrochen). Die E2E-Stufe liegt bewusst **nicht** im Commit-Pfad
+Commit das Gate — LOC-Caps, Architektur-Constraints, Typecheck, Test-Suite, **warm ~7–9 s**,
+fail-closed (rot ⇒ Commit abgebrochen). Die E2E-Stufe liegt bewusst **nicht** im Commit-Pfad
 (`gate.checks.e2e=false` in `shinon.config.json`): sie kostet Minuten und läuft getrennt vor dem
 Sprint-Abschluss (`npm run test:e2e`).
+Die drei Posten, die den Commit früher auf Minuten zogen, sind an der Wurzel abgestellt — nicht per
+abgeschwächter Prüfung:
+
+1. **Typecheck** läuft inkrementell: `incremental: true` + `tsBuildInfoFile` in der `tsconfig.json`
+   (Cache in `node_modules/.tmp`, `*.tsbuildinfo` ist gitignoriert). Vorher prüfte `tsc -b --noEmit`
+   jede Datei neu (~8 s); warm sind es ~0,3 s. Der Cache schlägt über Inhalts-Hashes fehl, nie über
+   Zeitstempel: neue und geänderte Dateien werden geprüft, gelöschte Dateien fallen aus dem Cache.
+2. **Tests** laufen mit `fsModuleCache: true` (`vitest.config.ts`): die Transformate werden
+   inhaltsgehasht in `node_modules/.vitest-cache` gehalten statt pro Lauf neu erzeugt
+   (vorher ~65 % der Laufzeit).
+3. **Kein `npx` im Gate.** `npx` kostet auf dieser Maschine ~3 s npm-Startup **pro Kommando**; das
+   Gate ruft die Werkzeuge direkt über Node auf (`gate.commands` in `shinon.config.json`). Inhaltlich
+   identisch, gemessen an denselben Werkzeugen — 255 Tests, 0 Typfehler.
+
+Kalt (frisches `node_modules`, erster Lauf nach Änderungen) kostet der erste Durchlauf einmalig
+~15 s; das ist der Cache-Aufbau, kein Deckel auf das Ergebnis.
 Deshalb vorher `npx tsc -b --noEmit` + `npx vitest run` selbst laufen lassen. Nachrichten per
 `git commit -F <datei>` übergeben (Heredocs hängen in dieser Shell); der `commit-message`-Check liest
 die vorbereitete Nachricht aus `commit_msg.txt` im Repo-Root.

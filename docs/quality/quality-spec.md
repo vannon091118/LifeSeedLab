@@ -709,3 +709,43 @@ schreibt `tutorialDone`).
 - [ ] `MetaSave` v6 liest v1–v5 verlustfrei — Lock: `onboarding.test.ts`
 - [ ] Cue-Ziele existieren im DOM (`data-tut`), Overlay blockiert die echten Knöpfe nicht — E2E `tests/tutorial.spec.ts`
 - [ ] `tsc` clean, Suite grün, `vite build` grün; GameView bleibt ≤ 400 LOC (GameTopBar extrahiert)
+
+### B21.5 Nachtrag — E2E-Beweis zurückgebaut
+
+Der Onboarding-E2E (`tests/tutorial.spec.ts`) ist auf Wunsch entfallen (er kostete je Lauf Sekunden
+und deckte dieselben DOM-Verträge ab, die `tutorial.test.ts` deterministisch prüft). Damit gilt für
+B21: Cue-Ziele und Hold-Verhalten sind **unit-gelockt**, der Sichtpfad ist nur noch manuell
+(Preview) belegt — nicht E2E.
+
+---
+
+## B22. Leere Tray beim Betreten des Runs (Befund: Erstspieler-Test)
+
+### B22.1 Befund
+
+Der Tray-Bestand speist sich allein aus dem HUD-Snapshot des RAF-Takts
+(`inventory={hud?.inventory ?? {}}` in `GameView`). Vor dem ersten Takt — bis zu 100 ms — ist `hud`
+`null`: **jede** Karte stand als „×0" da und war `aria-disabled`. Ein Tap in diesem Fenster wurde
+ignoriert, und der Blick auf die Tray sagte „du hast nichts", obwohl der Bestand längst in der Sim
+lag.
+
+Gefunden hat das nicht die Sichtprüfung, sondern die E2E-Suite: `progression.spec.ts:169` war rot
+(„Pflanze konnte nicht platziert werden"), weil ihr Helfer die Karte unmittelbar nach dem Mount auf
+`isEnabled()` prüft. Der Fall war damit **laufzeit-abhängig** (kalt gestarteter Dev-Server: grün,
+warm: rot) — genau die Sorte Flake, die man sonst als „Test ist halt wackelig" abhakt.
+
+### B22.2 Spec
+
+Ein Abbild, eine Quelle: `src/components/hudSnapshot.ts` baut das HUD (`hudOf(state, paused)`), und
+**sowohl** der Takt **als auch** die Erst-Anzeige beim Mount konsumieren es. `GameView` setzt den
+Snapshot direkt nach dem Erzeugen von `SimulationRoot` (vor dem ersten Frame). Kein neuer State,
+kein zweiter Writer: die Ableitung liest die Sim read-only und kopiert das Inventar (kein Aliasing
+in den Sim-State hinein).
+
+### B22.3 DoD für B22
+
+- [ ] Tray zeigt Bestand/Energie im **ersten** Bild (`aria-disabled` korrekt je Karte) — Lock: `hudSnapshot.test.ts`
+- [ ] `hudOf` ist reine Ableitung ohne Sim-Schreibzugriff und kopiert das Inventar — Lock: `hudSnapshot.test.ts`
+- [ ] HUD-Aufbau existiert genau einmal (Takt + Mount teilen `hudOf`) — kein zweites Snapshot-Literal
+- [ ] `GameView` bleibt ≤ 400 LOC; `tsc` clean, Suite grün, `vite build` grün
+- [ ] `progression.spec.ts:142 → :169` in Folge grün (vorher reproduzierbar rot)
