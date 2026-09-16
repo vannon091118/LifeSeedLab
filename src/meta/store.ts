@@ -2,7 +2,7 @@ import type { MetaSave, PlantVariant, PendingBrood, BeetleSpecimen } from '../ty
 import { load, save, remove } from '../persistence/storage';
 import { STARTER_PLANT_COUNT } from '../config/economy.source';
 import { createBaseVariants } from '../genome/bases';
-import { genomeEffectIds } from '../visual/generator';
+import { genomeEffectIds } from '../genome/visualMap';
 
 // Owner: PersistenceSystem (meta store — the only persistence owner remains storage.ts).
 

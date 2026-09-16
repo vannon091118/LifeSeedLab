@@ -22,6 +22,10 @@ Diese Regeln sind PFLICHT und dürfen nicht übersprungen werden.
 
 ---
 
+## Regel 0 — Changelog‑Pflicht
+
+**Vor jedem Commit muss das Changelog (CHANGELOG.md) mit einem neuen Eintrag aktualisiert werden.** Der Eintrag beschreibt die getätigte Änderung im Stil einer einfachen Aufgabenliste (z. B. "- [Ticket] Beschreibung der Änderung"). Danach muss das Changelog staged sein (`git add CHANGELOG.md`). Der pre‑commit‑Hook prüft, dass das Changelog geändert wurde und erhöht automatisch die Patch‑Version in package.json.
+
 ## Regel 1 — Sprache
 
 **Antworte, dokumentiere und benenne Artefakte auf Deutsch.** Code, Identifier, Fehlermeldungen und zitierte Inhalte bleiben original (Ausnahme wie im Systemvertrag). Commit-Messages: Deutsch, prägnant, Intention vor Beschreibung.
@@ -37,6 +41,15 @@ Konkret:
 4. **Vor jedem Schreiben die 8-Fragen-Sperre** (aus dem Contract): Existiert die Funktion schon? Welches Modul besitzt sie? Gameplay/Source/Event/Observer/Rendering? Neues Event/Command nötig? Welcher Seed-Namespace? Regel in Source statt Code? LOC-Cap ok? Entsteht eine zweite State-Quelle? Erst dann implementieren.
 
 ---
+
+## Regel 3 — Namenskonventionen
+
+**Um Namenskollisionen zu vermeiden, müssen alle Dateien unter `src/` domänenspezifische Präfixe verwenden:**
+`<domain>_<descriptiveName>.[ts|tsx]` (z. B. `beetle.test.ts` → `genome_beetle.test.ts`).
+
+Dies verhindert Konflikte bei automatisierten Werkzeugen und erleichtert die Zuordnung von Dateien zu Verantwortungsbereichen.
+
+Ein Hilfsskript `scripts/check-duplicate-basenames.sh` prüft, ob zwei Dateien denselben Basenamen (ohne Erweiterung) teilen. Es sollte lokal ausgeführt oder in einem Pre‑Commit‑Hook integriert werden.
 
 ## Ownership-Karte (Writer — nicht verhandelbar)
 

@@ -1,9 +1,7 @@
 // Owner: UI (GameView). LOC ≤ 400.
-// B3/B7.4/B9: Pointer-Workflow über PlacementController (idle→selected→ghost→placed/rejected),
-// 390×844 portrait, B2 suspend/resume, B8 AudioObserver, B11 night grade via events.
+// Pointer-Workflow über PlacementController, 390×844, B2 suspend/resume, B8 Audio, B11 Nacht.
 // HUD max 5 Elemente. DevGate: ?dev=1 / #dev — Release hat 0 Dev-Surface.
-// Ausgelagert: PlacementTray (Karten), GameOverlays (Game Over / Fortsetzen),
-// GameIcons (HUD-Glyphen) und gameViewStyles (Präsentations-Styling).
+// Ausgelagert: PlacementTray, GameOverlays, GameIcons, gameViewStyles, TutorialLayer.
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import type { MetaSave, BeetleSpecimen } from '../types';
 import { SimulationRoot, makeCommand } from '../simulation/root';
@@ -77,12 +75,16 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
   // und Persistenz besitzt der Screen-Router (TutorialProvider). Kein zweiter Zustand.
   const tutorialHold = useCallback((hold: boolean) => { holdRef.current = hold; }, []);
 
+  // Einmal pro (Seed, Loadout, Bestand) — dieselbe Map wie im Renderer-Effect, vorher
+  // baute ghostVisual sie bei JEDEM Hover/Drop/Inspector-Call neu (Godfile-Audit).
+  const bredVisuals = useMemo(() => resolveBredVisuals(savedVariants.filter(v => loadout.includes(v.id)), seed), [seed, loadout, savedVariants]);
+
   const ghostVisual = useCallback((variantId: string) => {
-    const bred = resolveBredVisuals(savedVariants.filter(v => loadout.includes(v.id)), seed).get(variantId);
+    const bred = bredVisuals.get(variantId);
     if (bred) return bred;
     const baseId = variantId === 'rootwall' ? 'BASE_ROOT' : variantId === 'mycelia' ? 'BASE_MUSHROOM' : 'BASE_THORN';
     return resolveVisual({ baseId: baseId as never, extraIds: [], effectIds: [], visualSeed: strHash(`plant:${seed}:${variantId}`) });
-  }, [seed, loadout, savedVariants]);
+  }, [bredVisuals, seed]);
 
   /** Einzige Brücke vom Controller in den React-Render (Mirror hält den Render-Loop aktuell). */
   const applyPlacement = useCallback((next: PlacementState) => {
@@ -110,7 +112,7 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
     rendererRef.current = renderer;
     // B16.1: kein Terrain-Prime mehr — der Bake hängt an (Seed, aktive Route) und
     // passiert lazy im Render aus dem State (leere Map ⇒ DEFAULT-Pfad, wie bisher).
-    renderer.setBredVisuals(resolveBredVisuals(savedVariants.filter(v => loadout.includes(v.id)), seed));
+    renderer.setBredVisuals(bredVisuals);
     const camera = new Camera();
     const observer = new VisualObserver(camera, fxOn);
     observerRef.current = observer;
@@ -145,7 +147,9 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
     // Karten sind `aria-disabled`, obwohl der Bestand längst in der Sim liegt.
     setHud(hudOf(root.getSnapshot(), pausedRef.current));
 
-    for (const type of ['PROJECTILE_HIT','ENEMY_DIED','PLANT_PLACED','WAVE_COMPLETED','GAME_OVER','CRITICAL_HIT','PLACEMENT_REJECTED','TILE_REJECTED','DAMAGE_DEALT','WAVE_STARTED','NIGHT_STARTED','DAY_STARTED','SCORE_CHANGED','COMBO_CHANGED','REWARD_GRANTED','COINS_GRANTED','PLANT_GROWN','PLANT_WEAKENED','PLANT_WITHERED','PLANT_PROPAGATED','PLANT_FERTILIZED','BEETLE_DEPLOYED','BEETLE_DOWN','BEETLE_REJECTED'] as const){
+    // Nur Events mit FX-Vertrag (B5-Matrix); SCORE/COMBO/COINS/TILE/BEETLE_REJECTED haben
+    // keinen — HUD liest den Snapshot via hudOf, die Subscriptions waren reine No-ops.
+    for (const type of ['PROJECTILE_HIT','ENEMY_DIED','PLANT_PLACED','WAVE_COMPLETED','GAME_OVER','CRITICAL_HIT','PLACEMENT_REJECTED','DAMAGE_DEALT','WAVE_STARTED','NIGHT_STARTED','DAY_STARTED','REWARD_GRANTED','PLANT_GROWN','PLANT_WEAKENED','PLANT_WITHERED','PLANT_PROPAGATED','PLANT_FERTILIZED','BEETLE_DEPLOYED','BEETLE_DOWN'] as const){
       root.bus.subscribe(type, (e) => { observer.observe(e as never); audio.observe(e as never); });
     }
     root.bus.subscribe('NIGHT_STARTED', () => renderer.setNight(true));
@@ -167,19 +171,14 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
       setShowGameOver(true);
     });
 
-    const onResize = () => {
-      renderer.resize();
-      setDpr(Math.min(window.devicePixelRatio || 1, 2));
-    };
+    const onResize = () => { renderer.resize(); setDpr(Math.min(window.devicePixelRatio || 1, 2)); };
     window.addEventListener('resize', onResize);
     onResize();
 
     const onVisibility = () => {
-      if (document.visibilityState === 'hidden') {
-        pausedRef.current = true; root.clock.setPaused(true);
-        saveRun(root.getSnapshot());
-        setSuspended(true);
-      }
+      if (document.visibilityState !== 'hidden') return;
+      pausedRef.current = true; root.clock.setPaused(true);
+      saveRun(root.getSnapshot()); setSuspended(true);
     };
     document.addEventListener('visibilitychange', onVisibility);
 
@@ -304,7 +303,8 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
     root.commands.push(makeCommand(root.clock.get().tick, 'DEPLOY_BEETLE', ++cmdSeq.current, { beetleId: brood.id }));
   }, [beetles]);
 
-  const plantIds = Array.from(new Set([...Object.keys(PLANTS_SOURCE), ...loadout]));
+  // Nur bei Loadout-Änderung neu — vorher bei jedem Render/devTick re-alloziert.
+  const plantIds = useMemo(() => Array.from(new Set([...Object.keys(PLANTS_SOURCE), ...loadout])), [loadout]);
   const inspectorVisual = placement.ghost?.visual ?? (placement.variantId ? ghostVisual(placement.variantId) : null);
   const inspectorLabel = placement.ghost ? `ghost ${placement.ghost.gx},${placement.ghost.gy}` : (placement.variantId ?? '—');
 
@@ -334,16 +334,16 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
             style={{ ...styles.canvas, cursor: placement.variantId ? 'crosshair' : 'default' }}
           />
           {hud && (
-            <div style={styles.hud} aria-label="Spielstatus" data-tut="hud">
+            <div style={styles.hud} aria-label={t('game.status')} data-tut="hud">
               <span style={styles.hudChip}><DropChipIcon/> {hud.energy}</span>
               <span style={styles.hudChip}><LivesChipIcon/> {hud.lives}</span>
-              <span style={styles.hudChip}><WaveChipIcon/> W {hud.wave}</span>
+              <span style={styles.hudChip}><WaveChipIcon/> {t('game.wave')} {hud.wave}</span>
               {hud.combo > 1 && <span style={{ ...styles.hudChip, ...styles.hudChipCombo }}>×{hud.combo}</span>}
-              {hud.paused && <span style={{ ...styles.hudChip, background: '#fef3c7' }}>Pause</span>}
+              {hud.paused && <span style={{ ...styles.hudChip, background: '#fef3c7' }}>{t('game.paused')}</span>}
             </div>
           )}
           {placement.variantId !== null || placement.mode !== 'plant' ? (
-            <button onClick={cancelPlacement} style={styles.cancelBtn} aria-label="Platzierung abbrechen">✕ Abbrechen</button>
+            <button onClick={cancelPlacement} style={styles.cancelBtn} aria-label={t('common.cancel')}>✕ {t('common.cancel')}</button>
           ) : null}
           {/* B23.3: Der Grund stand im Controller, nur nie auf dem Schirm. */}
           <FieldToast rejection={placement.rejection} tick={hud?.tick ?? 0} />
@@ -385,6 +385,13 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
           run={{ selectedVariant: placement.variantId, placements: placedCount, phase: hud?.phase ?? 'prep', paused: hud?.paused ?? false }}
           onHold={tutorialHold}
         />
+        {/* P3QA-05: im ersten Run (noch nichts platziert) steht die Anleitung prominent IM Feld;
+            danach übernimmt der dezente Zettel darunter. pointer-events:none — nichts blockiert. */}
+        {placedCount === 0 && !showGameOver && (
+          <div style={styles.firstRunHint} aria-hidden>
+            <span style={styles.paperNotePin}/> {t('game.hint')}
+          </div>
+        )}
         <div style={styles.paperNote} aria-hidden><span style={styles.paperNotePin}/> {t('game.hint')}</div>
       </div>
     </div>

@@ -720,18 +720,18 @@ Run verlässt, findet seinen Schritt beim Wiedereintritt unverändert vor (Rang 
 
 ### B21.4 DoD für B21
 
-- [ ] Schrittmodell und i18n-Texte deckungsgleich (jeder Schritt hat DE- und EN-Text) — Lock: `tutorial.test.ts`
-- [ ] Zustandsmaschine deterministisch (kein `Math.random`, keine Wanduhr) — Lock: `tutorial.test.ts`
+- [ ] Schrittmodell und i18n-Texte deckungsgleich (jeder Schritt hat DE- und EN-Text) — Lock: `components_tutorial.test.ts`
+- [ ] Zustandsmaschine deterministisch (kein `Math.random`, keine Wanduhr) — Lock: `components_tutorial.test.ts`
 - [ ] Genau ein Writer (`tutorialVersion` über `updateMeta`, Hold über `holdRef`) — Lock: Gate + `onboarding.test.ts`
 - [ ] `MetaSave` v7 liest v1–v6 verlustfrei, das v6-Ja wird zu Fassung 1 — Lock: `onboarding.test.ts`
-- [ ] Sprungregel einseitig: übersprungene Screens fallen, künftige warten — Lock: `tutorial.test.ts`
+- [ ] Sprungregel einseitig: übersprungene Screens fallen, künftige warten — Lock: `components_tutorial.test.ts`
 - [ ] Cue-Ziele existieren im DOM (`data-tut`), Overlay blockiert die echten Knöpfe nicht — E2E `tests/tutorial.spec.ts`
 - [ ] `tsc` clean, Suite grün, `vite build` grün; GameView bleibt ≤ 400 LOC (GameTopBar extrahiert)
 
 ### B21.5 Nachtrag — E2E-Beweis zurückgebaut
 
 Der Onboarding-E2E (`tests/tutorial.spec.ts`) ist auf Wunsch entfallen (er kostete je Lauf Sekunden
-und deckte dieselben DOM-Verträge ab, die `tutorial.test.ts` deterministisch prüft). Damit gilt für
+und deckte dieselben DOM-Verträge ab, die `components_tutorial.test.ts` deterministisch prüft). Damit gilt für
 B21: Cue-Ziele und Hold-Verhalten sind **unit-gelockt**, der Sichtpfad ist nur noch manuell
 (Preview) belegt — nicht E2E.
 
@@ -764,10 +764,10 @@ alte Tour schon kannten — inklusive des Spielers, der den Bericht geschrieben 
 
 **DoD.**
 
-- [ ] Erster Schritt erscheint auf dem **Titel-Screen** (Cue: Sprachwahl) — Lock: `tutorial.test.ts`
+- [ ] Erster Schritt erscheint auf dem **Titel-Screen** (Cue: Sprachwahl) — Lock: `components_tutorial.test.ts`
 - [ ] Sprungregel: `screen: 'run'` überspringt die drei Stationen davor, `screen: 'greenhouse'`
-      wartet — Lock: `tutorial.test.ts`
-- [ ] Hold nur in `karte`/`pflanzen`, nie auf Titel oder Hub — Lock: `tutorial.test.ts`
+      wartet — Lock: `components_tutorial.test.ts`
+- [ ] Hold nur in `karte`/`pflanzen`, nie auf Titel oder Hub — Lock: `components_tutorial.test.ts`
 - [ ] Genau ein Controller (Provider); kein Screen hält eigenen Tutorial-State
 - [ ] Router-/Preview-E2E unverändert grün mit `?tutorial=0`
 
@@ -853,6 +853,64 @@ Im Code verifiziert:
       Handlung — Lock: `waveButton.test.ts`
 - [ ] Jeder Ablehnungsgrund hat einen eigenen DE/EN-Text; Toast-Lebensdauer am Sim-Tick, kein
       Überleben des Run-Neustarts — Lock: `waveButton.test.ts`
-- [ ] Game-Over-Score gerundet (`243.09999999999997 → 243`) — Lock: `waveButton.test.ts`
-- [ ] E2E ohne Warten: `run.spec.ts:163` stößt die Welle selbst an (der Test verteidigt ja nicht)
-- [ ] `tsc` clean, Suite grün, E2E 27/27, `vite build` grün
+- [x] Game-Over-Score gerundet (`243.09999999999997 → 243`) — Lock: `waveButton.test.ts`
+- [x] E2E ohne Warten: `run.spec.ts:163` stößt die Welle selbst an (der Test verteidigt ja nicht)
+- [x] `tsc` clean, Suite grün, E2E 27/27, `vite build` grün
+
+## B24. E2E-Harness — eine Quelle statt vierfacher Redundanz
+
+### B24.1 Befund
+
+`tests/progression.spec.ts` (483 Zeilen) und die übrigen Specs duplizierten dasselbe Werkzeug
+vier- bis fünffach: `startRun` in vier Dateien, `devValue` dreifach, `freeCells` zweifach, die
+`__simRootRef`-Bindungsprüfung dreifach inline, die Game-Over-Pump-Schleife fünfmal kopiert, der
+Menü-Boot zweifach. Ein Fix an einer Brücke (`?dev=1`, Selektoren, Geometrie) musste an allen
+Stellen gleichzeitig landen — eine vergessene Stelle prüfte still eine andere App.
+
+### B24.2 Spec
+
+1. **`tests/helpers/harness.ts`** ist die einzige Quelle für alle gemeinsamen E2E-Werkzeuge:
+   `startRun` (inkl. `?tutorial=0`), `bootMenu`, `ffUntil`, `pumpWave`, `freeCells`,
+   Sim-Bindungsprüfung, Game-Over-Warten.
+2. Specs enthalten **nur noch Tests und ihre Kommentare** — kein Werkzeug, kein Selektor, keine
+   Geometrie.
+3. Progression läuft auf demselben Pfad wie die anderen Specs; die Zucht-Tests booten bewusst
+   nur ins Menü (`bootMenu`), ohne Run.
+
+### B24.3 DoD für B24
+
+- [x] `rg "async function startRun" tests/` findet genau eine Definition (im Harness)
+- [x] Playwright erkennt dieselbe Testanzahl wie vorher (27)
+- [x] Suite grün; Progression-Laufzeit von ~5 min auf ~31 s gesenkt (kein reales Wellen-Warten mehr)
+
+## B25. Spielerbericht-Runde 2 — Verwelken, Zähler, Sprachmix (Befund: zwei Spielerberichte)
+
+### B25.1 Befund
+
+1. **Verwelken lautlos** (`plantSystem`): `lifeTicksLeft` schwächt und entfernte bezahlte
+   Pflanzen; sichtbar war nur der `wither_dust`-Partikel. Kein Timer, keine Warnung.
+2. **Loadout-Zähler widerspricht der Liste** (`MainMenu`): gezählt wurde `meta.loadout.length`,
+   die Liste filterte nach Besitz — Einträge ohne Bestand zählten mit, erschienen aber nicht.
+3. **Codex-Sprachmix**: DE-Wörterbuch enthielt `codex.valid: 'Chain valid'`, `codex.firstBy:
+   'First by'` (englische Werte im deutschen Zweig); die Fläche nannte Hash-Ketten wie ein
+   Onlinedienst, obwohl der Sync ein reiner Stub ist und nichts das Gerät verlässt.
+
+### B25.2 Spec
+
+1. **Haltbarkeitsleiste** (`render/renderer.ts`): die Leiste erscheint erst in den letzten 30 %
+   der Lebenszeit (genau die `WEAKENED_THRESHOLD`-Schwelle); Gelb = geschwächt, Grün = Restzeit.
+   Vorher ist Vergehen kein Thema, danach ist die Restzeit ehrlich ablesbar. Rein präsentational
+   — die Sim bleibt der einzige Writer.
+2. **Loadout-Zähler aus der Liste** (`MainMenu`): Zähler und Liste speisen sich aus **einer**
+   Wahrheit (`loadoutVariants`, gefiltert nach Besitz); das Limit-Verhalten (Voll = disabled)
+   folgt derselben Quelle.
+3. **Codex als Laborbuch**: Titel/Untertitel/Fußnote sagen, was das Ding ist — Entdeckungen
+   bleiben auf diesem Gerät, die Prüfung rechnet lokal nach. Fachbegriffe in Spielerzeichenfolge
+   (`codex.noteTitle`, `codex.countOne/Many`, …), DE und EN paritätisch.
+
+### B25.3 DoD für B25
+
+- [x] Geschwächte Pflanzen zeigen eine sichtbare Restzeit-Leiste am Feld
+- [x] Loadout-Zähler und Listeneinträge können nicht mehr auseinanderlaufen (eine Quelle)
+- [x] Kein englischer Literal im DE-Codex; der Lokalitätshinweis steht in beiden Sprachen
+- [x] `tsc` clean, 282 Vitest-Tests, E2E 27/27, `vite build` grün

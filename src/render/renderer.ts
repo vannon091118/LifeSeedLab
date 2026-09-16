@@ -6,6 +6,7 @@ import type { SimState, PlantEntity, Route } from '../simulation/state';
 import type { ParticlePool } from '../observers/particles';
 import type { FeedbackLayer } from './layers/feedback';
 import { GRID_COLS, GRID_ROWS } from '../config/world.source';
+import { WEAKENED_THRESHOLD } from '../config/economy.source';
 import { resolveVisual, type ResolvedVisual } from '../visual/generator';
 import { getPlantStats } from '../simulation/plantSystem';
 import { strHash } from '../core/rng';
@@ -254,6 +255,16 @@ export class Renderer {
       ctx.fillStyle = INK; ctx.fillRect(cx - cell * 0.3, cy - cell * 0.46, cell * 0.6, 4);
       ctx.fillStyle = ratio > 0.5 ? '#5a8f4e' : ratio > 0.25 ? '#d9a441' : '#a94438';
       ctx.fillRect(cx - cell * 0.3 + 1, cy - cell * 0.46 + 1, (cell * 0.6 - 2) * ratio, 2);
+    }
+    // B25: Haltbarkeit sichtbar — die Uhr lief vorher nur in der Sim (PLANT_WEAKENED →
+    // PLANT_WITHERED), der Spieler sah eine bezahlte Pflanze lautlos verschwinden. Die
+    // Leiste erscheint erst in den letzten 30 % (genau die WEAKENED-Schwelle): vorher ist
+    // Vergehen kein Thema, danach ist die Restzeit ehrlich ablesbar. Gelb = geschwächt.
+    if (plant.lifeTicksTotal > 0 && plant.lifeTicksLeft <= plant.lifeTicksTotal * WEAKENED_THRESHOLD) {
+      const ratio = Math.max(0, plant.lifeTicksLeft / plant.lifeTicksTotal);
+      ctx.fillStyle = INK; ctx.fillRect(cx - cell * 0.3, cy - cell * 0.36, cell * 0.6, 4);
+      ctx.fillStyle = plant.isWeakened ? '#d9a441' : '#5a8f4e';
+      ctx.fillRect(cx - cell * 0.3 + 1, cy - cell * 0.36 + 1, (cell * 0.6 - 2) * ratio, 2);
     }
   }
 

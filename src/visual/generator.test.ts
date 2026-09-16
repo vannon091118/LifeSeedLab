@@ -1,8 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { resolveVisual, generateVisualForBase, resolveBredVisuals, type VisualInput } from './generator';
+import { resolveVisual, resolveBredVisuals, type VisualInput } from './generator';
 import { createBaseVariants } from '../genome';
 import { BASE_IDS } from '../config/bases.source';
 import { EXTRA_IDS } from '../config/extras.source';
+
+// Test-Helper (vorher generateVisualForBase in generator.ts — nur hier genutzt,
+// deshalb als lokaler Helper statt toter Produktionsexport).
+function generateVisualForBase(baseId: Parameters<typeof resolveVisual>[0]['baseId'], visualSeed: number) {
+  return resolveVisual({ baseId, extraIds: [], effectIds: [], visualSeed });
+}
 
 const input: VisualInput = {
   baseId: 'BASE_FLOWER',

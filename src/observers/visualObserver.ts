@@ -81,12 +81,16 @@ export class VisualObserver {
         break;
 
       case 'WAVE_STARTED':
-        this.push({ type: 'ShowMangaText', text: `WELLE ${e.payload.wave}`, x: 6, y: 3, intensity: 4 });
+        // P3QA-06: der Banner-Text lag mittig über der Platzierungszone (x=6,y=3 ist die
+        // Mitte des 12×12-Rasters und genau die Baufreie Mitte). Er sitzt jetzt oben links
+        // im HUD-freien Rand (y=0.6), wo keine Bauzelle verloren geht.
+        this.push({ type: 'ShowMangaText', text: `WELLE ${e.payload.wave}`, x: 3, y: 0.6, intensity: 4 });
         this.push({ type: 'SpawnParticleBurst', profile: 'warn_pulse', x: 0, y: 3.5, seed: (e.tick * 23) | 0, intensity: 1, color: '#a94438' });
         break;
 
       case 'WAVE_COMPLETED':
-        this.push({ type: 'ShowMangaText', text: 'CLEAR!', x: 6, y: 3, intensity: 5 });
+        // P3QA-06: auch Clear/K.O. nicht mehr über der Bau-Mitte, sondern im HUD-freien Rand.
+        this.push({ type: 'ShowMangaText', text: 'CLEAR!', x: 3, y: 0.6, intensity: 5 });
         this.push({ type: 'ScreenFlash', color: '#5a8f4e', alpha: 0.10, ticks: 6 });
         this.push({ type: 'SpawnParticleBurst', profile: 'confetti_leaf', x: 6, y: 2, seed: (e.tick * 29) | 0, intensity: 1.5, color: '#5a8f4e' });
         break;
@@ -154,7 +158,7 @@ export class VisualObserver {
       case 'GAME_OVER':
         this.push({ type: 'ScreenFlash', color: '#a94438', alpha: 0.35, ticks: 30 });
         this.push({ type: 'CameraShake', intensity: 8 });
-        this.push({ type: 'ShowMangaText', text: 'K.O.', x: 6, y: 3, intensity: 5 });
+        this.push({ type: 'ShowMangaText', text: 'K.O.', x: 3, y: 0.6, intensity: 5 });
         break;
 
       default:

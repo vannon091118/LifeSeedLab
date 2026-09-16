@@ -5,6 +5,7 @@
 
 import type { ExtraId } from './extras.source';
 import type { EffectId } from './effects.source';
+import type { BaseId } from './bases.source';
 
 /** Gen-Id → Extra (Silhouette/Persistierung der Zucht im Bild). */
 export const GENE_TO_EXTRA: Record<string, ExtraId> = {
@@ -23,3 +24,11 @@ export const GENE_TO_EFFECT: Record<string, EffectId> = {
   thorns: 'EFFECT_REFLECT', rapid: 'EFFECT_HASTE', heavy: 'EFFECT_CRIT',
   splash: 'EFFECT_CHAIN', lure: 'EFFECT_CHAIN', regen: 'EFFECT_HEAL',
 };
+
+/** Rollen-Basis-Pools: PlantVariant-Typ → kompabile BASE-Kandidaten (Regel 6:
+ *  Content-Werte nur hier — vorher hardcoded im VisualGenerator). */
+export const TYPE_BASES: Record<'shooter' | 'wall' | 'support', readonly BaseId[]> = {
+  shooter: ['BASE_THORN', 'BASE_FROND', 'BASE_FLOWER'],
+  wall: ['BASE_ROOT', 'BASE_CACTUS'],
+  support: ['BASE_MUSHROOM', 'BASE_PUFF'],
+} as const;

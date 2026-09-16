@@ -99,5 +99,10 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
     overflowY: 'auto',
     padding: '12px 16px 24px',
+    // P3QA-07: auf Desktop (1440+) endete der Inhalt linkslastig bei ~2/3 der Breite —
+    // der Shell-Körper zentriert den Screen-Inhalt, die maxWidth-Kappung der Panels bleibt.
+    width: '100%',
+    maxWidth: 980,
+    margin: '0 auto',
   },
 };

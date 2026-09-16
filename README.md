@@ -9,7 +9,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React 19](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=white)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6-646cff?logo=vite&logoColor=white)](https://vite.dev/)
-[![Vitest](https://img.shields.io/badge/tests-198%20passing-6e9f18?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/tests-282%20passing-6e9f18?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![Determinismus](https://img.shields.io/badge/sim-deterministisch-4ade80)](docs/architecture/architecture-contract.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -105,7 +105,7 @@ npm run dev
 # Type-Check (muss 0 Fehler sein)
 npm run typecheck
 
-# Test-Suite (198 Tests, alle grün)
+# Test-Suite (282 Tests, alle grün)
 npm test
 
 # Produktions-Build
@@ -291,11 +291,17 @@ npm run test:e2e
 - ✅ Kanonische Save-Checksumme (key-sortiert, Alt-Saves bleiben lesbar)
 - ✅ Genom-Mutation: Fremdgen, Stärke-Jitter, Dominanz-Drift (A15, `src/genome/cross.test.ts`)
 - ✅ Encoding-Gate: kein Mojibake, keine Ersatzzeichen in `src/` (A16, `src/encoding.test.ts`)
-- ✅ E2E (Playwright, 10 Spezifikationen in `tests/`): Router, Platzierung, Run-Screen, Preview 390×844
+- ✅ E2E (Playwright, 6 Spezifikationen / 27 Tests in `tests/`): Router, Platzierung, Run-Screen, Preview 390×844, Mechanik, Progression — gemeinsamer Harness (`tests/helpers/harness.ts`, B24)
 
-> **Offen (B16, spezifiziert, nicht umgesetzt):** Der Renderer zeichnet die **berechnete** Map-Route
-> nicht — `drawPath` liest statisch `ENEMY_PATH`, und `getRoute()` hat keinen Render-Konsumenten.
-> Umleiten ist damit unsichtbar (A14, siehe `docs/quality/quality-spec.md` B16.1).
+- ✅ Spielerbericht-Runde 1 (B21–B23): Onboarding „Krix“ (drei Screens), Erst-Anzeige der Tray, **Aufbauphase** (leeres Feld startet keine Welle), phasenrichter Wellen-Knopf, **sichtbare Ablehnungsgründe** (FieldToast), Score gerundet
+- ✅ Spielerbericht-Runde 2 (B25): **Haltbarkeitsleiste** am Feld (Verwelken ist sichtbar, Gelb = geschwächt), Loadout-Zähler aus einer Quelle mit der Liste, Codex als ehrliches Laborbuch („bleibt auf diesem Gerät“)
+- ✅ Version als eine Quelle (`src/version.ts` ← `package.json`, test-gelockt)
+- ✅ E2E-Harness als eine Quelle (B24) — Progression-Laufzeit ~5 min → ~31 s
+
+> **Offen (B16, spezifiziert, teilweise umgesetzt):** Genom-Modell schärfen (B16.2–B16.5),
+> E2E-Geometrie vom Renderer lesen (B16.9). Route sichtbar (B16.1) ist erledigt. Offen aus den
+> Spielerberichten: Platzierungs-Zuverlässigkeit am Touch-Pfad (Messung steht aus),
+> Reichweiten-Kreis/Kampfwerte (Neubau), Brutstätte-Einstieg (Balance).
 
 ---
 
@@ -308,16 +314,30 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 
 | Kennzahl | Stand |
 |---|---|
-| Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `6daac50` — chore(release): Version 0.2.0 aus einer Quelle anzeigen |
-| Arbeitsbaum | 0 gestaged, 11 geändert, 6 neu |
-| Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
+| Branch | `main` · Upstream: `origin/main` (+1/-0) |
+| HEAD | `38564d5` — refactor(e2e): Test-Harness als eine Quelle, Redundanzen abgebaut |
+| Arbeitsbaum | 8 gestaged, 22 geändert, 3 neu |
+| Letztes Gate | 🛑 geschlossen (preflight, 0 Fehler, 1 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `6daac50` chore(release): Version 0.2.0 aus einer Quelle anzeigen |
+| Letzter Shinon-Commit | `4a30d7d` fix(field): Aufbauphase, phasenrichter Wellen-Knopf, sichtbare Ablehnung |
 | Letzter Push | ✅ origin/main |
-| LOC-Hotspots | `src/config/map.source.ts` 200/200 (100 %)<br>`src/components/GameView.tsx` 393/400 (98 %)<br>`src/simulation/root.ts` 292/300 (97 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/simulation/plantSystem.ts` 283/300 (94 %) |
+| LOC-Hotspots | `src/components/GameView.tsx` 400/400 (100 %)<br>`src/config/map.source.ts` 200/200 (100 %)<br>`src/simulation/root.ts` 292/300 (97 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/simulation/plantSystem.ts` 283/300 (94 %) |
 <!-- SHINON:STATUS:END -->
 
+
+## 🔧 Naming Conventions & Pre‑Commit Check
+
+To avoid naming collisions, all files under `src/` must use a domain‑specific prefix in their filename:
+`<domain>_<descriptiveName>.[ts|tsx]` (e.g. `beetle.test.ts` → `genome_beetle.test.ts`).
+
+A helper script `scripts/check-duplicate-basenames.sh` is provided to verify that no two files share the same basename (without extension). Run it locally or add it to your pre‑commit hook.
+
+Example pre‑commit setup (using husky or plain Git hook):
+```bash
+# .git/hooks/pre-commit
+#!/usr/bin/env bash
+"$PWD/scripts/check-duplicate-basenames.sh"
+```
 ---
 
 ## 🗺️ Roadmap & Arbeitsliste
@@ -327,9 +347,9 @@ Der Stand der Meilensteine steht in [`ROADMAP.md`](ROADMAP.md).
 
 | Phase | Fokus | Status |
 |---|---|---|
-| **B1–B3** | Korrektheit: Run-Identity, Persistenz, Placement UX | 🔄 In Arbeit |
-| **B4–B6** | Identität + Feedback: Genome→Visual, FX-Matrix, Effect-Chain | ⏳ Geplant |
-| **B7/B9/B10** | Screens + Art: Title, Menu, Breeding, Renderer-Rewrite | ⏳ Geplant |
+| **B14–B19** | Korrektheit: Run-Identity, Persistenz, Zucht-Schleife, E2E-Suite | ✅ Erledigt |
+| **B20–B25** | Onboarding (Krix), Spielerbericht-Fixes (Aufbauphase, Feedback, Zähler), Test-Harness | ✅ Erledigt |
+| **B16-Rest + Messschiene** | Genom-Modell, Touch-Zuverlässigkeit, Kampfwerte-Lesbarkeit | 🔄 Offen |
 | **B12/B13** | Mobile Performance + DoD | ⏳ Geplant |
 
 **Ausführungsreihenfolge:** Sequenziell — Gate rot ⇒ STOP, Ursache lokalisieren, Owner identifizieren, fixen, Test wiederholen.

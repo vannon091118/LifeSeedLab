@@ -3,6 +3,7 @@
 // Ink-Kontur, skaliert mit cellScale (Boss ×2.2 etc.). Caller owns transform/punch/HP.
 
 import type { EnemyEntity } from '../../simulation/state';
+import { lighten, darken } from '../../core/color';
 
 const INK = '#2b2b26';
 
@@ -32,15 +33,7 @@ function cgiBody(ctx: CanvasRenderingContext2D, rx: number, ry: number, fill: st
   ctx.beginPath(); ctx.arc(offX + rx * 0.7, -ry * 0.1, 1.2, 0, Math.PI * 2); ctx.fill();
 }
 
-function shiftColor(hex: string, f: number): string {
-  const h = hex.replace('#', '');
-  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
-  const c = (v: number) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
-  if (f >= 0) return `#${c(r + (255 - r) * f)}${c(g + (255 - g) * f)}${c(b + (255 - b) * f)}`;
-  return `#${c(r * (1 + f))}${c(g * (1 + f))}${c(b * (1 + f))}`;
-}
-function lighten(hex: string, f: number): string { return shiftColor(hex, f); }
-function darken(hex: string, f: number): string { return shiftColor(hex, -f); }
+
 
 export function drawEnemyBody(
   ctx: CanvasRenderingContext2D,

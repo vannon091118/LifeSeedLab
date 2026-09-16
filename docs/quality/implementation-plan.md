@@ -57,7 +57,7 @@ Aus dem technisch tragfähigen Singleplayer-Prototyp wird schrittweise ein deter
 - [x] 1–5 Shop-Münzen je Kill (`ScoreSystem` via `loot`-Namespace, `COINS_GRANTED`-Event).
 - [x] Pflanzen-Lebenszyklus: Wachstum → Reife (`PLANT_GROWN`), Düngen nur `growing` (fix danach), Seltenheits-Threshold → geschwächt (`PLANT_WEAKENED` + Score-Halbierung/Wachstums-Malus), Verwelken (`PLANT_WITHERED`), Setzling-Halbzeit (`PROPAGATE_PLANT`).
 - [x] Integrationstests für Effektkette, Combo × Score, Reward, Day/Night und Game Over ergänzen → `src/simulation/gateB.test.ts` (10 Tests).
-- [x] Resume-Shape und Meta-Migration test-locken → `src/persistence/resume.test.ts` (5 Tests: RunSave v2 strip, prep-Resume, v1→v3 Migration, Quarantäne, Checksumme).
+- [x] Resume-Shape und Meta-Migration test-locken → `src/persistence/persistence_resume.test.ts` (5 Tests: RunSave v2 strip, prep-Resume, v1→v3 Migration, Quarantäne, Checksumme).
 
 **Gate B:** ✅ deterministische Wiederholung liefert denselben State-Hash; FX an/aus verändert den Gameplay-State nicht; neue Core-Tests grün (82→90 Tests).
 

@@ -1,7 +1,7 @@
 // Owner: i18n (Onboarding-Dialogtexte). LOC ≤ 200.
 // Spielertexte des Krix-Tutorials — getrennt von translations.ts (Schlüssel-Wert-Tabelle) und
 // help.ts (Gewächshaus-Hilfe). Gleiche Paritäts-Pflicht: DE und EN führen dieselben Keys
-// (tutorial.test.ts). Die Schritt-IDs sind identisch mit `components/tutorial/script.ts` — ein
+// (i18n_tutorial.test.ts). Die Schritt-IDs sind identisch mit `components/tutorial/script.ts` — ein
 // Test koppelt beide Listen, damit kein Schritt ohne Text und kein Text ohne Schritt existiert.
 
 export const tutorialTexts = {
@@ -103,7 +103,7 @@ export const tutorialTexts = {
     'tut.labor.text': [
       'Welcome to the changing room. Six cards, six responsibilities, and I know them all by heart — unlike the safety regulations.',
       'Greenhouse: sow seeds, let crosses ripen. Shop: nectar for seed stock, no gacha, promised, in writing. Brood chamber: breed beetles that do the shoving for you in the field. Codex: every cross you ever made, forever and by name. PvP: still coming, says the bulletin board.',
-      'And the important one: “Endless”. Your field, your run, your nectar. Tap it — then I will show you the paper where everything happens.',
+      'And the important one: “Endless Mode”. Your field, your run, your nectar. Tap it — then I will show you the paper where everything happens.',
       'Best wave, runs and collection sit up top in those boxes. Those numbers do not lie. It is the only joy I have here.',
     ].join('\n'),
     'tut.karte.title': 'Your seed cards',

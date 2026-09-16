@@ -2,7 +2,8 @@
   "gate": {
     "enforcement": "strict",
     "checks": {
-      "e2e": false
+      "e2e": false,
+      "changelog": true
     },
     "commands": {
       "typecheck": {
@@ -13,6 +14,11 @@
       "tests": {
         "command": "node",
         "args": ["node_modules/vitest/vitest.mjs", "run"],
+        "enabled": true
+      },
+      "changelog": {
+        "command": "bash",
+        "args": ["./scripts/check-changelog.sh"],
         "enabled": true
       }
     }

@@ -3,6 +3,9 @@
 // bekommt 2-Stopp-Verlaufsfill (Licht oben-links → Schatten unten-rechts), weichen
 // Specular und eine dichte Ink-Kontur. Koordinatenraum bleibt Einheitsform (±1) —
 // Caller skaliert. Reine Präsentation: keine Farben entscheiden, nur zeichnen.
+// Farb-Utils kommen aus core/color (eine Quelle — vorher lokale Duplikate).
+
+import { lighten, darken } from '../../core/color';
 
 /** Verlaufsfill + Kontur für eine Form (CGI-Grundanstrich). */
 function cgiFillStroke(
@@ -29,23 +32,6 @@ function cgiFillStroke(
     ctx.stroke();
   }
 }
-
-// ── Farb-Utils (lokal, rein) ──
-function hexToRgb(hex: string): [number, number, number] {
-  const h = hex.replace('#', '');
-  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
-}
-function rgbToHex(r: number, g: number, b: number): string {
-  const c = (v: number) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
-  return `#${c(r)}${c(g)}${c(b)}`;
-}
-function shift(hex: string, f: number): string {
-  const [r, g, b] = hexToRgb(hex);
-  if (f >= 0) return rgbToHex(r + (255 - r) * f, g + (255 - g) * f, b + (255 - b) * f);
-  return rgbToHex(r * (1 + f), g * (1 + f), b * (1 + f));
-}
-function lighten(hex: string, f: number): string { return shift(hex, f); }
-function darken(hex: string, f: number): string { return shift(hex, -f); }
 
 /** Weicher Specular oben links (Punktlicht). Koordinaten in Einheitsform —
  *  der Punktlicht-Glow lebt IM caller-Space (skaliert mit der Form, uniform). */

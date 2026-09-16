@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { TutorialController, type TutorialSnapshot } from './controller';
-import { CUE_SELECTORS, TUTORIAL_STEPS, cueSelector, screenRank } from './script';
-import { tutorialTexts, type TutorialTextKey } from '../../i18n/tutorial';
+import { TutorialController, type TutorialSnapshot } from './tutorial/controller';
+import { CUE_SELECTORS, TUTORIAL_STEPS, cueSelector, screenRank } from './tutorial/script';
+import { tutorialTexts, type TutorialTextKey } from '../i18n/tutorial.ts';
 
 // Drei Verträge werden hier gelockt:
 // 1. Das Schrittmodell ist vollständig — kein Schritt ohne Text (DE + EN) und Cue-Selektor.
