@@ -1,24 +1,12 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
+import { startRun, devValue } from './helpers/harness';
 
 /**
  * E2E — Schnelle Mechanik-Checks (< 30s pro Test)
- * Identisches startRun/devValue wie run.spec.ts.
+ *
+ * B24: `startRun`/`devValue` kommen aus dem Harness (eine Quelle) — vorher lagen sie
+ * dreifach kopiert im Baum und drifteten auseinander.
  */
-
-async function startRun(page: Page): Promise<void> {
-  await page.goto('/?dev=1');
-  await page.waitForLoadState('networkidle');
-  await page.getByRole('button', { name: /start game/i }).click();
-  await page.getByRole('button', { name: /endless/i }).first().click();
-  await expect(page.locator('canvas')).toHaveCount(1);
-}
-
-async function devValue(page: Page, label: string): Promise<number> {
-  const text = await page.locator('body').innerText();
-  const match = new RegExp(`${label}\\s*\\n\\s*(-?\\d+)`).exec(text);
-  expect(match, `DevGate-Wert "${label}" nicht gefunden`).not.toBeNull();
-  return Number(match![1]);
-}
 
 test.describe('Mechanik-Schnellchecks', () => {
 

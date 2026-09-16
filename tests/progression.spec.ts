@@ -1,4 +1,8 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
+import {
+  startRun, bootToMenu, ff, ffUntil, sim, meta, metaWaves,
+  placeOnePlant, pumpWave, backToMenu, type MetaView,
+} from './helpers/harness';
 
 /**
  * E2E — Progression: die drei laut ROADMAP §4 fehlenden Specs (glücklicher Pfad only):
@@ -13,93 +17,12 @@ import { test, expect, type Page } from '@playwright/test';
  * genau derselbe öffentliche Pipeline-Einstieg wie der RAF-Loop. Kein State-Injection,
  * kein zweiter Writer: alle Events (WAVE_STARTED → Reifung, GAME_OVER → recordRunEnd)
  * laufen über den echten Bus.
- */
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-async function startRun(page: Page): Promise<void> {
-  await page.goto('/?dev=1');
-  await page.waitForLoadState('networkidle');
-  await page.getByRole('button', { name: /start game/i }).click();
-  await page.getByRole('button', { name: /endless/i }).first().click();
-  await expect(page.locator('canvas')).toHaveCount(1);
-  // Brücke ist gebunden, sobald der Run-Screen mounted ist.
-  await expect.poll(() => page.evaluate(() => Boolean((window as never as { __simRootRef?: { current: unknown } }).__simRootRef?.current))).toBe(true);
-}
-
-async function ff(page: Page, ticks: number): Promise<{ tick: number; phase: string; wave: number }> {
-  return page.evaluate((n) => (window as never as { __ff: (n: number) => { tick: number; phase: string; wave: number } | null }).__ff(n), ticks) as Promise<{ tick: number; phase: string; wave: number }>;
-}
-
-async function sim(page: Page): Promise<{ lives: number; wave: number; phase: string; enemies: number; tick: number; totalWavesSurvived: number; plants: unknown[]; inventory: Record<string, number> }> {
-  return page.evaluate(() => {
-    const s = (window as never as { __sim: () => { lives: number; wave: { number: number }; phase: string; enemies: unknown[]; clock: { tick: number }; totalWavesSurvived: number; plants: unknown[]; inventory: Record<string, number> } | null }).__sim();
-    if (!s) throw new Error('Sim nicht gebunden');
-    return { lives: s.lives, wave: s.wave.number, phase: s.phase, enemies: s.enemies.length, tick: s.clock.tick, totalWavesSurvived: s.totalWavesSurvived, plants: s.plants, inventory: s.inventory };
-  });
-}
-
-async function meta(page: Page): Promise<{ runs: number; totalWavesSurvived: number; bestWave: number; seedStash: number; pendingCrosses: { crossIndex: number; startedWave: number; neededWaves: number }[]; variantCounts: Record<string, number>; loadout: string[] }> {
-  return page.evaluate(() => {
-    const env = JSON.parse(localStorage.getItem('lifegamelab_meta') || '{}');
-    return env?.data ?? {};
-  });
-}
-
-async function freeCells(page: Page): Promise<Array<{ gx: number; gy: number; x: number; y: number }>> {
-  return page.evaluate(() => {
-    const canvas = document.querySelector('canvas');
-    if (!canvas) return [];
-    const b = canvas.getBoundingClientRect();
-    const GRID = 12, PAD = 20;
-    const cell = Math.min((b.width - PAD * 2) / GRID, (b.height - PAD * 2) / GRID);
-    const ox = (b.width - cell * GRID) / 2;
-    const oy = (b.height - cell * GRID) / 2 + 8;
-    const out: Array<{ gx: number; gy: number; x: number; y: number }> = [];
-    for (let gy = 0; gy < GRID; gy++)
-      for (let gx = 0; gx < GRID; gx++) {
-        const x = b.x + ox + (gx + 0.5) * cell;
-        const y = b.y + oy + (gy + 0.5) * cell;
-        if (document.elementFromPoint(x, y) === canvas) out.push({ gx, gy, x, y });
-      }
-    return out;
-  });
-}
-
-/** Anzahl der Pflanzen EINES Variants in der Sim (Lese-Wahrheit der Platzierung). */
-async function plantCount(page: Page, variantId: string): Promise<number> {
-  return page.evaluate((id) => {
-    const s = (window as never as { __sim?: () => { plants: Array<{ variantId: string }> } }).__sim?.();
-    return s ? s.plants.filter(p => p.variantId === id).length : 0;
-  }, variantId);
-}
-
-/**
- * Platziert GENAU EINE Pflanze DIESES Variants über die echte Tray-UI; true nur, wenn die
- * Sim danach eine Pflanze dieses Variants mehr führt. Die Sim wird dabei als eingefroren
- * vorausgesetzt: der Command-Drain passiert explizit per `__ff(1)` (kein Wait, kein
- * Timing-Einfluss).
  *
- * Der frühere Erfolgs-Test `plants.length > 0` war falsch: nach einem platzierten Spross ist
- * er schon wahr, ein abgelehnter Klick auf eine belegte Zelle galt als Erfolg — der Marathon
- * lief deshalb mit EINER Pflanze und starb in Welle 1 (error-context: `Plants: 1`).
+ * B24 (Konsolidierung): Bedienung und Lesung (`startRun`, `ff`, `sim`, `meta`, Zell-Geometrie,
+ * Platzierung, Pump-Runs) leben im Harness `tests/helpers/harness.ts` — vorher war alles hier
+ * kopiert UND teilweise zusätzlich in run/mechanics/gamebreaker doppelt. Diese Datei hält jetzt
+ * NUR noch die Progression-Beweise.
  */
-async function placeOnePlant(page: Page, label: string, variantId: string): Promise<boolean> {
-  const cells = await freeCells(page);
-  if (cells.length === 0) return false;
-  const card = page.locator('[aria-label="Pflanzenauswahl"] button', { hasText: label });
-  if (!(await card.isEnabled())) return false;
-  // Auswahl nur setzen, wenn sie nicht schon steht — ein zweiter Klick hebt sie wieder auf.
-  // Ablehnungen behalten die Auswahl, deshalb bleibt sie für alle Folgezellen gültig.
-  if ((await card.getAttribute('aria-pressed')) !== 'true') await card.click();
-  const before = await plantCount(page, variantId);
-  for (const c of cells) {
-    await page.mouse.click(c.x, c.y);
-    await ff(page, 1); // Command-Drain (eingefrorene Sim: nur __ff taktet)
-    if ((await plantCount(page, variantId)) > before) return true;
-  }
-  return false;
-}
 
 // ── 1. SPIELVERLUST ──────────────────────────────────────────────────────────
 
@@ -112,10 +35,7 @@ test.describe('Progression — Spielverlust', () => {
     // Welle starten, ohne Verteidigung → alle Grunts leaken → Game Over.
     await page.getByRole('button', { name: /start wave/i }).click();
     // Fast-Forward in Häppchen (Game-Over friert die Sim; Loop endet dann von selbst im Effekt).
-    for (let i = 0; i < 40; i++) {
-      const r = await ff(page, 200);
-      if (r && r.phase === 'gameover') break;
-    }
+    await ffUntil(page);
 
     // 1) Overlay sichtbar (Browser-Verdrahtung: GAME_OVER → setShowGameOver)
     await expect(page.getByText(/game over/i).first()).toBeVisible();
@@ -123,19 +43,18 @@ test.describe('Progression — Spielverlust', () => {
     // 2) Sim eingefroren
     const s1 = await sim(page);
     expect(s1.lives).toBe(0);
-    const t1 = (await sim(page)).tick;
+    const t1 = s1.tick;
     await ff(page, 100);
     expect((await sim(page)).tick).toBe(t1);
 
     // 3) Meta gebankt: runs+1, bestWave = angebrochene Welle 1, Reifung +1 (B17.4)
     const after = await meta(page);
-    expect(after.runs).toBe(before.runs + 1);
+    expect(after.runs).toBe((before.runs ?? 0) + 1);
     expect(after.bestWave).toBeGreaterThanOrEqual(1);
-    expect(after.totalWavesSurvived).toBe(before.totalWavesSurvived + 1);
+    expect(after.totalWavesSurvived).toBe((before.totalWavesSurvived ?? 0) + 1);
 
     // 4) Kein Resume-Angebot mehr nach Run-Ende
-    await page.getByRole('button', { name: /menu/i }).first().click();
-    await expect(page.getByRole('button', { name: /endless/i }).first()).toBeVisible({ timeout: 10_000 });
+    await backToMenu(page);
     await expect(page.getByRole('button', { name: /resume/i })).toHaveCount(0);
   });
 
@@ -143,19 +62,20 @@ test.describe('Progression — Spielverlust', () => {
     test.setTimeout(60_000);
     await startRun(page);
     await page.getByRole('button', { name: /start wave/i }).click();
-    for (let i = 0; i < 40; i++) {
-      const r = await ff(page, 200);
-      if (r && r.phase === 'gameover') break;
-    }
-    await expect(page.getByText(/game over/i).first()).toBeVisible();
+    await ffUntil(page);
 
     // Platzierung hinter dem Overlay ist GEBOCKT (das Overlay schluckt den Pointer —
     // genau das ist der Freeze-Vertrag aus Usersicht): die Sim nimmt nichts an.
-    const cells = await freeCells(page);
+    const cells = await page.evaluate(() => {
+      const canvas = document.querySelector('canvas');
+      if (!canvas) return [];
+      const b = canvas.getBoundingClientRect();
+      return [{ x: b.x + b.width / 2, y: b.y + b.height / 2 }];
+    });
     const sprout = page.locator('[aria-label="Pflanzenauswahl"] button', { hasText: 'Spross' });
     if (cells.length > 0 && (await sprout.isEnabled().catch(() => false))) {
       await sprout.click({ force: true }).catch(() => { /* overlay intercepts — erwartet */ });
-      await page.mouse.click(cells[0].x, cells[0].y);
+      await page.mouse.click(cells[0]!.x, cells[0]!.y);
     }
     const s = await sim(page);
     expect(s.plants.length).toBe(0);
@@ -202,7 +122,7 @@ test.describe('Progression — Wellen-Ende', () => {
   test('Reifung zählt angebrochene Wellen über die Konsole (Meta)', async ({ page }) => {
     test.setTimeout(60_000);
     await startRun(page);
-    const before = await meta(page);
+    const before = await metaWaves(page);
 
     await page.getByRole('button', { name: /start wave/i }).click();
     for (let i = 0; i < 30; i++) {
@@ -210,8 +130,7 @@ test.describe('Progression — Wellen-Ende', () => {
       if (r.wave >= 2) break;
     }
 
-    const after = await meta(page);
-    expect(after.totalWavesSurvived).toBe(before.totalWavesSurvived + 1);
+    expect(await metaWaves(page)).toBe(before + 1);
   });
 });
 
@@ -220,9 +139,7 @@ test.describe('Progression — Wellen-Ende', () => {
 test.describe('Progression — Reifungs-Loop', () => {
   test('Kauf → Säen → 2 Wellen → Claim → Loadout → Pflanze im Run-Tray', async ({ page }) => {
     test.setTimeout(120_000);
-    await page.goto('/?dev=1');
-    await page.waitForLoadState('networkidle');
-    await page.getByRole('button', { name: /start game/i }).click();
+    await bootToMenu(page);       // Kauf/Aussaat laufen über die Menü-Tabs, nicht im Feld
 
     // ── Schritt 1: Samen kaufen (SeedShop) ──
     await page.getByRole('tab', { name: /seed shop/i }).click();
@@ -233,7 +150,7 @@ test.describe('Progression — Reifungs-Loop', () => {
     const mid = await meta(page);
     // B17.3 (Option A): der Kauf KEIMT DIREKT — kein Stash mehr (B18.3).
     expect(mid.seedStash).toBe(0);
-    const ownedTotal = Object.values(mid.variantCounts).reduce((a, b) => a + b, 0);
+    const ownedTotal = Object.values(mid.variantCounts ?? {}).reduce((a, b) => a + b, 0);
     expect(ownedTotal, 'Kauf muss den Bestand auf >= 3 heben (Start 2 + Keimling)').toBeGreaterThanOrEqual(3);
 
     // ── Schritt 2: Aussäen (Greenhouse) → Kreuzung in Reifung ──
@@ -243,8 +160,8 @@ test.describe('Progression — Reifungs-Loop', () => {
     await sowBtn.click();
     const sown = await meta(page);
     expect(sown.seedStash).toBe(0);
-    expect(sown.pendingCrosses.length).toBe(1);
-    const entry = sown.pendingCrosses[0]!;
+    expect(sown.pendingCrosses?.length).toBe(1);
+    const entry = sown.pendingCrosses![0]!;
     expect(entry.neededWaves).toBe(2); // crossIndex 0 → wavesToUnlockFor(0) = 2
     expect(entry.startedWave).toBe(sown.totalWavesSurvived);
 
@@ -254,26 +171,11 @@ test.describe('Progression — Reifungs-Loop', () => {
     await expect(page.getByRole('button', { name: /endless/i }).first()).toBeVisible();
     // Deterministisch OHNE Kampfglück: ein verteidigungsloser Run stirbt in Welle 1
     // (+1 Reifung, B17.4). Zwei kurze Runs = exakt +2. Kein Balance-Risiko.
-    for (let run = 0; run < 2; run++) {
-      await page.getByRole('button', { name: /endless/i }).first().click();
-      await expect(page.locator('canvas')).toHaveCount(1);
-      await expect.poll(() => page.evaluate(() => Boolean((window as never as { __simRootRef?: { current: unknown } }).__simRootRef?.current))).toBe(true);
-      await page.getByRole('button', { name: /start wave/i }).click();
-      for (let i = 0; i < 40; i++) { const r = await ff(page, 200); if (r.phase === 'gameover') break; }
-      await expect(page.getByText(/game over/i).first()).toBeVisible();
-      // Aus dem toten Run zurück ins Menü (Overlay-Button oder Exit Run).
-      const menuBtn = page.getByRole('button', { name: /to menu|menu/i }).last();
-      await menuBtn.click();
-      await expect(page.getByRole('button', { name: /endless/i }).first()).toBeVisible({ timeout: 10_000 });
-    }
-
-    const afterWaves = await meta(page);
-    expect(afterWaves.totalWavesSurvived).toBeGreaterThanOrEqual(2);
+    await pumpWave(page, (sown.totalWavesSurvived ?? 0) + 1);
+    await pumpWave(page, (sown.totalWavesSurvived ?? 0) + 2);
+    expect((await meta(page)).pendingCrosses?.length).toBe(1);
 
     // ── Schritt 4: im Menü, Kreuzung beanspruchen ──
-    // Nach dem Loop sind wir bereits im Menü (der 2. Run endete mit Game-Over → Menü).
-    await expect(page.getByRole('button', { name: /endless/i }).first()).toBeVisible({ timeout: 10_000 });
-
     await page.getByRole('tab', { name: /greenhouse/i }).click();
     // Reife Zeile zeigt den Kind-Namen + Beanspruchen-Knopf.
     const claimBtn = page.getByRole('button', { name: /ready/i }).first();
@@ -281,8 +183,8 @@ test.describe('Progression — Reifungs-Loop', () => {
     await claimBtn.click();
 
     const claimed = await meta(page);
-    expect(claimed.pendingCrosses.length).toBe(0);
-    expect(Object.keys(claimed.variantCounts).length).toBeGreaterThanOrEqual(3); // sprout, rootwall, Kind
+    expect(claimed.pendingCrosses?.length).toBe(0);
+    expect(Object.keys(claimed.variantCounts ?? {}).length).toBeGreaterThanOrEqual(3); // sprout, rootwall, Kind
 
     // ── Schritt 5: Kind in den Loadout ──
     await page.getByRole('tab', { name: /main menu/i }).click();
@@ -290,14 +192,14 @@ test.describe('Progression — Reifungs-Loop', () => {
     await expect(takeBtn).toBeVisible();
     await takeBtn.click();
     const withLoadout = await meta(page);
-    expect(withLoadout.loadout.length).toBe(1);
+    expect(withLoadout.loadout?.length).toBe(1);
 
     // ── Schritt 6: Run starten → Kind im Tray (Platzierbarkeit = der B1-Beweis) ──
     await page.getByRole('button', { name: /endless/i }).first().click();
     await expect(page.locator('canvas')).toHaveCount(1);
     // Der Loadout-Variant erscheint als Tray-Karte mit ×2 (freshState: loadout → inventory 2).
     // Last-unabhängig über die Sim-Inventar-Wahrheit lesen statt UI-Text-Polling.
-    const childId = withLoadout.loadout[0]!;
+    const childId = withLoadout.loadout![0]!;
     await expect(page.locator('[aria-label="Pflanzenauswahl"] button', { hasText: childId })).toBeVisible();
     await expect.poll(async () => {
       const s = await sim(page);
@@ -311,17 +213,13 @@ test.describe('Progression — Reifungs-Loop', () => {
 // Deterministisch ohne Kampfglück: der RAF-Loop wird angehalten, BEVOR platziert wird (Sim
 // pausiert über den Pause-Button — derselbe Schreibpfad wie im Spiel), getaktet wird
 // AUSSCHLIESSLICH per window.__ff. Damit ist jeder Wellen-Übergang ein sample-exaktes Ereignis,
-// kein Polling — und der Aufbau steht vor der Welle, unabhängig von der Maschinengeschwindigkeit
-// (bei laufendem Takt würde der Prep-Auto-Start die Welle 1 vor der Verteidigung beginnen).
-// Beweise: Übergänge konsekutiv (wave→prep→wave, Nummern +1), Auto-Start nach ≤ 90 Ticks
-// (AUTO_WAVE_DELAY_TICKS), Reifungszähler zählt exakt die angebrochenen Wellen (B17.4).
+// kein Polling — und der Aufbau steht vor der Welle, unabhängig von der Maschinengeschwindigkeit.
 //
 // BALANCE-REALITÄT (per Scratch an den echten Run-Seeds gemessen, 2026-09-16): Das Start-Duo
 // (sprout + rootwall, über die echte Tray-UI platziert) trägt bis Welle 3 — ohne Nachkauf
-// (kein In-Run-Kauf, Befund: Propagate/Fertilize sind sim-complete aber UI-los) stirbt der
-// Run in Welle 3. Der Test fordert deshalb die MECHANIK-Wahrheit (2 konsekutive Übergänge
-// + Auto-Start-Fenster + Meta-Zählung), nicht eine Balance-Zusage. Steigt die Balance,
-// läuft der Test weiter durch — die Schwellen sind Untergrenzen.
+// stirbt der Run in Welle 3. Der Test fordert deshalb die MECHANIK-Wahrheit (2 konsekutive
+// Übergänge + Auto-Start-Fenster + Meta-Zählung), nicht eine Balance-Zusage. Steigt die
+// Balance, läuft der Test weiter durch — die Schwellen sind Untergrenzen.
 test.describe('Progression — Wellen-Marathon', () => {
   test('Bis Welle 3: Übergänge konsekutiv, Auto-Start, Meta zählt exakt', async ({ page }) => {
     test.setTimeout(120_000);
@@ -374,13 +272,13 @@ test.describe('Progression — Wellen-Marathon', () => {
 
     // Konsekutivität: jede Folgewelle ist genau +1.
     for (let i = 1; i < transitions.length; i++) {
-      expect(transitions[i].to, `Wellen-Sprung bei Index ${i}`).toBe(transitions[i - 1].to + 1);
+      expect(transitions[i]!.to, `Wellen-Sprung bei Index ${i}`).toBe(transitions[i - 1]!.to + 1);
     }
 
     // Auto-Start-Fenster: jede prep→wave-Lücke ≤ AUTO_WAVE_DELAY_TICKS (90) + Toleranz.
     for (const t of transitions) {
       if (t.prepTicks !== null) {
-        expect(t.prepTicks, `Auto-Start zu spät nach Welle ${t.to}` ).toBeLessThanOrEqual(90);
+        expect(t.prepTicks, `Auto-Start zu spät nach Welle ${t.to}`).toBeLessThanOrEqual(90);
       }
     }
 
@@ -403,9 +301,7 @@ test.describe('Progression — Wellen-Marathon', () => {
 test.describe('Progression — Reifungs-Leiter', () => {
   test('Zwei Kreuzungen reifen wellenweise: A nach 2, B nach 4 (fail-closed an jeder Schwelle)', async ({ page }) => {
     test.setTimeout(180_000);
-    await page.goto('/?dev=1');
-    await page.waitForLoadState('networkidle');
-    await page.getByRole('button', { name: /start game/i }).click();
+    await bootToMenu(page);       // Setup (säen) läuft über die Menü-Tabs, nicht im Feld
 
     // ── Setup: zwei Kreuzungen säen (Reihenfolge = Reifungs-Reihenfolge) ──
     await page.getByRole('tab', { name: /greenhouse/i }).click();
@@ -419,26 +315,11 @@ test.describe('Progression — Reifungs-Leiter', () => {
     await expect(page.getByRole('button', { name: /endless/i }).first()).toBeVisible({ timeout: 10_000 });
 
     const sown = await meta(page);
-    expect(sown.pendingCrosses.length).toBe(2);
-    const [crossA, crossB] = sown.pendingCrosses;
-    expect(crossA!.neededWaves).toBe(2); // wavesToUnlockFor(0)
-    expect(crossB!.neededWaves).toBe(4); // wavesToUnlockFor(1)
-
-    // Wellen-Pumpe: verteidigungslose Runs, jeder bringt exakt +1 (Tod in Welle 1).
-    const pump = async (expectedWaves: number) => {
-      await page.getByRole('button', { name: /endless/i }).first().click();
-      await expect(page.locator('canvas')).toHaveCount(1);
-      await expect.poll(() => page.evaluate(() => Boolean((window as never as { __simRootRef?: { current: unknown } }).__simRootRef?.current))).toBe(true);
-      await page.getByRole('button', { name: /start wave/i }).click();
-      for (let i = 0; i < 40; i++) { const r = await ff(page, 200); if (r.phase === 'gameover') break; }
-      await expect(page.getByText(/game over/i).first()).toBeVisible();
-      const m = await meta(page);
-      expect(m.totalWavesSurvived).toBe(expectedWaves);
-      // Aus dem toten Run ins Menü:
-      const menuBtn = page.getByRole('button', { name: /to menu|menu/i }).last();
-      await menuBtn.click();
-      await expect(page.getByRole('button', { name: /endless/i }).first()).toBeVisible({ timeout: 10_000 });
-    };
+    expect(sown.pendingCrosses?.length).toBe(2);
+    const crossA = sown.pendingCrosses![0]!;
+    const crossB = sown.pendingCrosses![1]!;
+    expect(crossA.neededWaves).toBe(2); // wavesToUnlockFor(0)
+    expect(crossB.neededWaves).toBe(4); // wavesToUnlockFor(1)
 
     // Fail-closed-Sonde: Die UI zeigt GENAU die reifen Einträge der Queue als Ready-Buttons
     // (Invariante — kein globales >= 2, das nach dem Claim von A nie wieder erreichbar wäre).
@@ -449,35 +330,37 @@ test.describe('Progression — Reifungs-Leiter', () => {
       await expect(page.getByRole('button', { name: /endless/i }).first()).toBeVisible({ timeout: 10_000 });
       return count;
     };
+    const claimFirst = async (): Promise<MetaView> => {
+      await page.getByRole('tab', { name: /greenhouse/i }).click();
+      await page.getByRole('button', { name: /ready/i }).first().click();
+      const m = await meta(page);
+      await page.getByRole('button', { name: /^←$|^back$/i }).click();
+      return m;
+    };
 
     // ── n = 1: keine der beiden reif ──
-    await pump(1);
+    await pumpWave(page, 1);
     expect(await readyCountIn(), 'nach 1 Welle: nichts reif (A needed 2, B needed 4)').toBe(0);
 
     // ── n = 2: A reif, B noch nicht (die Schwelle!) ──
-    await pump(2);
+    await pumpWave(page, 2);
     expect(await readyCountIn(), 'A muss nach 2 Wellen reif sein (genau 1 Ready-Button)').toBe(1);
 
     // ── A jetzt beanspruchen (Elternverbrauch 2→1, Queue-Ausbuchung) ──
-    await page.getByRole('tab', { name: /greenhouse/i }).click();
-    await page.getByRole('button', { name: /ready/i }).first().click();
-    const afterClaim = await meta(page);
-    expect(afterClaim.pendingCrosses.length).toBe(1);
-    expect(afterClaim.pendingCrosses[0]!.crossIndex).toBe(crossB!.crossIndex);
-    await page.getByRole('button', { name: /^←$|^back$/i }).click();
+    const afterClaim = await claimFirst();
+    expect(afterClaim.pendingCrosses?.length).toBe(1);
+    expect(afterClaim.pendingCrosses![0]!.crossIndex).toBe(crossB.crossIndex);
 
     // ── n = 3: B immer noch nicht reif ──
-    await pump(3);
+    await pumpWave(page, 3);
     expect(await readyCountIn(), 'B darf nach 3 Wellen noch nicht reif sein (needed 4)').toBe(0);
 
     // ── n = 4: B reif (zweite Schwelle) ──
-    await pump(4);
+    await pumpWave(page, 4);
     expect(await readyCountIn(), 'B muss nach 4 Wellen reif sein (genau 1 Ready-Button)').toBe(1);
 
     // ── B beanspruchen → Queue leer ──
-    await page.getByRole('tab', { name: /greenhouse/i }).click();
-    await page.getByRole('button', { name: /ready/i }).first().click();
-    const done = await meta(page);
-    expect(done.pendingCrosses.length).toBe(0);
+    const done = await claimFirst();
+    expect(done.pendingCrosses?.length).toBe(0);
   });
 });
