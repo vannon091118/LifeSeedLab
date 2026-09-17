@@ -8,6 +8,9 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 ---## Unreleased (Arbeitsstand 17.09.2026)
 
 
+- [QA-Branch] Mobile-DoD-Pruefung 390x844 im echten sichtbaren Browser (Bericht 2026-09-17_mobile-390x844.md): kein horizontaler Overflow auf Start/Hub/Run, Canvas 366x682 voll im Viewport, Platzierung end-to-end ueber die Touch-Pipeline (Topf (3,4) + Spross, Energie 150->135), Welle 1 und Game Over sauber verarbeitet (Versions-Ausweis auch mobil). Kandidat Q9: Tray 806px Inhalt in 342px Flaeche horizontal scrollbar ohne sichtbaren Scroll-Hinweis (1/3). Fussnote Q10: DevGate-Overlay ueberlagert die Tray auf Mobile (nur ?dev=1; Hinweis fuer die E2E-Suite). Kandidat Q11: Brutvorschau rendert trotz unzureichendem Nektar (0/3, erst nach 3 Zyklen Befund). Folgebeobachtung: Codex zeigt 0 Entdeckungen trotz 3 Sammlungs-Funden (UX-Frage an DEV).
+
+
 - [QA-Branch] Neuer Uebermittlungskanal fuer QA-Spielberichte: Der Branch `qa-reports` traegt nur noch `qa/` - README-Index mit Abhol-Protokoll, Bericht Onboarding-Runde 1 (v0.0.37, Befunde Q1-Q5: Wellen-1-Balance, Drag-Platzierung, Tutorial-Overlay-Blockade, React-borderColor-Warnung, favicon 404) und Bericht v0.0.38 (ae64493) mit kritischem Befund Q6: Greenhouse-Crash mit Alt-Save (TypeError in Greenhouse.tsx:120, ErrorBoundary faengt, aber Reload heilt nicht). AGENTS.md auf dem Branch vorangestellt: HIER NUR QA (kein Code, kein Merge auf main) plus Pflicht-Abholprotokoll fuer den aktiv arbeitenden Agenten (vor JEDEM Task-Start `git fetch origin qa-reports` pruefen, Befund-Status setzen, erst dann Task beginnen) plus Verankerungsauftrag: dieses Protokoll gehoert als Pflichtpunkt in die AGENTS.md auf main.
 
 

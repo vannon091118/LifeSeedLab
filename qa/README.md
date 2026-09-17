@@ -40,6 +40,7 @@ Bericht, bis die Verankerung bestätigt ist.
 | 2026-09-17 | [Onboarding-Runde 1 (v0.0.37)](2026-09-17_onboarding-runde1.md) | Q1–Q5 | offen |
 | 2026-09-17 | [v0.0.38 Greenhouse-Crash (ae64493)](2026-09-17_v0.0.38-greenhouse-crash.md) | Q6 (kritisch, 4/3) | offen |
 | 2026-09-17 | [Runde 2 — Weg-Lenkung (Erfolg)](2026-09-17_runde2-weg-lenkung.md) | Q7 (vorläufig), Q8 (Kandidat 0/3) | offen |
+| 2026-09-17 | [Mobile 390×844 — DoD-Prüfung](2026-09-17_mobile-390x844.md) | Q9 (1/3), Q10 (Fußnote), Q11 (0/3) | offen |
 
 ## Status-Begriffe
 
