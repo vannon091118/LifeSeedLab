@@ -8,7 +8,7 @@
 // passiert im Test.
 
 /** Muss `package.json` → `version` entsprechen (Lock: `version.test.ts`). */
-export const APP_VERSION = '0.0.47';
+export const APP_VERSION = '0.0.48';
 
 /** Anzeigeform für die Release-Fläche. */
 export const APP_VERSION_LABEL = `v${APP_VERSION}`;
