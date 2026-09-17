@@ -5,6 +5,13 @@
 1. **HIER NUR QA:** Auf diesem Branch werden ausschließlich Dateien unter `qa/` (Berichte,
    Index, Protokoll) gepflegt. Kein Gameplay-Code, keine Specs, kein Refactoring, keine
    ">kleinen" Nebenfixes. Alles andere gehört auf `main` (oder einen Feature-Branch von `main`).
+
+   **🎯 QA-TRIGGER (automatisiert):** Sagt der Eigentümer **„QA"** (oder bittet um eine
+   Spielsession/einen Bericht), führt der Agent auf diesem Gerät **ohne weitere Anweisung**
+   das Runbook `qa/RUNBOOK-qa-trigger.md` aus — komplett, von Umgebung (Schritt 0) bis
+   Push (Schritt 5): Dev-Server/Chrome-CDP prüfen, MCP-Bridge nutzen, Warteschleifen-
+   Aspekte rotieren, Befunde nur mit 3× Repro (frisch + Reload + Cache), Bericht +
+   Index + Changelog pushen. Kein Nachfragen, kein Teilablauf — nur ausführen.
 2. **ABHOL-PROTOKOLL für den aktiv arbeitenden Agenten (PFLICHT vor JEDEM Task-Start):**
    ```bash
    git fetch origin qa-reports

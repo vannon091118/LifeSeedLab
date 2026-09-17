@@ -8,6 +8,9 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 ---## Unreleased (Arbeitsstand 17.09.2026)
 
 
+- [QA-Branch] QA-Trigger-Runbook fuer Folgeagenten (qa/RUNBOOK-qa-trigger.md): Sagt der Eigentuemer "QA", fuehrt jeder Agent auf dem QA-Geraet ohne weitere Anweisung den kompletten Pruefablauf aus - Umgebung hochziehen (Dev-Server 5173, Chrome mit CDP 9222 aus ~/opt/chrome-local, MCP-Bridge playwright-lifeseedlab), Abhol-Protokoll, Warteschleifen-Rotation, Spielmessung im sichtbaren Browser (pointerdown-Pipeline, Sim-Lesebruecke __simRootRef, Tray voll aufnehmen), 3x-Repro-Disziplin, Bericht + Index + Changelog + Push. Verankert in der AGENTS.md (Punkt 1) als automatisierter Trigger ohne Nachfragen.
+
+
 - [QA-Branch] Warteschleifen-Batch + kritischer Befund Q12 (2026-09-17_q12-leihspross-tray.md): Der Leih-Spross des Einstiegs-Loops erreicht das Spielfeld nie - beginRun bucht loan_sprout korrekt in variantCounts (Meta-Seite unit-getestet), aber das Run-Loadout kommt aus meta.loadout und der PlacementTray rendert nur Basistypen + Loadout - eine Variant mit eigener ID hat keinen Tray-Slot. 3/3 formale Zyklen auf der Release-Flaeche (frisches Profil, Reload, leerer Cache): Tray ohne Leihgabe, inventory {}, loadout [], einziger Pflanzenweg der Nachkauf (100E). Gleicher Blind Spot wie Q6: Render-Pfad Loadout->Tray ungetestet. Positiv im selben Batch: i18n-Paritaet 15/15 Karten DE/EN, Persistenz-Resilienz (Reload mitten in Welle 1 -> Fortsetzen-Karte korrekt), Frischzustand-Oekonomie (Nektar 40, Sammlung 0/3), Q9 auf 3/3 vollendet (Tray 911px in 342px ohne Scroll-Hinweis), DevGate-Onboarding-Sprung dokumentiert (Nachtrag Q10).
 
 
