@@ -1,7 +1,7 @@
 {
   "name": "lifegamelab",
   "private": true,
-  "version": "0.0.34",
+  "version": "0.0.36",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
@@ -24,6 +24,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
+    "@vitest/coverage-v8": "^5.0.0",
     "eslint": "^9.20.0",
     "eslint-plugin-react-hooks": "^5.0.0",
     "typescript": "~5.7.2",

@@ -38,7 +38,10 @@ export type EventType =
   // beetles (P6: Käferzucht — Brutling als alliierter Kämpfer)
   | 'BEETLE_DEPLOYED'
   | 'BEETLE_DOWN'
-  | 'BEETLE_REJECTED';
+  | 'BEETLE_REJECTED'
+  // economy (B36: Nachkauf im Lauf)
+  | 'BUY_REJECTED'
+  | 'PLANT_BOUGHT';
 
 // ── Ablehnungs-Vokabular (v1) ────────────────────────────────
 // Die Gründe sind hier EINMAL typisiert, weil drei Stellen sie teilen: die Sim (Emittent),
@@ -64,7 +67,11 @@ export interface EventPayloads {
   NIGHT_STARTED: { cycle: number };
   WAVE_STARTED: { wave: number; enemyCount: number };
   WAVE_COMPLETED: { wave: number; reward: number };
-  GAME_OVER: { wave: number; score: number };
+  /** B36: Ursache im Payload — der Spieler soll sehen, WARUM der Lauf endete (Playtest R2 #1). */
+  GAME_OVER: { wave: number; score: number; reason: 'lives_depleted' };
+  /** B36: Nachkauf im Lauf (Playtest R2 #2) — Erfolg und Ablehnung kommen als Events. */
+  BUY_REJECTED: { variantId: string; reason: 'unknown_variant' | 'no_energy' };
+  PLANT_BOUGHT: { variantId: string; price: number };
   PLANT_PLACED: { plantId: string; variantId: string; gx: number; gy: number };
   PLANT_REMOVED: { plantId: string; refund: number };
   PLANT_ATTACKED: { plantId: string; targetId: string | null };

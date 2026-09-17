@@ -45,7 +45,7 @@ Aus dem technisch tragfähigen Singleplayer-Prototyp wird schrittweise ein deter
 
 **Gate A:** `bun tsc -b --noEmit` und `bun vitest run` grün; keine Legacy-Symbole außerhalb von Dokumentation/Tests; Run-ID-Weitergabe ist durch einen Test abgesichert.
 
-**Gate-A-Status:** Teil-Gate grün. Die Run-ID-/Loadout-Weitergabe ist in `src/simulation/sim.test.ts` abgesichert; Typecheck und Tests laufen erfolgreich. Der vollständige Legacy-/Dead-Code-Audit und ein separates DevGate bleiben offen.
+**Gate-A-Status:** Teil-Gate grün. Die Run-ID-/Loadout-Weitergabe ist in `src/simulation/determinism.test.ts` (Run-ID/Loadout im Resume-Block) bzw. `simulation_resume.test.ts` abgesichert; Typecheck und Tests laufen erfolgreich. Der vollständige Legacy-/Dead-Code-Audit und ein separates DevGate bleiben offen.
 
 ### Phase B — Simulation und Core-Gates vervollständigen
 
@@ -80,7 +80,7 @@ Aus dem technisch tragfähigen Singleplayer-Prototyp wird schrittweise ein deter
 - [x] Hover-Abhängigkeiten entfernen; Touch-Ziele und Cancel/Pause vergrößern — kein `onMouseMove`/`hover` mehr; Buttons `minHeight:44`, Tray `minHeight:64`, Pause-Toggle im Header.
 - [x] `visibilitychange` mit Pause, Save und Resume-Overlay gemäß Vertrag umsetzen — `hidden`→`pause+saveRun+suspended=true`, sichtbares Resume-Overlay "Tippen zum Fortsetzen", `GameOver`→`recordRunEnd` genau einmal.
 - [x] DPR-/Particle-/FX-Degradationsreihenfolge hinterlegen und im DevGate messbar machen — DPR cap 2 im Renderer, `ParticlePool` Budget `NORMAL→BUSY→CHAOS` adaptiv nach `activeCount`, B12-Reihenfolge dokumentiert.
-- [x] Mobile-Renderziel mit mindestens 30 Entities prüfen — `bakeTerrain` pre-baked (0 Kosten/Frame), Partikel-Budget, 30-Entity-Szenario via sim.test Gate abgedeckt.
+- [x] Mobile-Renderziel mit mindestens 30 Entities prüfen — `bakeTerrain` pre-baked (0 Kosten/Frame), Partikel-Budget, 30-Entity-Szenario via determinism.test Gate abgedeckt.
 
 **Gate D:** ✅ Touch-Placement funktioniert ohne Maus-Hover; Suspend/Resume verliert keinen vertraglich gespeicherten Run-State; 390×844 bleibt bedienbar.
 

@@ -131,6 +131,11 @@ export const EVENT_AUDIENCE: Record<EventType, AudienceEntry> = {
   // ── Käfer (P6) ───────────────────────────────────────────────────────────
   BEETLE_DEPLOYED: { audiences: ['fx'], why: 'Bernstein-Ring am Pfadkopf, Namensbanner, Zap-Ton.' },
   BEETLE_DOWN: { audiences: ['fx'], why: 'Tusche-Fleck zerfällt — bedrohlich, nicht pflanzlich.' },
+
+  // ── Economy (B36: Nachkauf im Lauf) ─────────────────────────────────────
+  BUY_REJECTED: { audiences: ['notice'], why: 'Nachkauf-Knopf im Tray: ohne Text wäre ein verweigerter Kauf ein '
+      + 'stiller Energie-Verlust oder ein toter Knopf — der Grund muss ankommen.' },
+  PLANT_BOUGHT: { audiences: ['snapshot'], why: 'Inventar zählt über den State; ein Frame-FX würde vom Platzieren verdeckt.' },
 };
 
 const typesWith = (a: EventAudience): EventType[] =>

@@ -57,8 +57,7 @@ function capped(queue: PendingCross[]): PendingCross[] {
  * B18.3: KEIN Stash-Verbrauch mehr — seit B17.3 (Option A) keimt ein Kauf direkt zur
  * Pflanze, der Stash ist strukturell immer 0. Das alte `if (meta.seedStash <= 0)
  * return null` machte die Zucht-Schleife unerreichbar (A13.12-Regression). Die
- * Aussaat ist jetzt frei; die Kosten liegen im Elternverbrauch beim Keep (2→1,
- * test-gelockt in keep.test.ts).
+ * Aussaat ist jetzt frei; die Kosten liegen im Elternverbrauch beim Keep (2→1,  * test-gelockt in cross_lifecycle.test.ts).
  */
 export function consumeSeedAndEnqueueCross(gachaSeed: number, crossIndex: number, currentWave: number, child: PlantVariant, parentAId: string, parentBId: string): MetaSave | null {
   const meta = loadMeta();

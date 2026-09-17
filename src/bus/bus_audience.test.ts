@@ -3,7 +3,7 @@ import { makeEvent, type EventPayloads, type EventType } from './events';
 import { EVENT_AUDIENCE, FX_EVENT_TYPES, NOTICE_EVENT_TYPES, OBSERVED_EVENT_TYPES } from './eventAudience';
 import { VisualObserver } from '../observers/visualObserver';
 import { Camera } from '../render/camera';
-import { noticeFromEvent } from '../components/fieldNotice';
+import { noticeFromEvent, type NoticeReason } from '../components/fieldNotice';
 import { rejectTextKey } from '../components/FieldToast';
 import { translations } from '../i18n/translations';
 
@@ -26,7 +26,7 @@ const SAMPLES: { [K in EventType]: EventPayloads[K] } = {
   NIGHT_STARTED: { cycle: 1 },
   WAVE_STARTED: { wave: 1, enemyCount: 4 },
   WAVE_COMPLETED: { wave: 1, reward: 25 },
-  GAME_OVER: { wave: 3, score: 1200 },
+  GAME_OVER: { wave: 3, score: 1200, reason: 'lives_depleted' as const },
   PLANT_PLACED: { plantId: 'p1', variantId: 'sprout', gx: 3, gy: 3 },
   PLANT_REMOVED: { plantId: 'p1', refund: 25 },
   PLANT_ATTACKED: { plantId: 'p1', targetId: 'e1' },
@@ -53,6 +53,8 @@ const SAMPLES: { [K in EventType]: EventPayloads[K] } = {
   BEETLE_DEPLOYED: { beetleId: 'b1', name: 'Krabbler', px: 0.5, py: 3.5, spawnCount: 1 },
   BEETLE_DOWN: { beetleId: 'b1', px: 5.5, py: 3.5 },
   BEETLE_REJECTED: { reason: 'no_energy' },
+  BUY_REJECTED: { variantId: 'sprout', reason: 'no_energy' as const },
+  PLANT_BOUGHT: { variantId: 'sprout', price: 30 },
 };
 
 const sample = (type: EventType) => makeEvent(7, type, 'test:audience', 1, SAMPLES[type]);
@@ -110,10 +112,13 @@ describe('B29 — Event-Audience: jede Zeile ist entschieden', () => {
       FERTILIZE_REJECTED: ['not_growing', 'max_reached', 'not_found'],
       PROPAGATE_REJECTED: ['not_mature', 'not_found', 'on_path', 'occupied'],
       BEETLE_REJECTED: ['already_deployed', 'no_energy', 'none_available'],
+      // `unknown_variant` ist bewusst KEIN eigener Text: fieldNotice.mappt ihn auf den
+      // `unknown`-Restfall (die Variante ist für den Spieler ohnehin nicht sichtbar).
+      BUY_REJECTED: ['no_energy'],
     };
     for (const [type, reasons] of Object.entries(REASONS)) {
       for (const reason of reasons) {
-        const key = rejectTextKey(reason);
+        const key = rejectTextKey(reason as NoticeReason);
         expect(translations.de[key], `${type}/${reason}: Text fehlt (DE)`).toBeTruthy();
         expect(translations.en[key], `${type}/${reason}: Text fehlt (EN)`).toBeTruthy();
       }
@@ -131,4 +136,5 @@ describe('B29 — Event-Audience: jede Zeile ist entschieden', () => {
 /** Die fünf Ablehnungs-Events, die der Spieler sehen muss. */
 const NOTICE_KINDS = [
   'PLACEMENT_REJECTED', 'TILE_REJECTED', 'FERTILIZE_REJECTED', 'PROPAGATE_REJECTED', 'BEETLE_REJECTED',
+  'BUY_REJECTED',
 ] as const;

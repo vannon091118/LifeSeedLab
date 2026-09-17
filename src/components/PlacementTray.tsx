@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import type { CSSProperties } from 'react';
 import { MAP_TILES_SOURCE, type MapTileType } from '../config/map.source';
 import { PLANTS_SOURCE, type PlantTypeId } from '../config/plants.source';
@@ -15,9 +16,13 @@ export interface PlacementTrayProps {
   variantId: string | null;
   onSelectPlant: (variantId: string, count: number) => void;
   onSelectTile: (tile: MapTileType) => void;
+  /** B36: Nachkauf im Lauf — Energie → 1× Pflanze ins Inventar (Playtest R2 #2). */
+  onBuyPlant: (variantId: string) => void;
+  /** Preis pro Nachkauf-Kauf (Pflanzenkosten × Aufschlag, aus der Source abgeleitet). */
+  restockPrice: (variantId: string) => number;
 }
 
-export function PlacementTray({ plantIds, inventory, energy, mode, variantId, onSelectPlant, onSelectTile }: PlacementTrayProps) {
+export function PlacementTray({ plantIds, inventory, energy, mode, variantId, onSelectPlant, onSelectTile, onBuyPlant, restockPrice }: PlacementTrayProps) {
   // B21: Die ERSTE Karte mit Bestand ist das Cue-Ziel des Onboardings (`data-tut="card"`) — genau
   // ein Element, damit der blinkende Ring eindeutig ist. Kein State, keine Auswahl-Logik.
   const firstPlayable = plantIds.find(id => (inventory[id] ?? 0) > 0) ?? null;
@@ -29,8 +34,8 @@ export function PlacementTray({ plantIds, inventory, energy, mode, variantId, on
         const disabled = count <= 0;
         const label = PLANTS_SOURCE[id as PlantTypeId]?.label ?? id;
         return (
+          <Fragment key={id}>
           <button
-            key={id}
             onPointerDown={() => onSelectPlant(id, count)}
             data-tut={id === firstPlayable ? 'card' : undefined}
             style={{ ...styles.trayItem, ...(isSelected ? styles.trayItemSelected : {}), ...(disabled ? styles.trayItemDisabled : {}) }}
@@ -40,6 +45,20 @@ export function PlacementTray({ plantIds, inventory, energy, mode, variantId, on
             <span style={styles.trayName}>{label}</span>
             <span style={styles.trayCount}>×{count}</span>
           </button>
+          {/* B36: Bei leerem Vorrat ein Kauf-Knopf — der Lauf endet nie am leeren Inventar,
+              solange Energie da ist (Playtest R2: „ich kann nur noch zusehen“). */}
+          {count <= 0 && (
+            <button
+              key={`${id}-buy`}
+              onPointerDown={(e) => { e.stopPropagation(); onBuyPlant(id); }}
+              style={{ ...styles.trayItem, ...(energy < restockPrice(id) ? styles.trayItemDisabled : {}) }}
+              aria-label={`${label} nachkaufen (${restockPrice(id)})`}
+              title={`+1 ${label} — ${restockPrice(id)} Energie`}
+            >
+              <span style={styles.trayName}>+ {restockPrice(id)}</span>
+            </button>
+          )}
+          </Fragment>
         );
       })}
       {/* P5: Map-Tiles — Wege lenken Gegner, Töpfe tragen Pflanzen, Findlinge blockieren */}

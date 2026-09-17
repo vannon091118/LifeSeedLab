@@ -1,20 +1,17 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 
-// storage nutzt globalThis.localStorage — Polyfill via Owner-Helfer (persistence/testDom.ts)
-import { clearTestStorage, ensureLocalStorage } from '../persistence/testDom';
-import { fnv1a } from '../core/hash';
+// Owner: Meta-Tests — Sub-Domäne „MetaSave-Schema & Migrationen“ (B32.2/3).
+// Konsolidierung Phase 2 (Plan: plan/refactor-test-suite-consolidation-1.md):
+// onboarding.test.ts (B21 — Tour-Fassung MetaSave v7).
+// Legacy-Envelope-Helfer kommt aus dem Testkit (eine Quelle statt Datei-Kopien).
 
-const { loadMeta, resetMeta, updateMeta, META_KEY, META_VERSION } = await import('./store');
-const { enqueueBrood } = await import('./run');
+import { resetTestState, writeLegacyEnvelope } from '../testing/testkit';
+import { ensureLocalStorage } from '../persistence/testDom';
+import { loadMeta, updateMeta, META_KEY, META_VERSION } from './store';
+import { enqueueBrood } from './run';
 
 const A = 'leafhopper';
 const B = 'shellbeetle';
-
-/** Altsave-Envelope im LEGACY-Checksummen-Format (fnv über JSON.stringify). */
-function writeLegacyEnvelope(key: string, data: unknown, v: number): void {
-  const raw = JSON.stringify(data);
-  ensureLocalStorage().setItem(key, JSON.stringify({ v, checksum: fnv1a(0x811c9dc5, raw), data }));
-}
 
 // B21.3: Das Onboarding braucht genau EINE Zahl im Meta-Save — welche Fassung der Tour der
 // Spieler gesehen hat. Nicht in einem zweiten Speicher, nicht in `localStorage` außerhalb von
@@ -23,7 +20,7 @@ function writeLegacyEnvelope(key: string, data: unknown, v: number): void {
 // die Spieler nie sichtbar werden können, die die alte Tour schon kannten.
 
 describe('B21 — Tour-Fassung (MetaSave v7)', () => {
-  beforeEach(() => { resetMeta(); clearTestStorage(); });
+  beforeEach(() => { resetTestState(); });
 
   it('startet mit einer ungesehenen Tour', () => {
     const meta = loadMeta();

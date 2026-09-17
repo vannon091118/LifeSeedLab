@@ -8,6 +8,8 @@ import { formatScore } from './numberFormat';
 
 export interface GameOverlaysProps {
   gameOver: boolean;
+  /** B36: Warum endete der Lauf — wird auf dem Screen genannt. */
+  reason?: 'lives_depleted';
   suspended: boolean;
   wave: number;
   score: number;
@@ -16,7 +18,7 @@ export interface GameOverlaysProps {
   onResume: () => void;
 }
 
-export function GameOverlays({ gameOver, suspended, wave, score, onNewRun, onMenu, onResume }: GameOverlaysProps) {
+export function GameOverlays({ gameOver, reason, suspended, wave, score, onNewRun, onMenu, onResume }: GameOverlaysProps) {
   const { t } = useI18n();
   return (
     <>
@@ -25,6 +27,11 @@ export function GameOverlays({ gameOver, suspended, wave, score, onNewRun, onMen
           <div style={styles.card}>
             <div style={styles.title}>{t('game.gameover')}</div>
             <div style={styles.sub}>{t('game.wave')} {wave} • {t('over.score')} {formatScore(score)}</div>
+            {/* B36: Die Ursache steht auf dem Screen — Niederlage ist EINZIG lives <= 0
+                (Gegner am Wegende, Quelle: enemies.source damage). Kein Rätsel mehr. */}
+            {reason === 'lives_depleted' && (
+              <div style={styles.reason}>{t('over.reasonLives')}</div>
+            )}
             <div style={styles.row}>
               <button onClick={onNewRun} style={{ ...styles.btn, ...styles.btnPrimary }}>{t('over.retry')}</button>
               <button onClick={onMenu} style={styles.btn}>{t('over.toMenu')}</button>
@@ -46,6 +53,7 @@ const styles: Record<string, CSSProperties> = {
   card: { background: '#fbf6e9', border: '2px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 18, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', minWidth: 260 },
   title: { fontSize: 22, fontWeight: 800, color: 'var(--ink)' },
   sub: { fontSize: 13, color: '#6b6250', fontWeight: 600 },
+  reason: { marginTop: 10, padding: '8px 12px', background: '#fdecea', border: '2px solid var(--danger)', borderRadius: 8, color: 'var(--danger)', fontSize: 13, fontWeight: 800 },
   row: { display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' },
   btn: { padding: '10px 14px', background: '#fff', border: '2px solid var(--ink)', borderRadius: 10, color: 'var(--ink)', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '3px 3px 0 var(--ink)', lineHeight: 1, minHeight: 44, minWidth: 44 },
   btnPrimary: { background: 'var(--leaf)', color: '#fff', borderColor: 'var(--ink)' },

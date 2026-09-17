@@ -1,7 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+// Owner: Simulation-Tests — Sub-Domäne „Platzierung & Map“ (B32.2/3, Phase 4).
+// Konsolidierung: map.test.ts + placementRules.test.ts + prep.test.ts (It-Fälle unverändert).
+
 import { SimulationRoot, makeCommand } from './root';
 import { resetIds } from '../core/ids';
 import { resolveActiveRoute } from '../config/world.source';
+import { cellRejectReason, placementRejectReason } from './placementRules';
+import { AUTO_WAVE_DELAY_TICKS } from '../config/economy.source';
+import { autoStartTicksLeft } from './waveTiming';
 
 const SEED = 555001;
 
@@ -146,3 +152,74 @@ describe('B33 — Pfad-Korridor-Verbot für blockierende Tiles', () => {
     expect(root.getSnapshot().mapTiles['6,2']).toBe('path');
   });
 });
+
+// Freie Zelle: innerhalb des Rasters und weit weg vom Enemy-Pfad (rechts unten).
+const FREE = { gx: 11, gy: 10 };
+// Zellzentrum (2.5, 3.5) ist exakt ein Pfad-Waypoint.
+const ON_PATH = { gx: 2, gy: 3 };
+
+describe('Platzierungsregeln — Geometrie', () => {
+  it('akzeptiert eine freie Zelle', () => {
+    expect(cellRejectReason({ ...FREE, plants: [] })).toBeNull();
+  });
+
+  it('lehnt Zellen außerhalb des Rasters als on_path ab', () => {
+    expect(cellRejectReason({ gx: -1, gy: 0, plants: [] })).toBe('on_path');
+    expect(cellRejectReason({ gx: 0, gy: 12, plants: [] })).toBe('on_path');
+  });
+
+  it('lehnt Zellen im Pfad-Korridor als on_path ab', () => {
+    expect(cellRejectReason({ ...ON_PATH, plants: [] })).toBe('on_path');
+  });
+
+  it('lehnt belegte Zellen als occupied ab', () => {
+    expect(cellRejectReason({ ...FREE, plants: [{ gx: 11, gy: 10 }] })).toBe('occupied');
+  });
+});
+
+describe('Platzierungsregeln — Ökonomie vor Geometrie', () => {
+  it('meldet no_inventory, bevor Geometrie geprüft wird', () => {
+    const reason = placementRejectReason({
+      board: { ...ON_PATH, plants: [] },
+      inventoryCount: 0,
+      energy: 999,
+      cost: 10,
+    });
+    expect(reason).toBe('no_inventory');
+  });
+
+  it('meldet no_energy vor der Zellprüfung', () => {
+    const reason = placementRejectReason({
+      board: { ...FREE, plants: [{ gx: 11, gy: 10 }] },
+      inventoryCount: 1,
+      energy: 5,
+      cost: 10,
+    });
+    expect(reason).toBe('no_energy');
+  });
+
+  it('gibt null zurück, wenn alles passt', () => {
+    const reason = placementRejectReason({
+      board: { ...FREE, plants: [] },
+      inventoryCount: 1,
+      energy: 10,
+      cost: 10,
+    });
+    expect(reason).toBeNull();
+  });
+});
+
+// B23.1 — Der Befund beider Spielerberichte, als Messung gegen die echte Sim:
+// „Ich habe mehrfach in Welle 1 mit Score 0 verloren, weil der Kampf begann, bevor ich eine
+// Pflanze stehen hatte." Vorher startete `maybeAutoStart` die Welle nach AUTO_WAVE_DELAY_TICKS,
+// unabhängig davon, ob überhaupt etwas auf dem Feld stand.
+
+const PREP_SEED = 2447771834;
+
+function place(root: SimulationRoot, variantId: string, gx: number, gy: number, seq = 1): void {
+  root.commands.push(makeCommand(root.clock.get().tick, 'PLACE_PLANT', seq, { variantId, gx, gy }));
+}
+
+function advance(root: SimulationRoot, ticks: number): void {
+  for (let i = 0; i < ticks; i++) root.stepOnce();
+}

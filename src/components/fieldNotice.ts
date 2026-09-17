@@ -41,6 +41,9 @@ export function noticeFromEvent(e: GameEvent): FieldNotice | null {
     case 'PROPAGATE_REJECTED':
     case 'BEETLE_REJECTED':
       return { reason: e.payload.reason, tick: e.tick };
+    case 'BUY_REJECTED':
+      // B36: Nachkauf-Kauf abgelehnt (Energie/Unbekannt) — kommt als Feldmeldung an.
+      return { reason: e.payload.reason === 'no_energy' ? 'no_energy' : 'unknown', tick: e.tick };
     default:
       return null;
   }

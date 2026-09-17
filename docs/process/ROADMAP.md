@@ -20,7 +20,7 @@ Alle relevanten Dokumente befinden sich nun unter `docs/`:
   - [Qualitäts-Spezifikation](docs/quality/quality-spec.md) - Definition of Done & Anforderungen.
   - [Implementierungsplan](docs/quality/implementation-plan.md) - Roadmap der Feature-Entwicklung.
   - [Audit-Berichte](docs/quality/lifegameplant-audit.md) - Analyse bestehender Logik (historischer Stand).
-  - *Versionshistorie:* `CHANGELOG.md` im Repo-Root (seit 0.0.18 getrackt, Changelog-Pflicht aus Regel 0) — der alte `docs/quality/changelog.md` (Milestone-Plan) ist gelöscht; Roadmap-Wahrheit ist §4 hier.
+  - *Versionshistorie:* `CHANGELOG.md` im Repo-Root (seit 0.0.18 getrackt, Changelog-Pflicht aus Regel 0) — der alte Milestone-Plan (ehemals docs/quality/changelog.md) ist gelöscht; Roadmap-Wahrheit ist §4 hier.
 - **Setup & Onboarding** (`docs/setup/`)
   - [Präsentation](docs/setup/presentation.md) - Projektvorstellung.
   - [Script-Dokumentation](docs/setup/script-readme.md) - Hilfe zu den Tooling-Skripten.
@@ -47,7 +47,7 @@ Alle relevanten Dokumente befinden sich nun unter `docs/`:
 
 ### 🟢 Short-Term — Korrektheit vor Feature (**B14 + B15 + B17 + B18.1 erledigt**)
 
-**B14 — umgesetzt und test-locked (18 neue Gates in `src/meta/identity.test.ts`):**
+**B14 — umgesetzt und test-locked (18 neue Gates in `src/meta/brood_identity.test.ts`):**
 
 1. ✅ **B14.1/B14.2 — Monotoner Brut-Zähler.** `MetaSave.broodGeneration` (v5 + Migration v1–v4) ersetzt das Fenster-Maximum in `enqueueBrood`; `BeetleLab` leitet den Index nicht mehr selbst ab. Behebt die verifizierte Doppel-Identität (A13.1/A13.2/A13.3).
 2. ✅ **B14.3 — Identitäts-Gate.** Der Ist-Zustands-Beweis wurde zum Soll-Zustands-Regressionstest gedreht.
@@ -63,13 +63,13 @@ Alle relevanten Dokumente befinden sich nun unter `docs/`:
 - **A17 (DEFECT, gefunden in der Sichtprüfung): der Codex-Screen ist halb übersetzt** — deutsche Literale in der Komponente neben i18n-Texten, obwohl `codex.empty` bereits existiert. Kein Test konnte das finden; deshalb steht die Sichtprüfung im Sprint-Abschluss.
 - **A18 (DEFECT-Klasse, behoben): die fail-open-Geschwister des B14-Fehlers** — `claimBrood` wählte bei ungültigem Index stillschweigend 0 und prüfte Reife nur in der UI; `keepCross` war über den optionalen Index umgehbar (und der Bypass war als Vertrag test-gelockt); die Inventar-Kappung hinterließ hängende Loadout-/bredStats-Referenzen; ein Save-Downgrade überschrieb still das neuere Save. Behoben fail-closed, mit 9 neuen Gates. Zwei weitere Review-Behauptungen (`recordRunEnd` tot, Discovery-Chain gebrochen) sind im Code **widerlegt** (A18.7). Offen als Design-Entscheidung: Kappungs-Politik (B16.8) und E2E-Geometrie vom Renderer lesen (B16.9).
 
-**A19 (DEFECT-Klasse, aus dem Spielbetrieb gemeldet, behoben): die Meta-Wahrheit lag im React-State.** Der Run-Start reservierte die `runId` auf der Router-**Kopie** und persistierte sie — jeder Fortschritt, der während des Runs direkt in die Persistenz ging (überstandene Wellen), wurde beim nächsten Start überschrieben. Dasselbe Muster traf das Menü: es zeigte nach dem Run die Kopie und säte damit `startedWave`-Werte in die Zukunft, die **nie** reifen konnten („Samen keimen nicht"). Fix: `beginRun()` reserviert auf `loadMeta()`, das Menü liest beim Verlassen frisch, und `healRipeness` stellt Reifungs-Invarianten bei **jedem** Load her (die Storage-Schicht reicht aktuelle Versionen unverändert durch — eine Heilung nur im Migrationszweig liefe für die betroffenen Saves nie). 4 neue Gates in `src/meta/b17.test.ts`, darunter eine Gegenprobe, die die alte Form als Verlust dokumentiert. **Entscheidungen getroffen und umgesetzt (2026-09-15):** Bestandsquelle B17.3 = Option A (Samen keimt zur Pflanze, atomar als `buySeedAndGerminate`) und Fortschrittsregel B17.4 = Option A (angebrochene Welle, `WAVE_STARTED → +1`, Doppelzählungs-Gate in E2E).
+**A19 (DEFECT-Klasse, aus dem Spielbetrieb gemeldet, behoben): die Meta-Wahrheit lag im React-State.** Der Run-Start reservierte die `runId` auf der Router-**Kopie** und persistierte sie — jeder Fortschritt, der während des Runs direkt in die Persistenz ging (überstandene Wellen), wurde beim nächsten Start überschrieben. Dasselbe Muster traf das Menü: es zeigte nach dem Run die Kopie und säte damit `startedWave`-Werte in die Zukunft, die **nie** reifen konnten („Samen keimen nicht"). Fix: `beginRun()` reserviert auf `loadMeta()`, das Menü liest beim Verlassen frisch, und `healRipeness` stellt Reifungs-Invarianten bei **jedem** Load her (die Storage-Schicht reicht aktuelle Versionen unverändert durch — eine Heilung nur im Migrationszweig liefe für die betroffenen Saves nie). 4 neue Gates in `src/meta/brood_loop.test.ts`, darunter eine Gegenprobe, die die alte Form als Verlust dokumentiert. **Entscheidungen getroffen und umgesetzt (2026-09-15):** Bestandsquelle B17.3 = Option A (Samen keimt zur Pflanze, atomar als `buySeedAndGerminate`) und Fortschrittsregel B17.4 = Option A (angebrochene Welle, `WAVE_STARTED → +1`, Doppelzählungs-Gate in E2E).
 
 **B15 — umgesetzt (Zucht-Schleife erreichbar):**
 
 1. ✅ **B15.2 — Reifung an Wellen gekoppelt, durch B17.4 geschärft.** Der Zähler tickt während des Runs (je angebrochener Welle +1 via `WAVE_STARTED`); `GAME_OVER` zählt nicht nach (keine Doppelzählung) — ein Writer, ein Aufrufanlass.
 2. ✅ **B15.1/B15.3 — Beanspruchung aus der Queue.** Reife Queue-Zeilen zeigen das Kind (aus dem persistierten `PendingCross.seed` rekonstruiert) + Beanspruchen-Knopf; unreife die verbleibenden Wellen. Kein React-State über den Screen-Wechsel.
-3. ✅ **B15.4 — Wurf reihenfolge-unabhängig.** `rollGachaCross` sortiert die Besitzliste kanonisch (nach id) vor dem Gewichten; Gate inkl. Gegenprobe in `src/meta/b15.test.ts`.
+3. ✅ **B15.4 — Wurf reihenfolge-unabhängig.** `rollGachaCross` sortiert die Besitzliste kanonisch (nach id) vor dem Gewichten; Gate inkl. Gegenprobe in `src/meta/brood_loop.test.ts`.
 
 **B17 — Persistenz-Korrektheit UND Bestandskreislauf umgesetzt:**
 

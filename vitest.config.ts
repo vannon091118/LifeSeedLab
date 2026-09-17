@@ -16,5 +16,20 @@ export default defineConfig({
     exclude: ['**/node_modules/**', '**/dist/**'],
     fsModuleCache: true,
     isolate: false,
+    // B32.2/1 — Abdeckungswache: Baseline vom 17.09.2026 minus 1 Prozentpunkt
+    // Puffer (RISK-003 im Plan). Schrumpft die Abdeckung, schlägt das Gate an,
+    // bevor eine Konsolidierung still Assertions verloren hat.
+    // Baseline (Spaltenreihenfolge v8-Tabelle: Stmts | Branch | Funcs | Lines):
+    // 76.7 | 69.23 | 79.28 | 80.67
+    coverage: {
+      provider: 'v8',
+      include: ['src/**'],
+      thresholds: {
+        statements: 75,
+        branches: 68,
+        functions: 78,
+        lines: 79,
+      },
+    },
   },
 });

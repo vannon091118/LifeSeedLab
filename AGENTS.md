@@ -49,7 +49,7 @@ Konkret:
 
 Dies verhindert Konflikte bei automatisierten Werkzeugen und erleichtert die Zuordnung von Dateien zu Verantwortungsbereichen.
 
-Ein Hilfsskript `scripts/check-duplicate-basenames.sh` prüft, ob zwei Dateien denselben Basenamen (ohne Erweiterung) teilen. Es sollte lokal ausgeführt oder in einem Pre‑Commit‑Hook integriert werden.
+Ein lokales Hilfsskript (check-duplicate-basenames, im ignorierten Werkzeug-Ordner scripts/) prüft, ob zwei Dateien denselben Basenamen (ohne Erweiterung) teilen. Es ist bewusst nicht Teil des Repositorys und sollte lokal ausgeführt werden.
 
 ## Ownership-Karte (Writer — nicht verhandelbar)
 

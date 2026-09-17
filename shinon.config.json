@@ -3,7 +3,8 @@
     "enforcement": "strict",
     "checks": {
       "e2e": false,
-      "changelog": true
+      "changelog": true,
+      "docLinks": true
     },
     "commands": {
       "typecheck": {

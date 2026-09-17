@@ -320,13 +320,13 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `ac071d6` — feat(loop): B31-B34 — Signatur, Tutorial, Tempo/Auto-Wellen, Loop-Schutz |
-| Arbeitsbaum | 12 gestaged, 0 geändert, 0 neu |
-| Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
+| HEAD | `f40dea5` — docs(a13): Doku-Doppelung aufgeloest, Root Cause als Regel im Spec |
+| Arbeitsbaum | 63 gestaged, 2 geändert, 0 neu |
+| Letztes Gate | 🛑 geschlossen (pre-commit, 6 Fehler, 2 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `ac071d6` feat(loop): B31-B34 — Signatur, Tutorial, Tempo/Auto-Wellen, Loop-Schutz |
+| Letzter Shinon-Commit | `f40dea5` docs(a13): Doku-Doppelung aufgeloest, Root Cause als Regel im Spec |
 | Letzter Push | ✅ origin/main |
-| LOC-Hotspots | `src/simulation/root.ts` 298/300 (99 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/simulation/plantSystem.ts` 283/300 (94 %)<br>`src/simulation/enemySystem.ts` 279/300 (93 %)<br>`src/config/map.source.ts` 174/200 (87 %) |
+| LOC-Hotspots | `src/simulation/root.ts` 300/300 (100 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/simulation/plantSystem.ts` 283/300 (94 %)<br>`src/simulation/enemySystem.ts` 279/300 (93 %)<br>`src/config/map.source.ts` 174/200 (87 %) |
 <!-- SHINON:STATUS:END -->
 
 
@@ -335,7 +335,7 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 To avoid naming collisions, all files under `src/` must use a domain‑specific prefix in their filename:
 `<domain>_<descriptiveName>.[ts|tsx]` (e.g. `beetle.test.ts` → `genome_beetle.test.ts`).
 
-A helper script `scripts/check-duplicate-basenames.sh` is provided to verify that no two files share the same basename (without extension). Run it locally or add it to your pre‑commit hook.
+A local helper script (check-duplicate-basenames, in the ignored tooling folder scripts/) verifies that no two files share the same basename (without extension). It is intentionally not part of the repository — run it locally.
 
 Example pre‑commit setup (using husky or plain Git hook):
 ```bash

@@ -44,7 +44,6 @@ export function SeedShop({ meta, onMetaChange, onClose }: Props) {
           <h2 style={styles.title}>{t('shop.title')}</h2>
           <div style={styles.headerRight}>
             <span style={styles.nektar}>🍯 {meta.nektar}</span>
-            <span style={styles.stash}>{t('shop.stash')}: {meta.seedStash}</span>
             <button onClick={onClose} style={styles.closeBtn}>✕</button>
           </div>
         </div>
@@ -67,7 +66,8 @@ export function SeedShop({ meta, onMetaChange, onClose }: Props) {
         </div>
 
         <div style={styles.stockRow}>
-          <span>{t('shop.stash')}: <strong>{meta.seedStash}</strong></span>
+          {/* B36 (Playtest R2 #6): Kein „Vorrat: 0“ mehr — seit B17.3 keimt ein Kauf direkt
+              zur Pflanze, der Stash ist strukturell immer 0. Die Zeile log nur. */}
           <span style={styles.stockHint}>{t('shop.germinateHint').replace('{n}', String(germinateIndex + 1))}</span>
         </div>
       </div>

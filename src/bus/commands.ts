@@ -16,7 +16,8 @@ export type CommandType =
   | 'PLACE_TILE'
   | 'DEPLOY_BEETLE'
   | 'EXPAND_MAP'
-  | 'SET_AUTO_WAVES';
+  | 'SET_AUTO_WAVES'
+  | 'BUY_PLANT';
 
 export interface CommandPayloads {
   PLACE_PLANT: { variantId: string; gx: number; gy: number };
@@ -33,6 +34,8 @@ export interface CommandPayloads {
   EXPAND_MAP: { gx: number; gy: number };
   /** B32: Spieler-Entscheid — starten Wellen nach der Vorbereitung von selbst? */
   SET_AUTO_WAVES: { enabled: boolean };
+  /** B36: Nachschub im Lauf — Energie → 1× Pflanze ins Inventar (Playtest R2 #2). */
+  BUY_PLANT: { variantId: string };
 }
 
 export type Command = {

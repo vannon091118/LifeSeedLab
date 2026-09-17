@@ -196,6 +196,8 @@ export class SimulationRoot {
     }
 
     // 6) game over (der Game-Over-Freeze oben greift ab dem nächsten Tick — P1)
+    // B36: Die EINZIGE Niederlage-Bedingung ist lives <= 0 (Leaks am Wegende). Der Payload
+    // trägt die Ursache — der K.O.-Screen sagt sie, statt den Spieler im Unklaren zu lassen.
     if (state.lives <= 0) {
       state.phase = 'gameover';
       this.publish({
@@ -204,7 +206,7 @@ export class SimulationRoot {
         type: 'GAME_OVER',
         sourceId: 'system:run',
         version: 1,
-        payload: { wave: state.wave.number, score: state.score },
+        payload: { wave: state.wave.number, score: state.score, reason: 'lives_depleted' },
       });
     }
   }

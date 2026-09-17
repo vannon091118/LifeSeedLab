@@ -29,21 +29,8 @@ function toHashable(root: SimulationRoot): HashableState {
 describe('Gate B — deterministische Wiederholung', () => {
   beforeEach(() => resetIds());
 
-  it('gleicher Seed + gleiche Commands ⇒ identischer State-Hash', () => {
-    resetIds();
-    const a = new SimulationRoot({ seed: SEED });
-    a.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 1, gy: 2 }));
-    a.commands.push(makeCommand(0, 'START_WAVE', 2, {}));
-    for (let i = 0; i < 600; i++) a.stepOnce();
-
-    resetIds();
-    const b = new SimulationRoot({ seed: SEED });
-    b.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 1, gy: 2 }));
-    b.commands.push(makeCommand(0, 'START_WAVE', 2, {}));
-    for (let i = 0; i < 600; i++) b.stepOnce();
-
-    expect(hashState(toHashable(a))).toBe(hashState(toHashable(b)));
-  });
+  // Replay-Kanon (gleicher Seed + Stream ⇒ identischer Hash) liegt zentral in
+  // simulation/determinism.test.ts (B32.2/4) — hier nur der FX-Isolations-Nachbar.
 
   it('FX an/aus verändert den Gameplay-State nicht', () => {
     // Sequential runs — shared global ID counters must not interleave

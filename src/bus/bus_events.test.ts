@@ -1,7 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
+
+// Owner: Bus-Tests — Sub-Domäne „Events“ (B32.2/3, Phase 4).
+// Konsolidierung: bus.test.ts (EventBus-Teile) + bus_audience.test.ts (B29).
+// CommandSchema/Queue wanderte in bus_commands.test.ts; Transport in bus_commands.test.ts.
+
 import { EventBus } from './bus';
 import { makeEvent, assertEventContract } from './events';
-import { makeCommand, CommandQueue } from './commands';
+import { makeCommand } from './commands';
 
 describe('Phase 3.1/3.2 EventBus + contract', () => {
   it('publish/subscribe dispatches in order', () => {
@@ -54,34 +59,5 @@ describe('Phase 3.1/3.2 EventBus + contract', () => {
       projectileId: 'proj-0001', plantId: 'plant-0001', targetId: 'enemy-0001', damage: 10, effectId: null,
     }));
     expect(hits).toBe(0);
-  });
-});
-
-describe('Phase 3.3 Commands', () => {
-  it('command schema is complete and stable', () => {
-    const c = makeCommand(7, 'PLACE_PLANT', 2, { variantId: 'base_shooter', gx: 1, gy: 1 });
-    expect(c.commandId).toBe('cmd:7:PLACE_PLANT:2');
-    expect(c.actorId).toBe('player');
-    expect(c.version).toBe(1);
-    expect(c.tick).toBe(7);
-  });
-
-  it('CommandQueue drains FIFO and leaves an empty queue', () => {
-    const q = new CommandQueue();
-    q.push(makeCommand(1, 'START_WAVE', 1, {}));
-    q.push(makeCommand(1, 'PLACE_PLANT', 2, { variantId: 'base_wall', gx: 3, gy: 3 }));
-    expect(q.size).toBe(2);
-
-    const drained = q.drain();
-    expect(drained.map(c => c.type)).toEqual(['START_WAVE', 'PLACE_PLANT']);
-    expect(q.size).toBe(0);
-    expect(q.drain()).toEqual([]);
-  });
-
-  it('clear empties pending commands', () => {
-    const q = new CommandQueue();
-    q.push(makeCommand(1, 'SELECT_PLANT', 1, { variantId: 'base_shooter' }));
-    q.clear();
-    expect(q.size).toBe(0);
   });
 });

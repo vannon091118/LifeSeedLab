@@ -111,8 +111,7 @@ function healRipeness<T extends { startedWave: number }>(entries: T[], totalWave
 
 /** B17: Reifungs-Invarianten für einen geladenen Save (idempotent, reine Ableitung).
  *
- * Bewusst NICHT enthalten: ein Nachschub für Pflanzen. Dass Basis-Pflanzen beim Kreuzen auf 0
- * gehen können, ist als Vertrag test-gelockt (`keep.test.ts`) und damit eine Design-Frage
+ * Bewusst NICHT enthalten: ein Nachschub für Pflanzen. Dass Basis-Pflanzen beim Kreuzen auf 0  * gehen können, ist als Vertrag test-gelockt (`cross_lifecycle.test.ts`) und damit eine Design-Frage
  * (Bestandsquelle: keimender Samen oder unerschöpfliches Saatgut) — siehe A19/B17 im quality-spec. */
 function normalizeRipeness(meta: MetaSave): MetaSave {
   return {

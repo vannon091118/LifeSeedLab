@@ -56,3 +56,9 @@ CLAUDE.md
 page.html
 test-out.txt
 
+
+# Vitest coverage report (B32 Phase 1)
+coverage/
+
+# Lokale Arbeitsplane (Plan-Skill-Ausgaben, kein Repo-Inhalt)
+plan/

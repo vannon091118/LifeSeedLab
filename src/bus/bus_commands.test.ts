@@ -1,10 +1,42 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
+
+// Owner: Bus-Tests — Sub-Domäne „Commands & Transport“ (B32.2/3, Phase 4).
+// Konsolidierung: bus.test.ts (Phase 3.3 Commands) + transport.test.ts (Gate E).
+
 import { LocalTransport, MockRemoteTransport, TRANSPORT_VERSION } from './transport';
 import { CommandQueue, makeCommand } from './commands';
-import { nextScopedId } from '../core/ids';
+import { nextScopedId, resetIds } from '../core/ids';
 import { serializeSnapshot, deserializeSnapshot, SNAPSHOT_VERSION, EVENT_STREAM_VERSION, snapshotHash } from '../simulation/snapshot';
 import { SimulationRoot, makeCommand as rootMakeCommand } from '../simulation/root';
-import { resetIds } from '../core/ids';
+
+describe('Phase 3.3 Commands', () => {
+  it('command schema is complete and stable', () => {
+    const c = makeCommand(7, 'PLACE_PLANT', 2, { variantId: 'base_shooter', gx: 1, gy: 1 });
+    expect(c.commandId).toBe('cmd:7:PLACE_PLANT:2');
+    expect(c.actorId).toBe('player');
+    expect(c.version).toBe(1);
+    expect(c.tick).toBe(7);
+  });
+
+  it('CommandQueue drains FIFO and leaves an empty queue', () => {
+    const q = new CommandQueue();
+    q.push(makeCommand(1, 'START_WAVE', 1, {}));
+    q.push(makeCommand(1, 'PLACE_PLANT', 2, { variantId: 'base_wall', gx: 3, gy: 3 }));
+    expect(q.size).toBe(2);
+
+    const drained = q.drain();
+    expect(drained.map(c => c.type)).toEqual(['START_WAVE', 'PLACE_PLANT']);
+    expect(q.size).toBe(0);
+    expect(q.drain()).toEqual([]);
+  });
+
+  it('clear empties pending commands', () => {
+    const q = new CommandQueue();
+    q.push(makeCommand(1, 'SELECT_PLANT', 1, { variantId: 'base_shooter' }));
+    q.clear();
+    expect(q.size).toBe(0);
+  });
+});
 
 describe('Gate E — CommandTransport (versioniert, ohne Netzwerk)', () => {
   it('LocalTransport schiebt in die bestehende CommandQueue (SimulationRoot kennt keinen Transport)', () => {
@@ -62,8 +94,9 @@ describe('Gate E — deterministische IDs um Run-/Match-Kontext (ohne UUID)', ()
 });
 
 describe('Gate E — Snapshot-Serialisierung, Event-Stream-Version und State-Hash', () => {
+  beforeEach(() => resetIds());
+
   it('serialize → deserialize ist round-trip mit Hash-Check', () => {
-    resetIds();
     const root = new SimulationRoot({ seed: 123 });
     root.commands.push(rootMakeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 1, gy: 1 }));
     for (let i = 0; i < 20; i++) root.stepOnce();
@@ -77,7 +110,6 @@ describe('Gate E — Snapshot-Serialisierung, Event-Stream-Version und State-Has
   });
 
   it('State-Hash ist öffentlich und stabil (gleicher State ⇒ gleicher Hash)', () => {
-    resetIds();
     const a = new SimulationRoot({ seed: 999 });
     const b = new SimulationRoot({ seed: 999 });
     for (let i = 0; i < 50; i++) { a.stepOnce(); b.stepOnce(); }
@@ -85,7 +117,6 @@ describe('Gate E — Snapshot-Serialisierung, Event-Stream-Version und State-Has
   });
 
   it('korrupter Hash / falsche Version wirft', () => {
-    resetIds();
     const root = new SimulationRoot({ seed: 1 });
     const raw = serializeSnapshot(root.getSnapshot());
     const tampered = raw.replace(/"hash":"[0-9a-f]+"/, '"hash":"deadbeef"');

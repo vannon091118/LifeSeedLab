@@ -258,13 +258,13 @@ Observer: Event → VisualCommand (color/palette IN Payload)
 
 | Screen | Platzhalter | Beschreibung |
 |---|---|---|
-| Title Scene | `![Title](docs/screenshots/title.png)` | Animierter Canvas-Titel, Paper-Hills, Grass-Silhouetten |
-| Main Menu | `![Menu](docs/screenshots/menu.png)` | Collageblock, Mode Cards, Collection Grid mit PlantThumbs |
-| Breeding | `![Breeding](docs/screenshots/breeding.png)` | Zeremonie: Parents → Animation → Offspring + Traits |
-| Run (Day) | `![RunDay](docs/screenshots/run_day.png)` | Paper-Terrain, Ink-Path, Pflanzen mit Genom-Visuals |
-| Run (Night) | `![RunNight](docs/screenshots/run_night.png)` | Night-Grade, Fireflies, Boss-Warnung |
-| Game Over | `![GameOver](docs/screenshots/gameover.png)` | Ink-Panel, Nektar-Flight, Stats |
-| DevGate | `![DevGate](docs/screenshots/devgate.png)` | State-Hash, Event-Log, Particle-Budget, Entity-Inspector |
+| Title Scene | `![Title](Screenshot title.png (Platzhalter, noch nicht aufgenommen))` | Animierter Canvas-Titel, Paper-Hills, Grass-Silhouetten |
+| Main Menu | `![Menu](Screenshot menu.png (Platzhalter, noch nicht aufgenommen))` | Collageblock, Mode Cards, Collection Grid mit PlantThumbs |
+| Breeding | `![Breeding](Screenshot breeding.png (Platzhalter, noch nicht aufgenommen))` | Zeremonie: Parents → Animation → Offspring + Traits |
+| Run (Day) | `![RunDay](Screenshot run_day.png (Platzhalter, noch nicht aufgenommen))` | Paper-Terrain, Ink-Path, Pflanzen mit Genom-Visuals |
+| Run (Night) | `![RunNight](Screenshot run_night.png (Platzhalter, noch nicht aufgenommen))` | Night-Grade, Fireflies, Boss-Warnung |
+| Game Over | `![GameOver](Screenshot gameover.png (Platzhalter, noch nicht aufgenommen))` | Ink-Panel, Nektar-Flight, Stats |
+| DevGate | `![DevGate](Screenshot devgate.png (Platzhalter, noch nicht aufgenommen))` | State-Hash, Event-Log, Particle-Budget, Entity-Inspector |
 
 ---
 

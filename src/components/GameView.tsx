@@ -26,7 +26,7 @@ import { gameViewStyles as styles } from './gameViewStyles';
 import type { HudSnapshot } from './hudSnapshot';
 import { hudOf } from './hudSnapshot';
 import { SPEED_STEPS } from '../core/clock';
-import { AUTO_WAVES_DEFAULT } from '../config/economy.source';
+import { AUTO_WAVES_DEFAULT, INGAME_RESTOCK_MARKUP } from '../config/economy.source';
 import { isDevActive } from '../dev/gate';
 
 interface Props {
@@ -60,6 +60,8 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
   const [autoWavesUi, setAutoWavesUi] = useState(AUTO_WAVES_DEFAULT);
   const [suspended, setSuspended] = useState(false);
   const [showGameOver, setShowGameOver] = useState(false);
+  /** B36: Ursache des Lauf-Endes — der Screen sagt sie (Playtest R2 #1: „wofür ist das Leben gut?“). */
+  const [gameOverReason, setGameOverReason] = useState<'lives_depleted'>('lives_depleted');
   const [fxOn, setFxOn] = useState(audioOn); // B8: audioOn aus dem Meta-Save ist der Startwert
   const [devTick, setDevTick] = useState(0);
   const [placedCount, setPlacedCount] = useState(0); // B21: UI-Zähler angenommener Drops
@@ -90,7 +92,7 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
         onHud: setHud,
         onNotice: setNotice,
         onSuspended: () => setSuspended(true),
-        onGameOver: () => setShowGameOver(true),
+        onGameOver: (reason) => { setGameOverReason(reason); setShowGameOver(true); },
         onMetaChange,
         onDevTick: () => setDevTick(v => v + 1),
       },
@@ -175,6 +177,16 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
     const next = steps[(steps.indexOf(rt.speed) + 1) % steps.length];
     rt.setSpeed(next);
     setSpeedUi(next);
+  }, []);
+
+  /** B36: Nachkauf — Preis aus der Source (Pflanzenkosten × Aufschlag, eine Quelle). */
+  const restockPrice = useCallback((variantId: string): number => {
+    const base = PLANTS_SOURCE[variantId as keyof typeof PLANTS_SOURCE];
+    return (base?.cost ?? 50) * INGAME_RESTOCK_MARKUP;
+  }, []);
+
+  const handleBuyPlant = useCallback((variantId: string) => {
+    runtimeRef.current?.buyPlant(variantId);
   }, []);
 
   /** B32: Auto-Wellen pro Run umschalten — Command in die Sim, Anzeige folgt dem Snapshot. */
@@ -263,9 +275,12 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
             variantId={placement.variantId}
             onSelectPlant={selectPlant}
             onSelectTile={selectTile}
+            onBuyPlant={handleBuyPlant}
+            restockPrice={restockPrice}
           />
           <GameOverlays
             gameOver={showGameOver}
+            reason={gameOverReason}
             suspended={suspended}
             wave={hud?.wave ?? 0}
             score={runtimeRef.current?.root.getSnapshot().score ?? 0}
@@ -278,8 +293,8 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
           run={{ selectedVariant: placement.variantId, placements: placedCount, phase: hud?.phase ?? 'prep', paused: hud?.paused ?? false }}
           onHold={tutorialHold}
         />
-        {/* P3QA-05: im ersten Run (noch nichts platziert) steht die Anleitung prominent IM Feld;
-            danach übernimmt der dezente Zettel darunter. pointer-events:none — nichts blockiert. */}
+        {/* P3QA-05 + B36 (Playtest R2 #7): Die Aufbauhilfe steht nur BIS zur ersten Platzierung
+            im Feld — danach blockiert sie keinen Boden mehr. pointer-events:none — nichts blockiert. */}
         {placedCount === 0 && !showGameOver && (
           <div style={styles.firstRunHint} aria-hidden>
             <span style={styles.paperNotePin}/> {t('game.hint')}

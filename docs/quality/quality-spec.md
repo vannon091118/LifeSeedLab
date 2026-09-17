@@ -14,7 +14,7 @@ Classes: `DEFECT` (broken/incorrect) · `INCOMPLETE` (contract exists, execution
 | Symbol | Class | Verdict |
 |---|---|---|
 | `GameState`, `Tower`, `Enemy`, `Projectile`, `WaveConfig`, `WorkerInMessage`, `WorkerOutMessage`, `Position` | WRONG | Delete. Old worker-monolith contract. Zero importers (verified). Sim truth lives in `simulation/state.ts` (`SimState`, `PlantEntity`, `EnemyEntity`, `ProjectileEntity`). Keeping both = "fixes on device A break resume on device B". |
-| `Gene`, `Genome`, `PlantType`, `PlantVariant`, `CrossResult`, `RunEconomy`, `MetaSave`, `GameMode`, `RunStartConfig` | KEEP | Move to `src/types/meta.ts` (breeding/meta) and delete the entity/wave/worker sections. |
+| `Gene`, `Genome`, `PlantType`, `PlantVariant`, `CrossResult`, `RunEconomy`, `MetaSave`, `GameMode`, `RunStartConfig` | KEEP | Move to a future meta types module (breeding/meta; Ziel offen — noch kein Pfad festgelegt) and delete the entity/wave/worker sections. |
 | `DebugPanel.tsx` imports `GameState` | WRONG | Component is dead (mounted nowhere) → delete file; rebuilt later under DevGate with `SimState`. |
 
 ## A2. `src/genome.ts` — WRONG core, KEEP math
@@ -107,7 +107,7 @@ Status bei Aufnahme: **154/154 Tests grün, `tsc` clean.** Jeder Befund wurde an
 `enqueueBrood` (`meta/run.ts`) leitet den nächsten Index aus dem **aktuellen Fenster** ab:
 `meta.pendingBroods.reduce((m,p) => Math.max(m, p.broodIndex), -1) + 1`. Das ist als Aggregation reihenfolge-unabhängig (im Gegensatz zu `arr[arr.length-1]`), aber **nicht stabil**: `claimBrood` entfernt die Brut mit dem höchsten Index aus dem Fenster. Paart der Spieler danach **dieselben Eltern** erneut, fällt der Maximalwert zurück und der bereits verbrauchte Index wird erneut vergeben. `rollBrood` verwendet den Index als RNG-Namespace-Parameter (`deriveBroodSeed(A, B, generation)`) und bildet die Specimen-ID daraus (`brood_<seed>_<i>`) ⇒ identische Brut, identische ID. Ergebnis: `meta.beetles` enthält zwei Specimen mit **derselben `id`** (Doppel-Identität bei `key`, Lookup und Deploy-Spec).
 
-Beweis: `src/meta/identity.test.ts` (zuerst als Ist-Zustands-Beweis geführt, mit B14 in den Soll-Zustand gedreht).
+Beweis: `src/meta/brood_identity.test.ts` (zuerst als Ist-Zustands-Beweis geführt, mit B14 in den Soll-Zustand gedreht).
 
 ### A13.2 DEFECT — zweite Ableitungsquelle für dieselbe Wahrheit · **REPARIERT (B14.1)**
 
@@ -140,7 +140,7 @@ Seit ebb4913 liefern `getSnapshot()`/`getEventLog()` Tiefkopien (korrekt gegen F
 
 ### A13.9 DEFECT — Doku-Querverweise nach dem Kebab-Case-Umzug verwaist · **REPARIERT**
 
-Commit `6585a3d` hat die Dokumente nach `docs/{architecture,quality,setup}/` verschoben und auf kebab-case umbenannt, aber **keinen** der Verweise mitgezogen: 32 tote Links in 7 Dateien (`ARCHITECTURE_CONTRACT.md`, `ARCHITECTURE.md`, `docs/QUALITY_SPEC.md`). Zusätzlich verweisen `ROADMAP.md` auf `docs/quality/changelog.md` und `CLAUDE.md` sowie B0.9 auf `docs/art/styleframe.html` — alle drei liegen in `.gitignore` und existieren für einen frischen Klon nicht. In diesem Arbeitsgang korrigiert (siehe A13.10).
+Commit `6585a3d` hat die Dokumente nach `docs/{architecture,quality,setup}/` verschoben und auf kebab-case umbenannt, aber **keinen** der Verweise mitgezogen: 32 tote Links in 7 Dateien (`ARCHITECTURE_CONTRACT.md`, `ARCHITECTURE.md`, „docs/QUALITY_SPEC.md“). Zusätzlich verweisen `ROADMAP.md` auf „docs/quality/changelog.md“ und `CLAUDE.md` sowie B0.9 auf den Styleframe (docs/art, gitignored) — alle liegen in `.gitignore` und existieren für einen frischen Klon nicht. In diesem Arbeitsgang korrigiert (siehe A13.10).
 
 ### A13.10 REPARIERT (dieser Arbeitsgang) — Verweise + Doku-Stand
 
@@ -148,11 +148,11 @@ Tote Querverweise in `AGENTS.md`, `README.md`, `docs/architecture/architecture.m
 
 ### A13.12 WIEDERHOLUNG derselben Defekt-Klasse — Doku-Dopplung + tote Karten-Referenzen (Root Cause + Reparatur)
 
-**Befund (Struktur-Linse + Nachzählung):** (1) `docs/quality/changelog.md` existierte als **Zwilling** des echten `CHANGELOG.md` — ein alter Milestone-Plan (Woche 38–41, englisch), dessen Wahrheit längst in `docs/process/ROADMAP.md` §4 und der Change-Pflicht (Regel 0) lebt. (2) Vier Dateien verwiesen auf `ROADMAP.md` **im Root** — dort liegt seit dem Doku-Move keine Datei mehr (nur `docs/process/ROADMAP.md` im Track): README ×2, AGENTS.md-Ressourcenkarte, architecture.md, presentation.md. Die Struktur-Linse meldete „alle 100 Referenzen existieren“ — **falsch beruhigend**: Sie prüft den Worktree, nicht den Track; gitignorierte Datei-Reste machen tote Referenzen unsichtbar.
+**Befund (Struktur-Linse + Nachzählung):** (1) „docs/quality/changelog.md“ existierte als **Zwilling** des echten `CHANGELOG.md` — ein alter Milestone-Plan (Woche 38–41, englisch), dessen Wahrheit längst in `docs/process/ROADMAP.md` §4 und der Change-Pflicht (Regel 0) lebt. (2) Vier Dateien verwiesen auf `ROADMAP.md` **im Root** — dort liegt seit dem Doku-Move keine Datei mehr (nur `docs/process/ROADMAP.md` im Track): README ×2, AGENTS.md-Ressourcenkarte, architecture.md, presentation.md. Die Struktur-Linse meldete „alle 100 Referenzen existieren“ — **falsch beruhigend**: Sie prüft den Worktree, nicht den Track; gitignorierte Datei-Reste machen tote Referenzen unsichtbar.
 
-**Root Cause (wie es dazu kommen konnte, zweimal):** Die Defekt-Klasse aus A13.10 („Datei verschoben, Referenz nicht mitgezogen“) wurde nicht als **Regel** gefixt, sondern nur als Einzelfall. Dazu zwei Verstärker: (a) Die alte Plan-Doku (`docs/quality/changelog.md`) blieb bei Umbenennung/Ablösung liegen, statt gelöscht zu werden — Parallelwahrheit nach Regel 2, nur in Doku. (b) Keine Prüfung gegen **git-tracked** statt Platten-Bestand — die Linse glaubte dem Worktree.
+**Root Cause (wie es dazu kommen konnte, zweimal):** Die Defekt-Klasse aus A13.10 („Datei verschoben, Referenz nicht mitgezogen“) wurde nicht als **Regel** gefixt, sondern nur als Einzelfall. Dazu zwei Verstärker: (a) Die alte Plan-Doku („docs/quality/changelog.md“) blieb bei Umbenennung/Ablösung liegen, statt gelöscht zu werden — Parallelwahrheit nach Regel 2, nur in Doku. (b) Keine Prüfung gegen **git-tracked** statt Platten-Bestand — die Linse glaubte dem Worktree.
 
-**Reparatur (dieser Arbeitsgang):** Zwilling gelöscht (`docs/quality/changelog.md`); ROADMAP-Karte bereinigt (Versionshistorie-Wahrheit: Root-`CHANGELOG.md`, getrackt; „Root-Files im Track“ korrigiert); die vier Root-ROADMAP-Referenzen auf `docs/process/ROADMAP.md` gezogen.
+**Reparatur (dieser Arbeitsgang):** Zwilling gelöscht („docs/quality/changelog.md“); ROADMAP-Karte bereinigt (Versionshistorie-Wahrheit: Root-`CHANGELOG.md`, getrackt; „Root-Files im Track“ korrigiert); die vier Root-ROADMAP-Referenzen auf `docs/process/ROADMAP.md` gezogen.
 
 **Regel (verhindert die Klasse, nicht den Einzelfall):** (1) Jede Doku-Wahrheit hat genau einen Ort — ein Thema, eine Datei; Ablösung heißt **löschen**, nicht liegen lassen. (2) Doku-Referenzen prüfen gegen `git ls-files`, nie gegen den Worktree („Existiert auf der Platte“ ≠ „Existiert für einen frischen Klon“). (3) Bei jedem Doku-Move/Rename gilt dieselbe Disziplin wie bei Code: Der Move ist erst fertig, wenn alle Referenzen mitgezogen sind — Referenz-Prüfung gehört zum DoD des Moves.
 
@@ -188,11 +188,11 @@ Befundkette, jede Stufe im Code gelesen:
 2. `EnemySystem.activePath()` = `this.route ?? ENEMY_PATH` — die Gegner laufen also tatsächlich die **berechnete** Route.
 3. `Renderer.prepareTerrain(seed)` backt `bakeTerrain(seed)` und **nur** bei Seed-Wechsel neu (`if (this.terrainSeed === seed) return`) — laut Dateiheader bewusst „EINMAL pro Seed gebacken".
 4. `layers/terrain.ts`, `drawPath()`, liest **ausschließlich** `ENEMY_PATH`: statisch, ohne Parameter, ohne Routen-Bezug; die Verzierung stammt aus dem `visual`-Namespace.
-5. `EnemySystem.getRoute()` trägt den Kommentar „Renderer zeigt die Route — read-only", hat aber **null** Aufrufer in `src/render/` — die einzigen Aufrufer liegen in `src/simulation/map.test.ts`.
+5. `EnemySystem.getRoute()` trägt den Kommentar „Renderer zeigt die Route — read-only", hat aber **null** Aufrufer in `src/render/` — die einzigen Aufrufer liegen in `src/simulation/placement_map.test.ts`.
 
 Ergebnis: **Umleiten ist unsichtbar.** Wer mit `path`-Kacheln umleitet, sieht weiter die Default-Serpentine, während die Gegner auf einer anderen Bahn laufen — das Feature wird berechnet, aber nicht dargestellt. Aussage (5) ist zusätzlich eine Behauptung über einen Konsumenten, den es nicht gibt (dieselbe Klasse wie A13.7: ein Kommentar, den niemand prüft).
 
-Belege: `src/render/layers/terrain.ts:171-232`, `src/render/renderer.ts:77-81`, `src/simulation/enemySystem.ts:30-47`. Warum kein Test anschlug: `map.test.ts` prüft die Route **im Modell**, nicht im Bild — deshalb blieb es grün.
+Belege: `src/render/layers/terrain.ts:171-232`, `src/render/renderer.ts:77-81`, `src/simulation/enemySystem.ts:30-47`. Warum kein Test anschlug: `placement_map.test.ts` prüft die Route **im Modell**, nicht im Bild — deshalb blieb es grün.
 
 ### A15. INCOMPLETE (verifiziert, gemessen) — Genom-Mutation: drei Achsen, ein falsches Nein
 
@@ -224,11 +224,11 @@ Ausgangspunkt war ein externes Review von `d06afa4`; jeder Punkt wurde gegen den
 
 ### A18.1 DEFECT (behoben) — `claimBrood` war fail-open
 
-`rolled[chosenIndex] ?? rolled[0]` wählte bei ungültigem Kandidaten-Index stillschweigend 0; die Reife wurde ausschließlich in der UI über `readyBroods` geprüft — eine Gameplay-Entscheidung in der Komponente (Verbotspunkt 3). Jetzt: Reifeprüfung **in** `claimBrood` (`isMatured`), unbekannter Kandidat ⇒ unverändert, unbekannter `broodIndex` ⇒ unverändert. Alle drei Pfade test-gelockt (`identity.test.ts`).
+`rolled[chosenIndex] ?? rolled[0]` wählte bei ungültigem Kandidaten-Index stillschweigend 0; die Reife wurde ausschließlich in der UI über `readyBroods` geprüft — eine Gameplay-Entscheidung in der Komponente (Verbotspunkt 3). Jetzt: Reifeprüfung **in** `claimBrood` (`isMatured`), unbekannter Kandidat ⇒ unverändert, unbekannter `broodIndex` ⇒ unverändert. Alle drei Pfade test-gelockt (`brood_identity.test.ts`).
 
 ### A18.2 DEFECT (behoben) — `keepCross` war über den optionalen Index umgehbar
 
-Schlimmer als im Review: der Bypass war **als Vertrag test-gelockt** (`identity.test.ts`, „kommt ohne crossIndex aus (Rückwärtskompatibilität des Aufrufs)"). Der Kommentar an `keepCross` nannte die Ausbuchung den EINZIGEN Ort, an dem die Queue schrumpft — der Ort war aber freiwillig. Jetzt: `crossIndex` verpflichtend, Reifeprüfung **in** `keepCross` vor jedem Verbrauch (fail-closed); der alte Test ist invertiert und beweist jetzt das Gegenteil.
+Schlimmer als im Review: der Bypass war **als Vertrag test-gelockt** (`brood_identity.test.ts`, „kommt ohne crossIndex aus (Rückwärtskompatibilität des Aufrufs)"). Der Kommentar an `keepCross` nannte die Ausbuchung den EINZIGEN Ort, an dem die Queue schrumpft — der Ort war aber freiwillig. Jetzt: `crossIndex` verpflichtend, Reifeprüfung **in** `keepCross` vor jedem Verbrauch (fail-closed); der alte Test ist invertiert und beweist jetzt das Gegenteil.
 
 ### A18.3 DEFECT (behoben) — Kappung hinterließ hängende Referenzen
 
@@ -258,7 +258,7 @@ Zusätzlich verkannt: die Migrationskette in `store.ts` ist bewusst **Normalisie
 Spielbericht: „keine Runde bringt was, die States werden nur für die erste Runde getrackt und Samen keimen nicht." Jeder Punkt wurde gegen den Code und gegen den echten Browser-Save geprüft (`localStorage['lifegamelab_meta']`).
 
 **A19.1 — Der Run-Start schrieb eine veraltete Kopie zurück. FIXED (B17.1).**
-`App.tsx:handleStartRun` reservierte die `runId` auf dem React-State des Routers und persistierte diesen State: `persistMeta(reserveRunId(meta))`. Während eines Runs schreibt die Simulation aber **direkt** in die Persistenz (`advanceCrossMaturation` je überstandener Welle), ohne den Router zu informieren. Die Kopie war damit älter als die Wahrheit — und überschrieb sie bei jedem Run-Start. Beleg im Live-Save: `runId: 3` bei `runs: 2`; Beleg im Gate: `b17.test.ts` (B17.1 überlebt, B17.2 dokumentiert die alte Form als Verlust). Fix: `meta/run.ts:beginRun()` reserviert auf `loadMeta()`.
+`App.tsx:handleStartRun` reservierte die `runId` auf dem React-State des Routers und persistierte diesen State: `persistMeta(reserveRunId(meta))`. Während eines Runs schreibt die Simulation aber **direkt** in die Persistenz (`advanceCrossMaturation` je überstandener Welle), ohne den Router zu informieren. Die Kopie war damit älter als die Wahrheit — und überschrieb sie bei jedem Run-Start. Beleg im Live-Save: `runId: 3` bei `runs: 2`; Beleg im Gate: `brood_loop.test.ts` (B17.1 überlebt, B17.2 dokumentiert die alte Form als Verlust). Fix: `meta/run.ts:beginRun()` reserviert auf `loadMeta()`.
 
 **A19.2 — Das Menü zeigte nach dem Run die Kopie statt der Wahrheit. FIXED (B17.1).**
 `handleExitRun` wechselte nur den Screen. Das Gewächshaus rechnete danach mit dem `totalWavesSurvived` von **vor** dem Run — und schrieb beim Säen genau diesen Wert als `startedWave` in die Kreuzung. Fix: beim Verlassen frisch lesen.
@@ -267,7 +267,7 @@ Spielbericht: „keine Runde bringt was, die States werden nur für die erste Ru
 Aus A19.2/​A19.1 kombiniert entstanden Einträge mit `startedWave > totalWavesSurvived`. Das Reife-Kriterium ist `total - started >= needed` — bei negativem Wertebereich ist die Kreuzung **garantiert** unreif, dauerhaft. Das ist das exakte Bild „Samen keimen nicht". Fix: `store.ts:healRipeness` bei **jedem** Load, nicht nur im Migrationspfad — die Storage-Schicht reicht Saves der aktuellen Version unverändert durch, eine Heilung nur im Migrationszweig liefe für genau die Saves nie, die sie brauchen. Sie ist idempotent, konservativ (kein Gratis-Fortschritt: der Eintrag beginnt ab jetzt zu warten) und gilt über dasselbe Kriterium auch für Bruten.
 
 **A19.4 — OFFEN: Woher kommt eine neue Pflanze? (Design-Entscheidung)**
-Der Live-Save zeigt `variantCounts: { sprout: 0, rootwall: 0, cross_p0pn4p_0: 1 }` — genau **eine** besessene Pflanze. `MainMenu` sperrt das Gewächshaus bei `ownedVariants.length < 2`, `Greenhouse.canSow` verlangt dasselbe. Ein einziger `keepCross` verbraucht die beiden Start-Pflanzen (2→1, test-gelockter Vertrag in `keep.test.ts`) — und es gibt **keinen Weg zurück**: der Shop verkauft Samen, aber ein Samen wird zum Kreuzungs-Ticket, nicht zum Bestand (`registerVariant` hat keinen Aufrufer).
+Der Live-Save zeigt `variantCounts: { sprout: 0, rootwall: 0, cross_p0pn4p_0: 1 }` — genau **eine** besessene Pflanze. `MainMenu` sperrt das Gewächshaus bei `ownedVariants.length < 2`, `Greenhouse.canSow` verlangt dasselbe. Ein einziger `keepCross` verbraucht die beiden Start-Pflanzen (2→1, test-gelockter Vertrag in `cross_lifecycle.test.ts`) — und es gibt **keinen Weg zurück**: der Shop verkauft Samen, aber ein Samen wird zum Kreuzungs-Ticket, nicht zum Bestand (`registerVariant` hat keinen Aufrufer).
 Folge: Nach der ersten erfolgreichen Kreuzung ist die Zucht dauerhaft tot, unabhängig davon, wie viele Runden gespielt werden — genau das gemeldete „keine Runde bringt was". Die Start-Pflanzen sind laut Source (`economy.source.ts`: „genau 2 Pflanzen zu Beginn") der Anfangsbestand; dass der erste Keep diesen Bestand unter die eigene Startregel drückt, ist kein Gleichgewicht, sondern eine Sackgasse.
 
 **A19.5 — OFFEN: Was zählt als Reifungs-Fortschritt? (Design-Entscheidung)**
@@ -472,7 +472,7 @@ Altsaves setzen `broodGeneration = max(pendingBroods[].broodIndex, beetles[].gen
 
 ### B14.3 Identitäts-Gate (Regressionstest)
 
-Gate: Nach `claimBrood` und erneuter Paarung **derselben** Eltern darf keine `BeetleSpecimen.id` doppelt in `meta.beetles` liegen und kein `broodIndex` doppelt in `meta.pendingBroods`. Der Ist-Zustands-Beweis `src/meta/brood-gap.test.ts` wird in den Soll-Zustand gedreht (Test bleibt, Erwartung invertiert).
+Gate: Nach `claimBrood` und erneuter Paarung **derselben** Eltern darf keine `BeetleSpecimen.id` doppelt in `meta.beetles` liegen (geprüft im P6-E2E-Sweep, kein dediziertes Testfile) und kein `broodIndex` doppelt in `meta.pendingBroods`. Der dafür gebaute Test (heute Teil der Meta-Suite) wird auf den Soll-Zustand gedreht (Erwartung invertiert).
 
 ### B14.4 Ein Reife-Gate, fail-closed
 
@@ -526,7 +526,7 @@ Die Besitzliste wird **kanonisch sortiert**, bevor sie gewichtet wird — der Wu
 ### B15.5 DoD für B15 — **erfüllt (2026-09-15)**
 
 - [x] Aussäen → Welle(n) → Beanspruchen ist in einem Score-Durchlauf **ohne** Screen-Wechsel-Verlust möglich (Reifung tickt pro Welle, Queue-Zeile zeigt das Kind + Beanspruchen-Knopf)
-- [x] Gate-Test: Rekonstruktion des Kindes aus `PendingCross.seed` == beim Aussäen angezeigtes Kind (`src/meta/b15.test.ts`)
+- [x] Gate-Test: Rekonstruktion des Kindes aus `PendingCross.seed` == beim Aussäen angezeigtes Kind (`src/meta/brood_loop.test.ts`)
 - [x] Gate-Test B15.4 (Reihenfolge-Unabhängigkeit) grün — inkl. Gegenprobe, die den alten positionsabhängigen Pfad widerlegt
 - [x] Kein Eintrag verschwindet aus der Queue, ohne beansprucht worden zu sein (Ausbuchung ausschließlich in `keepCross`)
 - [x] 390×844 geprüft (E2E-Suite grün; Queue-Zeile + Knopf im bestehenden Layout, kein Hover-Zwang)
@@ -540,7 +540,7 @@ Die Besitzliste wird **kanonisch sortiert**, bevor sie gewichtet wird — der Wu
 
 Der Terrain-Layer erhält die **aktive** Route (als Provider/Getter, nicht als Zustandskopie), und `drawPath` liest sie statt `ENEMY_PATH`. Re-Bake **nur** bei Routen- oder Seed-Wechsel, niemals pro Frame (B12: frame ≤ 16 ms). `getRoute()` bekommt einen echten Konsumenten oder fällt ganz; der Kommentar in `enemySystem.ts` wird richtiggestellt. Gate-Test auf den **Vertrag** („der Renderer erhält genau die aktive Route"), nicht auf Canvas-Pixel.
 
-**Umsetzung:** Die Route hat **eine** Wahrheit: `SimState.currentRoute` (Writer: `SimulationRoot.recomputeRoute`, nur bei `START_WAVE`). Die Auflösung `null ⇒ ENEMY_PATH` lebt **einmal** als `resolveActiveRoute` in `world.source.ts`; Sim (`EnemySystem.activePath(state)`), Renderer und Terrain-Bake lesen denselben Ausdruck — keine Kopie, kein eigener Fallback mehr (A14: drei Tode derselben Wahrheit). `setRoute`/`getRoute` sind gelöscht; `prepareTerrain` ist gestorben — der Bake hängt an (Seed, aktive Route) mit Cache-Schlüssel `seed|waypoints` (Re-Bake nur bei Schlüssel-Wechsel, nie pro Frame). `currentRoute` ist Resume-kontrakt-konform bewusst `null` (kein persistiertes Schema-Feld nötig). Gates: `map.test.ts` liest die Route aus dem **Snapshot** (public contract, kein System-Feld-Griff mehr) und lockt die Render-Parität („EnemySystem liest dieselbe Auflösung wie der Renderer"); `sources.test.ts` lockt den Resolver (null ⇒ ENEMY_PATH-Referenz, gültige Route unverändert).
+**Umsetzung:** Die Route hat **eine** Wahrheit: `SimState.currentRoute` (Writer: `SimulationRoot.recomputeRoute`, nur bei `START_WAVE`). Die Auflösung `null ⇒ ENEMY_PATH` lebt **einmal** als `resolveActiveRoute` in `world.source.ts`; Sim (`EnemySystem.activePath(state)`), Renderer und Terrain-Bake lesen denselben Ausdruck — keine Kopie, kein eigener Fallback mehr (A14: drei Tode derselben Wahrheit). `setRoute`/`getRoute` sind gelöscht; `prepareTerrain` ist gestorben — der Bake hängt an (Seed, aktive Route) mit Cache-Schlüssel `seed|waypoints` (Re-Bake nur bei Schlüssel-Wechsel, nie pro Frame). `currentRoute` ist Resume-kontrakt-konform bewusst `null` (kein persistiertes Schema-Feld nötig). Gates: `placement_map.test.ts` liest die Route aus dem **Snapshot** (public contract, kein System-Feld-Griff mehr) und lockt die Render-Parität („EnemySystem liest dieselbe Auflösung wie der Renderer"); `sources.test.ts` lockt den Resolver (null ⇒ ENEMY_PATH-Referenz, gültige Route unverändert).
 
 ### B16.2 Paarung entscheiden: Slot oder Gen (aus A15)
 
@@ -565,7 +565,7 @@ In `rollGachaCross` wird `generation: crossIndex` gesetzt, in `generateCrossResu
 
 - [x] Renderer zeichnet die aktive Route (A14); Re-Bake nur bei Routen-/Seed-Wechsel — **UMGESETZT (2026-09-16)**
 - [x] `getRoute()` hat einen Konsumenten oder existiert nicht mehr; Kommentar richtiggestellt — **existiert nicht mehr**
-- [x] Gate: Route-Vertrag grün, kein Frame-Rebake (B12-Messung bleibt grün) — `map.test.ts` (State-Vertrag + Render-Parität), `sources.test.ts` (Resolver)
+- [x] Gate: Route-Vertrag grün, kein Frame-Rebake (B12-Messung bleibt grün) — `placement_map.test.ts` (State-Vertrag + Render-Parität), `sources.test.ts` (Resolver)
 - [ ] Entscheidung B16.2 dokumentiert und umgesetzt
 - [ ] Gate: Anzeige-/Namenszufall außerhalb des Gameplay-Stroms; Discovery-Hashes stabil
 - [ ] Gate: gleicher Samen-Index ⇒ identisches Genom (B16.3)
@@ -585,7 +585,7 @@ Entscheidung: `savedVariants` und `beetles` werden **nicht gekappt** — weder s
 
 Das „Spieler-Entscheidung"-Modell wurde bewusst abgelehnt: Es baut UI für ein Problem, das die 2→1-Regel nicht hat. Kappung löst ein Wachstumsproblem, das ohne Kappung nicht existiert — sie kostet dafür Vertrauen.
 
-**Umsetzung:** Die Hardcode-Caps (60/40, Verbotspunkt 6) sind aus `meta/run.ts` entfernt; das Miträum-Muster aus A18.3 bleibt als Regel dokumentiert, falls je wieder ein Cap eingeführt wird. **Invarianten sind test-gelockt** (`src/meta/capping.test.ts`, 5 Gates): kein Pfad verlässt einen Eintrag aus Bibliothek/Brut-Lager; jede Loadout-ID existiert; `bredStats` kennt keine Fremd-IDs; `beetleDeployed` verweist nie auf eine entfernte Specimen. Bringt jemand ein Cap zurück, schlagen diese Tests und erzwingen die Miträum-Pflicht.
+**Umsetzung:** Die Hardcode-Caps (60/40, Verbotspunkt 6) sind aus `meta/run.ts` entfernt; das Miträum-Muster aus A18.3 bleibt als Regel dokumentiert, falls je wieder ein Cap eingeführt wird. **Invarianten sind test-gelockt** (`src/meta/cross_lifecycle.test.ts`, 5 Gates): kein Pfad verlässt einen Eintrag aus Bibliothek/Brut-Lager; jede Loadout-ID existiert; `bredStats` kennt keine Fremd-IDs; `beetleDeployed` verweist nie auf eine entfernte Specimen. Bringt jemand ein Cap zurück, schlagen diese Tests und erzwingen die Miträum-Pflicht.
 
 **Offen (Mid-Term, Messschiene):** das reale Wachstum der Bibliothek messen — die 2ⁿ-Kostenkurve macht großes Wachstum unwahrscheinlich, aber gemessen statt behauptet wird es gegen B12 (Save-Größe / Snapshot-Budget).
 
@@ -603,11 +603,11 @@ Jeder Meta-Schreibvorgang geht von `loadMeta()` aus; der Router hält keine schr
 
 - `meta/run.ts:beginRun()` reserviert die `runId` auf der persistierten Wahrheit und persistiert genau das. `App.tsx` ruft nur noch `setMeta(beginRun())`. (`persistMeta`/`reserveRunId` sind aus dem Router verschwunden.)
 - `handleExitRun` liest beim Verlassen frisch — der Menü-Screen zeigt den echten Stand, nicht die Kopie von vor dem Run.
-- Lock: `src/meta/b17.test.ts` — B17.1 (Fortschritt überlebt den Run-Start) **und** B17.2 als Gegenprobe, dass die alte Form ihn verliert.
+- Lock: `src/meta/brood_loop.test.ts` — B17.1 (Fortschritt überlebt den Run-Start) **und** B17.2 als Gegenprobe, dass die alte Form ihn verliert.
 
 ### B17.2 Kein Eintrag darf in der Zukunft begonnen haben — **UMGESETZT (2026-09-15)**
 
-`store.ts:healRipeness` hebt `startedWave` bei jedem Load auf `totalWavesSurvived` (`≤`, idempotent, konservativ). Gilt für `pendingCrosses` und `pendingBroods` über dasselbe Kriterium (A18.6). Lock: `b17.test.ts` B17.3.
+`store.ts:healRipeness` hebt `startedWave` bei jedem Load auf `totalWavesSurvived` (`≤`, idempotent, konservativ). Gilt für `pendingCrosses` und `pendingBroods` über dasselbe Kriterium (A18.6). Lock: `brood_loop.test.ts` B17.3.
 
 ### B17.3 Bestandsquelle entscheiden — **UMGESETZT (2026-09-15, Option A)**
 
@@ -619,7 +619,7 @@ Ein Samen ist heute ein Kreuzungs-Ticket, kein Bestand: `buySeed` → `seedStash
 | **B — Basis-Arten sind Saatgut** | Die zwei Start-Pflanzen sind unerschöpflich (nie unter 1). | Ändert den test-gelockten Keep-Vertrag (Elternverbrauch gilt dann nur für gezüchtete Pflanzen) |
 | **C — A und B** | Samen keimen **und** die Basis bleibt Saatgut. | Zwei Wege zum Bestand — muss begründet werden, sonst doppelte Wahrheit |
 
-**Entscheidung: A, umgesetzt.** `buySeedAndGerminate(price, index)` ist **ein** atomarer Schritt (Nektar → Bestand, fail-closed ohne Nektar); der Shop ruft ihn direkt — der Umweg über ein bloßes Ticket (`seedStash`) im Kaufklick wäre ein Nektar-Drift gewesen (erster Klick zahlt, zweiter keimt gratis). Keim-Variante: `germinateVariant(index)` = Basisform aus `PLANTS_SOURCE` + Identität `seed_{index}` aus `deriveSeed(GAME_SEED,'plant','seed',index)` — derselbe Index ergibt weltweit dieselbe Pflanze. Die elteren `germinateSeed`/`buySeed` bleiben als Stash-Pfade erhalten (Gewächshaus). Locks: `src/meta/b18.test.ts` (End-to-End-Kauf, fail-closed, Determinismus, zwei Indizes ⇒ zwei Keime).
+**Entscheidung: A, umgesetzt.** `buySeedAndGerminate(price, index)` ist **ein** atomarer Schritt (Nektar → Bestand, fail-closed ohne Nektar); der Shop ruft ihn direkt — der Umweg über ein bloßes Ticket (`seedStash`) im Kaufklick wäre ein Nektar-Drift gewesen (erster Klick zahlt, zweiter keimt gratis). Keim-Variante: `germinateVariant(index)` = Basisform aus `PLANTS_SOURCE` + Identität `seed_{index}` aus `deriveSeed(GAME_SEED,'plant','seed',index)` — derselbe Index ergibt weltweit dieselbe Pflanze. Die elteren `germinateSeed`/`buySeed` bleiben als Stash-Pfade erhalten (Gewächshaus). Locks: `src/meta/brood_loop_continuation.test.ts` (End-to-End-Kauf, fail-closed, Determinismus, zwei Indizes ⇒ zwei Keime).
 
 ### B17.4 Fortschrittsregel der Reifung entscheiden — **UMGESETZT (2026-09-15, Option A)**
 
@@ -633,8 +633,8 @@ Ein Samen ist heute ein Kreuzungs-Ticket, kein Bestand: `buySeed` → `seedStash
 
 ### B17.5 DoD für B17
 
-- [x] Persistiert wird nie eine Kopie (B17.1) — lock: `b17.test.ts` B17.1/B17.2
-- [x] Reifungs-Invarianten bei jedem Load (B17.2) — lock: `b17.test.ts` B17.3
+- [x] Persistiert wird nie eine Kopie (B17.1) — lock: `brood_loop.test.ts` B17.1/B17.2
+- [x] Reifungs-Invarianten bei jedem Load (B17.2) — lock: `brood_loop.test.ts` B17.3
 - [x] Bestandsquelle entschieden und umgesetzt (B17.3, Option A) — lock: `b18.test.ts`
 - [x] Fortschrittsregel entschieden und umgesetzt (B17.4, Option A) — lock: `tests/run.spec.ts` +1-Gate
 - [x] `tsc` clean, Suite grün (214/214), E2E 11/11, Build grün
@@ -653,7 +653,7 @@ Mit gefülltem Loadout greifen die bereits vorhandenen Pfade: `inventory[id] = 2
 
 ### B18.3 Gates
 
-- `src/meta/b18.test.ts`: `toggleLoadout` rein/raus, Kapazität 4 (danach unverändert), kein Eintrag ohne Bestand, Persistenz in einem Schritt.
+- `src/meta/brood_loop_continuation.test.ts`: `toggleLoadout` rein/raus, Kapazität 4 (danach unverändert), kein Eintrag ohne Bestand, Persistenz in einem Schritt.
 - E2E (lesend): Loadout-Änderung überlebt einen Reload; die Tray-Zahl im Run entspricht dem Loadout.
 - Sichtprüfung (390×844 + Desktop): Sammlung und Loadout sind unterscheidbar — ein Screenshot, der beide Abschnitte zeigt.
 
@@ -732,15 +732,15 @@ Run verlässt, findet seinen Schritt beim Wiedereintritt unverändert vor (Rang 
 
 - [ ] Schrittmodell und i18n-Texte deckungsgleich (jeder Schritt hat DE- und EN-Text) — Lock: `components_tutorial.test.ts`
 - [ ] Zustandsmaschine deterministisch (kein `Math.random`, keine Wanduhr) — Lock: `components_tutorial.test.ts`
-- [ ] Genau ein Writer (`tutorialVersion` über `updateMeta`, Hold über `holdRef`) — Lock: Gate + `onboarding.test.ts`
-- [ ] `MetaSave` v7 liest v1–v6 verlustfrei, das v6-Ja wird zu Fassung 1 — Lock: `onboarding.test.ts`
+- [ ] Genau ein Writer (`tutorialVersion` über `updateMeta`, Hold über `holdRef`) — Lock: Gate + `meta_migrations.test.ts`
+- [ ] `MetaSave` v7 liest v1–v6 verlustfrei, das v6-Ja wird zu Fassung 1 — Lock: `meta_migrations.test.ts`
 - [ ] Sprungregel einseitig: übersprungene Screens fallen, künftige warten — Lock: `components_tutorial.test.ts`
-- [ ] Cue-Ziele existieren im DOM (`data-tut`), Overlay blockiert die echten Knöpfe nicht — E2E `tests/tutorial.spec.ts`
+- [ ] Cue-Ziele existieren im DOM (`data-tut`), Overlay blockiert die echten Knöpfe nicht — E2E (Tutorial-Sweep)
 - [ ] `tsc` clean, Suite grün, `vite build` grün; GameView bleibt ≤ 400 LOC (GameTopBar extrahiert)
 
 ### B21.5 Nachtrag — E2E-Beweis zurückgebaut
 
-Der Onboarding-E2E (`tests/tutorial.spec.ts`) ist auf Wunsch entfallen (er kostete je Lauf Sekunden
+Der Onboarding-E2E ist auf Wunsch entfallen (er kostete je Lauf Sekunden
 und deckte dieselben DOM-Verträge ab, die `components_tutorial.test.ts` deterministisch prüft). Damit gilt für
 B21: Cue-Ziele und Hold-Verhalten sind **unit-gelockt**, der Sichtpfad ist nur noch manuell
 (Preview) belegt — nicht E2E.
@@ -856,9 +856,9 @@ Im Code verifiziert:
 
 ### B23.3 DoD für B23
 
-- [ ] Leeres Feld ⇒ nach 20 Sim-Sekunden noch Welle 0, keine Gegner, Score 0 — Lock: `prep.test.ts` (gegen den echten `SimulationRoot`)
+- [ ] Leeres Feld ⇒ nach 20 Sim-Sekunden noch Welle 0, keine Gegner, Score 0 — Lock: `placement_map.test.ts` (B23.1-Block) (gegen den echten `SimulationRoot`)
 - [ ] Mit Pflanze läuft das Fenster und die Welle startet von selbst; der Knopf kann jederzeit
-      starten (kein Softlock) — Lock: `prep.test.ts`
+      starten (kein Softlock) — Lock: `placement_map.test.ts` (B23.1-Block)
 - [ ] Knopf-Zustand rein aus Phase + Restzeit abgeleitet; Beschriftung in prep ist immer die
       Handlung — Lock: `waveButton.test.ts`
 - [ ] Jeder Ablehnungsgrund hat einen eigenen DE/EN-Text; Toast-Lebensdauer am Sim-Tick, kein
@@ -1007,7 +1007,7 @@ Ergänzung in `src/config/sources.test.ts` (dort leben bereits die Source-Validi
 ### B26.4 Prototyp-Umsetzung (dieser Sprint): ein Gen, drei Kanäle
 
 Gebaut wurde das Referenz-Paar `fire → EXTRA_SPIKE + EFFECT_BURN` und der Beweis, dass **eine
-Zeile** alle drei Konsumenten speist (Test: `simulation_fire_pair.test.ts`, Gate: `sources.test.ts`):
+Zeile** alle drei Konsumenten speist (Test: `simulation_beetle_fire_pair.test.ts`, Gate: `sources.test.ts`):
 
 | Kanal | Pfad | Gemessen an `cross_fire` (Seed 4242) |
 |---|---|---|
@@ -1090,7 +1090,7 @@ Ergänzend beschlossen (gleiche Klasse, ausdrücklich statt zufällig): `PLANT_R
 
 ### B29.4 Gate-Tests
 
-`src/bus/bus_audience.test.ts` und `src/simulation/simulation_notice.test.ts`:
+`src/bus/bus_audience.test.ts` und `src/simulation/simulation_beetle_fire_pair.test.ts`:
 
 1. **Erschöpfung:** Muster-Payload für **jeden** `EventType` (per Typ erzwungen) + Registry-Eintrag
    mit nicht-leerer Audience und Begründung; Registry nicht größer als der Kontrakt.
@@ -1169,7 +1169,7 @@ Save weg, dessen Seed nicht zur aktuellen Ableitung passt).
 
 ### B30.4 Gate-Tests
 
-`src/genome/genome_brood_domain.test.ts` (7 Fälle):
+`src/meta/brood_identity.test.ts` (7 Fälle):
 
 1. Domäne vorhanden (gameplay) und **nicht** in den Präsentations-Namespaces
 2. Dieselben Eingaben ergeben in `brood`, `enemy` und `plant` verschiedene Seeds; der alte
@@ -1239,3 +1239,70 @@ ein Auffinden-Test würde die Versteckstelle dokumentieren statt schützen.
 - [x] SVG-Banner mit Signatur; README-Badge auf 311 Tests
 - [x] Kein Stock-Icon/Emoji (gezeichnete Marke), Name unübersetzt, Bedienhilfe zweisprachig
 - [x] Gate-Tests grün, tsc clean, `vite build` grün, E2E grün
+
+## B32. Test-Suite-Konsolidierung — Baseline, Testkit und Abdeckungswache (Plan: `plan/refactor-test-suite-consolidation-1.md`)
+
+### B32.1 Befund
+
+Die Suite wächst pro Sprint-Meilenstein statt pro Modul-Domäne: 43 Testdateien mit 77
+`describe`-Blöcken (Stand 17.09.2026), davon 9 allein unter `src/meta/`. Dieselben Setup-Zeilen
+(`beforeEach(() => { resetMeta(); clearTestStorage(); })`, teils zusätzlich `resetIds()`) liegen
+6-fach kopiert. Ohne Abdeckungsmessung ist nicht beweisbar, dass eine Konsolidierung nichts
+verliert.
+
+### B32.2 Spec
+
+1. **Coverage-Baseline (gemessen 17.09.2026, Provider `@vitest/coverage-v8`):** Statements 76,7 % ·
+   Branches 69,23 % · Functions 79,28 % · Lines 80,67 % (Spaltenreihenfolge der v8-Tabelle:
+   Stmts | Branch | Funcs | Lines). Der Threshold in `vitest.config.ts`
+   liegt absichtlich **1 Prozentpunkt darunter** (RISK-003 im Plan): statements ≥ 75, branches ≥ 68,
+   functions ≥ 78, lines ≥ 79 — Fluktuationsschutz, keine Schönung.
+2. **Testkit:** `src/testing/testkit.ts` ist der EINZIGE Owner der Test-Setup-Kapselung:
+   `resetTestState()` (Meta + Storage), `resetFullTestState()` (zusätzlich ID-Zähler),
+   `makeRun(runId?)` (deterministische `SimulationRoot`-Erzeugung nach App.tsx-Muster),
+   `drainTicks(root, n)` (n `stepOnce()`-Ticks). Vertrags-Test: `src/testing/testkit.test.ts`.
+3. **Regeln ab Phase 2 des Plans:** ein Testfile = eine Sub-Domäne, Cap 400 Zeilen (Split statt
+   Cap-Erhöhung); Assertions nur über echte Signaturen (`variantId`, `stateHash`, `meta.runId`);
+   Konstanten nie im Test hartkodieren, wenn sie aus `config/*.source.ts` ableitbar sind.
+
+### B32.3 DoD für B32
+
+- [x] Coverage-Baseline gemessen und im Threshold gepinnt (Abdeckungswache aktiv)
+- [x] Testkit mit Vertrags-Test; Suite grün, tsc clean
+- [x] Pilot-Domäne `meta/` konsolidiert (Phase 2): 9 Dateien → 5 Sub-Domänen-Dateien
+      (`brood_identity`, `brood_loop`, `brood_loop_continuation`, `cross_lifecycle`,
+      `meta_migrations`), It-Bilanz 73 = 73, Coverage ≥ Baseline. Plan-Abweichung TASK-006:
+      6→1 hätte den 400-Zeilen-Cap verletzt — Split nach Sub-Domäne schlägt Plan-Tabelle
+- [x] Zentrale `simulation/determinism.test.ts` (Phase 3): Replay + FX-Isolation +
+      Run-Kontext-Pins (2447771834, B30); Replay-Dublette aus gateB.test.ts entfernt;
+      Selbstkontrolle gegen False Truth (veränderter Stream ⇒ anderer Hash)
+- [x] Phase 4: 43 → 32 Testdateien bei It-Bilanz 346 = 346; `i18n/` 3→1, `bus/` 3→2,
+      `simulation/` 10→5; toHashable-Dublette (3-fach) im Testkit aufgelöst. Alle Fusionsdateien
+      unter dem 400er-Cap (max. 393). Restziel ~20 wird von den Behalten-Dateien bestimmt —
+      sie sind bereits domänenrichtig (components, core, config, visual, discovery)
+- [x] Mutation-Stichproben-Protokoll über alle Gruppen (B32.4)
+
+### B32.4 It-Ledger & Mutation-Stichproben-Protokoll (abschließend)
+
+**It-Ledger (gepinnt, Stand Phase-5-Abschluss):** 34 Testdateien / 346 its — 5 meta (76:
+brood_identity 20, brood_loop 19, brood_loop_continuation 9, cross_lifecycle 21, meta_migrations 7),
+7 simulation (76: determinism 8, gateB 12, placement_map 17, wave_flow 8, beetle_fire_pair 11,
+gameover_notice 7, resume 13), 3 bus (23: bus_events 6, bus_commands 11, bus_audience 6),
+1 i18n (13), 1 testing (7), 17 Behalten-Dateien (components/core/config/visual/discovery/
+persistence/genome/observers/dev). Abweichung von dieser Bilanz ohne quality-spec-Eintrag =
+Gate-Befund. Gate-Anmerkung: das 300er-LOC-Cap gilt auch für Testdateien in src/simulation/ —
+Fusionen wurden nachträglich gesplittet (wave_flow, gameover_notice).
+
+Handgemachte Mutation-Tests statt Stryker (ALT-001 im Plan): je konsolidierter Gruppe wurde ein
+Source-/Code-Wert gekippt und verifiziert, dass GENAU der erwartete Test rot wird — dann
+zurückgesetzt. Ergebnis je Gruppe:
+
+| Gruppe | Gekippt | Roter Test | Beweis |
+|---|---|---|---|
+| Determinismus (Replay) | Command-Stream (START_WAVE weggelassen) | `determinism.test.ts` — Selbstkontrolle „abweichender Stream ≠ gleicher Hash“ | Der Replay-Kern kann nicht blind grün sein |
+| ID-Zähler (RISK-001) | `resetIds()` zwischen zwei Läufen weggelassen | `testkit.test.ts` — Determinismus-Test | `plant-0002` ≠ `plant-0001` im Hash — dokumentiert, warum `resetFullTestState()` existiert |
+| B30-Brut-Domäne | Namespace `'brood'` ⇒ `'enemy'` (als Probe ausgeführt) | `brood_identity.test.ts` — Seed-Pins (905729497 etc.) | Probe-Test bestätigt: Pin hält, Flip erzeugt 951497721 ≠ Pin — sensitive |
+| PlacementTray (fremdes B36) | JSX-Fragment im `.map()`-Return fehlte | tsc TS1005/TS1128 (Gate, nicht Suite) | Syntax-Bruch schlägt am Compiler an, nicht erst zur Laufzeit |
+
+Kein Wert wurde dauerhaft gekippt; alle Stichproben sind im jeweiligen Test als
+Selbstkontrolle verankert, wo sie dauerhaften Wert haben (Replay-Selbstkontrolle, ID-Reset).

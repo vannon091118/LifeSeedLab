@@ -46,7 +46,8 @@ export interface RunRuntimeCallbacks {
   /** Ablehnung, die der Spieler sehen muss — einzige Quelle für den Feld-Toast (B29). */
   onNotice(notice: FieldNotice): void;
   onSuspended(): void;
-  onGameOver(): void;
+  /** B36: Mit Ursache — der K.O.-Screen sagt, WARUM der Lauf endete. */
+  onGameOver(reason: 'lives_depleted'): void;
   onMetaChange(meta: MetaSave): void;
   onDevTick(): void;
 }
@@ -183,7 +184,7 @@ export class RunRuntime {
         input.onMetaChange(next);
         // B35: clearRun gehört dem Save-Autor (GAME_OVER-Subscription in persistence/).
       } catch { /* meta persist must never break the run screen */ }
-      this.cbs.onGameOver();
+      this.cbs.onGameOver(e.payload.reason);
     });
 
     // B35: Der Autor hört auf WAVE_STARTED/GAME_OVER am Bus und trägt den 10-s-Takt;
@@ -299,6 +300,11 @@ export class RunRuntime {
   /** B32: Auto-Wellen pro Run an/aus — Command-Pfad, die Sim bleibt einziger Writer. */
   setAutoWaves(on: boolean): void {
     this.root.commands.push(makeCommand(this.root.clock.get().tick, 'SET_AUTO_WAVES', ++this.cmdSeq, { enabled: on }));
+  }
+
+  /** B36: Nachschub im Lauf — Energie → 1× Pflanze ins Inventar (Playtest R2 #2). */
+  buyPlant(variantId: string): void {
+    this.root.commands.push(makeCommand(this.root.clock.get().tick, 'BUY_PLANT', ++this.cmdSeq, { variantId }));
   }
   get autoWaves(): boolean { return this.root.getSnapshot().wave.autoWaves; }
 

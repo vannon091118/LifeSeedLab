@@ -47,6 +47,10 @@ export const AUTO_WAVE_DELAY_TICKS = 90; // 3s bei 30tps
  *  ihn pro Run (wave.autoWaves), die Source bleibt die Content-Wahrheit für den Default. */
 export const AUTO_WAVES_DEFAULT = true;
 
+/** B36 (Playtest R2 #2): Nachkauf im Lauf — Preis = Pflanzenkosten × Aufschlag. Teurer als
+ *  das Mitbringen im Loadout, aber der Lauf endet nie am leeren Inventar mit voller Energie. */
+export const INGAME_RESTOCK_MARKUP = 2;
+
 /**
  * B23.1 (Befund beider Spielerberichte): Solange KEINE Pflanze steht, startet keine Welle von
  * selbst — das Labor wartet auf die erste Platzierung. Vorher lief Welle 1 drei Sekunden nach
