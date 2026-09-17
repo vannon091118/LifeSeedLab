@@ -257,6 +257,13 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
               <span style={styles.hudChip}><LivesChipIcon/> {hud.lives}</span>
               <span style={styles.hudChip}><WaveChipIcon/> {t('game.wave')} {hud.wave}</span>
               {hud.combo > 1 && <span style={{ ...styles.hudChip, ...styles.hudChipCombo }}>×{hud.combo}</span>}
+              {/* D5: Maze-Sichtbarkeit — der Spieler sieht live, wie sein Zucht-Layout den Laufweg beugt.
+                  Werte aus routeQuality (eine Quelle); nur angezeigt, wenn eine berechnete Route existiert. */}
+              {hud.routeQuality !== null && (
+                <span style={{ ...styles.hudChip, ...styles.hudChipQuality }} title={t('game.routeQualityHint')}>
+                  {t('game.routeQuality')} {Math.round(hud.routeQuality * 100)}%
+                </span>
+              )}
               {hud.paused && <span style={{ ...styles.hudChip, background: '#fef3c7' }}>{t('game.paused')}</span>}
             </div>
           )}

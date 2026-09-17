@@ -10,6 +10,7 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 ## Unreleased (Arbeitsstand 17.09.2026)
 
 
+- [D5] Route-Qualitäts-Chip im HUD — routeQuality aus dem State (eine Quelle) wird sichtbar: „WEG-GÜTE n%" nur bei berechneter Route, i18n DE/EN, Lock-Test im hudSnapshot-Gate
 - [D4] PLANT_ROUTE_COST in die Source (config/map.source.ts) — die Maze-Balance-Schraube ist source-driven, Sim importiert statt kopiert; veralteter 12×8-Grid-Kommentar korrigiert (12×12); Lock-Test mit Semantik-Vertrag (> DEFAULT_WEIGHT, < boulder)
 - [D3] Tray-Sektionen: Pflanzen (Kampf) und Feld-Tiles (Infrastruktur) sind getrennte Funktionsgruppen mit eigenen Labels (DE/EN) und Trenner — kein flacher Teller mehr
 - [QA-Runde] Q6 (kritisch): Greenhouse-Crash mit v0.0.37-Alt-Save behoben — pots/seedlings werden bei JEDEM loadMeta geheilt (healEntryLoop, B17-Muster), Migrationstest im Gate

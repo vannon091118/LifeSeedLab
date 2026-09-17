@@ -24,6 +24,8 @@ export const gameViewStyles: Record<string, CSSProperties> = {
   // der Blick soll zuerst auf die Ressourcen fallen, ohne mit klickbaren Karten zu konkurrieren.
   hudChip: { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px', background: '#fff', border: '1.5px solid var(--ink)', borderRadius: 10, boxShadow: '1px 1px 0 var(--ink)', fontSize: 13, fontWeight: 700, color: 'var(--ink)', lineHeight: 1 },
   hudChipCombo: { background: 'var(--paper-warm)', borderColor: 'var(--ink)', color: 'var(--ink)' },
+  // D5: Quality-Chip — der Maze-Fortschritt ist eine zweite Combo-artige Ausnahme (nur sichtbar, wenn eine berechnete Route existiert)
+  hudChipQuality: { background: '#eef7e6', borderColor: 'var(--leaf-dark)', color: 'var(--leaf-dark)' },
   cancelBtn: { position: 'absolute', top: 10, right: 10, zIndex: 2, padding: '8px 12px', background: '#fff', border: '2px solid var(--ink)', borderRadius: 10, boxShadow: '2px 2px 0 var(--ink)', fontSize: 12, fontWeight: 800, cursor: 'pointer', minHeight: 44 },
   // P3QA-05: Der Erst-Run-Hinweis ist die wichtigste Anleitung — prominent im Feld, nicht
   // als Zettel darunter. Nach dem ersten wellen-Start verblasst er zur Zettel-Version.

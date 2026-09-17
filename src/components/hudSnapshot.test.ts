@@ -53,4 +53,19 @@ describe('HudSnapshot — Bestand ab dem ersten Bild', () => {
     const root = new SimulationRoot({ seed: SEED, runId: 1 });
     expect(hudOf(root.getSnapshot(), true).paused).toBe(true);
   });
+
+  it('D5: routeQuality spiegelt die State-Route — null ohne Route, Wert mit Maze', () => {
+    // Leeres Feld: keine berechnete Route ⇒ kein Chip (Default-Pfad ist nicht messbar relevant).
+    const empty = new SimulationRoot({ seed: SEED, runId: 1 });
+    expect(hudOf(empty.getSnapshot(), false).routeQuality).toBeNull();
+
+    // Mit Weg-Tile: Route existiert ⇒ Qualität 1 (gerade Bahn).
+    const root = new SimulationRoot({ seed: SEED, runId: 1, loadout: ['sprout'] });
+    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 6, gy: 5, tile: 'path' }));
+    root.stepOnce();
+    const q = hudOf(root.getSnapshot(), false).routeQuality;
+    expect(q).not.toBeNull();
+    expect(q!).toBeGreaterThan(0);
+    expect(q!).toBeLessThanOrEqual(1);
+  });
 });

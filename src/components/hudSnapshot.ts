@@ -4,6 +4,7 @@
 // deaktiviert — beim Betreten des Runs sieht der Spieler „×0" statt seines Bestands (B22).
 import type { SimState } from '../simulation/state';
 import { autoStartTicksLeft } from '../simulation/waveTiming';
+import { routeQuality } from '../simulation/mapSystem';
 
 export interface HudSnapshot {
   wave: number;
@@ -18,6 +19,8 @@ export interface HudSnapshot {
   tick: number;
   /** B23.1/2: Ticks bis zum Auto-Start der nächsten Welle; `null` ⇒ das Labor wartet auf dich. */
   prepTicksLeft: number | null;
+  /** D5: Route-Qualität (0..1, 1 = gerade) — sichtbarer Maze-Fortschritt; `null` ⇒ Default-Pfad. */
+  routeQuality: number | null;
 }
 
 /** Sim-Stand + Pause-Flag ⇒ HUD-Abbild. Reine Ableitung (read-only, kein Sim-Schreibzugriff). */
@@ -32,6 +35,9 @@ export function hudOf(state: SimState, paused: boolean): HudSnapshot {
     phase: state.phase,
     beetleDeployed: state.deployedBeetle !== null,
     tick: state.clock.tick,
+    // D5: EINE Quelle (mapSystem.routeQuality über den State-Route) — der Writer-Wert
+    // wird sichtbar statt nur emittiert; keine zweite Formel im HUD.
+    routeQuality: routeQuality(state.currentRoute),
     // Dieselbe Regel wie im WaveSystem (B23.1) — nicht nachgebaut, sondern dieselbe Funktion.
     prepTicksLeft: autoStartTicksLeft({
       phase: state.phase,
