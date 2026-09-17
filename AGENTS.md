@@ -1,3 +1,31 @@
+## ⚠️ QA-BRANCH-REGEL — HIER NUR QA (VORRANG VOR ALLEM ANDEREN)
+
+**Dieser Branch (`qa-reports`) ist ein Übermittlungskanal für QA-Berichte, kein Arbeitszweig.**
+
+1. **HIER NUR QA:** Auf diesem Branch werden ausschließlich Dateien unter `qa/` (Berichte,
+   Index, Protokoll) gepflegt. Kein Gameplay-Code, keine Specs, kein Refactoring, keine
+   ">kleinen" Nebenfixes. Alles andere gehört auf `main` (oder einen Feature-Branch von `main`).
+2. **ABHOL-PROTOKOLL für den aktiv arbeitenden Agenten (PFLICHT vor JEDEM Task-Start):**
+   ```bash
+   git fetch origin qa-reports
+   git log HEAD..origin/qa-reports --oneline -- qa/
+   ```
+   Gibt es neue Berichte unter `qa/`: **Lesen**, Status der Befunde setzen
+   (`in-arbeit` / `erledigt` / `widerlegt`, Commit auf `qa-reports`, Betreff
+   `docs(qa): status <bericht> <befund>`), **erst dann** den Task beginnen.
+   Diese Prüfung ist ab sofort fester Bestandteil des Arbeitsvertrags — der Eigentümer
+   will sie nicht mehr anweisen müssen.
+3. **Verankerung:** Dieses Protokoll gehört als Pflichtpunkt („QA-Abholung vor Task-Start“)
+   in die `AGENTS.md` auf `main` (Abschnitt Verifizierung bzw. Arbeitsrhythmus). Bis zur
+   bestätigten Verankerung reist dieser Auftrag mit jedem neuen Bericht.
+4. **Berichte schreiben:** Neue Spielsessions landen als `qa/YYYY-MM-DD_<titel>.md` auf
+   diesem Branch — mit Kontext (Version/Commit, Umgebung), Befunden mit Schwere,
+   Repro-Schritten und Positiv-Liste. Index in `qa/README.md` nachziehen.
+5. **Nicht auf `main` mergen.** Der Branch lebt parallel; Berichte werden durch
+   Status-Updates "abgearbeitet", nicht durch Merge.
+
+---
+
 ## VERPFLICHTENDER REPOSITORY-SEARCH WORKFLOW
 
 BEVOR Dateien gelesen, bearbeitet oder Architekturentscheidungen getroffen werden:

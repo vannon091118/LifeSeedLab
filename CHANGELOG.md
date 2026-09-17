@@ -8,6 +8,9 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 ---## Unreleased (Arbeitsstand 17.09.2026)
 
 
+- [QA-Branch] Neuer Uebermittlungskanal fuer QA-Spielberichte: Der Branch `qa-reports` traegt nur noch `qa/` - README-Index mit Abhol-Protokoll, Bericht Onboarding-Runde 1 (v0.0.37, Befunde Q1-Q5: Wellen-1-Balance, Drag-Platzierung, Tutorial-Overlay-Blockade, React-borderColor-Warnung, favicon 404) und Bericht v0.0.38 (ae64493) mit kritischem Befund Q6: Greenhouse-Crash mit Alt-Save (TypeError in Greenhouse.tsx:120, ErrorBoundary faengt, aber Reload heilt nicht). AGENTS.md auf dem Branch vorangestellt: HIER NUR QA (kein Code, kein Merge auf main) plus Pflicht-Abholprotokoll fuer den aktiv arbeitenden Agenten (vor JEDEM Task-Start `git fetch origin qa-reports` pruefen, Befund-Status setzen, erst dann Task beginnen) plus Verankerungsauftrag: dieses Protokoll gehoert als Pflichtpunkt in die AGENTS.md auf main.
+
+
 - [Lauf-3-Nachtest] Zwei offene UX-Punkte aus dem v0.0.36-Spielerbericht behoben: (1) **Nachkaufkarten lesbar** - die Restock-Karten im Tray zeigten nur '+ 80' / '+ 120' (der Pflanzenname stand nur im Tooltip); jetzt tragen sie Name UND Preis ('Wurzelmauer +80E'), der Kauf ist ohne Tooltip verstehbar. (2) **Dauerhafter Feldhinweis entwertet** - der Zettel 'Tippe eine Pflanze unten...' blieb den ganzen Run sichtbar und nahm Sichtflaeche; er ist jetzt ein antippbarer Hinweis mit Ausblenden-Knopf (noteDismissed), der nur bis zur freiwilligen Entscheidung des Spielers steht - die prominente Erst-Hilfe bis zur ersten Platzierung bleibt unveraendert. Tippfehler im Kommentar berichtigt; gameViewStyles paperNote cursor:pointer.
 
 
