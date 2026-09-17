@@ -81,3 +81,26 @@ Kandidat markiert, wird durch F5-Fix obsolet oder muss neu bewertet werden.
 
 **An den DEV (Aktion: DEV):** F5 ist ein Ein-Zeilen-Klassen-Fix, aber bitte mit Zonen-Vertragstest
 absichern — sonst schlägt die nächste Blasen-Position wieder zu (siehe F2-Geschichte: 1/3 → 3/3).
+
+---
+
+## Nachtrag (gleiche Session, 4. Zyklus + F6-Zyklus 1 + R1-Zahlen-Abgleich)
+
+**F5 = 4/4:** Vierter unabhängiger Zyklus (Reload, Notiz 4) — identisches Bild: frame `auto`,
+2529 px² Verdeckung, Zonen Mitte/oben-links/unten-rechts blockiert, nur unten-links frei.
+**Die Regression besteht in v0.0.49 unverändert.**
+
+**F6 korrigiert UND validiert (Zyklus 1/3):** Die erste Beschreibung („versehentlicher
+Nachkauf“) war falsch — das echte Verhalten: Klick auf die blinkende Karten-Zone (unten-rechts,
+verdeckt) wählt **die Nachbar-Karte aus** (Blumentopf `pressed=true`, Ziel-Karte `pressed=false`,
+Energie unverändert — Auswahl ist gratis, Kosten kämen erst beim Platzieren). Verwechslungs-
+gefahr real und messbar. 2 Zyklen offen bis Formalisierung.
+
+**R1-Zahlen-Abgleich (Fußnote aus dem ersten Absatz präzisiert):** Headless-Nachrechnung
+mit der Original-Geometrie aus `world.source.ts` (geparst, nicht gehardcoded):
+- **Eckpunkt-Definition** (= Spiel-Scan): **exakt 14 frei / 10 blockiert** — identische Zellen
+  wie die Live-Scans von v0.0.47 und v0.0.49. **R1-Zahlen BESTÄTIGT.**
+- **Zentrum-d≤0.75-Definition** (= mein grobes Skript, das die „Abweichung“ meldete):
+  10/2 — die Reihe-1-Randzellen zählen hier nicht zur Wegbahn.
+- Fazit: Definitions-Frage, kein Messfehler; die R1-Kernaussage (frei UND blockiert auf
+  derselben aktiven Route) gilt in beiden Definitionen.
