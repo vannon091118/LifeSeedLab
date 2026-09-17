@@ -12,7 +12,18 @@
    Push (Schritt 5): Dev-Server/Chrome-CDP prüfen, MCP-Bridge nutzen, Warteschleifen-
    Aspekte rotieren, Befunde nur mit 3× Repro (frisch + Reload + Cache), Bericht +
    Index + Changelog pushen. Kein Nachfragen, kein Teilablauf — nur ausführen.
-2. **ABHOL-PROTOKOLL für den aktiv arbeitenden Agenten (PFLICHT vor JEDEM Task-Start):**
+2. **TEAM-PFLICHT — QA und DEV-Kommunikation (keiner arbeitet eigenständig):** Beide Agenten
+   sind EIN Team. Technische Fragen, Design-Verdachte (Agenten-Drift: „war das so geplant?“)
+   und Entscheidungsbedarf stehen im QA-Bericht unter `Offene Fragen (Aktion: DEV)` —
+   **kein QA-Agent meldet etwas als endgültigen Bug, das eine Design-Frage ist, und kein
+   DEV-Agent entscheidet Design allein.** Der DEV-Agent antwortet verbindlich per Status-
+   Commit auf `qa-reports` (Betreff `docs(qa): status <bericht> <befund>`) und/oder
+   Antwort-Sektion im Bericht; der QA-Agent verifiziert danach im Spiel und setzt den
+   Endstatus (`erledigt` / `widerlegt` / `bestätigt`). Einseitige Schlüsse — Bug-Ruf ohne
+   Rücksprache, Fix ohne Antwort im Bericht, Stillhalten bei offenen Fragen — sind
+   Regelverstöße. Antworten NICHT über Chat/Session: der Branch ist die einzige
+   verbindliche Kommunikationsstelle.
+3. **ABHOL-PROTOKOLL für den aktiv arbeitenden Agenten (PFLICHT vor JEDEM Task-Start):**
    ```bash
    git fetch origin qa-reports
    git log HEAD..origin/qa-reports --oneline -- qa/
@@ -22,23 +33,23 @@
    `docs(qa): status <bericht> <befund>`), **erst dann** den Task beginnen.
    Diese Prüfung ist ab sofort fester Bestandteil des Arbeitsvertrags — der Eigentümer
    will sie nicht mehr anweisen müssen.
-3. **Verankerung:** Dieses Protokoll gehört als Pflichtpunkt („QA-Abholung vor Task-Start“)
+4. **Verankerung:** Dieses Protokoll gehört als Pflichtpunkt („QA-Abholung vor Task-Start“)
    in die `AGENTS.md` auf `main` (Abschnitt Verifizierung bzw. Arbeitsrhythmus). Bis zur
    bestätigten Verankerung reist dieser Auftrag mit jedem neuen Bericht.
-4. **Berichte schreiben:** Neue Spielsessions landen als `qa/YYYY-MM-DD_<titel>.md` auf
+5. **Berichte schreiben:** Neue Spielsessions landen als `qa/YYYY-MM-DD_<titel>.md` auf
    diesem Branch — mit Kontext (Version/Commit, Umgebung), Befunden mit Schwere,
    Repro-Schritten und Positiv-Liste. Index in `qa/README.md` nachziehen.
-5. **Repro-Pflicht (keine Phantom-Bugs):** Ein Bug wird nur gemeldet, wenn er **mind. 3×
+6. **Repro-Pflicht (keine Phantom-Bugs):** Ein Bug wird nur gemeldet, wenn er **mind. 3×
    reproduziert** wurde — jeder Zyklus mit frischem Spielstand, Reload und Cache-Löschung
    (Ausnahme: Präcondition ist selbst ein Nicht-Frisch-Zustand → Zyklus im Bericht
    definieren und deterministisch restaurieren). Jeder Befund trägt seinen Repro-Stand
    (`n/3`); darunter gilt er als vorläufig.
-6. **Warteschleifen-Regel (100 % Toolcall-Ausnutzung):** Solange keine neuen Commits auf
+7. **Warteschleifen-Regel (100 % Toolcall-Ausnutzung):** Solange keine neuen Commits auf
    `main` liegen, testet dieses Gerät SOFORT ANDERE Aspekte weiter (ungetestete Screens,
    Mobile 390×844, Persistenz, Boss-Wellen, Konsolenhygiene) — kein Stillstand, kein
    Wiederholen bereits dokumentierter Befunde. Neue Bugs nur als Kandidat (0/3) ins
    nächste Berichtspaket.
-7. **Nicht auf `main` mergen.** Der Branch lebt parallel; Berichte werden durch
+8. **Nicht auf `main` mergen.** Der Branch lebt parallel; Berichte werden durch
    Status-Updates "abgearbeitet", nicht durch Merge.
 
 ---

@@ -87,10 +87,18 @@ Kandidaten stehen mit `0/3` im Bericht; Zwischenstände ehrlich als `n/3`.
 1. `qa/YYYY-MM-DD_<titel>.md`: Kontext (Version **v0.0.38**-Muster = Fenstertitel, Commit
    von `main`, Umgebung), Befunde mit Schwere + Repro-Stand, **Positiv-Liste** (was
    explizit funktioniert), Fragen an den DEV klar getrennt von Bugs.
-2. Index-Zeile in `qa/README.md` nachziehen (Status: offen).
-3. Changelog-Eintrag oben unter „Unreleased" (Regel 0; Umlaute transliterieren).
-4. Commit `docs(qa): …` (Betreff ≤ 72 Zeichen, keine Maschinen-Footer) + `git push`
+2. **TEAM-KANAL (Pflicht, AGENTS.md Punkt 2):** Alles, was Design-Bewertung braucht
+   (Spielfluss-Brüche, Drift-Verdachte, „war das so geplant?“) steht unter
+   `Offene Fragen (Aktion: DEV)` mit konkreter Antwortbitte. Der DEV antwortet per
+   Status-Commit; wir verifizieren und setzen den Endstatus. **Niemals einseitig als Bug
+   melden oder stillschweigend fallen lassen** — der Bericht bleibt offen, bis die Frage
+   beantwortet ist.
+3. Index-Zeile in `qa/README.md` nachziehen (Status: offen).
+4. Changelog-Eintrag oben unter „Unreleased" (Regel 0; Umlaute transliterieren).
+5. Commit `docs(qa): …` (Betreff ≤ 72 Zeichen, keine Maschinen-Footer) + `git push`
    auf `qa-reports`. Push-Wahrheit: `git ls-remote origin qa-reports`.
+6. **Alt-Daten:** Abgeschlossene Berichte wandern nach `qa/archiv/` (Index verweist
+   dorthin); `qa/` im Wurzelverzeichnis hält nur das aktuelle Paket.
 
 ## Abkürzungen für Folgeagenten
 
