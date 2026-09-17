@@ -125,6 +125,11 @@ export function TutorialOverlay({ step, index, total, onPress, onSkip }: Tutoria
     if (step.advanceOn === 'press') onPress();
   };
 
+  // F1/F2 (Spielfluss-Audit): Ein Schritt verlangt eine Handlung AM CUE-ZIEL (advanceOn !=
+  // 'press') ⇒ cueMode. Die Blase kollabiert auf Titel + Pfeil-Hinweis, der Textkörper wird
+  // pointer-durchlässig — das geführte Ziel bleibt klickbar, egal wo die Blase steht.
+  const cueMode = step.advanceOn !== 'press' && cueKind !== 'none';
+
   const note = tutorialText('tut.note', lang)
     .replace('{n}', String(index + 1))
     .replace('{m}', String(total));
@@ -176,6 +181,8 @@ export function TutorialOverlay({ step, index, total, onPress, onSkip }: Tutoria
             : null}
           skipLabel={tutorialText('tut.skip', lang)}
           hint={tutorialText('tut.more', lang)}
+          cueHint={tutorialText('tut.cueHint', lang)}
+          cueMode={cueMode}
           tail={tail}
           onPress={press}
           onSkip={onSkip}

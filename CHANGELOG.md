@@ -10,6 +10,7 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 - [D2b] Leih-Spross ist jetzt wirklich platzierbar: die Sim loest Stats ueber getPlantStats(variantId, bredStats) auf — PLANTS_SOURCE kennt loan_sprout nicht, also traegt App.tsx die deterministischen Leih-Stats (cost/effects aus der Basis-Verankerung) als Run-bredStats. Gate: src/meta/loan_stats.test.ts pinnt den Vertrag.
 - [B38] Maze-Balance-Datensatz: Kanal-Bruch-Schwellwerte für PLANT_ROUTE_COST 1/2/3 gemessen (1→4, 2→2, 3→1 Pflanzen auf der Bahn); Vertrag-Test maze_balance.test.ts pinnt das Verhalten beim Ist-Wert 2, Tuning-Basis in quality-spec.md B38 dokumentiert.
 - [B38] Nachweis: PLANT_ROUTE_COST wirkt identisch auf die Leih-Pflanze — computeRoute taxiert zellbasiert, loan_sprout bricht die Bahn wie jede andere Pflanze (Vertrag-Test maze_loan.test.ts: D2b-Platzierbarkeit x B38-Maze-Wirkung).
+- [F1/F2] Krix-Onboarding: Cue-Schritte zeigen jetzt einen Pfeil-Hinweis aufs blinkende Ziel (F1), und die Blase kollabiert automatisch auf Titel + wird pointer-durchlaessig — sie kann das gefuehrte Ziel nie wieder verdecken (F2). i18n DE/EN, Vertrag-Tests im Gate.
 ## Unreleased (Arbeitsstand 17.09.2026)
 
 

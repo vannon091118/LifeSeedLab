@@ -320,12 +320,12 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `8db80b4` — feat(maze): B38 — Balance-Datensatz für PLANT_ROUTE_COST 1/2/3 |
-| Arbeitsbaum | 2 gestaged, 3 geändert, 0 neu |
-| Letztes Gate | ✅ offen (preflight, 0 Fehler, 0 Warnungen) |
+| HEAD | `e490942` — test(maze): B38 — PLANT_ROUTE_COST greift identisch auf loan_sprout |
+| Arbeitsbaum | 5 gestaged, 3 geändert, 0 neu |
+| Letztes Gate | 🛑 geschlossen (preflight, 0 Fehler, 1 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `8db80b4` feat(maze): B38 — Balance-Datensatz für PLANT_ROUTE_COST 1/2/3 |
-| Letzter Push | ✅ origin/main |
+| Letzter Shinon-Commit | `e490942` test(maze): B38 — PLANT_ROUTE_COST greift identisch auf loan_sprout |
+| Letzter Push | ✅ origin/qa-reports |
 | LOC-Hotspots | `src/simulation/root.ts` 288/300 (96 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/simulation/enemySystem.ts` 279/300 (93 %)<br>`src/components/Greenhouse.tsx` 366/400 (92 %)<br>`src/render/gameRuntime.ts` 364/400 (91 %) |
 <!-- SHINON:STATUS:END -->
 

@@ -241,3 +241,39 @@ describe('B21 — TutorialController', () => {
     expect(c.view.step?.id).toBe('karte');
   });
 });
+
+describe('F1/F2 — Cue-Modus: Vorwärts-Signal + Blase durchlässig', () => {
+  it('JEDER Handlungsschritt (advanceOn != press) mit Cue-Ziel läuft im cueMode', () => {
+    // cueMode-Vertrag: advanceOn != 'press' UND ein Cue-Ziel vorhanden — genau die Schritte,
+    // bei denen die Blase das geführte Ziel verdecken KÖNNTE (F2-Positionsabhängigkeit).
+    const cueSteps = TUTORIAL_STEPS.filter(s => s.advanceOn !== 'press' && s.cue !== 'none');
+    expect(cueSteps.length).toBeGreaterThan(4);
+    for (const s of cueSteps) {
+      expect(cueSelector(s.cue), `Schritt ${s.id}`).not.toBeNull();
+    }
+  });
+
+  it('KEIN Leseschritt (press) ohne Ziel läuft im cueMode — die Blase bleibt dort expandierbar', () => {
+    const pressSteps = TUTORIAL_STEPS.filter(s => s.advanceOn === 'press');
+    expect(pressSteps.length).toBeGreaterThan(0);
+    for (const s of pressSteps) {
+      // press-Schritte brauchen kein Cue-Ziel — ihre Blase ist die Interaktion selbst.
+      expect(s.advanceOn).toBe('press');
+    }
+  });
+
+  it('hat den Pfeil-Hinweis (tut.cueHint) in BEIDEN Sprachen — F1-Parität', () => {
+    for (const lang of ['de', 'en'] as const) {
+      const hint = tutorialTexts[lang]['tut.cueHint' as TutorialTextKey];
+      expect(hint, lang).toBeTruthy();
+      expect(hint.length, lang).toBeGreaterThan(3);
+    }
+  });
+
+  it('cueMode-Schritte haben einen i18n-Cue-Wort-Text (das blinkende Ziel ist benannt)', () => {
+    // F1 zeigt „→ <tut.cue>" — der Cue-Chip-Text muss in beiden Sprachen existieren.
+    for (const lang of ['de', 'en'] as const) {
+      expect(tutorialTexts[lang]['tut.cue' as TutorialTextKey], lang).toBeTruthy();
+    }
+  });
+});
