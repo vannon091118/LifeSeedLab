@@ -8,6 +8,7 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 ---
 
 - [D2b] Leih-Spross ist jetzt wirklich platzierbar: die Sim loest Stats ueber getPlantStats(variantId, bredStats) auf — PLANTS_SOURCE kennt loan_sprout nicht, also traegt App.tsx die deterministischen Leih-Stats (cost/effects aus der Basis-Verankerung) als Run-bredStats. Gate: src/meta/loan_stats.test.ts pinnt den Vertrag.
+- [B38] Maze-Balance-Datensatz: Kanal-Bruch-Schwellwerte für PLANT_ROUTE_COST 1/2/3 gemessen (1→4, 2→2, 3→1 Pflanzen auf der Bahn); Vertrag-Test maze_balance.test.ts pinnt das Verhalten beim Ist-Wert 2, Tuning-Basis in quality-spec.md B38 dokumentiert.
 ## Unreleased (Arbeitsstand 17.09.2026)
 
 

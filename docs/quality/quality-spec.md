@@ -1306,3 +1306,62 @@ zurückgesetzt. Ergebnis je Gruppe:
 
 Kein Wert wurde dauerhaft gekippt; alle Stichproben sind im jeweiligen Test als
 Selbstkontrolle verankert, wo sie dauerhaften Wert haben (Replay-Selbstkontrolle, ID-Reset).
+
+
+## B38. Maze-Balance-Datensatz — PLANT_ROUTE_COST als Tuning-Basis (Messung 2026-09-18)
+
+**Frage:** Wie stark beugt das Zucht-Layout den Laufweg je Wert der Maze-Schraube
+`PLANT_ROUTE_COST` (Source: `config/map.source.ts`, D4)? Die Antwort ist die
+Tuning-Basis für jede künftige Balance-Änderung.
+
+**Messaufbau (deterministisch, Seed 2447771834, `simulation/maze_balance.test.ts` als
+dauerhafter Vertrag beim Ist-Wert, Probe-Artefakt für die 1/3-Vergleiche):**
+Weg-Bahn aus 8 Weg-Tiles in Reihe 7 (gx 2..9, Gewicht 0.6), Pflanzen ab gx=4
+AUF der Bahn auffüllend (gx 4..7). Gemessen wird die Kanal-Bruch-Schwelle n —
+die kleinste Pflanzenzahl, bei der die Dijkstra-Route die Bahn verlässt.
+
+**Messwerte:**
+
+| PLANT_ROUTE_COST | Kanal-Bruch bei n Pflanzen auf der Bahn | Lesart |
+|---|---|---|
+| 1 | n = 4 | Maze-Wirkung fast tot: Tax 1 < Umweg-Restkosten 2 — die Bahn hält fast immer |
+| **2 (Ist)** | **n = 2** | 2 Pflanzen reissen den Kanal auf — sichtbare Maze-Wirkung pro Zucht-Schritt |
+| 3 | n = 1 | Jede Pflanze auf der Bahn lenkt sofort aus — aggressiv, droht Weg-Tiles wertlos zu machen |
+
+**Post-Break-Formen beim Ist-Wert 2** (in `maze_balance.test.ts` gepinnt):
+
+| Pflanzen auf der Bahn | Route | Geometrie |
+|---|---|---|
+| 0 (nur Weg) | Reihe 7, 12 Knoten, Qualität 1.0 | gerade Bahn |
+| 1 | Reihe 7 (unverändert) | Tax 2.6/Zelle ≤ Ausweich-Kosten |
+| 2 | Knick über Reihe 6, 13 Knoten | erster Kanal-Bruch |
+| 3 | Knick über Reihe 6, 13 Knoten (länger) | Ausweg wächst mit |
+| 4 | totale Auslenkung (Reihe 0), 12 Knoten | Bahn komplett verlassen |
+
+**Wichtige Nebenbefunde:**
+
+1. **Der Schwellwert-Mathe:** Ausweichen kostet ~2 Gewichtseinheiten mehr als die
+   Bahn (Knick hin+zurück, Weg-Tile-Vorsprung 0.4/Zelle). Die Schwelle ist damit
+   `ceil(2 / (PLANT_ROUTE_COST - 0.6))`-nah — jede Wert-Änderung verschiebt die
+   Schwelle NICHT linear: 1→4, 2→2, 3→1 (degressive Wirkung nach oben).
+2. **Gleichkosten-Tie:** Bei totaler Auslenkung wählt der Dijkstra die zuerst
+   gefundenen Ziel-Reihe (First-Set-Order) — mehrere Parallel-Kanäle haben
+   identische Kosten. Die Route ist deterministisch (gleicher Seed ⇒ gleiche Reihe),
+   aber nicht „die intuitive“.
+3. **Pflanzen ohne Weg-Tiles lenken NICHT:** 7 Pflanzen in einer Reihe auf der
+   Wiese ändern die Default-Route nicht (alle Zellen gleich teuer, die Reihe ist
+   eine von mehreren Parallel-Optimalen). Maze-Wirkung braucht die Weg-Bahn als
+   Anker — erst Bahn + Pflanzen am/an der Bahn erzeugen Lenkung.
+4. **Pflanzen AUF Weg-Tiles sind legal** (Platzierung prüft nur Pflanzen-Kollision):
+   die stärkste Lenk-Mechanik ist Zucht AUF der gebauten Bahn. Das ist das
+   beabsichtigte Spiel: Weg legen → Pflanzen darauf → Kanal bricht Richtung Feuerraum.
+
+**Tuning-Regeln für künftige Änderungen:**
+
+- Werte unter 2 töten die Maze-Wirkung praktisch (Schwelle ≥ 4 Pflanzen — unerreichbar
+  in frühem Gameplay): nur wählen, wenn Weg-Tiles dominieren sollen.
+- Wert 3 macht jede Bahnpflanze zur sofortigen Umlenkung: nur wählen, wenn das
+  Weg-Tile-System abgeschwächt werden soll.
+- Wert 2 ist der dokumentierte Sweet Spot: 2 Pflanzen = 1 sichtbarer Knick, 4 = totale
+  Auslenkung. Änderungen daran sind Balance-Entscheidungen mit diesem Datensatz als
+  Vorher-Nachher-Basis — der Vertrag-Test (`maze_balance.test.ts`) muss mitgezogen werden.
