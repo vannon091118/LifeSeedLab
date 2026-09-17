@@ -93,6 +93,11 @@ Kandidaten stehen mit `0/3` im Bericht; Zwischenstände ehrlich als `n/3`.
 1. `qa/YYYY-MM-DD_<titel>.md`: Kontext (Version **v0.0.38**-Muster = Fenstertitel, Commit
    von `main`, Umgebung), Befunde mit Schwere + Repro-Stand, **Positiv-Liste** (was
    explizit funktioniert), Fragen an den DEV klar getrennt von Bugs.
+   **Eigentümer-Prioritätsregel (18.09., Wirksamkeits-Check):** Was der Eigentümer explizit
+   als Punkt benennt, bekommt eine **eigene Befund-Nummer mit eigenem Repro und eigener
+   Index-Zeile** — es wird NIEMALS als „Nebenbefund" in einem Sammelbericht begraben
+   (Fehlerfall N4: Eigentümer-#1, verkraftet als Fußnote → wirkte 0 bis der DEV davon
+   unabhängig erfuhr).
 2. **TEAM-KANAL (Pflicht, AGENTS.md Punkt 2):** Alles, was Design-Bewertung braucht
    (Spielfluss-Brüche, Drift-Verdachte, „war das so geplant?“) steht unter
    `Offene Fragen (Aktion: DEV)` mit konkreter Antwortbitte. Der DEV antwortet per
