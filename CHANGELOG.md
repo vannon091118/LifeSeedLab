@@ -8,6 +8,9 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 ---## Unreleased (Arbeitsstand 17.09.2026)
 
 
+- [QA-Branch] Warteschleifen-Batch + kritischer Befund Q12 (2026-09-17_q12-leihspross-tray.md): Der Leih-Spross des Einstiegs-Loops erreicht das Spielfeld nie - beginRun bucht loan_sprout korrekt in variantCounts (Meta-Seite unit-getestet), aber das Run-Loadout kommt aus meta.loadout und der PlacementTray rendert nur Basistypen + Loadout - eine Variant mit eigener ID hat keinen Tray-Slot. 3/3 formale Zyklen auf der Release-Flaeche (frisches Profil, Reload, leerer Cache): Tray ohne Leihgabe, inventory {}, loadout [], einziger Pflanzenweg der Nachkauf (100E). Gleicher Blind Spot wie Q6: Render-Pfad Loadout->Tray ungetestet. Positiv im selben Batch: i18n-Paritaet 15/15 Karten DE/EN, Persistenz-Resilienz (Reload mitten in Welle 1 -> Fortsetzen-Karte korrekt), Frischzustand-Oekonomie (Nektar 40, Sammlung 0/3), Q9 auf 3/3 vollendet (Tray 911px in 342px ohne Scroll-Hinweis), DevGate-Onboarding-Sprung dokumentiert (Nachtrag Q10).
+
+
 - [QA-Branch] Mobile-DoD-Pruefung 390x844 im echten sichtbaren Browser (Bericht 2026-09-17_mobile-390x844.md): kein horizontaler Overflow auf Start/Hub/Run, Canvas 366x682 voll im Viewport, Platzierung end-to-end ueber die Touch-Pipeline (Topf (3,4) + Spross, Energie 150->135), Welle 1 und Game Over sauber verarbeitet (Versions-Ausweis auch mobil). Kandidat Q9: Tray 806px Inhalt in 342px Flaeche horizontal scrollbar ohne sichtbaren Scroll-Hinweis (1/3). Fussnote Q10: DevGate-Overlay ueberlagert die Tray auf Mobile (nur ?dev=1; Hinweis fuer die E2E-Suite). Kandidat Q11: Brutvorschau rendert trotz unzureichendem Nektar (0/3, erst nach 3 Zyklen Befund). Folgebeobachtung: Codex zeigt 0 Entdeckungen trotz 3 Sammlungs-Funden (UX-Frage an DEV).
 
 
