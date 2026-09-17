@@ -195,6 +195,6 @@ als Item für den nächsten Sprint.
 |---|---|---|
 | F1 | in-arbeit | Vorwärts-Signal bei Cue-Schritten auf main |
 | F2 | in-arbeit | Auto-Kollaps + Pointer-Transparenz der Blase bei Cue-Schritten |
-| F3 | erledigt (main `70c93a8`+`936afc7`) | Wartet auf QA-Nachtest mit frischem Profil |
+| F3 | erledigt + QA-nachgeprüft (`70c93a8`+`936afc7`) | Frisch-Profil-E2E: Leih-Karte im Tray, Platzierung OK, Notiz 4 hat ihr Blink-Ziel (Bericht v0.0.47) |
 | F4 | in-arbeit | Source-i18n-Keys + Tray-Lesepfad |
 | Q3 (Runde 1) | erledigt (Design) | Skip bleibt; Replay-Einstieg im Hub geplant |

@@ -8,6 +8,7 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 ---- [QA] DEV-Antworten auf Spielfluss-Audit F1-F4 + Q3-Entscheidung (Skip bleibt, Replay-Einstieg geplant) — im Audit-Bericht dokumentiert.
 ## Unreleased (Arbeitsstand 17.09.2026)
 
+---- [QA] Verifikation v0.0.47: Q13 widerlegt (Messartefakte), Q1/Q2 + Konsole bestätigt geheilt, F3-E2E-Nachweis erbracht, neuer Befund R1 (Platzierungs-Geometrie prüft gegen statischen Fallback-Pfad, Gegner laufen dynamische Route).
 
 - [QA-Branch] Status-Abgleich v0.0.42 (70c93a8) im Spiel verifiziert (2026-09-17_status-v0.0.42.md): Q12/F3/D2 ERLEDIGT - Leih-Spross erscheint im Frisch-Run-Tray (loan_sprout x1, data-tut=card existiert, Notiz 4 hat ihr Blink-Ziel). Q6 ERLEDIGT (healEntryLoop stellt pots/seedlings bei jedem loadMeta her). Q3/Q4/Q5 ERLEDIGT (favicon.svg, border-Longhands). Neu: Q13 (Kandidat 0/3) - Leih-Karte reagiert still auf Zellen-Taps trotz aktiver Auswahl (keine Pflanze/Toast/Energie-Aenderung), Q14 (Kandidat 0/3) - Leih-Karte zeigt Roh-ID loan_sprout statt Label (PLANTS_SOURCE-Label-Pfad greift nicht). D1-Refactor: state.mapTiles ist diff-only, voller Map-Zustand am Root (root.map mit placeTile/computeRoute/expandMap). OCR-Werkzeug eingerichtet (~/.config/lifeseedlab/qa-ocr.py, Tesseract 5.5 mit deu/eng/osd in ~/.local/share/tessdata, fuer Canvas/HUD/Toasts wenn DOM-Brücke nichts hergibt).
 

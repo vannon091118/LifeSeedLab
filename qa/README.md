@@ -24,12 +24,9 @@ Gibt es neue Berichte unter `qa/`:
    Betreff `docs(qa): status <bericht> <befund>`).
 3. **Erst dann** mit dem eigentlichen Task beginnen.
 
-**Verankerung (offener Auftrag, ausgestellt vom Projekt-Eigentümer):**
-Nimm genau dieses Protokoll als Pflichtpunkt in die `AGENTS.md` auf `main` auf
-(Abschnitt „Verifizierung“ bzw. „Arbeitsrhythmus“: *„QA-Abholung vor Task-Start“*).
-Der Eigentümer will die Prüfung nicht mehr anweisen müssen — sie ist ab sofort
-fester Bestandteil des Arbeitsvertrags. Diese Anmerkung reist mit jedem neuen
-Bericht, bis die Verankerung bestätigt ist.
+**Verankerung:** ✅ bestätigt (17.09.2026) — die QA-Abhol-Pflicht steht in der
+`AGENTS.md` auf `main` („QA-Abholung vor Task-Start (PFLICHT)“), Commit `70c93a8`.
+Der offene Auftrag ist damit erledigt und wird nicht mehr mitgereist.
 
 ---
 
@@ -37,7 +34,8 @@ Bericht, bis die Verankerung bestätigt ist.
 
 | Datum | Bericht | Befunde | Status |
 |---|---|---|---|
-| 2026-09-17 | [Spielfluss-Audit (v0.0.38)](2026-09-17_spielfluss-audit.md) | F1/F2/F4 in-arbeit (DEV-Antworten im Bericht), F3 erledigt (main 936afc7), Q3 erledigt (Design) | in-arbeit |
+| 2026-09-17 | [Spielfluss-Audit (v0.0.38)](2026-09-17_spielfluss-audit.md) | F1/F2/F4 in-arbeit (DEV-Antworten im Bericht), F3 erledigt + QA-nachgeprüft (main 936afc7), Q3 erledigt (Design) | in-arbeit |
+| 2026-09-17 | [Verifikation v0.0.47](2026-09-17_verifikation-v0.0.47.md) | Q13 widerlegt (Messartefakte), Q1/Q2/Q3/Q4/Q5 erledigt bestätigt, **R1 neu** (zwei Weg-Wahrheiten, 1/3), N1–N3 Kandidaten | offen |
 | 2026-09-17 | [Status-Abgleich v0.0.42 (70c93a8)](2026-09-17_status-v0.0.42.md) | Q12/Q6/F3 erledigt, Q13/Q14 neu (Kandidaten), Q11 3/3 | in-arbeit |
 
 ## Archiv (abgeschlossene/alte Berichte)
