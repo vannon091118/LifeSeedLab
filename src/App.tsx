@@ -53,12 +53,12 @@ function AppInner() {
   }, [meta]);
 
   // Alle Hooks unconditionally vor jedem early return — Rules of Hooks.
-  const handleExitRun = useCallback(() => {
+  // Abbruch = eingezogener Run-Zwischenstand (gameRuntime/advanceCrossMaturation). Recorder
+  // in gameRuntime finalisiert den Run auch beim Abbruch (countRun). A19: nicht stumme Kopie.
+  const handleExitRun = useCallback((afterRun?: MetaSave | null) => {
     setResuming(false);
-    // B17/A19: beim Verlassen frisch aus der Persistenz lesen, nicht die Kopie von vor dem Run
-    // zeigen. Während des Runs schreibt die Sim direkt (überstandene Wellen), ohne den Router zu
-    // informieren — die Kopie wäre also älter als die Wahrheit.
-    setMeta(loadMeta());
+    if (afterRun) setMeta(afterRun);
+    else setMeta(loadMeta());
     setScreen('menu');
   }, []);
   const handleNavigate = useCallback((s: MenuScreen) => setScreen(s), []);
@@ -107,6 +107,7 @@ function AppInner() {
             loadout={meta.loadout}
             savedVariants={meta.savedVariants}
             bredStats={meta.bredStats}
+            ownedCounts={meta.variantCounts}
             beetles={meta.beetles}
             audioOn={meta.audioOn}
             resume={resuming ? pendingRun : null}

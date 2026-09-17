@@ -52,15 +52,15 @@ export class PlantSystem {
 
     const inv = state.inventory[variantId] || 0;
     // B3: identische Regel wie die UI-Vorschau (PlacementController) — eine Wahrheit.
+    // B37+Korrektur: Platzieren kostet Inventory, kein Harz (user: pflanzen aus loadout, 0 passives Einkommen).
     const reject = placementRejectReason({
       board: { gx, gy, plants: state.plants },
       inventoryCount: inv,
-      energy: state.resources.energy,
-      cost: stats.cost,
+      energy: Infinity,
+      cost: 0,
     });
     if (reject) return { ok: false, reason: reject };
 
-    state.resources.energy -= stats.cost;
     state.inventory[variantId] = inv - 1;
 
     const rarity = rarityForCost(stats.cost);
@@ -197,35 +197,17 @@ export class PlantSystem {
     return null;
   }
 
-  /** Lifecycle-Tick: Wachstum → Reife → Haltbarkeit (Schwelle → Verwelken). Jedes Tick deterministisch. */
+  /** Lifecycle-Tick: Wachstum → Reife. Kein Verwelken in der Runde — 1× platziert bleibt bis GameOver (user). */
   tickLifecycle(state: SimState): void {
-    // iterate reverse for safe removal on wither
-    for (let i = state.plants.length - 1; i >= 0; i--) {
-      const plant = state.plants[i];
-      if (plant.growthState === 'growing') {
-        plant.growthTicksLeft--;
-        if (plant.growthTicksLeft <= 0) {
-          plant.growthState = 'mature';
-          plant.growthTicksLeft = 0;
-          this.emit(makeEvent(state.clock.tick, 'PLANT_GROWN', plant.id, state.clock.tick, {
-            plantId: plant.id, variantId: plant.variantId, gx: plant.gx, gy: plant.gy,
-          }));
-        }
-      } else {
-        // mature: lifespan countdown — erst geschwächt, dann verwelkt
-        plant.lifeTicksLeft--;
-        if (!plant.isWeakened && plant.lifeTicksLeft <= Math.floor(plant.lifeTicksTotal * 0.3)) {
-          plant.isWeakened = true;
-          this.emit(makeEvent(state.clock.tick, 'PLANT_WEAKENED', plant.id, state.clock.tick, {
-            plantId: plant.id, variantId: plant.variantId,
-          }));
-        }
-        if (plant.lifeTicksLeft <= 0) {
-          const removed = state.plants.splice(i, 1)[0];
-          this.emit(makeEvent(state.clock.tick, 'PLANT_WITHERED', removed.id, state.clock.tick, {
-            plantId: removed.id, variantId: removed.variantId, gx: removed.gx, gy: removed.gy,
-          }));
-        }
+    for (const plant of state.plants) {
+      if (plant.growthState !== 'growing') continue;
+      plant.growthTicksLeft--;
+      if (plant.growthTicksLeft <= 0) {
+        plant.growthState = 'mature';
+        plant.growthTicksLeft = 0;
+        this.emit(makeEvent(state.clock.tick, 'PLANT_GROWN', plant.id, state.clock.tick, {
+          plantId: plant.id, variantId: plant.variantId, gx: plant.gx, gy: plant.gy,
+        }));
       }
     }
     void GRID_COLS; void GRID_ROWS;

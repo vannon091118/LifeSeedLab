@@ -20,6 +20,7 @@ import { AUTO_WAVES_DEFAULT } from '../config/economy.source';
 import { defaultMapTiles } from '../config/map.source';
 import { CYCLE_TICKS } from '../core/clock';
 import { applyResume, type ResumeSnapshot } from './resume';
+import { ownedInventory } from './state';
 
 export interface RootInit {
   seed: number;
@@ -27,11 +28,16 @@ export interface RootInit {
   runId?: number;
   /** Carried bred variants (placeable in-run — B1 fixes the severed breeding loop). */
   loadout?: string[];
+  /** B37: Besitz-Wahrheit — Run-Inventar spiegelt GENAU `ownedCounts` (Meta.variantCounts); nie mehr als besessen.
+   *  Fehlt der Eintrag (Altsave/Tests ohne Meta): B1-Fallback je Loadout-Eintrag `loadoutStock` (Default 2). */
+  ownedCounts?: Record<string, number>;
+  /** B1-Fallback-Stückzahl je Loadout-Eintrag, wenn kein Besitz übergeben wird (Default 2). */
+  loadoutStock?: number;
   /** Stats for carried bred variants (genome-derived at breeding time). */
   bredStats?: NonNullable<SimState['bredStats']>;
   /** P6: gezüchtete Specimen für den Brutling-Einsatz im Run. */
   beetles?: import('../types').BeetleSpecimen[];
-  /** B2: gespeicherter Run-Zustand (Resume startet in `prep`, ohne Gegner/Projektile/Schedule). */
+  /** B2: gespeicherter Run-Zustand (Resume startet in `prep`, ohne Gegner/Projektile). */
   resume?: ResumeSnapshot;
 }
 
@@ -56,7 +62,6 @@ export class SimulationRoot {
 
   constructor(init: RootInit) {
     this.state = this.freshState(init.seed, init);
-
     this.plants = new PlantSystem(e => this.publish(e));
     const enemies = new EnemySystem(e => this.publish(e));
     this.enemies = enemies;
@@ -68,7 +73,6 @@ export class SimulationRoot {
     this.combo = new ComboSystem(e => this.publish(e));
     this.waves = new WaveSystem(e => this.publish(e));
     this.map = new MapSystem(e => this.publish(e));
-
   }
 
   private publish(e: GameEvent): void {
@@ -103,9 +107,8 @@ export class SimulationRoot {
   stepOnce(): void {
     const state = this.state;
 
-    // 0) Game Over friert den Run am Owner ein (P1): Clock stoppt, Commands
-    //    werden verworfen, Systeme ruhen. Die UI zeigt das Ende — die Sim
-    //    vollstreckt es: keine Wellen, keine Platzierungen, keine Ticks danach.
+    // 0) Game Over friert den Run am Owner ein (P1): Clock stoppt, Commands werden verworfen,
+    //    Systeme ruhen. Die UI zeigt das Ende — die Sim vollstreckt es.
     if (state.phase === 'gameover') {
       this.commands.clear();
       this.clearEventLog();
@@ -160,7 +163,6 @@ export class SimulationRoot {
       // combo scoring: kills handled via ENEMY_DIED events below
     } else if (state.phase === 'prep') {
       this.plants.healTick(state);
-      this.score.prepDrip(state);
       this.waves.maybeAutoStart(state);
     }
 
@@ -237,8 +239,8 @@ export class SimulationRoot {
   private recomputeRoute(state: SimState): void {
     const hasTiles = Object.keys(state.mapTiles).length > 0;
     const route = hasTiles ? this.map.computeRoute(state) : null;
-    // B16.1: die Route lebt NUR im State (Ein-Writer); EnemySystem liest sie pro Tick
-    // aus dem State — keine zweite Kopie im System mehr (A14: getRoute/setRoute gestorben).
+    // B16.1: die Route lebt NUR im State (Ein-Writer); EnemySystem liest sie pro Tick aus dem State —
+    // keine zweite Kopie im System mehr (A14: getRoute/setRoute gestorben).
     state.currentRoute = route;
     this.publish({
       eventId: `${state.clock.tick}:system:map:ROUTE_CHANGED:${++this.rejectSeq}`,
@@ -262,21 +264,20 @@ export class SimulationRoot {
   /** Build a fresh deterministic state for a run. */
   private freshState(seed: number, init: RootInit): SimState {
     const loadout = init.loadout ?? [];
-    const inventory: Record<string, number> = { ...STARTING_INVENTORY };
-    for (const id of loadout) { inventory[id] = 2; }
+    let inventory: Record<string, number> = { ...STARTING_INVENTORY };
+    // B37: Besitz-Wahrheit statt Pauschal-2 — mit ownedCounts spiegelt das Inventar GENAU den
+    // Besitz (Loadout ohne Besitz ⇒ 0 ⇒ no_inventory); ohne: B1-Fallback loadoutStock.
+    if (init.ownedCounts) {
+      inventory = ownedInventory(inventory, init.ownedCounts, loadout);
+    } else {
+      for (const id of loadout) { inventory[id] = init.loadoutStock ?? 2; } // B1-Fallback (Altsave/Tests)
+    }
     const discovered = [...PLANT_IDS, ...loadout];
-    const base: SimState = {
-      seed,
-      runId: init.runId ?? 0,
-      loadout,
+    const base: SimState = { seed, runId: init.runId ?? 0, loadout,
       clock: this.clock.get() as SimState["clock"],
       phase: "prep",
       wave: { number: 0, schedule: null, spawnQueue: [], lastSpawnTick: 0, prepStartTick: this.clock.get().tick, autoWaves: AUTO_WAVES_DEFAULT },
-      resources: { energy: 150, coins: 0 },
-      mapTiles: defaultMapTiles(),
-      currentRoute: null,
-      deployedBeetle: null,
-      lives: 20,
+      resources: { energy: 150, coins: 0 }, mapTiles: defaultMapTiles(), currentRoute: null, deployedBeetle: null, lives: 20,
       inventory,
       bredStats: init.bredStats ? { ...init.bredStats } : undefined,
       beetles: init.beetles ? init.beetles.map(b => ({ ...b })) : [],

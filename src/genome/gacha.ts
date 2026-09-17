@@ -64,6 +64,37 @@ export function deriveGachaSeed(generation: number): number {
   return deriveSeed(GAME_SEED, 'plant', 'gacha', 'roll', generation);
 }
 
+/**
+ * B38: Kreuzung aus GEWÄHLTEN Eltern — der Spieler bestimmt das Paar, nicht der Würfel.
+ * Deterministisch: dieselben Eltern + dieselbe Generation ⇒ dasselbe Kind (Seed aus
+ * beiden Eltern-IDs abgeleitet). Das Kind ist bei der Aussaat fest — die Reifung ist
+ * nur der Timer, kein zweiter Wurf.
+ */
+export function crossPair(parentA: PlantVariant, parentB: PlantVariant, generation: number): GachaRoll {
+  const seed = deriveSeed(GAME_SEED, 'plant', parentA.id, `${parentB.id}`, generation);
+  const rng = makeRng('plant', seed);
+
+  const childGenome = crossGenomes(parentA.genome, parentB.genome, rng);
+  const t = rng.next();
+  const childType: PlantType = t < 0.4 ? parentA.type : t < 0.7 ? parentB.type : 'shooter';
+
+  const child: PlantVariant = {
+    id: `cross_${seed.toString(36)}_${generation}`,
+    name: generateName(childGenome, rng),
+    type: childType,
+    genome: childGenome,
+    traits: deriveTraits(childGenome),
+    cost: 30 + Math.round(childGenome.reduce((s, g) => s + g.power, 0) * 40),
+    stats: deriveStats(childType, childGenome),
+    color: deriveColor(childType, childGenome),
+    discovered: false,
+    generation,
+    parentA: parentA.id,
+    parentB: parentB.id,
+  };
+  return { parentA, parentB, child, probability: 1, crossIndex: generation };
+}
+
 export function deriveBreedSeed(parentAId: string, parentBId: string, generation: number): number {
   return deriveSeed(GAME_SEED, 'plant', parentAId, `${parentBId}`, generation);
 }

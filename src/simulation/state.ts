@@ -4,6 +4,7 @@
 import type { ClockState } from '../core/clock';
 
 export type PlantGrowthState = 'growing' | 'mature';
+/** LIFESPAN removed: einmal platziert bleibt bis GameOver (user: pflanze verschwindet nicht in der runde). */
 
 export interface PlantEntity {
   id: string;
@@ -67,6 +68,28 @@ export type MapTiles = Record<string, string>;
 
 /** Aktueller berechneter Feind-Laufweg (Zellzentren). Owner: SimulationRoot (Coordination). */
 export type Route = ReadonlyArray<{ x: number; y: number }> | null;
+
+/**
+ * B37: Run-Inventar aus dem ECHTEN Besitz ableiten — nie mehr, als man besitzt.
+ * Basis-Startbestand (STARTING_INVENTORY) zählt nur, wenn er wirklich besessen wird;
+ * ein Loadout-Eintrag ohne Besitz gibt 0 (no_inventory beim Platzieren).
+ */
+export function ownedInventory(
+  starting: Record<string, number>,
+  ownedCounts: Record<string, number>,
+  loadout: readonly string[],
+): Record<string, number> {
+  const inventory: Record<string, number> = {};
+  for (const id of Object.keys(starting)) {
+    const owned = ownedCounts[id] ?? 0;
+    if (owned > 0) inventory[id] = owned;
+  }
+  for (const id of loadout) {
+    const owned = ownedCounts[id] ?? 0;
+    if (owned > 0 && !(id in inventory)) inventory[id] = owned;
+  }
+  return inventory;
+}
 
 export interface SimState {
   seed: number;

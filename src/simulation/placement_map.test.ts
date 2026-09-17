@@ -177,6 +177,39 @@ describe('Platzierungsregeln — Geometrie', () => {
   });
 });
 
+describe('B37 — Besitz-Wahrheit: Run-Inventar spiegelt genau den Besitz', () => {
+  beforeEach(() => resetIds());
+
+  it('Loadout-Eintrag ohne Besitz gibt 0 ⇒ Platzieren lehnt mit no_inventory ab', () => {
+    const root = new SimulationRoot({ seed: 42, loadout: ['sprout'], ownedCounts: {} });
+    const rejects: string[] = [];
+    root.bus.subscribe('PLACEMENT_REJECTED', (e) => rejects.push((e as unknown as { payload: { reason: string } }).payload.reason));
+    root.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 11, gy: 10 }));
+    root.stepOnce();
+    expect(root.getSnapshot().plants).toHaveLength(0);
+    expect(rejects).toEqual(['no_inventory']);
+  });
+
+  it('Besitz von 5 ⇒ 5 Platzierungen möglich, die 6. lehnt ab (Energie über Startbudget hinaus)', () => {
+    const root = new SimulationRoot({ seed: 42, loadout: ['sprout'], ownedCounts: { sprout: 5 } });
+    // Energie auf 500 anheben — der Test prüft die BESITZ-Grenze, nicht das Budget.
+    const state = root.getSnapshot();
+    expect(state.inventory.sprout).toBe(5);
+    (root as unknown as { state: { resources: { energy: number } } }).state.resources.energy = 500;
+    const rejects: string[] = [];
+    root.bus.subscribe('PLACEMENT_REJECTED', (e) => rejects.push((e as unknown as { payload: { reason: string } }).payload.reason));
+    let seq = 1;
+    const spots: [number, number][] = [[11,10],[10,10],[9,10],[8,10],[7,10],[6,10]];
+    for (const [gx, gy] of spots) {
+      root.commands.push(makeCommand(0, 'PLACE_PLANT', seq++, { variantId: 'sprout', gx, gy }));
+    }
+    for (let i = 0; i < 6; i++) root.stepOnce();
+    expect(root.getSnapshot().plants).toHaveLength(5);
+    expect(root.getSnapshot().inventory.sprout).toBe(0);
+    expect(rejects).toEqual(['no_inventory']);
+  });
+});
+
 describe('Platzierungsregeln — Ökonomie vor Geometrie', () => {
   it('meldet no_inventory, bevor Geometrie geprüft wird', () => {
     const reason = placementRejectReason({

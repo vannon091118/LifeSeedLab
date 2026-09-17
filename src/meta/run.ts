@@ -39,9 +39,21 @@ export function beginRun(): MetaSave {
   return next;
 }
 
-export function applyRunEnd(meta: MetaSave, waveReached: number, nektarEarned: number): MetaSave {
+/**
+ * B37: Run-End-Sync — der Restbestand des Run-Inventars ist der neue Besitz: Die Kette
+ * „kaufen → einpflanzen → pflegen → ernten → Loadout" bleibt geschlossen. Positiv-Max:
+ * Besitz schrumpft nie, weil ein Run ihn leer gefressen hat.
+ */
+export function applyRunEnd(meta: MetaSave, waveReached: number, nektarEarned: number, remainingInventory?: Record<string, number>): MetaSave {
+  const counts = { ...meta.variantCounts };
+  if (remainingInventory) {
+    for (const [id, n] of Object.entries(remainingInventory)) {
+      if (n > 0) counts[id] = Math.max(counts[id] ?? 0, n);
+    }
+  }
   return {
     ...meta,
+    variantCounts: counts,
     nektar: meta.nektar + nektarEarned,
     bestWave: Math.max(meta.bestWave, waveReached),
     runs: meta.runs + 1,
@@ -49,9 +61,9 @@ export function applyRunEnd(meta: MetaSave, waveReached: number, nektarEarned: n
   };
 }
 
-export function recordRunEnd(waveReached: number, nektarEarned: number): MetaSave {
+export function recordRunEnd(waveReached: number, nektarEarned: number, remainingInventory?: Record<string, number>): MetaSave {
   const meta = loadMeta();
-  const next = applyRunEnd(meta, waveReached, nektarEarned);
+  const next = applyRunEnd(meta, waveReached, nektarEarned, remainingInventory);
   persistMeta(next);
   return next;
 }

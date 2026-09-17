@@ -33,6 +33,8 @@ interface Props {
   seed: number; runId: number;
   loadout: string[]; savedVariants: MetaSave['savedVariants'];
   bredStats: NonNullable<MetaSave['bredStats']>;
+  /** B37: echter Besitz je Variant (Meta.variantCounts) — Run-Inventar spiegelt genau das. */
+  ownedCounts: Record<string, number>;
   beetles: BeetleSpecimen[];
   audioOn: boolean;
   /** B2: gespeicherter Run-Zustand — nur gesetzt, wenn der Spieler „Fortsetzen“ wählt. */
@@ -42,7 +44,7 @@ interface Props {
 
 const IDLE: PlacementState = { mode: 'plant', variantId: null, ghost: null, rejection: null };
 
-export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetles, audioOn, resume, onMetaChange, onExit }: Props){
+export function GameView({ seed, runId, loadout, savedVariants, bredStats, ownedCounts, beetles, audioOn, resume, onMetaChange, onExit }: Props){
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const runtimeRef = useRef<RunRuntime | null>(null);
   const pausedRef = useRef(false);
@@ -86,7 +88,7 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;
     const runtime = new RunRuntime(
-      { canvas, seed, runId, loadout, savedVariants, bredStats, beetles, audioOn, resume: resume ?? null, onMetaChange },
+      { canvas, seed, runId, loadout, savedVariants, bredStats, ownedCounts, beetles, audioOn, resume: resume ?? null, onMetaChange },
       {
         onPlacement: applyPlacement,
         onHud: setHud,
@@ -170,6 +172,14 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
     runtimeRef.current?.startWave();
   }, []);
 
+  // Abbruch = Run von X Wellen — zählen wie GameOver (Reifung, BestWave, Restbestand).
+  const handleExit = useCallback(() => {
+    const rt = runtimeRef.current;
+    const after = rt !== null ? rt.countRun() : null;
+    runtimeRef.current = null;
+    (onExit as unknown as (m: unknown) => void)(after);
+  }, [onExit]);
+
   /** B32: Tempo-Zyklus ×1→×2→×3→×4→×1 — die Stufen kommen aus der Uhr (eine Quelle). */
   const handleCycleSpeed = useCallback(() => {
     const rt = runtimeRef.current; if (!rt) return;
@@ -225,7 +235,7 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
         onTogglePause={togglePause}
         onStartWave={handleStartWave}
         onDeployBeetle={handleDeployBeetle}
-        onExit={onExit}
+        onExit={handleExit}
       />
 
       <div style={styles.stage} data-tut-stage>
@@ -285,7 +295,7 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
             wave={hud?.wave ?? 0}
             score={runtimeRef.current?.root.getSnapshot().score ?? 0}
             onNewRun={() => { setShowGameOver(false); runtimeRef.current = null; onExit(); }}
-            onMenu={onExit}
+            onMenu={handleExit}
             onResume={() => { setSuspended(false); pausedRef.current = false; runtimeRef.current?.root.clock.setPaused(false); }}
           />
         </div>

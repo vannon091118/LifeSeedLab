@@ -23,9 +23,36 @@ import {
   advanceCrossMaturation,
   isCrossReady,
 } from './economy';
-import { toggleLoadout, keepCross } from './run';
+import { toggleLoadout, keepCross, recordRunEnd } from './run';
 
 const BASES = createBaseVariants();
+
+describe('B37 — Besitz-Wahrheit: Run-End-Sync schließt die Schleife', () => {
+  beforeEach(() => resetTestState());
+
+  it('Restbestand des Run-Inventars wird nach dem Run Besitz (recordRunEnd)', () => {
+    updateMeta({ variantCounts: { sprout: 1 } });
+    const next = recordRunEnd(3, 10, { sprout: 2, cross_x: 1 });
+    // Bestand nach dem Run: verbrauchte 1 Spross durch 2 im Feld Übrige ersetzt, Cross dazugekauft.
+    expect(next.variantCounts.sprout).toBe(2);
+    expect(next.variantCounts.cross_x).toBe(1);
+  });
+
+  it('Besitz schrumpft nie durch einen Run (positives Max)', () => {
+    updateMeta({ variantCounts: { sprout: 5 } });
+    const next = recordRunEnd(1, 0, { sprout: 0 }); // alle 5 im Feld verbraucht
+    expect(next.variantCounts.sprout).toBe(5);
+  });
+
+  it('ohne Inventar-Argument verhält sich recordRunEnd wie bisher', () => {
+    updateMeta({ variantCounts: { sprout: 1 } });
+    const nektarVorher = loadMeta().nektar;
+    const next = recordRunEnd(2, 4);
+    expect(next.variantCounts.sprout).toBe(1);
+    expect(next.nektar).toBe(nektarVorher + 4);
+    expect(next.runs).toBe(1);
+  });
+});
 
 /** Besitz-Liste — dieselbe Ableitung wie im Gewächshaus (eine Quelle). */
 function ownedOf(meta: ReturnType<typeof loadMeta>): PlantVariant[] {

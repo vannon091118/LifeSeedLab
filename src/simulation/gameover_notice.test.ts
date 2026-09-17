@@ -154,16 +154,18 @@ describe('B29 — Ablehnungen erreichen den Spieler (echter Run)', () => {
     const root = new SimulationRoot({ seed: 4242, loadout: ['sprout'], beetles: brood });
     const read = collector(root, 'BEETLE_REJECTED');
 
-    // Platzieren (50) und Findlinge (20) drücken die Energie unter jede Brut-Kostenhürde. Die
-    // Schleife ist zustandsgesteuert, nicht zeitgesteuert — derselbe Lauf, dasselbe Ergebnis.
-    root.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 4, gy: 3 }));
-    root.stepOnce();
-    let seq = 2;
+    // Pflanzen kosten kein Harz mehr (B37) und es gibt kein passives Einkommen (kein Tropf):
+    // Die Energie sinkt nur noch durch Käufe — 6 Findlinge (maxCount aus der Source, Reihe gy=8
+    // ist pfadfrei, also nie on_path) + 10 Deko-Tiles drücken sie deterministisch auf 0.
+    let seq = 1;
     for (let i = 0; i < 6; i++) {
-      root.commands.push(makeCommand(1, 'PLACE_TILE', seq++, { gx: 2 + i, gy: 6, tile: 'boulder' }));
-      root.stepOnce();
+      root.commands.push(makeCommand(1, 'PLACE_TILE', seq++, { gx: 2 + i, gy: 8, tile: 'boulder' }));
     }
-    expect(root.getSnapshot().resources.energy).toBeLessThan(10);
+    for (let i = 0; i < 10; i++) {
+      root.commands.push(makeCommand(1, 'PLACE_TILE', seq++, { gx: 2 + (i % 8), gy: 2 + Math.floor(i / 8), tile: 'decor' }));
+    }
+    root.stepOnce();
+    expect(root.getSnapshot().resources.energy).toBe(0);
 
     root.commands.push(makeCommand(2, 'DEPLOY_BEETLE', seq++, { beetleId: brood[0].id }));
     root.stepOnce();

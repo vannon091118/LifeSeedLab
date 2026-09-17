@@ -43,9 +43,4 @@ export class ScoreSystem {
     }));
   }
 
-  /** Passive prep-phase energy drip. */
-  prepDrip(state: SimState, amount = 2): void {
-    if (state.clock.tick % 30 !== 0) return;
-    state.resources.energy += amount;
-  }
 }

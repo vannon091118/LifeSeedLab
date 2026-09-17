@@ -197,14 +197,16 @@ test.describe('Progression — Reifungs-Loop', () => {
     // ── Schritt 6: Run starten → Kind im Tray (Platzierbarkeit = der B1-Beweis) ──
     await page.getByRole('button', { name: /endless/i }).first().click();
     await expect(page.locator('canvas')).toHaveCount(1);
-    // Der Loadout-Variant erscheint als Tray-Karte mit ×2 (freshState: loadout → inventory 2).
-    // Last-unabhängig über die Sim-Inventar-Wahrheit lesen statt UI-Text-Polling.
+    // B37: das Run-Inventar spiegelt den BESITZ (Meta.variantCounts) — ein geholtes Kind
+    // hat Besitz 1, nicht mehr den Pauschal-2. Erwartung = Besitz-Wahrheit, nicht UI-Text-Polling.
     const childId = withLoadout.loadout![0]!;
+    const owned = withLoadout.variantCounts?.[childId] ?? 0;
+    expect(owned).toBeGreaterThan(0);
     await expect(page.locator('[aria-label="Pflanzenauswahl"] button', { hasText: childId })).toBeVisible();
     await expect.poll(async () => {
       const s = await sim(page);
       return s.inventory[childId] ?? 0;
-    }, { timeout: 10_000 }).toBe(2);
+    }, { timeout: 10_000 }).toBe(owned);
   });
 });
 

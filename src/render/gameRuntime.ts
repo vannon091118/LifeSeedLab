@@ -11,7 +11,7 @@
 // A19/zombie-sim-Regeln (fxOn bewusst NICHT im Effect-Deps) gelten hier weiter.
 
 import { SimulationRoot, makeCommand } from '../simulation/root';
-import { saveRun, type RunSave } from '../persistence/runSave';
+import { saveRun, type RunSave, clearRun } from '../persistence/runSave';
 import { RunSaveAutor } from '../persistence/runSaveAutor';
 import { Renderer } from './renderer';
 import { ghostForRender } from '../components/ghostPreview';
@@ -57,6 +57,8 @@ export interface RunRuntimeInput {
   seed: number; runId: number;
   loadout: string[]; savedVariants: MetaSave['savedVariants'];
   bredStats: NonNullable<MetaSave['bredStats']>;
+  /** B37: echter Besitz je Variant (Meta.variantCounts) — Run-Inventar spiegelt genau das. */
+  ownedCounts: Record<string, number>;
   beetles: BeetleSpecimen[];
   audioOn: boolean;
   resume?: RunSave | null;
@@ -99,6 +101,7 @@ export class RunRuntime {
 
     const root = new SimulationRoot({
       seed: input.seed, runId: input.runId, loadout: input.loadout,
+      ownedCounts: input.ownedCounts,
       bredStats: input.bredStats, beetles: input.beetles, resume: input.resume ?? undefined,
     });
     this.root = root;
@@ -168,6 +171,8 @@ export class RunRuntime {
         if (notice) this.cbs.onNotice(notice);
       });
     }
+
+    this.countRun = this.countRun.bind(this);
     root.bus.subscribe('NIGHT_STARTED', () => renderer.setNight(true));
     root.bus.subscribe('DAY_STARTED', () => renderer.setNight(false));
     // B17.4: die Reifung zählt die ANGEBROCHENE Welle — WAVE_STARTED feuert genau einmal pro
@@ -180,7 +185,7 @@ export class RunRuntime {
       if (this.runEnded) return;
       this.runEnded = true;
       try {
-        const next = recordRunEnd(e.payload.wave, root.getSnapshot().nektarEarned);
+        const next = recordRunEnd(e.payload.wave, root.getSnapshot().nektarEarned, root.getSnapshot().inventory);
         input.onMetaChange(next);
         // B35: clearRun gehört dem Save-Autor (GAME_OVER-Subscription in persistence/).
       } catch { /* meta persist must never break the run screen */ }
@@ -331,9 +336,23 @@ export class RunRuntime {
     window.removeEventListener('resize', this.onResize);
     document.removeEventListener('visibilitychange', this.onVisibility);
     this.saveAutor.destroy();
-    // B35: Der Abschluss-Save bleibt ein bewusster Render-Lifecycle-Moment (Tab weg/Screen
-    // wechselt), kein Event — deshalb direkt, aber über die persistence-Funktion.
     saveRun(this.root.getSnapshot());
     unbindSimRoot(this.root);
+  }
+
+  // Abbruch/GameOver-Nachwirkung identisch: egal ob 1 Welle oder GameOver — ein Run von X Wellen.
+  countRun(): MetaSave | null {
+    if (this.runEnded) return null;
+    this.runEnded = true;
+    try {
+      const snap = this.root.getSnapshot();
+      const waves = snap.wave.number; // erreichte Welle, inkl. laufender
+      const next = recordRunEnd(waves, snap.nektarEarned, snap.inventory);
+      // Reifungs-Uhr für den Abbruch: der Abbruch zählt als erreichte Runden.
+      advanceCrossMaturation(waves);
+      void clearRun(); // Abbruch darf nicht wieder auferstehen (verwaister SAVE)
+      this.cbs.onMetaChange(next);
+      return next;
+    } catch { return null; }
   }
 }
