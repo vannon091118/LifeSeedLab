@@ -320,11 +320,11 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `70c93a8` — fix(qa): Q1/Q2/Q4/Q5/Q6 + D1/D2 — QA-Runde-1-Fixes und lebendiges Maze |
-| Arbeitsbaum | 4 gestaged, 2 geändert, 0 neu |
-| Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
+| HEAD | `7845cd7` — feat(tray): D3 — Tray in Sektionen getrennt (Pflanzen | Feld) |
+| Arbeitsbaum | 7 gestaged, 0 geändert, 0 neu |
+| Letztes Gate | ✅ offen (preflight, 0 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `70c93a8` fix(qa): Q1/Q2/Q4/Q5/Q6 + D1/D2 — QA-Runde-1-Fixes und lebendiges Maze |
+| Letzter Shinon-Commit | `7845cd7` feat(tray): D3 — Tray in Sektionen getrennt (Pflanzen | Feld) |
 | Letzter Push | ✅ origin/main |
 | LOC-Hotspots | `src/simulation/root.ts` 288/300 (96 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/simulation/enemySystem.ts` 279/300 (93 %)<br>`src/components/Greenhouse.tsx` 366/400 (92 %)<br>`src/render/gameRuntime.ts` 364/400 (91 %) |
 <!-- SHINON:STATUS:END -->

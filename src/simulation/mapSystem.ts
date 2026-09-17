@@ -6,15 +6,15 @@
 
 import type { SimState, MapTiles } from './state';
 import { makeEvent, type GameEvent } from '../bus/events';
-import { MAP_TILES_SOURCE, MAP_TILE_IDS, MAP_DEFAULT_WEIGHT, expansionTiles, isBuildable, SPAWN_CORRIDOR_COL, type MapTileType } from '../config/map.source';
+import { MAP_TILES_SOURCE, MAP_TILE_IDS, MAP_DEFAULT_WEIGHT, PLANT_ROUTE_COST, expansionTiles, isBuildable, SPAWN_CORRIDOR_COL, type MapTileType } from '../config/map.source';
 import { isInsideGrid, ENEMY_PATH, PLACEMENT_PATH_MARGIN, dist, GRID_COLS, GRID_ROWS } from '../config/world.source';
 
 export type PlaceTileResult =
   | { ok: true }
   | { ok: false; reason: 'unknown_tile' | 'no_energy' | 'max_count' | 'occupied_plant' | 'spawn_corridor' | 'not_expandable' | 'on_path' };
 
-/** M2: Zusatz-Kosten einer Zelle mit Pflanze fürs Pathfinding (Umweg-Anreiz, kein Block). */
-const PLANT_ROUTE_COST = 2;
+// D4: PLANT_ROUTE_COST lebt in der Source (config/map.source.ts) — die Maze-Balance-Schraube
+// ist Gameplay-Konstante und gehört nie in Sim-Code (Regel 6).
 
 /**
  * M1/AP2 — Route-Qualität (Writer: SimulationRoot via computeRoute): Verhältnis der
@@ -142,7 +142,7 @@ export class MapSystem {
     if (queue.size === 0) return null;
 
     while (queue.size > 0) {
-      // kleinstes dist (O(n) scan — Raster ist klein, 12×8)
+      // kleinstes dist (O(n) scan — Raster ist klein: GRID_COLS×GRID_ROWS = 12×12)
       let bestK = ''; let bestD = Infinity;
       for (const k of queue) {
         const d = dist.get(k) ?? Infinity;

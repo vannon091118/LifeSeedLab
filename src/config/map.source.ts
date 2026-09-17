@@ -43,6 +43,11 @@ export const MAP_NEIGHBOR_MODE = 'ortho4' as const;
 /** Grund-Gewicht für un-bebaut begehbare Zellen (Papier-Wiese). */
 export const MAP_DEFAULT_WEIGHT = 1;
 
+/** D4 (Drift-Befund): Kosten-Beaufschlagung einer Zelle MIT Pflanze im Route-Dijkstra.
+ *  Die entscheidende Maze-Balance-Schraube: wie stark das Zucht-Layout den Laufweg beugt.
+ *  Muss aus der Simulation gelockt bleiben — balance-Änderungen sind Source-Änderungen. */
+export const PLANT_ROUTE_COST = 2;
+
 // ── Path-Autoconnect (Konfiguration) ──────────────────────────────────────
 // Path-Tiles verbinden sich automatisch mit Nachbarn. Die Verbindungs-
 // logik ist config-driven: jeder Tile-Typ kann `connectsTo` angeben.

@@ -111,4 +111,15 @@ describe('Phase 5 gate: source validation', () => {
     expect(MAP_TILES_SOURCE.path.weight).toBeLessThan(1);
     expect(MAP_TILES_SOURCE.decor.weight).toBe(1);
   });
+
+  it('D4: PLANT_ROUTE_COST ist source-driven und Sim-Semantik passend (> DEFAULT_WEIGHT)', async () => {
+    // Die Maze-Balance-Schraube lebt NUR hier — mapSystem.ts importiert sie (Regel 6).
+    // Semantik-Lock: > MAP_DEFAULT_WEIGHT (sonst beugen Pflanzen den Weg nicht) und
+    // < boulder-999 (Pflanzen blockieren nie — Softlock unmöglich).
+    const { PLANT_ROUTE_COST, MAP_DEFAULT_WEIGHT } = await import('./map.source');
+    const { MAP_TILES_SOURCE } = await import('./map.source');
+    expect(PLANT_ROUTE_COST).toBe(2);
+    expect(PLANT_ROUTE_COST).toBeGreaterThan(MAP_DEFAULT_WEIGHT);
+    expect(PLANT_ROUTE_COST).toBeLessThan(MAP_TILES_SOURCE.boulder.weight);
+  });
 });

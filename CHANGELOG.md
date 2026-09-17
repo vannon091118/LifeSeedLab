@@ -10,6 +10,7 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 ## Unreleased (Arbeitsstand 17.09.2026)
 
 
+- [D4] PLANT_ROUTE_COST in die Source (config/map.source.ts) — die Maze-Balance-Schraube ist source-driven, Sim importiert statt kopiert; veralteter 12×8-Grid-Kommentar korrigiert (12×12); Lock-Test mit Semantik-Vertrag (> DEFAULT_WEIGHT, < boulder)
 - [D3] Tray-Sektionen: Pflanzen (Kampf) und Feld-Tiles (Infrastruktur) sind getrennte Funktionsgruppen mit eigenen Labels (DE/EN) und Trenner — kein flacher Teller mehr
 - [QA-Runde] Q6 (kritisch): Greenhouse-Crash mit v0.0.37-Alt-Save behoben — pots/seedlings werden bei JEDEM loadMeta geheilt (healEntryLoop, B17-Muster), Migrationstest im Gate
 - [QA-Runde] Q1 (hoch): Welle 1 für Erstspieler überlebbar — grunt damage 10→4, Welle-1-Grunts fix 3; Leak-Pfad-Tests auf balance-festen High-Wave-Resume-Pfad umgestellt
