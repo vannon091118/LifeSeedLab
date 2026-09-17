@@ -20,15 +20,24 @@ export interface PlacementTrayProps {
   onBuyPlant: (variantId: string) => void;
   /** Preis pro Nachkauf-Kauf (Pflanzenkosten × Aufschlag, aus der Source abgeleitet). */
   restockPrice: (variantId: string) => number;
+  /** D3: i18n-Sektions-Labels — die Tray trennt KAMPF (Pflanzen) von FELD (Tiles). */
+  trayPlantsLabel: string;
+  trayFieldLabel: string;
 }
 
-export function PlacementTray({ plantIds, inventory, energy, mode, variantId, onSelectPlant, onSelectTile, onBuyPlant, restockPrice }: PlacementTrayProps) {
+export function PlacementTray({ plantIds, inventory, energy, mode, variantId, onSelectPlant, onSelectTile, onBuyPlant, restockPrice, trayPlantsLabel, trayFieldLabel }: PlacementTrayProps) {
   // B21: Die ERSTE Karte mit Bestand ist das Cue-Ziel des Onboardings (`data-tut="card"`) — genau
   // ein Element, damit der blinkende Ring eindeutig ist. Kein State, keine Auswahl-Logik.
   const firstPlayable = plantIds.find(id => (inventory[id] ?? 0) > 0) ?? null;
   return (
     <div style={styles.tray} role="toolbar" aria-label="Pflanzenauswahl">
-      {plantIds.map(id => {
+      {/* D3: Sektions-Trennung — Pflanzen (Kampf) und Feld-Tiles (Infrastruktur) sind
+          verschiedene Spielfunktionen und werden nicht mehr als identische Knöpfe
+          in einer Zeile gemischt. Trenner: TrayDivider. */}
+      <div style={styles.traySection} aria-label={trayPlantsLabel}>
+        <span style={styles.sectionLabel} aria-hidden>{trayPlantsLabel}</span>
+        <div style={styles.sectionRow}>
+        {plantIds.map(id => {
         const count = inventory[id] ?? 0;
         const isSelected = variantId === id && mode === 'plant';
         const disabled = count <= 0;
@@ -63,9 +72,17 @@ export function PlacementTray({ plantIds, inventory, energy, mode, variantId, on
           )}
           </Fragment>
         );
-      })}
-      {/* P5: Map-Tiles — Wege lenken Gegner, Töpfe tragen Pflanzen, Findlinge blockieren */}
-      {(Object.keys(MAP_TILES_SOURCE) as MapTileType[]).map(tile => {
+        })}
+        </div>
+      </div>
+
+      <div style={styles.trayDivider} aria-hidden/>
+
+      {/* P5/D3: Feld-Sektion — Wege lenken Gegner, Töpfe tragen Pflanzen, Findlinge blockieren */}
+      <div style={styles.traySection} aria-label={trayFieldLabel}>
+        <span style={styles.sectionLabel} aria-hidden>{trayFieldLabel}</span>
+        <div style={styles.sectionRow}>
+        {(Object.keys(MAP_TILES_SOURCE) as MapTileType[]).map(tile => {
         const isSelected = mode === tile;
         const affordable = energy >= MAP_TILES_SOURCE[tile].cost;
         return (
@@ -81,7 +98,9 @@ export function PlacementTray({ plantIds, inventory, energy, mode, variantId, on
             <span style={styles.trayCount}>{MAP_TILES_SOURCE[tile].cost}⚡</span>
           </button>
         );
-      })}
+        })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -106,4 +125,9 @@ const styles: Record<string, CSSProperties> = {
   trayDot: { width: 10, height: 10, borderRadius: '50%', background: 'var(--leaf)', border: '1.5px solid var(--ink)', flexShrink: 0 },
   trayName: { fontSize: 11, color: 'var(--ink)', textAlign: 'center', wordBreak: 'break-word', maxWidth: 72 },
   trayCount: { fontSize: 11, color: '#6b6250', fontWeight: 800 },
+  // D3: Sektionen — vertikale Stapel pro Funktionsgruppe, schmale Labels oben
+  traySection: { display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' },
+  sectionRow: { display: 'flex', gap: 8 },
+  sectionLabel: { fontSize: 9, letterSpacing: 1.5, color: '#8a8065', fontWeight: 800 },
+  trayDivider: { width: 2, alignSelf: 'stretch', background: 'var(--ink)', opacity: 0.25, borderRadius: 2 },
 };

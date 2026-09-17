@@ -320,11 +320,11 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `ae64493` — feat(loop): Einstiegs-Loop mit Leih-Spross, Töpfen und Versions-Ausweis |
-| Arbeitsbaum | 23 gestaged, 0 geändert, 0 neu |
-| Letztes Gate | ✅ offen (preflight, 0 Fehler, 0 Warnungen) |
+| HEAD | `70c93a8` — fix(qa): Q1/Q2/Q4/Q5/Q6 + D1/D2 — QA-Runde-1-Fixes und lebendiges Maze |
+| Arbeitsbaum | 4 gestaged, 2 geändert, 0 neu |
+| Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `a7c136c` feat(sim): Maze-Agent-Sprint — Performance, Maze-Tiefe, LLM-Bridge |
+| Letzter Shinon-Commit | `70c93a8` fix(qa): Q1/Q2/Q4/Q5/Q6 + D1/D2 — QA-Runde-1-Fixes und lebendiges Maze |
 | Letzter Push | ✅ origin/main |
 | LOC-Hotspots | `src/simulation/root.ts` 288/300 (96 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/simulation/enemySystem.ts` 279/300 (93 %)<br>`src/components/Greenhouse.tsx` 366/400 (92 %)<br>`src/render/gameRuntime.ts` 364/400 (91 %) |
 <!-- SHINON:STATUS:END -->

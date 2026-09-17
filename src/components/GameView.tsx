@@ -290,6 +290,8 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
             onSelectTile={selectTile}
             onBuyPlant={handleBuyPlant}
             restockPrice={restockPrice}
+            trayPlantsLabel={t('game.trayPlants')}
+            trayFieldLabel={t('game.trayField')}
           />
           <GameOverlays
             gameOver={showGameOver}
