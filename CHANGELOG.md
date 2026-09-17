@@ -5,9 +5,19 @@ rekonstruiert**: Jeder Eintrag fasst zusammen, was im Repository tatsächlich pa
 (Commit-Hashes in Klammern), älteste Fassung zuerst, neueste oben. Das Spiel ist im
 Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x).
 
----## Unreleased (Arbeitsstand 17.09.2026)
+---
+
+## Unreleased (Arbeitsstand 17.09.2026)
 
 
+- [QA-Runde] Q6 (kritisch): Greenhouse-Crash mit v0.0.37-Alt-Save behoben — pots/seedlings werden bei JEDEM loadMeta geheilt (healEntryLoop, B17-Muster), Migrationstest im Gate
+- [QA-Runde] Q1 (hoch): Welle 1 für Erstspieler überlebbar — grunt damage 10→4, Welle-1-Grunts fix 3; Leak-Pfad-Tests auf balance-festen High-Wave-Resume-Pfad umgestellt
+- [QA-Runde] Q2 (mittel): Drag-Platzierung aus der Tray repariert — releasePointerCapture + touchAction none auf Tray-Karten
+- [QA-Runde] Q4 (mittel): React border-Warnung behoben — 5 Komponenten auf Border-Longhands umgestellt
+- [QA-Runde] Q5 (trivia): favicon.svg ergänzt (404 behoben)
+- [D1] Maze ist lebendig: Pflanzen/Weg-Tiles berechnen die Route SOFORT (PLACE_PLANT/PLACE_TILE triggern recomputeRoute); routeQuality misst echte Kosten gegen Endpunkt-Referenz (eine Quelle, observationSerializer nutzt mapSystem statt Kopie)
+- [D2] Leih-Spross im Run platzierbar — Run-Loadout trägt die Leih-ID (App-Naht), ownedInventory spiegelt sie aus dem Besitz
+- [Vertrag] AGENTS.md: QA-Abhol-Pflicht vor Task-Start am Dateianfang verankert
 - [Lauf-3-Nachtest] Zwei offene UX-Punkte aus dem v0.0.36-Spielerbericht behoben: (1) **Nachkaufkarten lesbar** - die Restock-Karten im Tray zeigten nur '+ 80' / '+ 120' (der Pflanzenname stand nur im Tooltip); jetzt tragen sie Name UND Preis ('Wurzelmauer +80E'), der Kauf ist ohne Tooltip verstehbar. (2) **Dauerhafter Feldhinweis entwertet** - der Zettel 'Tippe eine Pflanze unten...' blieb den ganzen Run sichtbar und nahm Sichtflaeche; er ist jetzt ein antippbarer Hinweis mit Ausblenden-Knopf (noteDismissed), der nur bis zur freiwilligen Entscheidung des Spielers steht - die prominente Erst-Hilfe bis zur ersten Platzierung bleibt unveraendert. Tippfehler im Kommentar berichtigt; gameViewStyles paperNote cursor:pointer.
 
 

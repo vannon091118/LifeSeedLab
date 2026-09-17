@@ -12,7 +12,7 @@
 import type { SimState } from './state';
 import type { GameEvent } from '../bus/events';
 import { GRID_COLS, GRID_ROWS } from '../config/world.source';
-import { tileKey, tileBlocked } from './mapSystem';
+import { tileKey, tileBlocked, routeQuality } from './mapSystem';
 
 export const OBSERVATION_VERSION = 1 as const;
 
@@ -111,11 +111,7 @@ export function serializeObservation(state: SimState, recentEvents: Observation[
   };
 }
 
-/** Route-Qualität aus der Route im State (dieselbe Formel wie mapSystem.routeQuality). */
+/** Route-Qualität — EINE Quelle (mapSystem.routeQuality), keine Formel-Kopie. */
 function routeQualityOf(state: SimState): number | null {
-  const route = state.currentRoute;
-  if (!route || route.length < 2) return null;
-  const waypoints = route.length - 1;
-  const straight = (GRID_COLS - 1) + (GRID_ROWS - 1);
-  return Math.min(1, straight / waypoints);
+  return routeQuality(state.currentRoute);
 }

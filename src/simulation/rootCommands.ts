@@ -36,11 +36,18 @@ export function executeCommand(ctx: CommandContext, state: SimState, cmd: Comman
       if (!r.ok) {
         // Rejections are EVENTS, not silence (Defect: stilles Scheitern — UI/FX hängen am Bus)
         ctx.publish(makePlacementRejected(state.clock.tick, ctx.nextSeq(), cmd.payload.gx, cmd.payload.gy, r.reason));
+      } else {
+        // D1 (Maze-Drift): Pflanzen verteuern ihre Zelle im Cost-Field — JEDE Platzierung
+        // biegt den Laufweg SOFORT, nicht erst beim nächsten Wellen-Start. Sonst ist das
+        // Zucht-Maze ein No-op zwischen den Wellen (Befund: das Feld sah 1:1 wie vorher aus).
+        ctx.recomputeRoute(state);
       }
       break;
     }
     case 'REMOVE_PLANT':
-      ctx.plants.remove(state, cmd.payload.plantId);
+      if (ctx.plants.remove(state, cmd.payload.plantId)) {
+        ctx.recomputeRoute(state); // D1: Weg zieht nach — auch beim Entfernen
+      }
       break;
     case 'START_WAVE':
       ctx.waves.startWave(state);
@@ -59,6 +66,10 @@ export function executeCommand(ctx: CommandContext, state: SimState, cmd: Comman
           version: 1,
           payload: { gx: cmd.payload.gx, gy: cmd.payload.gy, tile: cmd.payload.tile, reason: r.reason },
         });
+      } else {
+        // D1: Tiles BIEGEN den Weg ebenfalls sofort — vorher sah der Spieler nur beim
+        // nächsten Wellenstart (START_WAVE) die Wirkung seines Baus.
+        ctx.recomputeRoute(state);
       }
       break;
     }

@@ -21,11 +21,25 @@ const PLANT_ROUTE_COST = 2;
  * Route-Kosten zur freien Manhattan-Distanz Spawn→Ausgang. 1 = perfekt gerade, kleiner =
  * das Spieler-Maze zwingt Umwege ab. Bestimmt die Observation (Phase 2) statt `null`.
  */
-export function routeQuality(route: { x: number; y: number }[] | null): number | null {
+export function routeQuality(route: readonly { x: number; y: number }[] | null): number | null {
   if (!route || route.length < 2) return null;
-  const waypoints = route.length - 1;
-  const straight = (GRID_COLS - 1) + (GRID_ROWS - 1); // ortho4-Referenz: kürzest möglicher Weg
-  return Math.min(1, straight / waypoints);
+  // D1/QA-Lektion: Die Referenz ist die Manhattan-Distanz der ROUTE-Endpunkte — nicht die
+  // Feld-Diagonale (COLS+ROWS). Diagonal-Referenz capped jeden realen Umweg auf Qualität 1
+  // (11-Schritte-Route vs. 22er-Referenz) und machte den Quality-Chip bedeutungslos.
+  const [fx, fy] = [Math.round(route[0].x - 0.5), Math.round(route[0].y - 0.5)];
+  const [lx, ly] = [Math.round(route[route.length - 1].x - 0.5), Math.round(route[route.length - 1].y - 0.5)];
+  const straight = Math.abs(lx - fx) + Math.abs(ly - fy);
+  if (straight === 0) return null;
+  // D1-Lektion: Knotenzahl allein verfehlt das Maze — ein Umweg über TEURE Zellen
+  // (Pflanzen, PLANT_ROUTE_COST) kann gleich viele Knoten haben. Qualität misst deshalb
+  // die KOSTEN der Route relativ zur Manhattan-Referenz; das Cap 1 schert gerade Wege.
+  let cost = 0;
+  for (let i = 1; i < route.length; i++) {
+    const [ax, ay] = [Math.round(route[i - 1].x - 0.5), Math.round(route[i - 1].y - 0.5)];
+    const [bx, by] = [Math.round(route[i].x - 0.5), Math.round(route[i].y - 0.5)];
+    cost += Math.abs(bx - ax) + Math.abs(by - ay); // Manhattan-Schritte (ortho4-Route)
+  }
+  return Math.min(1, straight / cost);
 }
 
 /** Schlüssel-Funktion EINE Konvention: "gx,gy". */

@@ -110,12 +110,16 @@ function AppInner() {
         // platzierbar ist — ohne savedVariants-Eintrag wäre resolvePlantStats blind.
         const hasLoan = (meta.variantCounts[LOAN_PLANT_ID] ?? 0) > 0;
         const runVariants = hasLoan ? [...meta.savedVariants, deriveLoanPlant(meta.runId)] : meta.savedVariants;
+        // D2: Die Leih-Pflanze muss im RUN platzierbar sein — ownedInventory (state.ts) baut
+        // das Inventar aus Loadout × Besitz; ohne Loadout-Eintrag zeigt die Tray ×0 und
+        // PLACE_PLANT lehnt ab. Nur der Run-Loadout wird erweitert, das Meta-Loadout bleibt sauber.
+        const runLoadout = hasLoan ? [...meta.loadout, LOAN_PLANT_ID] : meta.loadout;
         return (
           <GameView
             key={meta.runId}
             seed={runSeed}
             runId={meta.runId}
-            loadout={meta.loadout}
+            loadout={runLoadout}
             savedVariants={runVariants}
             bredStats={meta.bredStats}
             ownedCounts={meta.variantCounts}

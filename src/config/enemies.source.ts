@@ -14,7 +14,10 @@ export interface EnemySource {
 }
 
 export const ENEMIES_SOURCE: Record<EnemySource['id'], EnemySource> = {
-  grunt: { id: 'grunt', hp: 40,  speed: 0.02,  damage: 10,  reward: 10,  scoreValue: 10 },
+  // Q1 (QA 2026-09-17): Welle 1 tötete Erstspieler in ~15 s. Grunt-Durchbruch war mit 10
+  // = halbes Leben — zwei Durchbrüche ware Game Over, bevor der Loop vermittelbar ist.
+  // 4 ist vermittelbar (5 Durchbrüche), 40 HP lassen 3 Spross-Treffer zu (15 dmg).
+  grunt: { id: 'grunt', hp: 40,  speed: 0.02,  damage: 4,   reward: 10,  scoreValue: 10 },
   fast:  { id: 'fast',  hp: 25,  speed: 0.045, damage: 5,   reward: 15,  scoreValue: 15 },
   tank:  { id: 'tank',  hp: 150, speed: 0.012, damage: 25,  reward: 30,  scoreValue: 30 },
   swarm: { id: 'swarm', hp: 15,  speed: 0.035, damage: 3,   reward: 5,   scoreValue: 5 },
@@ -40,9 +43,14 @@ export function generateWaveSchedule(rootSeed: number, waveNumber: number): Wave
   const rng = makeRng('wave', (rootSeed ^ Math.imul(waveNumber, WAVE_SEED_DOMAIN)) >>> 0);
   const groups: WaveSpawnGroup[] = [];
 
+  // Q1: Welle 1 ist das Onboarding-Fenster — Minimal-Bau (Leih-Spross) muss überleben.
+  // Ab Welle 2 wächst die Menge wie zuvor (4 + floor(n*1.5 + rand*3)).
+  const gruntCount = waveNumber === 1
+    ? 3
+    : 4 + Math.floor(waveNumber * 1.5 + rng.next() * 3);
   groups.push({
     typeId: 'grunt',
-    count: 4 + Math.floor(waveNumber * 1.5 + rng.next() * 3),
+    count: gruntCount,
     delay: Math.max(6, 18 - waveNumber),
   });
   if (waveNumber >= 3) {

@@ -245,8 +245,13 @@ export class SimulationRoot {
    * Ohne eigene Tiles gilt der gestaltete DEFAULT-Pfad (Terrain-Weg) — das leere
    * Spielfeld ist bereits gestaltet; erst Platzierungen lenken den Laufweg um. */
   private recomputeRoute(state: SimState): void {
+    // D1 (Maze-Drift): der Dijkstra läuft, sobald der Spieler IRGENDWAS gebaut hat — Tiles
+    // ODER Pflanzen. Nur das komplett leere Feld behält den gestalteten Default-Pfad.
+    // Vorher: `hasTiles ? computeRoute : null` machte PLANT_ROUTE_COST zum No-op, solange
+    // kein Weg-/Topf-Tile gekauft war — das Zucht-Maze war unsichtbar (Hauptbefund).
     const hasTiles = Object.keys(state.mapTiles).length > 0;
-    const route = hasTiles ? this.map.computeRoute(state) : null;
+    const hasPlants = state.plants.length > 0;
+    const route = hasTiles || hasPlants ? this.map.computeRoute(state) : null;
     // B16.1: die Route lebt NUR im State (Ein-Writer); EnemySystem liest sie pro Tick aus dem State —
     // keine zweite Kopie im System mehr (A14: getRoute/setRoute gestorben).
     state.currentRoute = route;

@@ -13,11 +13,22 @@ function advance(root: SimulationRoot, ticks: number): void {
   for (let i = 0; i < ticks; i++) root.stepOnce();
 }
 
-/** Erzwingt Game Over: Gegner-Lauf ohne Abwehr, bis die Leben aufgebraucht sind. */
-function forceGameOver(root: SimulationRoot): void {
+/** Erzwingt Game Over über die echte Sim-Pipeline — Q1-Balance-fest.
+ * Der alte Welle-1-Leak brach an grunt damage 4 (3 Grunts = 12 Schaden, 20 Leben):
+ * die Prep friert dann by-design ein (B23.1 wartet auf die erste Pflanze). High-Wave-
+ * Resume mit 1 Leben: Welle 21 spawnt ~60 Gegner, der Durchbruch ist garantiert.
+ * Liefert einen NEUEN Root im gameover-Zustand (der Caller-Root bleibt unangetastet). */
+function forceGameOver(): SimulationRoot {
+  const resume: import('./resume').ResumeSnapshot = {
+    waveNumber: 20, energy: 500, lives: 1, score: 0,
+    combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
+    plants: [], inventory: {}, discoveredVariants: [], mapTiles: {}, nektarEarned: 0,
+  };
+  const root = new SimulationRoot({ seed: GO_SEED, resume });
   root.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
   root.stepOnce();
-  for (let i = 0; i < 3000 && root.getSnapshot().phase !== 'gameover'; i++) root.stepOnce();
+  for (let i = 0; i < 60000 && root.getSnapshot().phase !== 'gameover'; i++) root.stepOnce();
+  return root;
 }
 import { noticeFromEvent } from '../components/fieldNotice';
 import { rejectTextKey } from '../components/FieldToast';
@@ -28,8 +39,7 @@ describe('Game Over friert am Owner (P1)', () => {
   beforeEach(() => resetIds());
 
   it('nach GAME_OVER führen Commands zu nichts (keine Pflanzen, kein Energieverbrauch)', () => {
-    const root = new SimulationRoot({ seed: GO_SEED });
-    forceGameOver(root);
+    let root: SimulationRoot = forceGameOver();
     const snap = root.getSnapshot();
     const energy = snap.resources.energy;
     const plants = snap.plants.length;
@@ -47,8 +57,7 @@ describe('Game Over friert am Owner (P1)', () => {
   });
 
   it('nach GAME_OVER läuft die Uhr nicht mehr (keine Ticks, keine Tag/Nacht-Events)', () => {
-    const root = new SimulationRoot({ seed: GO_SEED });
-    forceGameOver(root);
+    let root: SimulationRoot = forceGameOver();
     const tickBefore = root.getSnapshot().clock.tick;
 
     let events = 0;
@@ -63,8 +72,7 @@ describe('Game Over friert am Owner (P1)', () => {
   });
 
   it('Platzierungen nach Game Over verändern den State-Hash nicht', () => {
-    const root = new SimulationRoot({ seed: GO_SEED });
-    forceGameOver(root);
+    let root: SimulationRoot = forceGameOver();
     const s = root.getSnapshot();
     const before = JSON.stringify({
       tick: s.clock.tick, lives: s.lives, plants: s.plants, wave: s.wave.number, energy: s.resources.energy,

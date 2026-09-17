@@ -114,7 +114,7 @@ const styles: Record<string, React.CSSProperties> = {
   subtitle: { fontSize: 12, color: '#6b6250', margin: '4px 0 0', fontWeight: 600 },
   closeBtn: { marginLeft: 'auto', width: 34, height: 34, background: '#fff', border: '2px solid var(--ink)', borderRadius: 8, color: 'var(--ink)', cursor: 'pointer', fontWeight: 800, boxShadow: '2px 2px 0 var(--ink)', flexShrink: 0 },
   metaRow: { display: 'flex', gap: 8, flexWrap: 'wrap' as const, marginBottom: 14 },
-  metaPill: { padding: '6px 10px', background: '#fff', border: '2px solid var(--ink)', borderRadius: 99, color: 'var(--ink)', fontSize: 12, fontWeight: 700, boxShadow: '2px 2px 0 var(--ink)' },
+  metaPill: { padding: '6px 10px', background: '#fff', borderWidth: '2px', borderStyle: 'solid', borderColor: 'var(--ink)', borderRadius: 99, color: 'var(--ink)', fontSize: 12, fontWeight: 700, boxShadow: '2px 2px 0 var(--ink)' },
   metaPillSmall: { padding: '6px 10px', background: '#fff', border: '2px solid var(--ink)', borderRadius: 99, color: '#6b6250', fontSize: 11, fontWeight: 700, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   empty: { padding: 18, textAlign: 'center', color: '#6b6250', fontSize: 13, border: '2px dashed #b7ab8d', borderRadius: 8, background: '#fff', fontWeight: 600 },
   list: { display: 'flex', flexDirection: 'column' as const, gap: 10, contentVisibility: 'auto' } as React.CSSProperties,

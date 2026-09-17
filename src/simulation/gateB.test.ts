@@ -128,14 +128,22 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
   });
 
   it('Lives auf 0 ⇒ phase gameover + GAME_OVER Event (echter Leak-Pfad, kein Live-State-Zugriff)', () => {
-    const root = new SimulationRoot({ seed: SEED });
+    // Q1-Balance-fest (grunt damage 4): Welle 1 ohne Abwehr endet nicht mehr — die Prep
+    // friert by-design ein (B23.1 wartet auf die erste Pflanze). High-Wave-Resume mit
+    // 1 Leben: Welle 21 spawnt ~60 Gegner, der Durchbruch ist garantiert.
+    const resume: import('./resume').ResumeSnapshot = {
+      waveNumber: 20, energy: 500, lives: 1, score: 0,
+      combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
+      plants: [], inventory: {}, discoveredVariants: [], mapTiles: {}, nektarEarned: 0,
+    };
+    const root = new SimulationRoot({ seed: SEED, resume });
     let sawGameOver = false;
     root.bus.subscribe('GAME_OVER', () => { sawGameOver = true; });
     root.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
     root.stepOnce();
-    // Keine Pflanzen platziert ⇒ jeder Gegner leakt am Pfadende; Auto-Wellen ketten nach.
-    // Snapshot-Härtung: Game Over entsteht ausschließlich über die Sim-Pipeline (Commands/Events).
-    for (let i = 0; i < 30000 && !sawGameOver; i++) root.stepOnce();
+    // Keine Pflanzen platziert => jeder Gegner leakt am Pfadende.
+    // Snapshot-Härtung: Game Over entsteht ausschliesslich über die Sim-Pipeline.
+    for (let i = 0; i < 60000 && !sawGameOver; i++) root.stepOnce();
     expect(sawGameOver).toBe(true);
     expect(root.getSnapshot().phase).toBe('gameover');
   });

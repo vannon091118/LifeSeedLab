@@ -36,7 +36,7 @@ export function PlacementTray({ plantIds, inventory, energy, mode, variantId, on
         return (
           <Fragment key={id}>
           <button
-            onPointerDown={() => onSelectPlant(id, count)}
+            onPointerDown={(e) => { (e.target as HTMLElement).releasePointerCapture?.(e.pointerId); onSelectPlant(id, count); }}
             data-tut={id === firstPlayable ? 'card' : undefined}
             style={{ ...styles.trayItem, ...(isSelected ? styles.trayItemSelected : {}), ...(disabled ? styles.trayItemDisabled : {}) }}
             aria-pressed={isSelected} aria-disabled={disabled} title={label}
@@ -52,7 +52,7 @@ export function PlacementTray({ plantIds, inventory, energy, mode, variantId, on
           {count <= 0 && (
             <button
               key={`${id}-buy`}
-              onPointerDown={(e) => { e.stopPropagation(); onBuyPlant(id); }}
+              onPointerDown={(e) => { e.stopPropagation(); (e.target as HTMLElement).releasePointerCapture?.(e.pointerId); onBuyPlant(id); }}
               style={{ ...styles.trayItem, ...(energy < restockPrice(id) ? styles.trayItemDisabled : {}) }}
               aria-label={`${label} nachkaufen (${restockPrice(id)})`}
               title={`+1 ${label} — ${restockPrice(id)} Energie`}
@@ -71,7 +71,7 @@ export function PlacementTray({ plantIds, inventory, energy, mode, variantId, on
         return (
           <button
             key={tile}
-            onPointerDown={() => onSelectTile(tile)}
+            onPointerDown={(e) => { (e.target as HTMLElement).releasePointerCapture?.(e.pointerId); onSelectTile(tile); }}
             style={{ ...styles.trayItem, ...(isSelected ? styles.trayItemSelected : {}), ...(affordable ? {} : styles.trayItemDisabled) }}
             aria-pressed={isSelected} aria-disabled={!affordable}
             title={`${MAP_TILES_SOURCE[tile].label} (${MAP_TILES_SOURCE[tile].cost} Energie)`}
@@ -98,7 +98,9 @@ function tileSwatch(tile: MapTileType): string {
 
 const styles: Record<string, CSSProperties> = {
   tray: { position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8, padding: '10px 12px', background: '#fbf6e9', border: '2px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', maxWidth: 'calc(100% - 20px)', overflowX: 'auto' },
-  trayItem: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px 12px', background: '#fff', border: '2px solid var(--ink)', borderRadius: 10, cursor: 'pointer', color: 'var(--ink)', fontSize: 12, fontWeight: 700, boxShadow: '2px 2px 0 var(--ink)', minWidth: 76, flexShrink: 0, lineHeight: 1.1, minHeight: 64 },
+  // Q2 (QA): touchAction none — der Drag aus der Tray darf dem Browser nicht als Scroll-Geste
+  // gestohlen werden; releasePointerCapture im Handler lässt die Pointer-Events zum Canvas.
+  trayItem: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px 12px', background: '#fff', borderWidth: '2px', borderStyle: 'solid', borderColor: 'var(--ink)', borderRadius: 10, cursor: 'pointer', color: 'var(--ink)', fontSize: 12, fontWeight: 700, boxShadow: '2px 2px 0 var(--ink)', minWidth: 76, flexShrink: 0, lineHeight: 1.1, minHeight: 64, touchAction: 'none' as const },
   trayItemSelected: { background: '#f0fdf4', borderColor: 'var(--leaf)', boxShadow: '2px 2px 0 var(--leaf-dark)' },
   trayItemDisabled: { opacity: 0.45, cursor: 'not-allowed' },
   trayDot: { width: 10, height: 10, borderRadius: '50%', background: 'var(--leaf)', border: '1.5px solid var(--ink)', flexShrink: 0 },

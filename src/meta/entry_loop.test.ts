@@ -2,7 +2,8 @@
 // + Gewächshaus-Töpfe (3 Slots). Der komplette Spielerfluss als Gate:
 // Leih-Run → Nektar → Shop → Keimling → Topf → eigene Pflanze.
 import { describe, it, expect, beforeEach } from 'vitest';
-import { resetFullTestState } from '../testing/testkit';
+import { resetFullTestState, writeLegacyEnvelope } from '../testing/testkit';
+import { META_KEY, META_VERSION } from './store';
 import {
   defaultMeta, loadMeta, updateMeta,
   beginRun, applyRunEnd,
@@ -10,6 +11,7 @@ import {
   deriveLoanPlant, isLoanVariant, LOAN_PLANT_ID,
 } from '../meta';
 import { STARTING_NEKTAR, SEED_SHOP_BASE_PRICE, GREENHOUSE_POT_SLOTS } from '../config/economy.source';
+import { ownedInventory } from '../simulation/state';
 import { GAME_SEED } from '../config';
 
 describe('Einstieg — Startkapital: genau EIN günstiger Samen', () => {
@@ -136,5 +138,52 @@ describe('Einstieg — Chain-Herkunft: die Leihpflanze trägt GAME_SEED-Ableitun
     expect(loan.traits.length).toBeGreaterThan(0);
     expect(loan.stats.damage).toBeGreaterThanOrEqual(0);
     expect(GAME_SEED).toBeDefined();
+  });
+});
+
+
+describe('Q6 — Altsave ohne pots/seedlings: Greenhouse-Daten heilen bei JEDEM Load', () => {
+  beforeEach(() => { resetFullTestState(); });
+
+  it('v0.0.37-Save (gleiche Envelope-Version, Felder fehlen) → loadMeta liefert gültige Töpfe', () => {
+    // Envelope mit AKTUELLER Version, aber OHNE pots/seedlings — genau der Q6-Crash-Fall:
+    // resolveVersion reicht gleich-versionierte Saves ROH durch, die toCurrent-Heilung läuft nie.
+    writeLegacyEnvelope(META_KEY, { nektar: 20, bestWave: 1, runs: 1, runId: 1 }, META_VERSION);
+
+    const meta = loadMeta();
+    expect(meta.pots).toHaveLength(GREENHOUSE_POT_SLOTS);
+    expect(meta.pots.every(p => p === null)).toBe(true);
+    expect(meta.seedlings).toEqual([]);
+    expect(meta.nektar).toBe(20); // Altstand bleibt erhalten — Heilung ist keine Rücksetzung
+  });
+
+  it('defekte Felder (zu lang, Fremd-Typen) werden auf die Invariante gekürzt', () => {
+    writeLegacyEnvelope(
+      META_KEY,
+      { nektar: 5, pots: ['x', null, 'y', 'z', 42], seedlings: ['a', 7, 'b'] },
+      META_VERSION,
+    );
+    const meta = loadMeta();
+    expect(meta.pots).toHaveLength(GREENHOUSE_POT_SLOTS);
+    expect(meta.pots[0]).toBe('x');
+    expect(meta.pots.every(p => p === null || typeof p === 'string')).toBe(true);
+    expect(meta.seedlings.every(s => typeof s === 'string')).toBe(true);
+  });
+});
+
+describe('D2 — Leih-Spross ist im RUN platzierbar (App-Naht: Run-Loadout)', () => {
+  beforeEach(() => { resetFullTestState(); });
+
+  it('beginRun leiht bei leerem Besitz; der Run-Loadout trägt die Leih-ID ⇒ ownedInventory spiegelt sie', () => {
+    // Frisches Profil: kein Besitz, kein Loadout — genau der D2-Sackgassen-Fall.
+    updateMeta({ variantCounts: {}, loadout: [] });
+    const meta = beginRun();
+    expect((meta.variantCounts[LOAN_PLANT_ID] ?? 0) > 0).toBe(true);
+
+    // App-Naht (App.tsx renderScreen 'run'): Run-Loadout = Meta-Loadout + Leih-ID.
+    // Der Sim-Contract (pipeline.ts): ownedInventory spiegelt Loadout × Besitz.
+    const runLoadout = [...meta.loadout, LOAN_PLANT_ID];
+    const inventory = ownedInventory({}, meta.variantCounts, runLoadout);
+    expect((inventory[LOAN_PLANT_ID] ?? 0)).toBeGreaterThan(0);
   });
 });

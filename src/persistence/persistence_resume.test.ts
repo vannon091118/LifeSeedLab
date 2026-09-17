@@ -41,13 +41,21 @@ describe('Gate B — Resume-Shape (RunSave v2)', () => {
     // runSave nutzt idbSet → localStorage-Fallback ist nicht garantiert in jeder Umgebung.
     // Gate prüft daher den CONTRACT direkt: saveRun darf gameover nicht speichern + stripped shape.
     // Fallback: prüfe, dass gameover-Runs nicht gespeichert werden
-    const gameoverRoot = new SimulationRoot({ seed: 123 });
-    // Kein Live-Zugriff: gameover entsteht über die echte Sim-Pipeline (Leak-Pfad).
+    // Q1-Balance-fest (grunt damage 4): Welle 1 ohne Abwehr endet nicht mehr — High-Wave-
+    // Resume mit 1 Leben (Welle 21, ~60 Gegner) leakt garantiert über die echte Pipeline.
+    const gameoverRoot = new SimulationRoot({
+      seed: 123,
+      resume: {
+        waveNumber: 20, energy: 500, lives: 1, score: 0,
+        combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
+        plants: [], inventory: {}, discoveredVariants: [], mapTiles: {}, nektarEarned: 0,
+      },
+    });
     let ended = false;
     gameoverRoot.bus.subscribe('GAME_OVER', () => { ended = true; });
     gameoverRoot.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
     gameoverRoot.stepOnce();
-    for (let i = 0; i < 30000 && !ended; i++) gameoverRoot.stepOnce();
+    for (let i = 0; i < 60000 && !ended; i++) gameoverRoot.stepOnce();
     expect(ended).toBe(true);
     saveRun(gameoverRoot.getSnapshot()); // contract: gameover wird NICHT gespeichert
     // wenn localStorage-Pfad aktiv ist, prüfe envelope; sonst ist der Contract über idbSet erfüllt (kein Crash)

@@ -186,15 +186,29 @@ function migrate(raw: unknown, fromVersion: number): MetaSave | null {
   return toCurrent(defaultMeta(), old);
 }
 
+/**
+ * Q6 (QA 2026-09-17): Einstiegs-Loop-Felder bei JEDEM Load heilen, nicht nur im Migrationspfad.
+ * resolveVersion reicht Saves der GLEICHEN Envelope-Version roh durch (storage.ts) — ein
+ * v0.0.37-Save ohne pots/seedlings lief sonst als undefined ins Greenhouse (Crash).
+ * Idempotent, reine Invarianten-Reparatur (B17-Muster).
+ */
+function healEntryLoop(meta: MetaSave): MetaSave {
+  return {
+    ...meta,
+    pots: sanitizePots(meta.pots),
+    seedlings: Array.isArray(meta.seedlings) ? meta.seedlings.filter((s): s is string => typeof s === 'string') : [],
+  };
+}
+
 export function loadMeta(): MetaSave {
   // B17: Invarianten werden bei JEDEM Load hergestellt, nicht nur bei der Migration. Die
   // Storage-Schicht reicht Saves der aktuellen Version unverändert durch — eine Heilung nur im
   // Migrationspfad liefe für genau die Saves nie, die sie brauchen.
-  return normalizeRipeness(load<MetaSave>(META_KEY, {
+  return healEntryLoop(normalizeRipeness(load<MetaSave>(META_KEY, {
     version: META_VERSION,
     migrate,
     fallback: defaultMeta,
-  }));
+  })));
 }
 
 export function persistMeta(meta: MetaSave): void {

@@ -179,7 +179,7 @@ const styles: Record<string, React.CSSProperties> = {
   desc: { fontSize: 12, color: '#6b6250', margin: '0 0 14px', fontWeight: 600 },
   note: { marginBottom: 10, padding: '8px 10px', background: '#fdeec9', border: '2px solid #a16207', borderRadius: 8, color: '#78350f', fontSize: 12, fontWeight: 700 },
   specimenRow: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 14 },
-  specimenCard: { position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: 14, background: '#fff', border: '2.5px solid var(--ink)', borderRadius: 8, cursor: 'pointer', color: 'var(--ink)', boxShadow: '3px 3px 0 var(--ink)' },
+  specimenCard: { position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: 14, background: '#fff', borderWidth: '2.5px', borderStyle: 'solid', borderColor: 'var(--ink)', borderRadius: 8, cursor: 'pointer', color: 'var(--ink)', boxShadow: '3px 3px 0 var(--ink)' },
   specimenSelected: { background: '#fdeec9', borderColor: '#a16207', boxShadow: '3px 3px 0 #a16207' },
   specimenDot: { width: 22, height: 22, borderRadius: 7, border: '2px solid var(--ink)' },
   specimenName: { fontSize: 13, fontWeight: 800 },

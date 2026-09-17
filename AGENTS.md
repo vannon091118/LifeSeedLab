@@ -1,3 +1,18 @@
+**QA-Abholung vor Task-Start (PFLICHT):** Bevor ein Task beginnt, den QA-Berichte-Branch prüfen:
+
+```bash
+git fetch origin qa-reports
+git log HEAD..origin/qa-reports --oneline -- qa/
+```
+
+Gibt es neue Berichte unter `qa/`: **Lesen** (jeder Bericht ist Eingabe für den Task),
+Status der Befunde im Bericht auf `in-arbeit` / `erledigt` / `widerlegt` setzen
+(kleiner Commit auf `qa-reports`, Betreff `docs(qa): status <bericht> <befund>`),
+**erst dann** mit dem eigentlichen Task beginnen. Der Branch ist ein Übermittlungskanal —
+nie mergen, nur Berichte pflegen (Details: `qa/README.md` auf `qa-reports`).
+
+---
+
 ## VERPFLICHTENDER REPOSITORY-SEARCH WORKFLOW
 
 BEVOR Dateien gelesen, bearbeitet oder Architekturentscheidungen getroffen werden:
