@@ -8,6 +8,9 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 ---## Unreleased (Arbeitsstand 17.09.2026)
 
 
+- [QA-Branch] Status-Abgleich v0.0.42 (70c93a8) im Spiel verifiziert (2026-09-17_status-v0.0.42.md): Q12/F3/D2 ERLEDIGT - Leih-Spross erscheint im Frisch-Run-Tray (loan_sprout x1, data-tut=card existiert, Notiz 4 hat ihr Blink-Ziel). Q6 ERLEDIGT (healEntryLoop stellt pots/seedlings bei jedem loadMeta her). Q3/Q4/Q5 ERLEDIGT (favicon.svg, border-Longhands). Neu: Q13 (Kandidat 0/3) - Leih-Karte reagiert still auf Zellen-Taps trotz aktiver Auswahl (keine Pflanze/Toast/Energie-Aenderung), Q14 (Kandidat 0/3) - Leih-Karte zeigt Roh-ID loan_sprout statt Label (PLANTS_SOURCE-Label-Pfad greift nicht). D1-Refactor: state.mapTiles ist diff-only, voller Map-Zustand am Root (root.map mit placeTile/computeRoute/expandMap). OCR-Werkzeug eingerichtet (~/.config/lifeseedlab/qa-ocr.py, Tesseract 5.5 mit deu/eng/osd in ~/.local/share/tessdata, fuer Canvas/HUD/Toasts wenn DOM-Brücke nichts hergibt).
+
+
 - [QA-Branch] Team-Kommunikation als eiserne Regel + Spielfluss-Audit: AGENTS.md Punkt 2 (TEAM-PFLICHT) verpflichtet QA- und DEV-Agenten zu verbindlicher Kommunikation ueber den Branch - Design-Fragen und Drift-Verdachte stehen als Offene Fragen (Aktion: DEV) im Bericht, der DEV antwortet per Status-Commit, keiner meldet Bugs oder entscheidet Design einseitig. Neuer Bericht 2026-09-17_spielfluss-audit.md (Fluss-Linse statt Bug-Suche, frisches Profil): F1 Krix-Box-Klick expandiert nur und schaltet nie weiter, F2 Krix-Blase blockiert die gefuehrte Hub-Karte (1/3, positionsabhaengig), F3 Notiz 4 verlangt blinkende Karte die es auf Frisch-Profilen nicht gibt (3/3, Deadlock mit Skip als Ausweg - Folge von Q12), F4 Tray-Labels bleiben deutsch bei englischer UI (Labels aus der Source ohne i18n). Alt-Berichte Q1-Q12 nach qa/archiv/ verschoben, Index aufgeteilt in aktuelles Paket + Archiv, Runbook Schritt 5 erweitert (Team-Kanal + Archiv-Pflege).
 
 

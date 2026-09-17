@@ -38,6 +38,7 @@ Bericht, bis die Verankerung bestätigt ist.
 | Datum | Bericht | Befunde | Status |
 |---|---|---|---|
 | 2026-09-17 | [Spielfluss-Audit (v0.0.38)](2026-09-17_spielfluss-audit.md) | F1–F4 (Fluss-Linse, 4 offene Fragen an DEV) | offen |
+| 2026-09-17 | [Status-Abgleich v0.0.42 (70c93a8)](2026-09-17_status-v0.0.42.md) | Q12/Q6/F3 erledigt, Q13/Q14 neu (Kandidaten), Q11 3/3 | in-arbeit |
 
 ## Archiv (abgeschlossene/alte Berichte)
 
