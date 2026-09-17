@@ -129,3 +129,72 @@ geführt). Q12 ist für F3 der Kontext — bitte beim Fix zusammen denken.
 neuer Commit sichtbar, 4-facher Fern-Poll bestätigt). Falls der Eigentümer einen neuen
 Commit gesehen hat, der noch nicht auf GitHub liegt: Diese Befunde beziehen sich auf
 `ae64493` — nach Pull bitte Status-Abgleich.
+
+---
+
+## DEV-Antworten (2026-09-17, Stand `936afc7` auf main)
+
+Bewertungshoheit DEV — die vier offenen Fragen sind entschieden. Verifiziert gegen den
+aktuellen Stand (nicht gegen ae64493): D2/D2b sind gefixt, deshalb fällt ein Teil der
+Prämissen weg. Details je Frage:
+
+### F1 — Blase antippen: bewusst, bleibt — aber mit Vorwärts-Signal
+
+**Entscheidung:** „Blase antippen = Text aufklappen, nie weiterschalten“ ist **gewollt**
+(Handlungsschritte verlagen die Aktion auf die echte UI — controller.ts-Kommentar:
+„sonst wäre die Anweisung Dekoration“). Aber der Kritikpunkt am fehlenden Signal ist
+berechtigt und wird umgesetzt: Cue-Schritte bekommen einen sichtbaren Vorwärts-Hinweis
+(Puls auf dem Cue-Ziel + „→“-Hinweis in der Blase), damit der Erstspieler die passende
+Aktion erkennt. → **umgesetzt als F1-Item auf main** (nächster Sprint).
+
+### F2 — Blase blockiert Cue-Ziel: Auto-Kollaps bei Cue-Schritten
+
+**Entscheidung:** Die Blase wird bei Schritten mit Cue-Ziel (`advanceOn` != 'press')
+**pointer-transparent** und kollabiert automatisch auf den Titel: nur der Titel-Button
+behält Events, der aufklappbare Text wird beim Cue-Schritt eingeklappt dargestellt.
+Damit ist die Positionsabhängigkeit (1/3-Blockade bei 1280×860) strukturell aus —
+die Blase kann das geführte Ziel nie wieder verdecken. → **akzeptiert, Fix auf main
+geplant** (F2-Item).
+
+### F3 — „Tap the blinking card“-Deadlock: Diagnose bestätigt, bereits geheilt
+
+**Entscheidung:** Diagnose **voll bestätigt** — exakt die Kette, die ihr beschreibt:
+`firstPlayable` (PlacementTray.tsx:31, B21-Prämisse „erste Karte mit Bestand“) fand
+beim Frisch-Profil keine Karte, weil der Leih-Spross den Tray nie erreichte (Q12).
+Die Heilung ist **bereits auf main** (Commits `70c93a8` + `936afc7`): Der Run-Loadout
+trägt die Leih-ID, und die Sim löst ihre Stats über Run-bredStats auf
+(`loan_stats.test.ts` pinnt den Vertrag über 12 Chain-Ausgänge). Der Leih-Spross ist
+damit die erste Karte mit Bestand — `data-tut="card"` zeigt auf ihn, Notiz 4 ist
+ausführbar, kein Skip mehr nötig. **Bitte Nachtest mit frischem Profil gegen `936afc7`.**
+
+### F4 — Tray-Labels deutsch bei EN: vergessene i18n-Fläche, wird geschlossen
+
+**Entscheidung:** Gewollt war es nicht — vergessene Fläche. Aber die Richtung aus dem
+Audit ist die richtige: Die Labels kommen aus der Source (Content-Truth), also wandert
+die Entscheidung **in die Source**: `label` bleibt Content-Truth (deutsch, kanonisch),
+dazu bekommt jede Source-Zeile einen i18n-Key (`plants.sprout`, `map.pot`, …); der
+Tray liest über die i18n-Schicht mit Source-Fallback. Betrifft Tile/Pflanzen-Labels,
+Titel/aria-labels und die Nachkauf-Karten (einheitlich). → **akzeptiert als F4-Item,
+nächster Sprint** (Source-Schema + Tray + Codex-Labels nachziehen).
+
+### Q3 (Onboarding-Runde 1) — Entscheidung: Skip verwirft, aber mit Wiedereinstieg
+
+**Entscheidung:** „Überspringen verwirft die restlichen Notizen“ bleibt das Verhalten
+(bewusst: ein Spieler, der skippt, will Ruhe — kein erneutes Aufdrängen). ABER: Die
+Notizen werden später **auf Wunsch auffindbar** — Krix bekommt im Hub einen
+optionalen „Feldnotizen“-Einstieg (replay aller 10 Bühnen, ohne Fortschritts-Zwang,
+kein Reset von `tutorialDone`). Damit ist beides wahr: Skip ist Respekt, Wissen ist
+wiederholbar. → **Q3 erledigt als Design-Entscheidung**, Umsetzung (Replay-Einstieg)
+als Item für den nächsten Sprint.
+
+---
+
+### Status-Zusammenfassung (DEV)
+
+| Befund | Status | Aktion |
+|---|---|---|
+| F1 | in-arbeit | Vorwärts-Signal bei Cue-Schritten auf main |
+| F2 | in-arbeit | Auto-Kollaps + Pointer-Transparenz der Blase bei Cue-Schritten |
+| F3 | erledigt (main `70c93a8`+`936afc7`) | Wartet auf QA-Nachtest mit frischem Profil |
+| F4 | in-arbeit | Source-i18n-Keys + Tray-Lesepfad |
+| Q3 (Runde 1) | erledigt (Design) | Skip bleibt; Replay-Einstieg im Hub geplant |
