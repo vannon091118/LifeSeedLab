@@ -236,3 +236,5 @@ Gate davor.
 ## v0.0.1 — Erste Saat (14.09.2026)
 
 - Initialer Commit (`f02614c`): das Projekt steht — ein Browser-Tower-Defense, bei dem gezüchtete Pflanzen die Türme sind.
+
+<!-- QA-Status-Update 2026-09-17: Q1/Q2/Q4/Q5/Q6 erledigt (Fixes auf main), Q3 offen — Details in qa/README.md -->
