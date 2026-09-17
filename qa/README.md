@@ -38,6 +38,7 @@ Der offene Auftrag ist damit erledigt und wird nicht mehr mitgereist.
 | 2026-09-17 | [Verifikation v0.0.47](2026-09-17_verifikation-v0.0.47.md) | Q13 widerlegt (Messartefakte), Q1/Q2/Q3/Q4/Q5 erledigt bestätigt, R1 → **3/3 in Folgebericht**, N1–N3 Kandidaten | in-arbeit (DEV: R1-Bewertung übernommen, F1/F2 laufen) |
 | 2026-09-18 | [R1-Formalisierung (v0.0.47)](2026-09-18_r1-formalisierung.md) | **R1 3/3 bestätigt, strukturell** (Route konstant Reihe 0, 14 frei/10 blockiert auf derselben Route, kein Block/Angriff, Punkt-leer-Feuer) · **Eigentümer-Entscheid: Map-Builder-Menü als Pflicht-Sequenz** (DEV-Fragen im Bericht) · N2 uneinheitlich, N3 bestätigt, N4 neu (Hinweis-Blase verdeckt Tray) | offen |
 | 2026-09-18 | [Wirksamkeits-Check (v0.0.49)](2026-09-18_wirksamkeits-check.md) | **N4 (Eigentümer-#1) = 3/3, NICHT behoben** (Leiste unverändert über Tray, kein Commit) → Priorität HOCH · F1/F2 live verifiziert wirksam · Matrix aller Befunde · Prozess-Korrektur: Eigentümer-Punkte = eigener Befund | offen |
+| 2026-09-18 | [F5 — F2-Regression (v0.0.49)](2026-09-17_f5-f2-regression.md) | **F2 wird zur regression zurückgezogen (3/3):** Blasen-RAHMEN fängt Cue-Klicks (2529 px² Verdeckung, nur Karten-Ecken frei) — Fix `6bbf286` verfehlt eigenen Vertrag, Unit-Grün deckt Fall nicht · F1 bleibt wirksam · B38 unit-verifiziert (3/3) · Testlücke + Fix-Weg benannt | offen |
 | 2026-09-17 | [Status-Abgleich v0.0.42 (70c93a8)](2026-09-17_status-v0.0.42.md) | Q12/Q6/F3 erledigt, Q13/Q14 neu (Kandidaten), Q11 3/3 | in-arbeit |
 
 ## Archiv (abgeschlossene/alte Berichte)

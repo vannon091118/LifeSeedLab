@@ -194,7 +194,6 @@ als Item für den nächsten Sprint.
 | Befund | Status | Aktion |
 |---|---|---|
 | F1 | in-arbeit | Vorwärts-Signal bei Cue-Schritten auf main |
-| F2 | in-arbeit | Auto-Kollaps + Pointer-Transparenz der Blase bei Cue-Schritten |
-| F3 | erledigt + QA-nachgeprüft (`70c93a8`+`936afc7`) | Frisch-Profil-E2E: Leih-Karte im Tray, Platzierung OK, Notiz 4 hat ihr Blink-Ziel (Bericht v0.0.47) |
+| F2 | **regression → F5 (3/3)** | QA-Verifikation `6bbf286` (F5-Bericht 18.09.): Blasen-RAHMEN (`frame pointerEvents:auto`) fängt Cue-Klicks weiter — 2529 px² Verdeckung der Ziel-Karte, nur Karten-Ecken frei. Fix verfehlt eigenen Vertrag; Unit-Grün (26/26) deckt den Fall nicht ab. |
 | F4 | in-arbeit | Source-i18n-Keys + Tray-Lesepfad |
 | Q3 (Runde 1) | erledigt (Design) | Skip bleibt; Replay-Einstieg im Hub geplant |
