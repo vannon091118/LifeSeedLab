@@ -7,6 +7,7 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ---
 
+- [D2b] Leih-Spross ist jetzt wirklich platzierbar: die Sim loest Stats ueber getPlantStats(variantId, bredStats) auf — PLANTS_SOURCE kennt loan_sprout nicht, also traegt App.tsx die deterministischen Leih-Stats (cost/effects aus der Basis-Verankerung) als Run-bredStats. Gate: src/meta/loan_stats.test.ts pinnt den Vertrag.
 ## Unreleased (Arbeitsstand 17.09.2026)
 
 

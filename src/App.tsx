@@ -4,6 +4,7 @@ import { loadMeta, beginRun, updateMeta, deriveLoanPlant, LOAN_PLANT_ID } from '
 import { I18nProvider, detectLangFromMeta } from './i18n';
 import { deriveSeed } from './core/rng';
 import { GAME_SEED, RUN_SEED_VERSION } from './config';
+import { PLANTS_SOURCE } from './config/plants.source';
 import { clearRun, loadRun, type RunSave } from './persistence/runSave';
 import { StartScreen } from './components/StartScreen';
 import { MainMenu } from './components/MainMenu';
@@ -114,6 +115,28 @@ function AppInner() {
         // das Inventar aus Loadout × Besitz; ohne Loadout-Eintrag zeigt die Tray ×0 und
         // PLACE_PLANT lehnt ab. Nur der Run-Loadout wird erweitert, das Meta-Loadout bleibt sauber.
         const runLoadout = hasLoan ? [...meta.loadout, LOAN_PLANT_ID] : meta.loadout;
+        // D2b (Krix-Tutorial-Regression): die Sim löst Stats über getPlantStats(variantId,
+        // bredStats) auf — PLANTS_SOURCE kennt loan_sprout NICHT. Ohne Stats-Eintrag lehnt
+        // place() mit no_inventory ab (Stats-Check läuft VOR der Inventar-Prüfung). Die
+        // deterministische Leih-Variante trägt ihre eigenen Stats — als Run-bredStats
+        // beigemischt (nur Run-Sicht, das Meta-Objekt bleibt unangetastet).
+        const loanVariant = deriveLoanPlant(meta.runId);
+        const loanStats = loanVariant.stats;
+        // Role → Basis-Verankerung: die Effects kommen aus der PLANTS_SOURCE-Basis
+        // (shooter→sprout, wall→rootwall, support→mycelia) — eine Stats-Quelle.
+        const loanEffectsBase = loanVariant.type === 'wall'
+          ? 'rootwall'
+          : loanVariant.type === 'support' ? 'mycelia' : 'sprout';
+        const runBredStats = hasLoan
+          ? {
+              ...meta.bredStats,
+              [LOAN_PLANT_ID]: {
+                ...loanStats,
+                cost: meta.savedVariants.find(v => v.id === LOAN_PLANT_ID)?.cost ?? loanVariant.cost,
+                effects: PLANTS_SOURCE[loanEffectsBase].effects,
+              },
+            }
+          : meta.bredStats;
         return (
           <GameView
             key={meta.runId}
@@ -121,7 +144,7 @@ function AppInner() {
             runId={meta.runId}
             loadout={runLoadout}
             savedVariants={runVariants}
-            bredStats={meta.bredStats}
+            bredStats={runBredStats}
             ownedCounts={meta.variantCounts}
             beetles={meta.beetles}
             audioOn={meta.audioOn}

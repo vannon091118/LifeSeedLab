@@ -320,11 +320,11 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `1d329e2` — refactor(map): D4 — PLANT_ROUTE_COST in die Source |
-| Arbeitsbaum | 6 gestaged, 2 geändert, 0 neu |
+| HEAD | `b570b8e` — feat(hud): D5 — Route-Qualitäts-Chip im HUD |
+| Arbeitsbaum | 5 gestaged, 0 geändert, 0 neu |
 | Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `1d329e2` refactor(map): D4 — PLANT_ROUTE_COST in die Source |
+| Letzter Shinon-Commit | `b570b8e` feat(hud): D5 — Route-Qualitäts-Chip im HUD |
 | Letzter Push | ✅ origin/main |
 | LOC-Hotspots | `src/simulation/root.ts` 288/300 (96 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/simulation/enemySystem.ts` 279/300 (93 %)<br>`src/components/Greenhouse.tsx` 366/400 (92 %)<br>`src/render/gameRuntime.ts` 364/400 (91 %) |
 <!-- SHINON:STATUS:END -->
