@@ -53,3 +53,18 @@ Berichte entstehen aus beobachteten Spielsessions (Mensch beobachtet, Agent spie
 Neue Berichte landen als `qa/YYYY-MM-DD_<titel>.md` direkt auf diesem Branch —
 immer mit: Kontext (Version/Commit, Browser, Profil), Befunden mit Schwere,
 Repro-Schritten und einer Positiv-Liste (was explizit funktioniert hat).
+
+## 🔬 Repro-Disziplin (Pflicht, vom Eigentümer — keine Phantom-Bugs)
+
+1. **3×-Regel:** Ein Bug wird nur gemeldet, wenn er **mindestens 3× reproduziert** wurde.
+2. **Repro-Zyklus:** Jede Repro umfasst einen kompletten Zyklus: **frischer Spielstand**
+   (Profil/Save neu aufgesetzt oder definiert restauriert) → **Reload** → **Cache-Löschung**
+   (localStorage/IndexedDB des Test-Profils). Ausnahme nur, wenn die Präcondition des Bugs
+   selbst ein Nicht-Frisch-Zustand ist (z. B. Alt-Save-Format): dann wird der Zyklus im
+   Bericht explizit definiert und deterministisch restauriert — nie "irgendein alter Stand".
+3. **Kennzeichnung:** Jeder Befund trägt seinen **Repro-Stand (`n/3`)**. Unter 3/3 gilt er
+   als *vorläufig* und darf nicht als fix-fertiger Befund behandelt werden.
+4. **Kein Phantom:** Einmalbeobachtungen ohne Zyklus werden entweder gar nicht erst
+   gemeldet oder ausdrücklich als vorläufig geführt — niemals als bestätigter Bug.
+5. **Widerlegt ≠ gestrichen:** Schlägt die Repro 3× fehl, Status `widerlegt` mit Begründung
+   (das ist ein Ergebnis, kein Verlust).

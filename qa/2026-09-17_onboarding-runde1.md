@@ -7,7 +7,13 @@
 
 ## Befunde
 
-### Q1 — Schwere: hoch (Balance/Onboarding)
+> **Repro-Stände nach verschärfter Repro-Disziplin (3×-Regel):** Q1 und Q2 sind
+> **vorläufig (1/3)** — Erstbeobachtung ohne formale Zyklus-Wiederholung; Bestätigung
+> steht aus (jeweils mit frischem Spielstand + Reload + Cache-Löschung). Q4/Q5 sind
+> Last-Level-Effekte ohne Save-Präcondition und in **jedem** Load beobachtet (>3×,
+> u. a. in den formalen Q6-Zyklen) — als bestätigt geführt.
+
+### Q1 — Schwere: hoch (Balance/Onboarding) — Repro-Stand: **vorläufig 1/3**
 **Welle 1 tötet einen Erstspieler in ~15 Sekunden.** 20 Leben → 0 trotz dreier
 Verteidiger (Spross, Wurzelmauer-Blocker, Keimling). Der 20,5-Zellen-Schlangenpfad
 bietet einer Reichweite-3-Pflanze wenig Wirkzeit; Grunts (40 HP, 15 dmg/Schuss)
@@ -15,7 +21,7 @@ brauchen 3 Treffer ≈ 3 s pro Gegner bei ~0,6 Zellen/s Laufzeit.
 **Erwartung:** Welle 1 mit Minimal-Bau überlebbar. Passt zu den offenen
 Balance-Punkten (Kampfwerte/Brutstätte-Einstieg) im quality-spec.
 
-### Q2 — Schwere: mittel (Interaktion)
+### Q2 — Schwere: mittel (Interaktion) — Repro-Stand: **vorläufig 1/3**
 **Drag-Platzierung wirkt nicht.** Getestet: press→move→release (2 Varianten,
 Schritte/Verzögerungen variiert) — keine Platzierung, keine Reaktion. Nur reiner
 Tap/Klick auf die Zelle platziert. Tray-Hint verspricht beides („ziehe den Geist
@@ -28,13 +34,13 @@ offen ist (Klick auf „Endlos-Modus“ läuft ins Overlay: `data-tut-overlay in
 pointer events`). „Überspringen“ verwirft die restlichen Notizen (3→10) komplett.
 Prüfen: Ist Verwerfen gewollt, oder sollen geskippte Notizen später auffindbar sein?
 
-### Q4 — Schwere: niedrig (Konsolenhygiene)
+### Q4 — Schwere: niedrig (Konsolenhygiene) — Repro-Stand: **3+/3 bestätigt** (tritt in jedem Load auf)
 **React-Style-Warnung (7× in einer Session):** „Removing borderColor border …
 don’t mix shorthand and non-shorthand properties“ — `borderColor` (longhand)
 kollidiert mit `border` (shorthand) im Rerender. Wahrscheinlich Toast- oder
 Tray-Komponente (Stilkonflikt tritt bei Krix/Toast-Einblendungen auf).
 
-### Q5 — Schwere: trivia
+### Q5 — Schwere: trivia — Repro-Stand: **3+/3 bestätigt** (tritt in jedem Load auf)
 `favicon.ico` 404 (zwei Requests pro Session).
 
 ## Positiv (funktioniert explizit gut)

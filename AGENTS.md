@@ -21,7 +21,12 @@
 4. **Berichte schreiben:** Neue Spielsessions landen als `qa/YYYY-MM-DD_<titel>.md` auf
    diesem Branch — mit Kontext (Version/Commit, Umgebung), Befunden mit Schwere,
    Repro-Schritten und Positiv-Liste. Index in `qa/README.md` nachziehen.
-5. **Nicht auf `main` mergen.** Der Branch lebt parallel; Berichte werden durch
+5. **Repro-Pflicht (keine Phantom-Bugs):** Ein Bug wird nur gemeldet, wenn er **mind. 3×
+   reproduziert** wurde — jeder Zyklus mit frischem Spielstand, Reload und Cache-Löschung
+   (Ausnahme: Präcondition ist selbst ein Nicht-Frisch-Zustand → Zyklus im Bericht
+   definieren und deterministisch restaurieren). Jeder Befund trägt seinen Repro-Stand
+   (`n/3`); darunter gilt er als vorläufig.
+6. **Nicht auf `main` mergen.** Der Branch lebt parallel; Berichte werden durch
    Status-Updates "abgearbeitet", nicht durch Merge.
 
 ---
