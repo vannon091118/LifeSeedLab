@@ -38,7 +38,8 @@ Bericht, bis die Verankerung bestätigt ist.
 | Datum | Bericht | Befunde | Status |
 |---|---|---|---|
 | 2026-09-17 | [Onboarding-Runde 1 (v0.0.37)](2026-09-17_onboarding-runde1.md) | Q1–Q5 | offen |
-| 2026-09-17 | [v0.0.38 Greenhouse-Crash (ae64493)](2026-09-17_v0.0.38-greenhouse-crash.md) | Q6 (kritisch) | offen |
+| 2026-09-17 | [v0.0.38 Greenhouse-Crash (ae64493)](2026-09-17_v0.0.38-greenhouse-crash.md) | Q6 (kritisch, 4/3) | offen |
+| 2026-09-17 | [Runde 2 — Weg-Lenkung (Erfolg)](2026-09-17_runde2-weg-lenkung.md) | Q7 (vorläufig), Q8 (Kandidat 0/3) | offen |
 
 ## Status-Begriffe
 
