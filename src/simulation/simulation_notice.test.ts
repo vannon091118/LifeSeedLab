@@ -41,9 +41,10 @@ describe('B29 — Ablehnungen erreichen den Spieler (echter Run)', () => {
     expect(read().text).toBe('Der Eingang muss frei bleiben.');
 
     // Findlinge: 6 erlaubt, der siebte wird abgewiesen (schützt vor Weg-Mauern).
+    // gy=8: komplett frei vom Pfad-Korridor (B33) — der Test misst max_count, nicht den Korridor.
     let seq = 2;
     for (let i = 0; i < 7; i++) {
-      root.commands.push(makeCommand(1, 'PLACE_TILE', seq++, { gx: 2 + i, gy: 6, tile: 'boulder' }));
+      root.commands.push(makeCommand(1, 'PLACE_TILE', seq++, { gx: 2 + i, gy: 8, tile: 'boulder' }));
     }
     root.stepOnce();
     expect(read().reason).toBe('max_count');

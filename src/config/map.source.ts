@@ -117,6 +117,15 @@ export function resolvePathConnection(
  * (ENEMY_PATH) — die Map kann den Run nicht softlocken. */
 export const MAP_FALLBACK_TO_DEFAULT_PATH = true;
 
+/** B33: Spawn-Korridor — Gegner-Spalte, bleibt von Tiles frei (eine Quelle statt `gx === 0`). */
+export const SPAWN_CORRIDOR_COL = 0;
+
+/** Startgebiet: 8×8 Innenbereich frei, Rand logisch blockiert (Quelle für beide Zahlen —
+ *  identisch mit GRID_START_* aus world.source, hier gelockt, damit ein Grenzwechsel bricht,
+ *  nicht still bleibt). */
+export const BUILD_AREA_MIN = 2;
+export const BUILD_AREA_MAX = 9;
+
 /** Startgebiet: 8×8 Innenbereich frei, Rand logisch blockiert. */
 export function defaultMapTiles(): Record<string, MapTileType> {
   // leer — der Rand wird logisch blockiert (isBuildable + MapSystem.placeTile)
@@ -125,7 +134,7 @@ export function defaultMapTiles(): Record<string, MapTileType> {
 
 /** Prüft ob eine Zelle im aktuellen Baubereich liegt (Start: 8×8 Zentrum). */
 export function isBuildable(gx: number, gy: number): boolean {
-  return gx >= 2 && gx <= 9 && gy >= 2 && gy <= 9;
+  return gx >= BUILD_AREA_MIN && gx <= BUILD_AREA_MAX && gy >= BUILD_AREA_MIN && gy <= BUILD_AREA_MAX;
 }
 
 /** Expansion: Zellen die freigeschaltet werden können (Reihenfolge = Kosten-Reihenfolge). */
@@ -161,39 +170,4 @@ export function expansionTiles(): ExpansionTile[] {
     }
   }
   return tiles;
-}
-
-/** Serialized Map-Layout (Spieler-Maps, P5/PvP): tiles als "x,y":type-Map. */
-export interface MapLayout {
-  version: 1;
-  tiles: Record<string, MapTileType>;
-}
-
-export function emptyMapLayout(): MapLayout {
-  return { version: 1, tiles: defaultMapTiles() };
-}
-
-export function isValidTileType(t: string): t is MapTileType {
-  return t in MAP_TILES_SOURCE;
-}
-
-/** Layout-Validierung für geteilte/geladene Maps (maxCounts, Typen, Raster). */
-export function validateMapLayout(
-  layout: MapLayout,
-  isInside: (gx: number, gy: number) => boolean,
-): { ok: true } | { ok: false; reason: string } {
-  if (layout.version !== 1) return { ok: false, reason: 'version' };
-  const counts: Partial<Record<MapTileType, number>> = {};
-  for (const [key, type] of Object.entries(layout.tiles)) {
-    if (!isValidTileType(type)) return { ok: false, reason: `type:${type}` };
-    const [gx, gy] = key.split(',').map(Number);
-    if (!Number.isInteger(gx) || !Number.isInteger(gy) || !isInside(gx, gy)) {
-      return { ok: false, reason: `cell:${key}` };
-    }
-    counts[type] = (counts[type] ?? 0) + 1;
-  }
-  for (const t of MAP_TILE_IDS) {
-    if ((counts[t] ?? 0) > MAP_TILES_SOURCE[t].maxCount) return { ok: false, reason: `max:${t}` };
-  }
-  return { ok: true };
 }

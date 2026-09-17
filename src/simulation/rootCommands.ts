@@ -106,6 +106,10 @@ export function executeCommand(ctx: CommandContext, state: SimState, cmd: Comman
       }
       break;
     }
+    case 'SET_AUTO_WAVES':
+      // B32: Run-Einstellung, kein Spielzug — der Wellen-Kontext ist der eine Schreibort.
+      state.wave.autoWaves = cmd.payload.enabled;
+      break;
     case 'EXPAND_MAP': {
       const r = ctx.map.expandMap(state, cmd.payload.gx, cmd.payload.gy);
       if (!r.ok) {

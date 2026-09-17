@@ -278,6 +278,16 @@ export class RunRuntime {
     this.root.clock.setPaused(this.pausedRef.current);
   }
 
+  /** B32: Sim-Tempo ×1–×4 — direkter Eingriff in die Uhr (deterministisch, Teil des Snapshots). */
+  setSpeed(multiplier: number): void { this.root.setSpeed(multiplier); }
+  get speed(): number { return this.root.speed; }
+
+  /** B32: Auto-Wellen pro Run an/aus — Command-Pfad, die Sim bleibt einziger Writer. */
+  setAutoWaves(on: boolean): void {
+    this.root.commands.push(makeCommand(this.root.clock.get().tick, 'SET_AUTO_WAVES', ++this.cmdSeq, { enabled: on }));
+  }
+  get autoWaves(): boolean { return this.root.getSnapshot().wave.autoWaves; }
+
   startWave(): void {
     this.root.commands.push(makeCommand(this.root.clock.get().tick, 'START_WAVE', ++this.cmdSeq, {}));
   }

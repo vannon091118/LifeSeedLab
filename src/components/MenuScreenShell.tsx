@@ -31,7 +31,7 @@ export function MenuScreenShell({ meta, current, onNavigate, onBack, children }:
           ← {t('common.back')}
         </button>
       </div>
-      <div style={styles.body}>
+      <div style={styles.body} data-tut-stage>
         <ScreenTransition screenKey={current}>{children}</ScreenTransition>
       </div>
       {/* B21.3: Das Onboarding liegt über dem Rahmen, nicht IM scrollenden Body — der Cue-Ring

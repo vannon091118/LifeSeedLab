@@ -13,6 +13,12 @@ import type { FieldNotice, NoticeReason } from './fieldNotice';
 /** Lebensdauer der Meldung in Sim-Ticks (4 s bei 30 tps) — Anzeige, keine Spielregel. */
 export const TOAST_TICKS = 120;
 
+/** Eigene Ecke des Toasts: oben rechts, unter dem ✕-Knopf (top ~54) — Tray (unten mittig),
+ *  Erst-Hinweis (bottom 84, mittig) und Tutorial-Blase (Seiten) bleiben unberührt. Keine zweite
+ *  absolute Fläche teilt sich diesen Streifen (DevPanel ist DevGate-only), also nie übereck. */
+const TOAST_TOP = 56;
+const TOAST_RIGHT = 10;
+
 /**
  * Grund ⇒ i18n-Schlüssel, erschöpfend über das GESAMTE Ablehnungs-Vokabular (`RejectReason` aus
  * dem Bus-Kontrakt, nicht mehr nur die UI-Gründe). Der Typ macht daraus eine Sperre: ein neuer
@@ -26,7 +32,7 @@ export const TOAST_TICKS = 120;
 const REASON_KEY: Record<NoticeReason, TranslationKey> = {
   // Platzierung
   occupied: 'field.reject.occupied',
-  on_path: 'field.reject.on_path',
+  on_path: 'field.reject.on_path', // EIN Text für Pflanze UND blockierendes Tile (B33)
   no_inventory: 'field.reject.no_inventory',
   no_energy: 'field.reject.no_energy',
   // Vegetation
@@ -75,9 +81,8 @@ export function FieldToast({ notice, tick }: { notice: FieldNotice | null; tick:
 const styles: Record<string, CSSProperties> = {
   toast: {
     position: 'absolute',
-    left: '50%',
-    bottom: 120,
-    transform: 'translateX(-50%)',
+    top: TOAST_TOP,
+    right: TOAST_RIGHT,
     display: 'flex',
     alignItems: 'center',
     gap: 8,
@@ -89,7 +94,7 @@ const styles: Record<string, CSSProperties> = {
     color: 'var(--ink)',
     fontSize: 13,
     fontWeight: 800,
-    maxWidth: '86%',
+    maxWidth: '72%',
     pointerEvents: 'none',
     zIndex: 4,
   },

@@ -17,11 +17,14 @@ describe('Gacha-Ökonomie Source', () => {
     expect(STARTER_PLANT_COUNT).toBe(2);
   });
 
-  it('Reifewellen steigen mit der Kreuzungsstärke (2, 4, 6, ...)', () => {
+  it('Reifewellen steigen mit der Kreuzungsstärke (2, 4, 6, ...) und sind gedeckelt (B34)', () => {
     expect(wavesToUnlockFor(0)).toBe(2);
     expect(wavesToUnlockFor(1)).toBe(4);
     expect(wavesToUnlockFor(2)).toBe(6);
     expect(wavesToUnlockFor(5)).toBeGreaterThan(wavesToUnlockFor(4));
+    // B34 Loop-Grundsatz: Die Kurve deckelt sich — nie mehr als 12 Wellen Geduld.
+    expect(wavesToUnlockFor(11)).toBe(12);
+    expect(wavesToUnlockFor(50)).toBe(12);
   });
 });
 

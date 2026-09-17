@@ -85,6 +85,9 @@ export interface SimState {
     lastSpawnTick: number;
     /** prep-phase auto-wave timer (null while in wave). */
     prepStartTick: number | null;
+    /** B32: Spieler-Entscheid pro Run — starten Wellen nach der Vorbereitungszeit von selbst?
+     *  Default aus der Source (economy.source), Owner: WaveSystem (über Root-Command). */
+    autoWaves: boolean;
   };
   resources: { energy: number; coins: number };
   /** Map-Slice (P5): vom Spieler platzierte Tiles. Owner: MapSystem. */

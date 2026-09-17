@@ -60,11 +60,11 @@ describe('B23.1 — Aufbauphase ohne Beschuss', () => {
   });
 
   it('meldet dem HUD die Wartezeit als „das Labor wartet“ (null) — dieselbe Regel', () => {
-    expect(autoStartTicksLeft({ phase: 'prep', prepStartTick: 0, tick: 999, plantCount: 0 })).toBeNull();
-    expect(autoStartTicksLeft({ phase: 'prep', prepStartTick: 0, tick: 10, plantCount: 1 }))
+    expect(autoStartTicksLeft({ phase: 'prep', prepStartTick: 0, tick: 999, plantCount: 0, autoWaves: true })).toBeNull();
+    expect(autoStartTicksLeft({ phase: 'prep', prepStartTick: 0, tick: 10, plantCount: 1, autoWaves: true }))
       .toBe(AUTO_WAVE_DELAY_TICKS - 10);
-    expect(autoStartTicksLeft({ phase: 'prep', prepStartTick: 0, tick: 999, plantCount: 1 })).toBe(0);
-    expect(autoStartTicksLeft({ phase: 'wave', prepStartTick: 0, tick: 10, plantCount: 1 })).toBeNull();
-    expect(autoStartTicksLeft({ phase: 'prep', prepStartTick: null, tick: 10, plantCount: 1 })).toBeNull();
+    expect(autoStartTicksLeft({ phase: 'prep', prepStartTick: 0, tick: 999, plantCount: 1, autoWaves: true })).toBe(0);
+    expect(autoStartTicksLeft({ phase: 'wave', prepStartTick: 0, tick: 10, plantCount: 1, autoWaves: true })).toBeNull();
+    expect(autoStartTicksLeft({ phase: 'prep', prepStartTick: null, tick: 10, plantCount: 1, autoWaves: true })).toBeNull();
   });
 });

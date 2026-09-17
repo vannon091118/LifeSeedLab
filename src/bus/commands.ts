@@ -15,7 +15,8 @@ export type CommandType =
   | 'PROPAGATE_PLANT'
   | 'PLACE_TILE'
   | 'DEPLOY_BEETLE'
-  | 'EXPAND_MAP';
+  | 'EXPAND_MAP'
+  | 'SET_AUTO_WAVES';
 
 export interface CommandPayloads {
   PLACE_PLANT: { variantId: string; gx: number; gy: number };
@@ -30,6 +31,8 @@ export interface CommandPayloads {
   PLACE_TILE: { gx: number; gy: number; tile: string };
   DEPLOY_BEETLE: { beetleId: string };
   EXPAND_MAP: { gx: number; gy: number };
+  /** B32: Spieler-Entscheid — starten Wellen nach der Vorbereitung von selbst? */
+  SET_AUTO_WAVES: { enabled: boolean };
 }
 
 export type Command = {

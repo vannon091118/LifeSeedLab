@@ -25,6 +25,8 @@ import { DropChipIcon, LivesChipIcon, WaveChipIcon } from './GameIcons';
 import { gameViewStyles as styles } from './gameViewStyles';
 import type { HudSnapshot } from './hudSnapshot';
 import { hudOf } from './hudSnapshot';
+import { SPEED_STEPS } from '../core/clock';
+import { AUTO_WAVES_DEFAULT } from '../config/economy.source';
 import { isDevActive } from '../dev/gate';
 
 interface Props {
@@ -52,6 +54,10 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
   // hatten gar keinen Weg auf den Schirm.
   const [notice, setNotice] = useState<FieldNotice | null>(null);
   const [hud, setHud] = useState<HudSnapshot | null>(null);
+  // B32: Anzeige-Stände für Tempo/Auto-Wellen — die WAHRHEIT liegt in der Sim (Uhr/Wave-Slice);
+  // diese States sind nur der UI-Spiegel für den sofortigen Knopf-Feedback (HUD-Takt ~100 ms).
+  const [speedUi, setSpeedUi] = useState(1);
+  const [autoWavesUi, setAutoWavesUi] = useState(AUTO_WAVES_DEFAULT);
   const [suspended, setSuspended] = useState(false);
   const [showGameOver, setShowGameOver] = useState(false);
   const [fxOn, setFxOn] = useState(audioOn); // B8: audioOn aus dem Meta-Save ist der Startwert
@@ -162,6 +168,22 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
     runtimeRef.current?.startWave();
   }, []);
 
+  /** B32: Tempo-Zyklus ×1→×2→×3→×4→×1 — die Stufen kommen aus der Uhr (eine Quelle). */
+  const handleCycleSpeed = useCallback(() => {
+    const rt = runtimeRef.current; if (!rt) return;
+    const steps = SPEED_STEPS;
+    const next = steps[(steps.indexOf(rt.speed) + 1) % steps.length];
+    rt.setSpeed(next);
+    setSpeedUi(next);
+  }, []);
+
+  /** B32: Auto-Wellen pro Run umschalten — Command in die Sim, Anzeige folgt dem Snapshot. */
+  const handleToggleAutoWaves = useCallback(() => {
+    const rt = runtimeRef.current; if (!rt) return;
+    rt.setAutoWaves(!rt.autoWaves);
+    setAutoWavesUi(!rt.autoWaves);
+  }, []);
+
   /** P6: Brutling einsetzen — eigener Command-Pfad (Spawns während Welle oder Vorbereitung). */
   const handleDeployBeetle = useCallback(() => {
     const runtime = runtimeRef.current; if (!runtime) return;
@@ -182,6 +204,10 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
         paused={hud?.paused ?? false}
         phase={hud?.phase ?? 'prep'}
         prepTicksLeft={hud?.prepTicksLeft ?? null}
+        speed={speedUi}
+        onCycleSpeed={handleCycleSpeed}
+        autoWaves={autoWavesUi}
+        onToggleAutoWaves={handleToggleAutoWaves}
         canDeployBeetle={beetles.length > 0 && !hud?.beetleDeployed}
         deployLabel={beetles[beetles.length - 1]?.name ?? ''}
         onTogglePause={togglePause}
@@ -190,7 +216,7 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
         onExit={onExit}
       />
 
-      <div style={styles.stage}>
+      <div style={styles.stage} data-tut-stage>
         <div style={styles.canvasFrame}>
           <canvas
             ref={canvasRef}
@@ -259,7 +285,9 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, beetl
             <span style={styles.paperNotePin}/> {t('game.hint')}
           </div>
         )}
-        <div style={styles.paperNote} aria-hidden><span style={styles.paperNotePin}/> {t('game.hint')}</div>
+        {/* Der Zettel unten greift erst, wenn der prominente Erst-Hinweis abgelöst ist —
+            sonst steht derselbe Satz zweimal auf dem Schirm. */}
+        {placedCount > 0 && <div style={styles.paperNote} aria-hidden><span style={styles.paperNotePin}/> {t('game.hint')}</div>}
       </div>
     </div>
   );

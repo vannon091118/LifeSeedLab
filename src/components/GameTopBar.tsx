@@ -17,8 +17,15 @@ export interface GameTopBarProps {
   paused: boolean;
   /** Sim-Phase (`prep` | `wave` | `gameover`) — Wahrheit für den Knopf-Zustand (B23.2). */
   phase: string;
-  /** Ticks bis zum Auto-Start; `null` ⇒ das Labor wartet auf die erste Pflanze (B23.1). */
+  /** Ticks bis zum Auto-Start; `null` ⇒ das Labor wartet auf die erste Pflanze (B23.1).
+   *  B32: auch `null`, wenn der Spieler Auto-Wellen ausgeschaltet hat. */
   prepTicksLeft: number | null;
+  /** B32: aktuelles Sim-Tempo (×1–×4) und sein Zyklus-Knopf. */
+  speed: number;
+  onCycleSpeed: () => void;
+  /** B32: Auto-Wellen-Schalter des Runs (Spieler-Entscheid). */
+  autoWaves: boolean;
+  onToggleAutoWaves: () => void;
   /** Brutling wartet und ist noch nicht im Feld. */
   canDeployBeetle: boolean;
   deployLabel: string;
@@ -29,7 +36,8 @@ export interface GameTopBarProps {
 }
 
 export function GameTopBar({
-  wave, paused, phase, prepTicksLeft, canDeployBeetle, deployLabel, onTogglePause, onStartWave, onDeployBeetle, onExit,
+  wave, paused, phase, prepTicksLeft, speed, onCycleSpeed, autoWaves, onToggleAutoWaves,
+  canDeployBeetle, deployLabel, onTogglePause, onStartWave, onDeployBeetle, onExit,
 }: GameTopBarProps) {
   const { t } = useI18n();
   const waveBtn = waveButtonState({ phase, prepTicksLeft });
@@ -53,6 +61,24 @@ export function GameTopBar({
           data-tut="pause"
         >
           {paused ? '▶' : '❚❚'}
+        </button>
+        {/* B32: Sim-Tempo als Zyklus ×1→×2→×3→×4→×1 — die Wahrheit steht in der Uhr. */}
+        <button
+          onClick={onCycleSpeed}
+          style={{ ...styles.btn, ...(speed > 1 ? styles.btnBeetle : {}) }}
+          aria-label={`${t('game.speed')} ×${speed}`}
+          title={t('game.speed')}
+        >
+          ×{speed}
+        </button>
+        {/* B32: Auto-Wellen pro Run — aus ⇒ nur der Knopf startet (A hab ich im Changelog). */}
+        <button
+          onClick={onToggleAutoWaves}
+          style={{ ...styles.btn, ...(autoWaves ? {} : styles.btnDisabled) }}
+          aria-pressed={autoWaves}
+          title={t('game.autoWaves')}
+        >
+          {t('game.autoWaves')} {autoWaves ? '✓' : '✗'}
         </button>
         <button
           onClick={onStartWave}

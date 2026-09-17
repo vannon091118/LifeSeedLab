@@ -54,6 +54,7 @@ export const translations = {
     'shop.stash': 'Samen-Vorrat',
     'shop.sow': 'Aussäen (kreuzt zwei Pflanzen — frei, Kosten beim Behalten)',
     'shop.sowEmpty': 'Reifungs-Queue voll ({n}/{m}) — erst abholen!',
+    'shop.queueFullReady': '{r} Kreuzung(en) sind reif — unten abholen, dann weiter aussäen!',
     'shop.needTwo': 'Erst 2 Pflanzen nötig (Startbesitz).',
     'shop.parentsGone': 'Elternpflanzen sind nicht mehr vorhanden — die Kreuzung verfällt.',
     'shop.maturing': 'Reift: noch {n} Wellen',
@@ -93,6 +94,8 @@ export const translations = {
     'game.wave': 'Welle',
     'game.status': 'Spielstatus',
     'game.paused': 'Pause',
+    'game.speed': 'Tempo',
+    'game.autoWaves': 'Auto-Wellen',
     'game.prep': 'VORBEREITUNG — Türme platzieren, dann Welle starten!',
     'game.waveActive': 'Welle',
     'game.enemiesLeft': 'Gegner übrig',
@@ -112,7 +115,8 @@ export const translations = {
     'wave.waitingHint': 'Das Labor wartet auf deine erste Pflanze.',
     // B23.3: Ablehnungsgründe der Platzierung — vorher passierte sichtbar nichts.
     'field.reject.occupied': 'Da wächst schon etwas.',
-    'field.reject.on_path': 'Auf dem Weg ist kein Platz.',
+    'field.reject.on_path': 'Da läuft jemand drüber — hier ist kein Platz.',
+    
     'field.reject.no_inventory': 'Von dieser Pflanze ist keine mehr übrig.',
     'field.reject.no_energy': 'Zu wenig Energie.',
     'field.reject.unknown': 'Hier lässt sich gerade nichts setzen.',
@@ -202,6 +206,7 @@ export const translations = {
     'shop.stash': 'Seed stash',
     'shop.sow': 'Sow (crosses two plants — free, costs apply on keep)',
     'shop.sowEmpty': 'Queue full ({n}/{m}) — claim first!',
+    'shop.queueFullReady': '{r} cross(es) are ready — claim below to keep sowing!',
     'shop.needTwo': '2 plants needed first (starter set).',
     'shop.parentsGone': 'Parent plants are no longer available — the cross is lost.',
     'shop.maturing': 'Maturing: {n} waves to go',
@@ -241,6 +246,8 @@ export const translations = {
     'game.wave': 'Wave',
     'game.status': 'Game status',
     'game.paused': 'Paused',
+    'game.speed': 'Speed',
+    'game.autoWaves': 'Auto waves',
     'game.prep': 'PREP PHASE — Place towers, then start the wave!',
     'game.waveActive': 'Wave',
     'game.enemiesLeft': 'enemies left',
@@ -256,7 +263,8 @@ export const translations = {
     'wave.waitingHint': 'The lab is waiting for your first plant.',
     // B23.3: placement rejections — nothing visible used to happen at all.
     'field.reject.occupied': 'Something is already growing there.',
-    'field.reject.on_path': 'No room on the path.',
+    'field.reject.on_path': 'Someone walks here — no room.',
+    
     'field.reject.no_inventory': 'No plant of this kind left.',
     'field.reject.no_energy': 'Not enough energy.',
     'field.reject.unknown': 'Nothing can be placed here right now.',

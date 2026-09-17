@@ -83,6 +83,8 @@ export class WaveSystem {
    */
   maybeAutoStart(state: SimState): boolean {
     if (state.phase !== 'prep') return false;
+    // B32: Der Spieler entscheidet pro Run, ob die Vorbereitung von selbst abläuft.
+    if (!state.wave.autoWaves) return false;
     if (state.wave.prepStartTick === null) return false;
     if (PREP_WAITS_FOR_FIRST_PLANT && state.plants.length === 0) {
       state.wave.prepStartTick = state.clock.tick;
@@ -93,6 +95,7 @@ export class WaveSystem {
       prepStartTick: state.wave.prepStartTick,
       tick: state.clock.tick,
       plantCount: state.plants.length,
+      autoWaves: state.wave.autoWaves,
     })) return false;
     return this.startWave(state);
   }

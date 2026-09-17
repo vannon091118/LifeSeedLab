@@ -9,7 +9,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useI18n } from '../../i18n';
 import { tutorialText, type TutorialTextKey } from '../../i18n/tutorial';
-import { cueSelector, type BubbleAnchor, type TutorialCue, type TutorialStep } from './script';
+import { cueSelector, type TutorialCue, type TutorialStep } from './script';
 import { Stickman } from './Stickman';
 import { SpeechBubble } from './SpeechBubble';
 import { prefersReducedMotion, useTypewriter } from './useTypewriter';
@@ -25,9 +25,6 @@ export interface TutorialOverlayProps {
 interface CueRect { x: number; y: number; w: number; h: number }
 
 const RING_PAD = 7;
-const STICK_BOTTOM = 142;
-/** Über dem Tray (Tray-Kante ≈ 146 px über der Bühnenunterkante, s. gameViewStyles). */
-const BUBBLE_BOTTOM = 168;
 
 interface ScreenBox { x: number; y: number; w: number; h: number }
 
@@ -49,6 +46,8 @@ export function TutorialOverlay({ step, index, total, onPress, onSkip }: Tutoria
   const [cue, setCue] = useState<CueRect | null>(null);
   const [aim, setAim] = useState<number | null>(null);
   const [box, setBox] = useState<ScreenBox>({ x: 0, y: 0, w: 0, h: 0 });
+  /** Die Inhaltsfläche des Screens (Karte/Feld) — Krickz und Blase hängen an IHR, nicht am Fenster. */
+  const [stage, setStage] = useState<ScreenBox | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const stickRef = useRef<HTMLDivElement | null>(null);
 
@@ -69,7 +68,30 @@ export function TutorialOverlay({ step, index, total, onPress, onSkip }: Tutoria
     target.scrollIntoView({ block: 'center', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
   }, [stepId, cueKind]);
 
-  // ── Cue-Ring messen (Layout kann sich ändern: HUD-Chips wachsen, Tray scrollt, Fenster wechselt) ──
+  // ── Bühne messen: Auf breiten Desktops liegt das Feld zentriert mit maxWidth — Anker am
+  // Fenster zerreißen das Layout (Krickz am Fensterrand, Blase gegenüber). Der Screen markiert
+  // seine Inhaltsfläche mit `data-tut-stage`; hier wird sie relativ zum Overlay vermessen.
+  useEffect(() => {
+    const measure = () => {
+      const root = rootRef.current;
+      if (!root) return;
+      const r = root.getBoundingClientRect();
+      const roundW = Math.round(r.width);
+      const roundH = Math.round(r.height);
+      setBox(prev => (prev.w === roundW && prev.h === roundH ? prev : { x: 0, y: 0, w: roundW, h: roundH }));
+      const el = document.querySelector('[data-tut-stage]');
+      if (!el) { setStage(null); return; }
+      const g = el.getBoundingClientRect();
+      const next: ScreenBox = { x: g.left - r.left, y: g.top - r.top, w: Math.round(g.width), h: Math.round(g.height) };
+      setStage(prev => (prev !== null && prev.x === next.x && prev.y === next.y && prev.w === next.w && prev.h === next.h ? prev : next));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    const timer = window.setInterval(measure, 350);
+    return () => { window.removeEventListener('resize', measure); window.clearInterval(timer); };
+  }, [stepId, index]);
+
+  // ── Cue-Ring messen (HUD-Chips wachsen, Tray scrollt, Fenster wechselt) ──
   useEffect(() => {
     if (cueKind === 'none') { setCue(null); return; }
     const selector = cueSelector(cueKind);
@@ -82,9 +104,6 @@ export function TutorialOverlay({ step, index, total, onPress, onSkip }: Tutoria
       const a = target.getBoundingClientRect();
       const next: CueRect = { x: a.left - r.left, y: a.top - r.top, w: a.width, h: a.height };
       setCue(prev => (sameBox(prev, next) ? prev : next));
-      const roundW = Math.round(r.width);
-      const roundH = Math.round(r.height);
-      setBox(prev => (prev.w === roundW && prev.h === roundH ? prev : { x: 0, y: 0, w: roundW, h: roundH }));
       const stick = stickRef.current;
       if (stick) {
         const s = stick.getBoundingClientRect();
@@ -111,6 +130,15 @@ export function TutorialOverlay({ step, index, total, onPress, onSkip }: Tutoria
     .replace('{m}', String(total));
   const tail = step.stick === 'bottomRight' ? 'downRight' : 'downLeft';
 
+  // Anker: MIT Bühne ⇒ Stick/Blase hängen an der Inhaltsfläche des Screens (Karte/Feld) und
+  // bleiben auf breiten Desktops beim Feld; OHNE Bühne (kein data-tut-stage) fällt das Overlay
+  // auf die Fensterkanten zurück — enge Screens, wo Fenster ≈ Bühne ist.
+  const anchor: ScreenBox = stage ?? { x: 0, y: 0, w: box.w, h: box.h };
+  const stickStyle = stickAnchorStyle(step.stick, anchor, box, step.screen);
+  const bubblePos = step.bubble === 'center'
+    ? bubbleStyle(anchor)
+    : bubbleBesideStick(step.stick, anchor, box, step.screen, step.bubble);
+
   return (
     <div ref={rootRef} style={styles.root} data-tut-overlay={step.id}>
       {/* Blinkende Handlungsanweisung: das Ziel-Element selbst blinkt nicht — der Ring liegt darüber. */}
@@ -127,15 +155,15 @@ export function TutorialOverlay({ step, index, total, onPress, onSkip }: Tutoria
       <div
         ref={stickRef}
         className={step.stick === 'bottomRight' ? 'tut-walk-right' : 'tut-walk-left'}
-        style={step.stick === 'bottomRight' ? styles.stickRight : styles.stickLeft}
+        style={stickStyle}
       >
         <Stickman pose={step.pose} aim={aim} speaking={!complete} />
       </div>
 
       {/* Die Blase ploppt BEI KRICKEZ auf (gleiche Seite wie die Figur) — nicht mittig schwebend:
-          er ist am Rand, sie hängt über ihm, der Schwanz zeigt auf ihn. Auf dem Feld bleibt 'center'
-          für die Leseschritte, damit Blase und Cue-Ring sich nicht in die Quere kommen. */}
-      <div style={step.bubble === 'center' ? bubbleStyle('center') : bubbleBesideStick(step.stick)}>
+          er ist am Bühnenrand, sie hängt über ihm, der Schwanz zeigt auf ihn. 'center' (Leseschritte
+          im Feld) bleibt Bühnenmitte, damit Blase und Cue-Ring sich nicht in die Quere kommen. */}
+      <div style={bubblePos}>
         <SpeechBubble
           speaker={tutorialText('tut.name', lang)}
           role={tutorialText('tut.role', lang)}
@@ -180,25 +208,54 @@ function chipStyle(cue: CueRect, box: ScreenBox): CSSProperties {
   return { left, top: above ? cue.y - RING_PAD - 30 : cue.y + cue.h + RING_PAD + 6 };
 }
 
-function bubbleStyle(anchor: BubbleAnchor): CSSProperties {
-  switch (anchor) {
-    case 'top': return { position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)' };
-    case 'bottom': return { position: 'absolute', bottom: BUBBLE_BOTTOM, left: 10, maxWidth: '72%' };
-    default: return { position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
-  }
+function bubbleStyle(anchor: ScreenBox): CSSProperties {
+  return {
+    position: 'absolute',
+    left: anchor.x + anchor.w / 2,
+    top: anchor.y + anchor.h / 2,
+    transform: 'translate(-50%, -50%)',
+    maxWidth: 'min(380px, 76%)',
+  };
+}
+
+/** Abstand der Füße zur Bühnenunterkante: Im Run steht Krickz über dem Tray (~146 px,
+ *  s. gameViewStyles), auf Titelkarte/Hub steht er auf der Kante selbst. */
+function stickLift(screen: TutorialStep['screen']): number {
+  return screen === 'run' ? 146 : 22;
+}
+
+/** Abstand Bühnen-Unterkante ⇒ Overlay-Unterkante (Bühne kann zentriert über dem Boden schweben). */
+function stageBottomOffset(anchor: ScreenBox, box: ScreenBox): number {
+  return Math.max(0, box.h - (anchor.y + anchor.h));
+}
+
+/** Abstand Bühnen-Rechtskante ⇒ Overlay-Rechtskante. */
+function stageRightOffset(anchor: ScreenBox, box: ScreenBox): number {
+  return Math.max(0, box.w - (anchor.x + anchor.w));
+}
+
+/** Krickz steht AUF der Bühne (Füße an deren Unterkante + Lift), nicht am Fensterrand. */
+function stickAnchorStyle(stick: TutorialStep['stick'], anchor: ScreenBox, box: ScreenBox, screen: TutorialStep['screen']): CSSProperties {
+  const bottom = stageBottomOffset(anchor, box) + stickLift(screen);
+  return stick === 'bottomRight'
+    ? { position: 'absolute', right: stageRightOffset(anchor, box) + 2, bottom, pointerEvents: 'none' }
+    : { position: 'absolute', left: Math.max(2, anchor.x), bottom, pointerEvents: 'none' };
 }
 
 /**
- * Blase über der Figur am Blattrand (Schwanzrichtung zeigt ohnehin auf sie). 'bottom' behält
- * seinen Platz (Tray-Höhe), 'top' rückt von der Mitte zur Figur-Seite.
+ * Blase auf Krickz' Seite der Bühne (Schwanzrichtung zeigt ohnehin auf sie). 'top' hängt an der
+ * Bühnenoberkante, 'bottom' schwebt über Krickz (Lift + Figurenhöhe).
  */
-function bubbleBesideStick(stick: TutorialStep['stick']): CSSProperties {
-  const base: CSSProperties = { position: 'absolute', bottom: BUBBLE_BOTTOM, maxWidth: '72%' };
-  return stick === 'bottomRight' ? { ...base, right: 12 } : { ...base, left: 12 };
+function bubbleBesideStick(stick: TutorialStep['stick'], anchor: ScreenBox, box: ScreenBox, screen: TutorialStep['screen'], bubble: TutorialStep['bubble']): CSSProperties {
+  const horizontal = stick === 'bottomRight'
+    ? { right: stageRightOffset(anchor, box) + 14 }
+    : { left: Math.max(14, anchor.x + 14) };
+  const vertical = bubble === 'top'
+    ? { top: Math.max(10, anchor.y + 14) }
+    : { bottom: stageBottomOffset(anchor, box) + stickLift(screen) + 170 };
+  return { position: 'absolute', maxWidth: 'min(360px, 62%)', ...horizontal, ...vertical };
 }
 
 const styles: Record<string, CSSProperties> = {
   root: { position: 'absolute', inset: 0, zIndex: 5, pointerEvents: 'none' },
-  stickLeft: { position: 'absolute', left: 2, bottom: STICK_BOTTOM, pointerEvents: 'none' },
-  stickRight: { position: 'absolute', right: 2, bottom: STICK_BOTTOM, pointerEvents: 'none' },
 };

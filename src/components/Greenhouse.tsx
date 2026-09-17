@@ -36,6 +36,8 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
   // B20: fail-closed ODER je Quelle — volle Reifungs-Queue sperrt die Aussaat, sonst
   // würde `capped()` stillschweigend den ÄLTESTEN (fast reifen) Eintrag werfen.
   const queueFull = meta.pendingCrosses.length >= PENDING_CROSSES_MAX;
+  // B34: Reife Einträge in der Queue — sie sind der Ausweg aus der vollen Queue (erst abholen).
+  const readyCount = meta.pendingCrosses.filter(c => isCrossReady(meta, c.crossIndex)).length;
   const canSow = owned.length >= 2 && !queueFull;
 
   const handleSow = () => {
@@ -130,7 +132,13 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
         <button onClick={handleSow} disabled={!canSow} style={{ ...styles.sowBtn, opacity: canSow ? 1 : 0.4 }}>
           🌱 {t('shop.sow')}
         </button>
-        {!canSow && queueFull && <div style={styles.hint}>{t('shop.sowEmpty').replace('{n}', String(meta.pendingCrosses.length)).replace('{m}', String(PENDING_CROSSES_MAX))}</div>}
+        {!canSow && queueFull && (
+          <div style={readyCount > 0 ? { ...styles.hint, color: 'var(--leaf-dark)', borderColor: 'var(--leaf-dark)' } : styles.hint}>
+            {readyCount > 0
+              ? t('shop.queueFullReady').replace('{r}', String(readyCount))
+              : t('shop.sowEmpty').replace('{n}', String(meta.pendingCrosses.length)).replace('{m}', String(PENDING_CROSSES_MAX))}
+          </div>
+        )}
         {!canSow && owned.length < 2 && <div style={styles.hint}>{t('shop.needTwo')}</div>}
 
         {/* Gacha-Ergebnis */}
@@ -173,6 +181,7 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
         {meta.pendingCrosses.length > 0 && (
           <div style={styles.pendingRow}>
             <span style={styles.sectionTitle}>
+              {readyCount > 0 && ' 🌟'}
               {t('shop.pending').replace('{n}', String(meta.pendingCrosses.length)).replace('{m}', String(PENDING_CROSSES_MAX))}
             </span>
             {meta.pendingCrosses.map((c) => {

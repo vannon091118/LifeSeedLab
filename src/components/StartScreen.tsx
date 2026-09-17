@@ -27,7 +27,7 @@ export function StartScreen({ onBegin }: Props) {
   const chooseLang = (id: Lang) => { setLang(id); setLangChosen(true); };
 
   return (
-    <div style={styles.wrap}>
+    <div style={styles.wrap} data-tut-stage>
       {/* Papierhügel als SVG-Szenen-Hintergrund (B7.1, statisch gebacken, kein Canvas nötig) */}
       <svg style={styles.hills} viewBox="0 0 400 240" preserveAspectRatio="xMidYMax slice" aria-hidden>
         <path d="M0 150 Q80 120 160 145 T400 140 V240 H0 Z" fill="#e3d9bd" />

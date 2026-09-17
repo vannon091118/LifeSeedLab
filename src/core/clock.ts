@@ -9,9 +9,14 @@ export interface ClockState {
   phaseProgress: number;   // 0..1 within current phase
   waveTime: number;        // ticks since current wave started (0 in day phase)
   paused: boolean;
+  /** Sim-Tempo (×1–×4): bestimmt, wie viele Sim-Ms ein reale Ms wert ist. Deterministisch —
+   *  Teil des Snapshots, kein Renderer-Wissen. ×1 bleibt der Vertragswert (30 tps). */
+  speed: number;
 }
 
 export const TICK_MS = 1000 / 30; // 30 sim ticks/sec (contract Phase 2.1)
+/** Erlaubte Tempo-Stufen — eine Quelle für Uhr, UI und Tests. */
+export const SPEED_STEPS: readonly number[] = [1, 2, 3, 4];
 /** Day/night cycle length in ticks (2400 = 80s per phase at 30tps). ONE source. */
 export const CYCLE_TICKS = 2400;
 const NIGHT_THRESHOLD = 0.5;      // phase flips at half-cycle in v1 (wave-bound later via events)
@@ -24,6 +29,7 @@ export class GameClock {
     phaseProgress: 0,
     waveTime: 0,
     paused: false,
+    speed: 1,
   };
   private accumulator = 0;
 
@@ -32,10 +38,12 @@ export class GameClock {
     if (initial) this.s = { ...this.s, ...initial };
   }
 
-  /** Advance by real ms; returns the number of fixed ticks executed. */
+  /** Advance by real ms; returns the number of fixed ticks executed. Der Sim-Tempo-Multiplikator
+   *  macht aus realem Input Sim-Ms — die Tick-Schwelle (TICK_MS) bleibt unverändert, also laufen
+   *  bei ×4 genau 4× so viele deterministische Ticks pro realem Frame. */
   advance(realMs: number): number {
     if (this.s.paused) return 0;
-    this.accumulator += realMs;
+    this.accumulator += realMs * this.s.speed;
     let executed = 0;
     while (this.accumulator >= TICK_MS) {
       this.accumulator -= TICK_MS;
@@ -65,6 +73,13 @@ export class GameClock {
   togglePause(): void { this.s.paused = !this.s.paused; }
   setPaused(p: boolean): void { this.s.paused = p; }
 
+  /** Sim-Tempo setzen (nur erlaubte Werte — kein halbes Tempo, kein Überdrehen). */
+  setSpeed(multiplier: number): void {
+    if (SPEED_STEPS.includes(multiplier)) this.s.speed = multiplier;
+  }
+
+  get speed(): number { return this.s.speed; }
+
   /** Night wave timing starts at tick multiple — used by WaveSystem via events later. */
   beginWave(): void { this.s.waveTime = 0; }
 
@@ -88,5 +103,6 @@ export function clocksEqual(a: ClockState, b: ClockState): boolean {
     && a.phase === b.phase
     && Math.abs(a.phaseProgress - b.phaseProgress) < 1e-9
     && a.waveTime === b.waveTime
-    && a.paused === b.paused;
+    && a.paused === b.paused
+    && a.speed === b.speed;
 }

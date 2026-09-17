@@ -82,10 +82,10 @@ describe('Map-System (P5) — Laufweg reagiert REAL auf Platzierungen', () => {
     let rejected = 0;
     let lastReason = '';
     root.bus.subscribe('TILE_REJECTED', (e) => { rejected++; lastReason = (e as unknown as { payload: { reason: string } }).payload.reason; });
-    // 7 unterscheidliche Zellen im Baubereich (gx 2-9, gy 2-9)
+    // 7 unterscheidliche Zellen im Baubereich (gy 8: komplett frei vom Pfad-Korridor, B33)
     let seq = 1;
     for (let i = 0; i < 7; i++) {
-      root.commands.push(makeCommand(0, 'PLACE_TILE', seq++, { gx: 2 + i, gy: 6, tile: 'boulder' }));
+      root.commands.push(makeCommand(0, 'PLACE_TILE', seq++, { gx: 2 + i, gy: 8, tile: 'boulder' }));
     }
     root.stepOnce();
     expect(rejected).toBe(1);
@@ -101,5 +101,48 @@ describe('Map-System (P5) — Laufweg reagiert REAL auf Platzierungen', () => {
     expect(rejected).toBe(1);
     // gx=0 ist Spawn-Korridor — kein Tile wird platziert
     expect(root.getSnapshot().mapTiles['0,3']).toBeUndefined();
+  });
+});
+// B33 — Der Screenshot-Befund als Gate: blockierende Tiles (pot/boulder) dürfen nie in den
+// Pfad-Korridor. Vorher kannte `placeTile` die Marge nicht — ein Topf stand 0.5 Zellen am
+// Wegpunkt, wo Pflanzen seit jeher `on_path` wären. Dieselbe Quelle (PLACEMENT_PATH_MARGIN),
+// dieselbe Regel, ein Grund-Text für den Spieler.
+describe('B33 — Pfad-Korridor-Verbot für blockierende Tiles', () => {
+  beforeEach(() => resetIds());
+
+  it('lehnt einen Topf im Korridor ab (Zelle (5,1), 0.5 am Wegpunkt (5.5,1.5)) — ohne Energie-Abzug', () => {
+    const root = new SimulationRoot({ seed: SEED });
+    const energyBefore = root.getSnapshot().resources.energy;
+    let rejectedReason = '';
+    root.bus.subscribe('TILE_REJECTED', (e) => { rejectedReason = (e as unknown as { payload: { reason: string } }).payload.reason; });
+    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 5, gy: 1, tile: 'pot' }));
+    root.stepOnce();
+    const s = root.getSnapshot();
+    expect(s.mapTiles['5,1']).toBeUndefined();
+    expect(s.resources.energy).toBe(energyBefore);
+    // Der Grund erreicht den Bus (TILE_REJECTED mit on_path) — der Live-Reader, denn der
+    // Event-Log wird pro Tick geleert (Root ist sein Besitzer).
+    expect(rejectedReason).toBe('on_path');
+  });
+
+  it('lehnt einen Findling im Korridor genauso ab', () => {
+    const root = new SimulationRoot({ seed: SEED });
+    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 8, gy: 5, tile: 'boulder' }));
+    root.stepOnce();
+    expect(root.getSnapshot().mapTiles['8,5']).toBeUndefined();
+  });
+
+  it('erlaubt einen Topf weit weg vom Pfad weiterhin (Baubereich, Marge frei)', () => {
+    const root = new SimulationRoot({ seed: SEED });
+    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 6, gy: 8, tile: 'pot' }));
+    root.stepOnce();
+    expect(root.getSnapshot().mapTiles['6,8']).toBe('pot');
+  });
+
+  it('Weg-Tile NÄCHST am Korridor bleibt erlaubt — Lenkung ist ihr Sinn (Zelle (6,2), direkt an der Marge)', () => {
+    const root = new SimulationRoot({ seed: SEED });
+    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 6, gy: 2, tile: 'path' }));
+    root.stepOnce();
+    expect(root.getSnapshot().mapTiles['6,2']).toBe('path');
   });
 });

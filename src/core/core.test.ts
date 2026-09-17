@@ -143,7 +143,7 @@ describe('Phase 2.4 Stable IDs', () => {
 describe('Phase 2.6 State hash', () => {
   const makeState = (): HashableState => ({
     seed: 583921,
-    clock: { tick: 100, elapsed: 100 * 33.333, phase: 'night', phaseProgress: 0.5, waveTime: 20, paused: false },
+    clock: { tick: 100, elapsed: 100 * 33.333, phase: 'night', phaseProgress: 0.5, waveTime: 20, paused: false, speed: 1 },
     wave: { number: 2 },
     resources: { energy: 150 },
     plants: [

@@ -50,8 +50,8 @@ export type EventType =
 export type PlacementRejectReason = 'occupied' | 'on_path' | 'no_inventory' | 'no_energy';
 /** Pflanzen-Aktionen: Düngen/Vermehrung (`FERTILIZE_REJECTED`/`PROPAGATE_REJECTED`). */
 export type PlantRejectReason = 'not_growing' | 'max_reached' | 'not_found' | 'not_mature' | 'on_path' | 'occupied';
-/** Karten-Bau (`TILE_REJECTED`) — alle sieben Gründe kommen aus `simulation/mapSystem.ts`. */
-export type TileRejectReason = 'unknown_tile' | 'no_energy' | 'max_count' | 'occupied_plant' | 'spawn_corridor' | 'not_expandable' | 'already_buildable';
+/** Karten-Bau (`TILE_REJECTED`) — alle Gründe kommen aus `simulation/mapSystem.ts` (B33: + `on_path` für blockierende Tiles im Pfad-Korridor). */
+export type TileRejectReason = 'unknown_tile' | 'no_energy' | 'max_count' | 'occupied_plant' | 'spawn_corridor' | 'not_expandable' | 'already_buildable' | 'on_path';
 /** Brutling-Einsatz (`BEETLE_REJECTED`). */
 export type BeetleRejectReason = 'already_deployed' | 'no_energy' | 'none_available';
 /** Alles, was dem Spieler als Ablehnungsgrund gezeigt werden kann. */

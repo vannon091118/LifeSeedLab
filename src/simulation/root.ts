@@ -16,6 +16,7 @@ import { WaveSystem } from './waveSystem';
 import { MapSystem } from './mapSystem';
 import { executeCommand, type CommandContext } from './rootCommands';
 import { STARTING_INVENTORY, PLANT_IDS } from '../config/plants.source';
+import { AUTO_WAVES_DEFAULT } from '../config/economy.source';
 import { defaultMapTiles } from '../config/map.source';
 import { CYCLE_TICKS } from '../core/clock';
 import { applyResume, type ResumeSnapshot } from './resume';
@@ -83,7 +84,8 @@ export class SimulationRoot {
    * advance time without running any system (the silent-sim defect, QUALITY_SPEC A0).
    */
   advance(realMs: number): number {
-    this.accumulator += realMs;
+    // Sim-Tempo (B32): die Uhr multipliziert — die Tick-Schwelle und die Pipeline bleiben unverändert.
+    this.accumulator += realMs * this.clock.get().speed;
     let executed = 0;
     while (this.accumulator >= TICK_MS) {
       this.accumulator -= TICK_MS;
@@ -92,6 +94,10 @@ export class SimulationRoot {
     }
     return executed;
   }
+
+  /** Sim-Tempo ×1–×4 (UI-Eingang; Wahrheit liegt in der Uhr, deterministisch im Snapshot). */
+  setSpeed(multiplier: number): void { this.clock.setSpeed(multiplier); }
+  get speed(): number { return this.clock.speed; }
 
   /** Execute exactly one deterministic simulation tick. */
   stepOnce(): void {
@@ -263,7 +269,7 @@ export class SimulationRoot {
       loadout,
       clock: this.clock.get() as SimState["clock"],
       phase: "prep",
-      wave: { number: 0, schedule: null, spawnQueue: [], lastSpawnTick: 0, prepStartTick: this.clock.get().tick },
+      wave: { number: 0, schedule: null, spawnQueue: [], lastSpawnTick: 0, prepStartTick: this.clock.get().tick, autoWaves: AUTO_WAVES_DEFAULT },
       resources: { energy: 150, coins: 0 },
       mapTiles: defaultMapTiles(),
       currentRoute: null,

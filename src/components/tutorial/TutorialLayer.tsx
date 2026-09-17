@@ -148,5 +148,7 @@ export function TutorialLayer({ run, langChosen, onHold }: TutorialLayerProps) {
   }, [hold, onHold]);
 
   if (!enabled || !step) return null;
-  return <TutorialOverlay step={step} index={view.index} total={view.total} onPress={press} onSkip={skip} />;
+  // Key = Schrittindex: jede Notiz remountet das Overlay ⇒ Krickz läuft neu ein,
+  // die Blase ploppt neu auf (CSS-Animationen hängen am Mount, nicht an Props).
+  return <TutorialOverlay key={view.index} step={step} index={view.index} total={view.total} onPress={press} onSkip={skip} />;
 }

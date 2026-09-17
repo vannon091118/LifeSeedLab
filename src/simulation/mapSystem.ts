@@ -6,13 +6,12 @@
 
 import type { SimState, MapTiles } from './state';
 import { makeEvent, type GameEvent } from '../bus/events';
-import { MAP_TILES_SOURCE, MAP_TILE_IDS, MAP_DEFAULT_WEIGHT, MAP_NEIGHBOR_MODE, expansionTiles, isBuildable, type MapTileType } from '../config/map.source';
-import { isInsideGrid } from '../config/world.source';
-import { GRID_COLS, GRID_ROWS } from '../config/world.source';
+import { MAP_TILES_SOURCE, MAP_TILE_IDS, MAP_DEFAULT_WEIGHT, MAP_NEIGHBOR_MODE, expansionTiles, isBuildable, SPAWN_CORRIDOR_COL, type MapTileType } from '../config/map.source';
+import { isInsideGrid, ENEMY_PATH, PLACEMENT_PATH_MARGIN, dist, GRID_COLS, GRID_ROWS } from '../config/world.source';
 
 export type PlaceTileResult =
   | { ok: true }
-  | { ok: false; reason: 'unknown_tile' | 'no_energy' | 'max_count' | 'occupied_plant' | 'spawn_corridor' | 'not_expandable' };
+  | { ok: false; reason: 'unknown_tile' | 'no_energy' | 'max_count' | 'occupied_plant' | 'spawn_corridor' | 'not_expandable' | 'on_path' };
 
 /** Schlüssel-Funktion EINE Konvention: "gx,gy". */
 export function tileKey(gx: number, gy: number): string {
@@ -46,8 +45,20 @@ export class MapSystem {
     if (!Number.isInteger(gx) || !Number.isInteger(gy) || gx < 0 || gx >= GRID_COLS || gy < 0 || gy >= GRID_ROWS) {
       return { ok: false, reason: 'unknown_tile' };
     }
-    // Spawn-Korridor (Spalte 0) bleibt frei — Gegner müssen spawnen können
-    if (gx === 0) return { ok: false, reason: 'spawn_corridor' };
+    // Spawn-Korridor (Source-Wert) bleibt frei — Gegner müssen spawnen können
+    if (gx === SPAWN_CORRIDOR_COL) return { ok: false, reason: 'spawn_corridor' };
+    // B33: BLOCKIERENDE Tiles (pot/boulder) dürfen nicht in den Pfad-Korridor — dieselbe
+    // Marge wie Pflanzen (eine Quelle: PLACEMENT_PATH_MARGIN). Sonst steht ein Topf 0.5 Zellen
+    // am Weg, den Gegner-Sprites durchlaufen, und die Screenshot-Falle: Töpfe, die der Spieler
+    // nicht mal hätte bauen dürfen. Weg-Tiles (path) bleiben AUSGENOMMEN: sie lenken den Laufweg
+    // (weight < 1) — genau das ist ihr Sinn.
+    if (!src.walkable) {
+      const cx = gx + 0.5;
+      const cy = gy + 0.5;
+      for (const point of ENEMY_PATH) {
+        if (dist(cx, cy, point.x, point.y) < PLACEMENT_PATH_MARGIN) return { ok: false, reason: 'on_path' };
+      }
+    }
     // Nur im aktuellen Baubereich platzieren (Start: 8×8, erweiterbar)
     if (!isBuildable(gx, gy)) return { ok: false, reason: 'not_expandable' };
     if (state.resources.energy < src.cost) return { ok: false, reason: 'no_energy' };

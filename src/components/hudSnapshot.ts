@@ -38,6 +38,7 @@ export function hudOf(state: SimState, paused: boolean): HudSnapshot {
       prepStartTick: state.wave.prepStartTick,
       tick: state.clock.tick,
       plantCount: state.plants.length,
+      autoWaves: state.wave.autoWaves,
     }),
   };
 }

@@ -12,10 +12,18 @@ export const SEED_SHOP_PRICE_STEP = 15;
 /** Anzahl gleichzeitig angebotener Seeds im Shop (deterministisch rotierend). */
 export const SEED_SHOP_OFFERS = 3;
 
-/** Reifung: Kreuzung i wird nach `wavesToUnlockFor(i)` überlebten Wellen verfügbar. */
+/** Reifung: Kreuzung i wird nach `wavesToUnlockFor(i)` überlebten Wellen verfügbar.
+ *
+ * B34 (Loop-Grundsatz: Kaufen → Aussäen → Pflegen → Ernten → Loadout darf NIE blockieren):
+ * Die offene Kurve 2+2i erreichte 24 Wellen bei Kreuzung 11 — mit voller Queue (12) wartete
+ * der Spieler auf ~156 Wellen, ohne noch aussäen zu können. Jetzt deckelt die Kurve bei
+ * MATURATION_WAVES_CAP: stärkere Kreuzungen kosten weiterhin mehr Geduld, aber der Loop
+ * dreht immer in absehbarer Zeit. */
+export const MATURATION_BASE_WAVES = 2;
+export const MATURATION_STEP_WAVES = 2;
+export const MATURATION_WAVES_CAP = 12;
 export function wavesToUnlockFor(crossIndex: number): number {
-  // Stärke skaliert: 1. Kreuzung 2 Wellen, dann +2 pro Stufe (2,4,6,8,...)
-  return 2 + crossIndex * 2;
+  return Math.min(MATURATION_WAVES_CAP, MATURATION_BASE_WAVES + crossIndex * MATURATION_STEP_WAVES);
 }
 
 /** Reifungs-Queue: Obergrenze gleichzeitig wartender Kreuzungen.
@@ -34,6 +42,10 @@ export const COINS_PER_KILL_MAX = 5;
 
 /** Auto-Wellen: Ticks in 'prep' bis die nächste Welle automatisch startet. */
 export const AUTO_WAVE_DELAY_TICKS = 90; // 3s bei 30tps
+
+/** B32: Startwert der Spieler-Entscheid „automatische Wellen" — der Run-Schalter überschreibt
+ *  ihn pro Run (wave.autoWaves), die Source bleibt die Content-Wahrheit für den Default. */
+export const AUTO_WAVES_DEFAULT = true;
 
 /**
  * B23.1 (Befund beider Spielerberichte): Solange KEINE Pflanze steht, startet keine Welle von

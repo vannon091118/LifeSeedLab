@@ -320,13 +320,13 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `c1322d4` — refactor(rng): Brut-Identitaet in eigener Domaene, Migration entschieden |
-| Arbeitsbaum | 12 gestaged, 10 geändert, 0 neu |
-| Letztes Gate | 🛑 geschlossen (preflight, 0 Fehler, 1 Warnungen) |
+| HEAD | `8477a20` — perf(gate): Commit-Gate ~60 s auf ~4 s warm gedruckt |
+| Arbeitsbaum | 35 gestaged, 0 geändert, 0 neu |
+| Letztes Gate | 🛑 geschlossen (preflight, 1 Fehler, 1 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `c1322d4` refactor(rng): Brut-Identitaet in eigener Domaene, Migration entschieden |
+| Letzter Shinon-Commit | `8477a20` perf(gate): Commit-Gate ~60 s auf ~4 s warm gedruckt |
 | Letzter Push | ✅ origin/main |
-| LOC-Hotspots | `src/config/map.source.ts` 200/200 (100 %)<br>`src/simulation/root.ts` 292/300 (97 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/simulation/plantSystem.ts` 283/300 (94 %)<br>`src/simulation/enemySystem.ts` 279/300 (93 %) |
+| LOC-Hotspots | `src/simulation/root.ts` 298/300 (99 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/simulation/plantSystem.ts` 283/300 (94 %)<br>`src/simulation/enemySystem.ts` 279/300 (93 %)<br>`src/config/map.source.ts` 174/200 (87 %) |
 <!-- SHINON:STATUS:END -->
 
 

@@ -5,6 +5,7 @@
 // deterministisch aus (seed, waveNumber+1). Deshalb startet ein Resume immer in `prep`.
 
 import type { MapTiles, PlantEntity, SimState } from './state';
+import { AUTO_WAVES_DEFAULT } from '../config/economy.source';
 
 export interface ResumeSnapshot {
   waveNumber: number;
@@ -28,6 +29,7 @@ export function applyResume(state: SimState, snapshot: ResumeSnapshot): void {
     spawnQueue: [],
     lastSpawnTick: 0,
     prepStartTick: state.clock.tick,
+    autoWaves: AUTO_WAVES_DEFAULT, // Spieler-Entscheid ist Run-Sitzung, kein Save-Bestandteil (B32)
   };
   state.resources = { ...state.resources, energy: snapshot.energy };
   state.lives = snapshot.lives;
