@@ -69,3 +69,26 @@ Repro-Schritten und einer Positiv-Liste (was explizit funktioniert hat).
    gemeldet oder ausdrücklich als vorläufig geführt — niemals als bestätigter Bug.
 5. **Widerlegt ≠ gestrichen:** Schlägt die Repro 3× fehl, Status `widerlegt` mit Begründung
    (das ist ein Ergebnis, kein Verlust).
+
+## 🔁 Workflow (Zwei-Geräte-Kreislauf)
+
+| Rolle | Gerät | Schritt |
+|---|---|---|
+| **QA** | dieses hier | Spielsession im sichtbaren Chrome (MCP-Bridge) → Bericht `qa/YYYY-MM-DD_<titel>.md` auf `qa-reports` pushen (mit Repro-Stand `n/3`, Positiv-Liste, Version/Commit) |
+| **DEV** | Hauptgerät | **PFLICHT vor jedem Task:** `git fetch origin qa-reports` + `git log HEAD..origin/qa-reports --oneline -- qa/` → neue Berichte lesen → Befund-Status `in-arbeit` setzen (Commit `docs(qa): status …`) → Fix auf `main` → Status `erledigt` (Commit-Hash im Bericht vermerken) |
+| **QA** | dieses hier | Abgleich: neue Commits auf `main`? → Fixes gegen den Repro-Zyklus des Befunds nachspielen → `erledigt` bestätigen oder `widerlegt` |
+| **DEV** | Hauptgerät | Verankerung: Abhol-Protokoll steht als Pflichtpunkt in der `AGENTS.md` auf `main` — keine Ausnahme, keine Anweisung nötig |
+
+### ⏳ Warteschleifen-Regel (100 % Toolcall-Ausnutzung)
+
+**Solange keine neuen Commits auf `main` liegen, gibt es keinen Stillstand.** Das QA-Gerät
+testet sofort ANDERE Aspekte weiter — nie denselben Befund wiederholen, nie auf Fixes warten,
+nie die Session vorzeitig beenden. Die verfügbaren Toolcalls werden zu 100 % ausgereizt:
+
+- Ungetestete Screens/Flows: Brutstätte, Codex, Duell-Brett-Sperre, i18n-Parität DE/EN
+- Mobile-Viewport **390×844** (DoD), lange Runs, Boss-Wellen (alle 10), Tag/Nacht-Wechsel
+- Persistenz-Resilienz: Reload mitten im Run, Save-Verhalten nach Cache-Löschung
+- Konsolenhygiene je neuem Screen (neue React-Warnungen, Crashes, 404s)
+
+Neue Bugs landen als Kandidat `Q<n>` mit Repro-Stand `0/3` im nächsten Bericht — erst
+drei formale Zyklen machen daraus einen gemeldeten Befund (Repro-Disziplin oben).

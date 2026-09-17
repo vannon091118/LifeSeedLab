@@ -26,7 +26,12 @@
    (Ausnahme: Präcondition ist selbst ein Nicht-Frisch-Zustand → Zyklus im Bericht
    definieren und deterministisch restaurieren). Jeder Befund trägt seinen Repro-Stand
    (`n/3`); darunter gilt er als vorläufig.
-6. **Nicht auf `main` mergen.** Der Branch lebt parallel; Berichte werden durch
+6. **Warteschleifen-Regel (100 % Toolcall-Ausnutzung):** Solange keine neuen Commits auf
+   `main` liegen, testet dieses Gerät SOFORT ANDERE Aspekte weiter (ungetestete Screens,
+   Mobile 390×844, Persistenz, Boss-Wellen, Konsolenhygiene) — kein Stillstand, kein
+   Wiederholen bereits dokumentierter Befunde. Neue Bugs nur als Kandidat (0/3) ins
+   nächste Berichtspaket.
+7. **Nicht auf `main` mergen.** Der Branch lebt parallel; Berichte werden durch
    Status-Updates "abgearbeitet", nicht durch Merge.
 
 ---
