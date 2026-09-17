@@ -35,7 +35,7 @@ Der offene Auftrag ist damit erledigt und wird nicht mehr mitgereist.
 | Datum | Bericht | Befunde | Status |
 |---|---|---|---|
 | 2026-09-17 | [Spielfluss-Audit (v0.0.38)](2026-09-17_spielfluss-audit.md) | F1/F2/F4 in-arbeit (DEV-Antworten im Bericht), F3 erledigt + QA-nachgeprüft (main 936afc7), Q3 erledigt (Design) | in-arbeit |
-| 2026-09-17 | [Verifikation v0.0.47](2026-09-17_verifikation-v0.0.47.md) | Q13 widerlegt (Messartefakte), Q1/Q2/Q3/Q4/Q5 erledigt bestätigt, **R1 neu** (zwei Weg-Wahrheiten, 1/3), N1–N3 Kandidaten | offen |
+| 2026-09-17 | [Verifikation v0.0.47](2026-09-17_verifikation-v0.0.47.md) | Q13 widerlegt (Messartefakte), Q1/Q2/Q3/Q4/Q5 erledigt bestätigt, **R1 neu** (zwei Weg-Wahrheiten, 1/3), N1–N3 Kandidaten | in-arbeit (DEV: R1-Bewertung übernommen, F1/F2 laufen) |
 | 2026-09-17 | [Status-Abgleich v0.0.42 (70c93a8)](2026-09-17_status-v0.0.42.md) | Q12/Q6/F3 erledigt, Q13/Q14 neu (Kandidaten), Q11 3/3 | in-arbeit |
 
 ## Archiv (abgeschlossene/alte Berichte)

@@ -6,6 +6,7 @@ rekonstruiert**: Jeder Eintrag fasst zusammen, was im Repository tatsächlich pa
 Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x).
 
 ---- [QA] DEV-Antworten auf Spielfluss-Audit F1-F4 + Q3-Entscheidung (Skip bleibt, Replay-Einstieg geplant) — im Audit-Bericht dokumentiert.
+- [QA] R1 (zwei Weg-Wahrheiten) in-arbeit — DEV übernimmt die Bewertung (Regelwerk gegen statischen ENEMY_PATH vs. dynamische currentRoute).
 ## Unreleased (Arbeitsstand 17.09.2026)
 
 ---- [QA] Verifikation v0.0.47: Q13 widerlegt (Messartefakte), Q1/Q2 + Konsole bestätigt geheilt, F3-E2E-Nachweis erbracht, neuer Befund R1 (Platzierungs-Geometrie prüft gegen statischen Fallback-Pfad, Gegner laufen dynamische Route).
