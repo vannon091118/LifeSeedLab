@@ -102,4 +102,13 @@ describe('Phase 5 gate: source validation', () => {
     const route = [{ x: 1, y: 1 }, { x: 2, y: 1 }];
     expect(resolveActiveRoute(route)).toBe(route);
   });
+
+  it('M4 (Sprint AP2): Weg-Gewicht ist source-only und bleibt unter der Wiese — 0.6 statt 0.45', async () => {
+    const { MAP_TILES_SOURCE } = await import('./map.source');
+    // Weg zieht Gegner an (< 1), aber der Vorsprung ist klein genug, dass Pflanzen-Kosten
+    // (PLANT_ROUTE_COST = 2) auf Weg-Zellen das Maze-Layout spürbar machen.
+    expect(MAP_TILES_SOURCE.path.weight).toBe(0.6);
+    expect(MAP_TILES_SOURCE.path.weight).toBeLessThan(1);
+    expect(MAP_TILES_SOURCE.decor.weight).toBe(1);
+  });
 });

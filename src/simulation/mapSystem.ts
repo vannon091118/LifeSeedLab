@@ -6,12 +6,27 @@
 
 import type { SimState, MapTiles } from './state';
 import { makeEvent, type GameEvent } from '../bus/events';
-import { MAP_TILES_SOURCE, MAP_TILE_IDS, MAP_DEFAULT_WEIGHT, MAP_NEIGHBOR_MODE, expansionTiles, isBuildable, SPAWN_CORRIDOR_COL, type MapTileType } from '../config/map.source';
+import { MAP_TILES_SOURCE, MAP_TILE_IDS, MAP_DEFAULT_WEIGHT, expansionTiles, isBuildable, SPAWN_CORRIDOR_COL, type MapTileType } from '../config/map.source';
 import { isInsideGrid, ENEMY_PATH, PLACEMENT_PATH_MARGIN, dist, GRID_COLS, GRID_ROWS } from '../config/world.source';
 
 export type PlaceTileResult =
   | { ok: true }
   | { ok: false; reason: 'unknown_tile' | 'no_energy' | 'max_count' | 'occupied_plant' | 'spawn_corridor' | 'not_expandable' | 'on_path' };
+
+/** M2: Zusatz-Kosten einer Zelle mit Pflanze fürs Pathfinding (Umweg-Anreiz, kein Block). */
+const PLANT_ROUTE_COST = 2;
+
+/**
+ * M1/AP2 — Route-Qualität (Writer: SimulationRoot via computeRoute): Verhältnis der
+ * Route-Kosten zur freien Manhattan-Distanz Spawn→Ausgang. 1 = perfekt gerade, kleiner =
+ * das Spieler-Maze zwingt Umwege ab. Bestimmt die Observation (Phase 2) statt `null`.
+ */
+export function routeQuality(route: { x: number; y: number }[] | null): number | null {
+  if (!route || route.length < 2) return null;
+  const waypoints = route.length - 1;
+  const straight = (GRID_COLS - 1) + (GRID_ROWS - 1); // ortho4-Referenz: kürzest möglicher Weg
+  return Math.min(1, straight / waypoints);
+}
 
 /** Schlüssel-Funktion EINE Konvention: "gx,gy". */
 export function tileKey(gx: number, gy: number): string {
@@ -94,6 +109,10 @@ export class MapSystem {
    * auf den DEFAULT-Pfad zurück — die Map kann den Run nicht softlocken).
    */
   computeRoute(state: SimState): { x: number; y: number }[] | null {
+    // M2 (Sprint-Plan AP 2): Pflanzen verteuern ihre Zelle (cost+1) — das Zucht-Layout wird
+    // zum Maze-Bauwerk. Kein Block (Softlock unmöglich), nur Umweg-Anreiz für Gegner-Routen.
+    const plantCells = new Set<string>();
+    for (const p of state.plants) plantCells.add(tileKey(p.gx, p.gy));
     const startCol = 0;
     const endCol = GRID_COLS - 1;
     // Start: alle begehbaren Zellen der Spawn-Spalte
@@ -131,15 +150,16 @@ export class MapSystem {
         return route;
       }
 
-      // Nachbarn (ortho4 — Quelle)
-      const neighbors: [number, number][] = MAP_NEIGHBOR_MODE === 'ortho4'
-        ? [[cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]]
-        : [[cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]];
+      // Nachbarn (ortho4 — Quelle; der frühere ortho8-Zweig war toter Code mit identischem Körper, Befund B2)
+      const neighbors: [number, number][] = [
+        [cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1],
+      ];
       for (const [nx, ny] of neighbors) {
         if (nx < 0 || nx >= GRID_COLS || ny < 0 || ny >= GRID_ROWS) continue;
         if (tileBlocked(state.mapTiles, nx, ny)) continue;
         const nk = tileKey(nx, ny);
-        const nd = bestD + tileWeight(state.mapTiles, nx, ny);
+        const plantPenalty = plantCells.has(nk) ? PLANT_ROUTE_COST : 0;
+        const nd = bestD + tileWeight(state.mapTiles, nx, ny) + plantPenalty;
         if (nd < (dist.get(nk) ?? Infinity)) {
           dist.set(nk, nd);
           prev.set(nk, bestK);

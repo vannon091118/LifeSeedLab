@@ -48,7 +48,7 @@ const SAMPLES: { [K in EventType]: EventPayloads[K] } = {
   PROPAGATE_REJECTED: { plantId: 'p1', reason: 'not_mature' },
   TILE_PLACED: { gx: 3, gy: 3, tile: 'boulder', cost: 20 },
   TILE_REJECTED: { gx: 0, gy: 3, tile: 'path', reason: 'spawn_corridor' },
-  ROUTE_CHANGED: { waypoints: 5 },
+  ROUTE_CHANGED: { waypoints: 0, quality: null, blocked: true },
   MAP_EXPANDED: { gx: 1, gy: 1, cost: 45 },
   BEETLE_DEPLOYED: { beetleId: 'b1', name: 'Krabbler', px: 0.5, py: 3.5, spawnCount: 1 },
   BEETLE_DOWN: { beetleId: 'b1', px: 5.5, py: 3.5 },
@@ -115,6 +115,9 @@ describe('B29 — Event-Audience: jede Zeile ist entschieden', () => {
       // `unknown_variant` ist bewusst KEIN eigener Text: fieldNotice.mappt ihn auf den
       // `unknown`-Restfall (die Variante ist für den Spieler ohnehin nicht sichtbar).
       BUY_REJECTED: ['no_energy'],
+      // M5: ROUTE_CHANGED trägt keinen `reason`-Text — der blocked-Fall (zugebauter Weg)
+      // mappt in fieldNotice auf `route_blocked` (Text existiert zweisprachig, s. translations).
+      ROUTE_CHANGED: [],
     };
     for (const [type, reasons] of Object.entries(REASONS)) {
       for (const reason of reasons) {
@@ -133,8 +136,8 @@ describe('B29 — Event-Audience: jede Zeile ist entschieden', () => {
   });
 });
 
-/** Die fünf Ablehnungs-Events, die der Spieler sehen muss. */
+/** Die Ablehnungs-Events (plus M5-Route-Block), die der Spieler sehen muss. */
 const NOTICE_KINDS = [
   'PLACEMENT_REJECTED', 'TILE_REJECTED', 'FERTILIZE_REJECTED', 'PROPAGATE_REJECTED', 'BEETLE_REJECTED',
-  'BUY_REJECTED',
+  'BUY_REJECTED', 'ROUTE_CHANGED',
 ] as const;

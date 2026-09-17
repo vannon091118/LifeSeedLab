@@ -57,8 +57,10 @@ export type PlantRejectReason = 'not_growing' | 'max_reached' | 'not_found' | 'n
 export type TileRejectReason = 'unknown_tile' | 'no_energy' | 'max_count' | 'occupied_plant' | 'spawn_corridor' | 'not_expandable' | 'already_buildable' | 'on_path';
 /** Brutling-Einsatz (`BEETLE_REJECTED`). */
 export type BeetleRejectReason = 'already_deployed' | 'no_energy' | 'none_available';
+/** M5 (Sprint AP2): zugebauter Laufweg — der Default-Pfad greift, und das muss sichtbar sein. */
+export type RouteRejectReason = 'route_blocked';
 /** Alles, was dem Spieler als Ablehnungsgrund gezeigt werden kann. */
-export type RejectReason = PlacementRejectReason | PlantRejectReason | TileRejectReason | BeetleRejectReason;
+export type RejectReason = PlacementRejectReason | PlantRejectReason | TileRejectReason | BeetleRejectReason | RouteRejectReason;
 
 // ── Payload contracts (v1) ───────────────────────────────────
 
@@ -94,7 +96,7 @@ export interface EventPayloads {
   PROPAGATE_REJECTED: { plantId: string; reason: Exclude<PlantRejectReason, 'not_growing' | 'max_reached'> };
   TILE_PLACED: { gx: number; gy: number; tile: string; cost: number };
   TILE_REJECTED: { gx: number; gy: number; tile: string; reason: TileRejectReason };
-  ROUTE_CHANGED: { waypoints: number };
+  ROUTE_CHANGED: { waypoints: number; /** M1/AP2: 1 = gerade Route, kleiner = Maze erzwingt Umwege. */ quality: number | null; /** M5: gesetzt = der Spieler hat den Weg zugebaut — Fallback läuft unsichtbar? Nein: als Grund gemeldet. */ blocked: boolean };
   MAP_EXPANDED: { gx: number; gy: number; cost: number };
   BEETLE_DEPLOYED: { beetleId: string; name: string; px: number; py: number; spawnCount: number };
   BEETLE_DOWN: { beetleId: string; px: number; py: number };

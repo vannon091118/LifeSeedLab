@@ -222,6 +222,11 @@ export class RunRuntime {
     const step = (now: number) => {
       const dt = now - last; last = now;
       if (!this.pausedRef.current && !this.holdRef.current) this.root.advance(dt);
+      // E1 (Audit A13): EIN Snapshot pro Frame — der Renderer, der Geist und das HUD lesen
+      // dieselbe Kopie statt je ein eigenes structuredClone anzustoßen (vorher 2–3 Deep-Copies
+      // pro RAF-Frame des ganzen SimState). Die Sim bleibt der einzige Writer; die Kopie ist
+      // Frame-lokal und wird im nächsten Durchlauf verworfen.
+      const snap = this.root.getSnapshot();
       for (const c of this.observer.drain()) executeVisualCommand(c, this.particles, this.camera, this.feedback);
       this.particles.update(); this.feedback.update(); this.camera.update();
       const n = this.particles.activeCount;
@@ -230,15 +235,15 @@ export class RunRuntime {
       else this.particles.setBudget('NORMAL');
       const cs = this.camera.get();
       this.renderer.render(
-        this.root.getSnapshot(), this.particles, this.feedback,
+        snap, this.particles, this.feedback,
         cs.shakeOffset.x, cs.shakeOffset.y,
-        ghostForRender(this.placementMirror, this.root.getSnapshot().clock.tick),
+        ghostForRender(this.placementMirror, snap.clock.tick),
       );
       this.saveAccum += dt; this.hudAccum += dt;
       // B35: Der 10-s-Autosave-Tick sitzt im RunSaveAutor (persistence/), nicht hier.
       if (this.hudAccum > 100) {
         this.hudAccum = 0;
-        this.cbs.onHud(hudOf(this.root.getSnapshot(), this.pausedRef.current));
+        this.cbs.onHud(hudOf(snap, this.pausedRef.current));
         if (this.devActive) this.cbs.onDevTick();
       }
       this.raf = requestAnimationFrame(step);

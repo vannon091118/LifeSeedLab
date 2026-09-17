@@ -125,7 +125,12 @@ export const EVENT_AUDIENCE: Record<EventType, AudienceEntry> = {
     why: 'Der Bau erscheint im nächsten Frame aus `state.mapTiles`, die Kosten zeigt der Energie-Chip. '
       + 'Offen: der Bau selbst hat keinen Moment (kein Ton, kein Staub) — Kandidat für die Karten-Politur.',
   },
-  ROUTE_CHANGED: { audiences: ['snapshot'], why: 'Der Renderer zeichnet den Weg aus dem State; Gegner folgen den Waypoints.' },
+  ROUTE_CHANGED: {
+    audiences: ['notice'],
+    why: 'M5: der blocked-Fall (zugebauter Laufweg) muss den Spieler erreichen — ohne Text lief '
+      + 'der Fallback-Pfad stillschweigend durch Wände. Der Renderer zeichnet den Weg weiter aus dem '
+      + 'State (snapshot-lesend), die Meldung ist der einzige Event-Konsum.',
+  },
   MAP_EXPANDED: { audiences: ['snapshot'], why: 'Die neue Fläche kommt aus dem State; Kosten im Energie-Chip.' },
 
   // ── Käfer (P6) ───────────────────────────────────────────────────────────

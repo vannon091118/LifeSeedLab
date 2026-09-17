@@ -50,6 +50,8 @@ const REASON_KEY: Record<NoticeReason, TranslationKey> = {
   // Brutling
   already_deployed: 'field.reject.already_deployed',
   none_available: 'field.reject.none_available',
+  // M5: Route zugebaut — Fallback läuft, aber sichtbar
+  route_blocked: 'field.reject.route_blocked',
   // Restfall der UI-Vorprüfung (kein Sim-Grund)
   unknown: 'field.reject.unknown',
 };

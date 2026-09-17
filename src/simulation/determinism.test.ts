@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 // Owner: Determinismus-Gate (B32.2/4, Plan Phase 3). Eine kanonische Suite mit drei
 // beweiskräftigen Kernen — die Regression-Wahrheit für „deterministisch“:
@@ -27,6 +27,28 @@ function replayStream(root: SimulationRoot): void {
   pushCommand(root, 'PLACE_PLANT', { variantId: 'sprout', gx: 1, gy: 2 }, 1);
   pushCommand(root, 'START_WAVE', {}, 2);
 }
+
+// ══ Kern 1a — E2-Catch-up-Klemme (Audit A12) ═══════════════════════════════
+
+describe('Determinismus — E2: Frame-Burst-Klemme', () => {
+  beforeEach(() => resetIds());
+
+  it('advance mit riesigem dt execuiert max 40 Ticks (Frame-Spike-Schutz, Tempo-Vertrag-skaliert)', () => {
+    const root = new SimulationRoot({ seed: SEED, runId: 1 });
+    // 10 Sekunden realer Zeit in einem Frame — ohne Klemme wären das ~300 Ticks.
+    const executed = root.advance(10_000);
+    expect(executed).toBe(40);
+    expect(root.getSnapshot().clock.tick).toBe(40);
+  });
+
+  it('verworfener Rückstand läuft nicht als Schuldenlauf ins nächste Frame', () => {
+    const root = new SimulationRoot({ seed: SEED, runId: 1 });
+    expect(root.advance(10_000)).toBe(40); // Burst: Klemme greift, Rest-Rückstand verfällt
+    expect(root.advance(16)).toBe(0);      // 16 ms < TICK_MS ⇒ sauber 0 Ticks, KEINE Schulden
+    expect(root.advance(50)).toBe(1);      // ein volles Tick-Budget läuft normal weiter
+    expect(root.getSnapshot().clock.tick).toBe(41);
+  });
+});
 
 // ══ Kern 1 — REPLAY ══════════════════════════════════════════════════════════
 

@@ -44,6 +44,11 @@ export function noticeFromEvent(e: GameEvent): FieldNotice | null {
     case 'BUY_REJECTED':
       // B36: Nachkauf-Kauf abgelehnt (Energie/Unbekannt) — kommt als Feldmeldung an.
       return { reason: e.payload.reason === 'no_energy' ? 'no_energy' : 'unknown', tick: e.tick };
+    case 'ROUTE_CHANGED':
+      // M5: zugebauter Laufweg — der Fallback greift, und der Spieler erfährt es (kein
+      // stiller Wanddurchlauf mehr). Nur der blocked-Fall wird Meldung; jede normale
+      // Route-Neuberechnung bleibt stumm.
+      return e.payload.blocked ? { reason: 'route_blocked', tick: e.tick } : null;
     default:
       return null;
   }

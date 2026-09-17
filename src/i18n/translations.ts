@@ -135,6 +135,8 @@ export const translations = {
     // B29: Brutling-Einsatz (Ursache ist HUD-Wissen, deshalb nur der Text).
     'field.reject.already_deployed': 'Es ist schon ein Brutling draußen.',
     'field.reject.none_available': 'Kein Brutling im Lager.',
+    // M5: zugebauter Laufweg — der gelegte Weg greift nicht mehr, der Fallback übernimmt.
+    'field.reject.route_blocked': 'Der Weg ist zugebaut — die Gegner nehmen den alten Pfad!',
     'over.title': 'Run beendet',
     'over.waveReached': 'Erreichte Welle',
     'over.nektarEarned': 'Nektar verdient',
@@ -284,6 +286,8 @@ export const translations = {
     // B29: broodling deployment (the cause is HUD knowledge, so the text carries it).
     'field.reject.already_deployed': 'A broodling is already out.',
     'field.reject.none_available': 'No broodling in the stash.',
+    // M5: route blocked — the fallback path takes over, and that is announced.
+    'field.reject.route_blocked': 'The path is blocked — enemies take the old route!',
     'over.title': 'Run Over',
     'over.waveReached': 'Wave Reached',
     'over.nektarEarned': 'Nectar Earned',

@@ -320,13 +320,13 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `f092165` — docs(a13): Doku-Doppelung aufgeloest, Root Cause als Regel im Spec |
-| Arbeitsbaum | 0 gestaged, 15 geändert, 0 neu |
+| HEAD | `e977f61` — docs(a13): Doku-Doppelung aufgeloest, Root Cause als Regel im Spec |
+| Arbeitsbaum | 0 gestaged, 15 geändert, 7 neu |
 | Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `f092165` docs(a13): Doku-Doppelung aufgeloest, Root Cause als Regel im Spec |
+| Letzter Shinon-Commit | `e977f61` docs(a13): Doku-Doppelung aufgeloest, Root Cause als Regel im Spec |
 | Letzter Push | ✅ origin/main |
-| LOC-Hotspots | `src/simulation/root.ts` 301/300 (100 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/simulation/enemySystem.ts` 279/300 (93 %)<br>`src/render/gameRuntime.ts` 359/400 (90 %)<br>`src/simulation/plantSystem.ts` 265/300 (88 %) |
+| LOC-Hotspots | `src/persistence/storage.ts` 191/200 (96 %)<br>`src/simulation/root.ts` 283/300 (94 %)<br>`src/simulation/enemySystem.ts` 279/300 (93 %)<br>`src/render/gameRuntime.ts` 364/400 (91 %)<br>`src/config/map.source.ts` 177/200 (89 %) |
 <!-- SHINON:STATUS:END -->
 
 

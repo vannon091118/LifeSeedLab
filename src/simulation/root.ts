@@ -15,12 +15,12 @@ import { ComboSystem } from './comboSystem';
 import { WaveSystem } from './waveSystem';
 import { MapSystem } from './mapSystem';
 import { executeCommand, type CommandContext } from './rootCommands';
-import { STARTING_INVENTORY, PLANT_IDS } from '../config/plants.source';
-import { AUTO_WAVES_DEFAULT } from '../config/economy.source';
-import { defaultMapTiles } from '../config/map.source';
+import { freshState } from './pipeline';
+import { routeQuality } from './mapSystem';
 import { CYCLE_TICKS } from '../core/clock';
-import { applyResume, type ResumeSnapshot } from './resume';
-import { ownedInventory } from './state';
+
+/** E2 (A12): Catch-up-Klemme — max. nachgeholte Ticks pro Frame (Rest wird verworfen). */
+const MAX_TICKS_PER_FRAME = 40; // Runaway-Schutz: über dem B32-Tempo-Vertrag (40 Ticks/Aufruf bei ×1) — alles darüber verfällt
 
 export interface RootInit {
   seed: number;
@@ -38,7 +38,7 @@ export interface RootInit {
   /** P6: gezüchtete Specimen für den Brutling-Einsatz im Run. */
   beetles?: import('../types').BeetleSpecimen[];
   /** B2: gespeicherter Run-Zustand (Resume startet in `prep`, ohne Gegner/Projektile). */
-  resume?: ResumeSnapshot;
+  resume?: import('./resume').ResumeSnapshot;
 }
 
 export class SimulationRoot {
@@ -91,17 +91,25 @@ export class SimulationRoot {
     // Sim-Tempo (B32): die Uhr multipliziert — die Tick-Schwelle und die Pipeline bleiben unverändert.
     this.accumulator += realMs * this.clock.get().speed;
     let executed = 0;
-    while (this.accumulator >= TICK_MS) {
+    // E2 (Audit A12): Catch-up-Klemme — max MAX_TICKS_PER_FRAME je Frame, Rest verworfen (Frame-Spike-Schutz).
+    while (this.accumulator >= TICK_MS && executed < this.maxTicksThisFrame()) {
       this.accumulator -= TICK_MS;
       this.stepOnce();
       executed++;
     }
+    if (this.accumulator > TICK_MS) this.accumulator = 0; // Rückstand verfällt, kein Schuldenlauf
     return executed;
   }
 
   /** Sim-Tempo ×1–×4 (UI-Eingang; Wahrheit liegt in der Uhr, deterministisch im Snapshot). */
   setSpeed(multiplier: number): void { this.clock.setSpeed(multiplier); }
   get speed(): number { return this.clock.speed; }
+
+  /**
+   * E2-Klemme, tempo-skaliert: bei ×1 begrenzt sie den Frame-Burst (max 40 Ticks je Aufruf),
+   * ×4 darf die vertragliche Beschleunigung nicht durch die Klemme verlieren (B32-Tempo-Test).
+   */
+  private maxTicksThisFrame(): number { return MAX_TICKS_PER_FRAME * Math.max(1, this.clock.speed); }
 
   /** Execute exactly one deterministic simulation tick. */
   stepOnce(): void {
@@ -242,13 +250,17 @@ export class SimulationRoot {
     // B16.1: die Route lebt NUR im State (Ein-Writer); EnemySystem liest sie pro Tick aus dem State —
     // keine zweite Kopie im System mehr (A14: getRoute/setRoute gestorben).
     state.currentRoute = route;
+    // AP2 (M1): Route-Qualität hat jetzt einen Writer — der Payload trägt den echten Wert
+    // (1 = gerade Route, kleiner = Maze erzwingt Umwege), statt dass die Observation `null` liefert.
+    // M5: keine Route trotz Tiles = zugebaut — der Default-Pfad greift, und DAS wird gemeldet
+    // (gestern noch unsichtbar: der Fallback lief stillschweigend durch Wände).
     this.publish({
       eventId: `${state.clock.tick}:system:map:ROUTE_CHANGED:${++this.rejectSeq}`,
       tick: state.clock.tick,
       type: 'ROUTE_CHANGED',
       sourceId: 'system:map',
       version: 1,
-      payload: { waypoints: route?.length ?? 0 },
+      payload: { waypoints: route?.length ?? 0, quality: routeQuality(route), blocked: hasTiles && route === null },
     });
   }
 
@@ -261,39 +273,9 @@ export class SimulationRoot {
     this.eventLog = [];
   }
 
-  /** Build a fresh deterministic state for a run. */
+  /** Build a fresh deterministic state for a run — Fabrik lebt in pipeline.ts (E3-Split). */
   private freshState(seed: number, init: RootInit): SimState {
-    const loadout = init.loadout ?? [];
-    let inventory: Record<string, number> = { ...STARTING_INVENTORY };
-    // B37: Besitz-Wahrheit statt Pauschal-2 — mit ownedCounts spiegelt das Inventar GENAU den
-    // Besitz (Loadout ohne Besitz ⇒ 0 ⇒ no_inventory); ohne: B1-Fallback loadoutStock.
-    if (init.ownedCounts) {
-      inventory = ownedInventory(inventory, init.ownedCounts, loadout);
-    } else {
-      for (const id of loadout) { inventory[id] = init.loadoutStock ?? 2; } // B1-Fallback (Altsave/Tests)
-    }
-    const discovered = [...PLANT_IDS, ...loadout];
-    const base: SimState = { seed, runId: init.runId ?? 0, loadout,
-      clock: this.clock.get() as SimState["clock"],
-      phase: "prep",
-      wave: { number: 0, schedule: null, spawnQueue: [], lastSpawnTick: 0, prepStartTick: this.clock.get().tick, autoWaves: AUTO_WAVES_DEFAULT },
-      resources: { energy: 150, coins: 0 }, mapTiles: defaultMapTiles(), currentRoute: null, deployedBeetle: null, lives: 20,
-      inventory,
-      bredStats: init.bredStats ? { ...init.bredStats } : undefined,
-      beetles: init.beetles ? init.beetles.map(b => ({ ...b })) : [],
-      discoveredVariants: discovered,
-      plants: [],
-      enemies: [],
-      projectiles: [],
-      score: 0,
-      combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
-      nektarEarned: 0,
-      counters: { enemy: 0, plant: 0, projectile: 0 },
-    };
-    // B2: Resume injiziert ausschließlich den vertraglich erlaubten Teil; die Sim bleibt
-    // der einzige Writer des Zustands (kein zweiter Speicherpfad).
-    if (init.resume) applyResume(base, init.resume);
-    return base;
+    return freshState(seed, init, this.clock);
   }
 }
 
