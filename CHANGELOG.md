@@ -6,7 +6,7 @@ rekonstruiert**: Jeder Eintrag fasst zusammen, was im Repository tatsächlich pa
 Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x).
 
 ---- [QA] DEV-Antworten auf Spielfluss-Audit F1-F4 + Q3-Entscheidung (Skip bleibt, Replay-Einstieg geplant) — im Audit-Bericht dokumentiert.
-- [QA] R1 (zwei Weg-Wahrheiten) in-arbeit — DEV übernimmt die Bewertung (Regelwerk gegen statischen ENEMY_PATH vs. dynamische currentRoute).
+- [QA] R1 (zwei Weg-Wahrheiten) 3/3 strukturell bestätigt — Route ohne Spieler-Bau konstant Reihe 0; 14 Route-Zellen baubar, 10 blockiert; Route-Pflanzen: kein Block, kein Angriff, Punkt-leer-Feuer. Eigentümer-Entscheid: Map-Builder-Menü als verpflichtende Sequenz vor dem Endlos-Spiel (DEV-Fragen im Bericht). Runbook: Versions-/Titel-Check als Pflicht-Schritt 0. DEV-Status übernommen (Bewertung läuft, F1/F2 in-arbeit).
 ## Unreleased (Arbeitsstand 17.09.2026)
 
 ---- [QA] Verifikation v0.0.47: Q13 widerlegt (Messartefakte), Q1/Q2 + Konsole bestätigt geheilt, F3-E2E-Nachweis erbracht, neuer Befund R1 (Platzierungs-Geometrie prüft gegen statischen Fallback-Pfad, Gegner laufen dynamische Route).

@@ -9,6 +9,12 @@ ist die Schritt-für-Schritt-Ausführung.
 Wenn ein Pfad/Port hier abweicht, gilt die aktuelle Maschine — **verifizieren, nicht raten**
 (Schritt 0 prüft alles).
 
+**PFLICHT-SCHRITT 0a — Versions-/Titel-Check (nach jedem Chrome-Relaunch UND Session-Start):**
+Der Dev-Server serviert den **Worktree**. Fenster-/Seiten-Titel muss die erwartete Version zeigen
+(gespiegelt aus `package.json` auf `main`). Zeigt der Titel z. B. eine alte Version (v0.0.38,
+obwohl main bei v0.0.47): Worktree steht auf `qa-reports` → `git switch main` und Reload.
+Beinahe-Fehler vom 18.09.: Testlauf gegen alte Worktree-Version — nur der Titel hat es verraten.
+
 ---
 
 ## Schritt 0 — Umgebung hochziehen (falls nicht läuft)
