@@ -75,6 +75,14 @@ below, drag the ghost over the field…", kein Bau-Menü). Der Builder als Pflic
 
 ## Nebenbefunde (cheap-checks dieser Session)
 
+- **N4 (NEU, DEV-Auftrag vom Eigentümer): Hinweis-Blase verdeckt die Tray-Karten.** Die
+  Platzierungs-Hinweisblase („Tap a plant below, drag the ghost over the field — tap places,
+  × cancels…“) rendert zentriert **über** dem Tray und überdeckt genau die Karten, die sie zum
+  Antippen auffordert (Screenshot des Eigentümers, 18.09.). Gleiche Fehlerfamilie wie F2
+  (Blase blockiert Cue-Ziel) — Layer-/Anordnung-Problem, kein Einzelfall. Repro-Stand: 2/3
+  (Eigentümer-Sichtung + Screenshot; mein eigener 3. Blick aussteht). **Der Eigentümer hat
+  den Fix ausdrücklich dem DEV übertragen** — Angaben: Blase über dem Tray andocken statt
+  darüber, oder erst nach erster Platzierung einblenden.
 - **N2 (Leih-Karte bei Bestand 0) — uneinheitlich beobachtet, bleibt Kandidat (0/3):**
   Heute zeigte der Tray NACH der Platzierung `loan_sprout×0 | loan_sprout+10⚡` (Karte bleibt
   mit Nachkauf). In der Verifikations-Session (17.09.) war sie **komplett weg**. Bedingung

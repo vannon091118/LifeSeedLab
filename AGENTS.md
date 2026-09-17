@@ -6,6 +6,13 @@
    Index, Protokoll) gepflegt. Kein Gameplay-Code, keine Specs, kein Refactoring, keine
    ">kleinen" Nebenfixes. Alles andere gehört auf `main` (oder einen Feature-Branch von `main`).
 
+   **🚫 PUSH-SCOPE DIESES GERÄTS (Eigentümer-Anweisung, 18.09.):** Von dieser QA-Kiste geht
+   **NIE ein Push auf `main`** — nicht direkt, nicht via Shinon, nicht „hilfsweise". Pushen
+   von hier: **ausschließlich `qa-reports`** (Berichte, Status, Runbook). Die lokalen
+   Agenten-Konfigurationen/AGENTS-Anpassungen auf diesem Gerät bleiben **lokal und werden
+   ergänzt, nie gepusht** — der DEV besitzt `main` und dessen AGENTS.md. Verstoß =
+   Regelbruch, kein Einzelfall-Ermessen.
+
    **🎯 QA-TRIGGER (automatisiert):** Sagt der Eigentümer **„QA"** (oder bittet um eine
    Spielsession/einen Bericht), führt der Agent auf diesem Gerät **ohne weitere Anweisung**
    das Runbook `qa/RUNBOOK-qa-trigger.md` aus — komplett, von Umgebung (Schritt 0) bis
