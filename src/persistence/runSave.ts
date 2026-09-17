@@ -1,5 +1,6 @@
 import type { SimState } from '../simulation/state';
 import { idbSet, idbGet, idbRemove } from './storage';
+import { APP_VERSION } from '../version';
 
 // Owner: PersistenceSystem (run schema adapter). LOC ≤ 200.
 // Run-Snapshot v2 mit RESUME-VERTRAG (QUALITY_SPEC B2):
@@ -12,6 +13,8 @@ const RUN_VERSION = 2;
 
 export interface RunSave {
   version: 2;
+  /** Produktversion beim Speichern (Diagnose: Altsaves/Never-versionierte Felder zuordnen). */
+  appVersion: string;
   runId: number;
   seed: number;
   tick: number;
@@ -33,6 +36,7 @@ export function saveRun(state: SimState): void {
   if (state.phase === 'gameover') return; // game over runs are not resumable
   const s: RunSave = {
     version: 2,
+    appVersion: APP_VERSION,
     runId: state.runId,
     seed: state.seed,
     tick: 0, // resume starts prep at tick 0 of the prep window — honest contract

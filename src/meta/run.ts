@@ -2,6 +2,7 @@ import type { MetaSave, PendingBrood, PlantVariant } from '../types';
 import { loadMeta, updateMeta, persistMeta, deriveBredEntry } from './store';
 import { isCrossReady, isMatured } from './economy';
 import { rollBrood } from '../genome/beetle';
+import { deriveLoanPlant, LOAN_PLANT_ID } from './loan';
 
 // Owner: PersistenceSystem (meta run/variant ops). LOC ≤ 200.
 
@@ -34,7 +35,13 @@ export function reserveRunId(meta: MetaSave): MetaSave {
  * Regel: persistiert wird **nie eine Kopie** — jeder Meta-Schreibvorgang geht von `loadMeta()` aus.
  */
 export function beginRun(): MetaSave {
-  const next = reserveRunId(loadMeta());
+  const reserved = reserveRunId(loadMeta());
+  // Einstiegs-Leihe: Besitzt der Spieler KEINE eigene Pflanze, leiht Krix den Spross —
+  // deterministisch aus der Chain (loan.ts), nie echter Besitz.
+  const needsLoan = !Object.values(reserved.variantCounts).some(n => n > 0);
+  const next = needsLoan
+    ? { ...reserved, variantCounts: { ...reserved.variantCounts, [LOAN_PLANT_ID]: 1 } }
+    : reserved;
   persistMeta(next);
   return next;
 }
@@ -46,9 +53,12 @@ export function beginRun(): MetaSave {
  */
 export function applyRunEnd(meta: MetaSave, waveReached: number, nektarEarned: number, remainingInventory?: Record<string, number>): MetaSave {
   const counts = { ...meta.variantCounts };
+  // Leih-Rückgabe ZUERST: der Leih-Spross ist nie Besitz — sein Restbestand aus dem
+  // Run wird verworfen, nicht als Besitz gebucht. Nur EIGENE Pflanzen wandern zurück.
+  delete counts[LOAN_PLANT_ID];
   if (remainingInventory) {
     for (const [id, n] of Object.entries(remainingInventory)) {
-      if (n > 0) counts[id] = Math.max(counts[id] ?? 0, n);
+      if (n > 0 && id !== LOAN_PLANT_ID) counts[id] = Math.max(counts[id] ?? 0, n);
     }
   }
   return {

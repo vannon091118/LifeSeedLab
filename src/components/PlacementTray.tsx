@@ -46,7 +46,9 @@ export function PlacementTray({ plantIds, inventory, energy, mode, variantId, on
             <span style={styles.trayCount}>×{count}</span>
           </button>
           {/* B36: Bei leerem Vorrat ein Kauf-Knopf — der Lauf endet nie am leeren Inventar,
-              solange Energie da ist (Playtest R2: „ich kann nur noch zusehen“). */}
+              solange Energie da ist (Playtest R2: „ich kann nur noch zusehen“).
+              Lauf-3-Bericht: Karte zeigt Name + Preis, nicht nur „+ 80“ — der Kauf soll
+              lesbar sein, ohne den Tooltip zu bemühen. */}
           {count <= 0 && (
             <button
               key={`${id}-buy`}
@@ -55,7 +57,8 @@ export function PlacementTray({ plantIds, inventory, energy, mode, variantId, on
               aria-label={`${label} nachkaufen (${restockPrice(id)})`}
               title={`+1 ${label} — ${restockPrice(id)} Energie`}
             >
-              <span style={styles.trayName}>+ {restockPrice(id)}</span>
+              <span style={styles.trayName}>{label}</span>
+              <span style={styles.trayCount}>+{restockPrice(id)}⚡</span>
             </button>
           )}
           </Fragment>

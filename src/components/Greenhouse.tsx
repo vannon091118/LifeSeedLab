@@ -3,8 +3,8 @@ import type { MetaSave, PlantVariant } from '../types';
 import type { TranslationKey } from '../i18n';
 import { useI18n } from '../i18n';
 import { rollGachaCross, deriveGachaSeed, createBaseVariants, type GachaRoll } from '../genome';
-import { consumeSeedAndEnqueueCross, keepCross, isCrossReady } from '../meta';
-import { wavesToUnlockFor, PENDING_CROSSES_MAX } from '../config/economy.source';
+import { consumeSeedAndEnqueueCross, keepCross, isCrossReady, plantSeedlingIntoPot } from '../meta';
+import { wavesToUnlockFor, PENDING_CROSSES_MAX, GREENHOUSE_POT_SLOTS } from '../config/economy.source';
 import { helpText } from '../i18n/help';
 import { previewColor } from '../visual/generator';
 import { GAME_SEED } from '../config';
@@ -28,6 +28,8 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
   const [lastRoll, setLastRoll] = useState<GachaRoll | null>(null);
   const [shareNote, setShareNote] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  /** Aktuell gezogener Keimling (Drag&Drop-Quelle) — null = nichts in der Hand. */
+  const [heldSeedling, setHeldSeedling] = useState<string | null>(null);
 
   const owned: PlantVariant[] = useMemoOwned(meta);
 
@@ -39,6 +41,16 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
   // B34: Reife Einträge in der Queue — sie sind der Ausweg aus der vollen Queue (erst abholen).
   const readyCount = meta.pendingCrosses.filter(c => isCrossReady(meta, c.crossIndex)).length;
   const canSow = owned.length >= 2 && !queueFull;
+
+  /** Keimling in Topf N einsetzen (Drop-Ziel; heldSeedling ist die Hand). */
+  const handleDropIntoPot = (potIndex: number) => {
+    if (!heldSeedling) return;
+    const m = plantSeedlingIntoPot(heldSeedling, potIndex);
+    if (m) {
+      onMetaChange(m);
+      setHeldSeedling(null);
+    }
+  };
 
   const handleSow = () => {
     if (!canSow) return;
@@ -117,6 +129,56 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
         </div>
         <p style={styles.desc}>{t('greenhouse.desc')}</p>
         {shareNote && <div style={styles.shareNote}>{shareNote}</div>}
+
+        {/* ── Einstiegs-Loop: TÖPFE — die physischen Platzierungsplätze ──
+            Drei Slots (GREENHOUSE_POT_SLOTS), keine automatische Erweiterung (PvP später).
+            Keimling anfassen → auf freien Topf tippen = eingesetzt. */}
+        <div style={styles.potsRow}>
+          {meta.pots.map(( occupant, i) => (
+            <button
+              key={i}
+              onClick={() => handleDropIntoPot(i)}
+              disabled={occupant !== null || !heldSeedling}
+              data-tut={`pot-${i}`}
+              aria-label={occupant ? t('greenhouse.potOccupied') : t('greenhouse.potFree')}
+              style={{
+                ...styles.pot,
+                opacity: occupant ? 1 : heldSeedling ? (meta.pots[i] === null ? 1 : 0.4) : 0.8,
+                borderColor: heldSeedling && !occupant ? 'var(--leaf-dark)' : 'var(--ink)',
+              }}
+            >
+              {occupant
+                ? <>
+                    <span style={styles.potPlant}>{plantPreviewGlyph(occupant, meta)}</span>
+                    <span style={styles.potName}>{variantName(occupant, meta)}</span>
+                  </>
+                : <span style={styles.potEmpty}>{heldSeedling ? t('greenhouse.potDropHere') : t('greenhouse.potFree')}</span>
+              }
+            </button>
+          ))}
+        </div>
+
+        {/* Keimlings-Tray: ungepflanzte Käufe — die Drag-Quelle. */}
+        {meta.seedlings.length > 0 && (
+          <div style={styles.seedlingRow}>
+            <span style={styles.sectionTitle}>{t('greenhouse.seedlings').replace('{n}', String(meta.seedlings.length))}</span>
+            {meta.seedlings.map(id => (
+              <button
+                key={id}
+                onClick={() => setHeldSeedling(held => (held === id ? null : id))}
+                data-tut="seedling"
+                aria-pressed={heldSeedling === id}
+                style={{
+                  ...styles.seedling,
+                  borderColor: heldSeedling === id ? 'var(--leaf-dark)' : 'var(--ink)',
+                  background: heldSeedling === id ? '#eef7e6' : '#fff',
+                }}
+              >
+                🌱 {variantName(id, meta)}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Spieler-Hilfe (B20): zusammenklappbar — erklärt den kostenlosen Loop */}
         <button
@@ -244,6 +306,17 @@ function useMemoOwned(meta: MetaSave): PlantVariant[] {
 // — EINE Quelle für Gewächshaus und Hub, dieselbe Paar-Ableitung wie das Feld.
 const preview = (variant: PlantVariant) => previewColor(variant, GAME_SEED);
 
+/** Anzeigename einer Variant-ID — Besitz-Bibliothek zuerst, Fallback die ID. */
+function variantName(id: string, meta: MetaSave): string {
+  return meta.savedVariants.find(v => v.id === id)?.name ?? id;
+}
+
+/** Farbglyphen-Hintergrund für einen Topf-Bewohner (dieselbe Preview-Farbe wie die Karten). */
+function plantPreviewGlyph(id: string, meta: MetaSave): string {
+  const v = meta.savedVariants.find(s => s.id === id);
+  return v ? preview(v) : '#ddd';
+}
+
 const styles: Record<string, React.CSSProperties> = {
   // Screen-Betrieb: Vollbild-Inhalt in MenuScreenShell (kein Fixed-Overlay mehr)
   overlay: {
@@ -279,6 +352,13 @@ const styles: Record<string, React.CSSProperties> = {
   claimBtn: { flex: 1, padding: 10, background: '#eef7e6', border: '2px solid var(--ink)', borderRadius: 8, color: 'var(--ink)', cursor: 'pointer', fontSize: 13, fontWeight: 800, boxShadow: '2px 2px 0 var(--ink)' },
   shareBtn: { padding: '10px 14px', background: '#fff', border: '2px solid var(--ink)', borderRadius: 8, color: 'var(--ink)', cursor: 'pointer', fontSize: 12, fontWeight: 700, boxShadow: '2px 2px 0 var(--ink)' },
   pendingRow: { display: 'flex', flexDirection: 'column' as const, gap: 6 },
+  potsRow: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 },
+  pot: { display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 6, padding: 14, background: '#fff', border: '2.5px dashed var(--ink)', borderRadius: 10, cursor: 'pointer', minHeight: 84, boxShadow: '2px 2px 0 var(--ink)' },
+  potPlant: { width: 34, height: 34, borderRadius: 8, border: '2px solid var(--ink)', display: 'block' },
+  potName: { fontSize: 11, fontWeight: 800, color: 'var(--ink)', textAlign: 'center' as const },
+  potEmpty: { fontSize: 11, color: '#8a8065', fontWeight: 700, textAlign: 'center' as const },
+  seedlingRow: { display: 'flex', gap: 8, flexWrap: 'wrap' as const, alignItems: 'center', marginBottom: 12 },
+  seedling: { padding: '8px 12px', border: '2px solid var(--ink)', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--ink)', boxShadow: '2px 2px 0 var(--ink)', minHeight: 44 },
   sectionTitle: { fontSize: 12, color: '#6b6250', textTransform: 'uppercase' as const, letterSpacing: 1, fontWeight: 800 },
   pendingItem: { fontSize: 12, color: '#6b6250', padding: '6px 10px', background: '#fff', border: '1.5px solid var(--ink)', borderRadius: 8, fontWeight: 600 },
   pendingReady: { padding: '10px 12px', background: '#fff', border: '2px solid var(--leaf-dark)', borderRadius: 8 },

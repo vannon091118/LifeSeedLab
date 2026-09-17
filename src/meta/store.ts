@@ -1,6 +1,7 @@
 import type { MetaSave, PlantVariant, PendingBrood, BeetleSpecimen } from '../types';
 import { load, save, remove } from '../persistence/storage';
-import { STARTER_PLANT_COUNT } from '../config/economy.source';
+import { APP_VERSION } from '../version';
+import { STARTER_PLANT_COUNT, STARTING_NEKTAR, GREENHOUSE_POT_SLOTS } from '../config/economy.source';
 import { createBaseVariants } from '../genome/bases';
 import { genomeEffectIds } from '../genome/visualMap';
 
@@ -36,12 +37,15 @@ export function deriveBredEntry(variant: PlantVariant): NonNullable<MetaSave['br
 }
 
 export function defaultMeta(): MetaSave {
-  const starters = starterVariants();
+  // Einstiegs-Loop: KEIN Gratis-Besitz mehr. Der neue Spieler hat leere Hände — Krix leiht
+  // den Spross (meta/loan.ts, deterministisch), das Startkapital reicht für GENAU EINEN
+  // eigenen Samen. Der alte Pauschal-Besitz (STARTER_PLANT_COUNT) entwertete Leihe, Kauf
+  // und Gewächshaus: Es gab nie einen Grund, den Loop zu betreten.
   const counts: Record<string, number> = {};
-  for (const v of starters) counts[v.id] = 1;
   return {
     version: 7,
-    nektar: 60,
+    appVersion: APP_VERSION,
+    nektar: STARTING_NEKTAR,
     bestWave: 0,
     runs: 0,
     runId: 0,
@@ -63,6 +67,9 @@ export function defaultMeta(): MetaSave {
     broodGeneration: 0,
     // B21.3: 0 = nie gesehen. Altsaves bekommen die aktuelle Tour genau einmal.
     tutorialVersion: 0,
+    // Einstiegs-Loop: drei leere Töpfe, keine unverteilten Keimlinge.
+    pots: Array<string | null>(GREENHOUSE_POT_SLOTS).fill(null),
+    seedlings: [],
   };
 }
 
@@ -154,7 +161,22 @@ function toCurrent(base: MetaSave, raw: Partial<MetaSave>): MetaSave {
     tutorialVersion: typeof raw.tutorialVersion === 'number'
       ? Math.max(0, Math.floor(raw.tutorialVersion))
       : (legacySeen ? 1 : 0),
+    // Einstiegs-Loop: Altsaves ohne Topf-Feld starten mit drei leeren Töpfen —
+    // Kapazitätsgrenze kommt aus der Source, nie aus dem Save selbst.
+    pots: sanitizePots(raw.pots),
+    seedlings: Array.isArray(raw.seedlings) ? raw.seedlings.filter((s): s is string => typeof s === 'string') : [],
   };
+}
+
+/** Topf-Feld normalisieren: genau GREENHOUSE_POT_SLOTS Slots, `null` oder bekannte ID. */
+function sanitizePots(raw: unknown): (string | null)[] {
+  const arr = Array.isArray(raw) ? raw : [];
+  const pots: (string | null)[] = [];
+  for (let i = 0; i < GREENHOUSE_POT_SLOTS; i++) {
+    const v = arr[i];
+    pots.push(typeof v === 'string' && v.length > 0 ? v : null);
+  }
+  return pots;
 }
 
 function migrate(raw: unknown, fromVersion: number): MetaSave | null {
@@ -176,7 +198,9 @@ export function loadMeta(): MetaSave {
 }
 
 export function persistMeta(meta: MetaSave): void {
-  save(META_KEY, meta, META_VERSION);
+  // Produktversion beim JEDEN Schreiben aktualisieren — sie zeigt, mit welcher App-Fassung
+  // dieser Stand zuletzt geschrieben wurde (Altsave-Diagnose, Support-Fälle).
+  save(META_KEY, { ...meta, appVersion: APP_VERSION }, META_VERSION);
 }
 
 export function updateMeta(patch: Partial<MetaSave>): MetaSave {

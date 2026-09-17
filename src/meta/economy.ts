@@ -1,7 +1,7 @@
 import type { MetaSave, PendingCross, PlantVariant } from '../types';
 import { loadMeta, updateMeta } from './store';
 import { registerVariant } from './run';
-import { wavesToUnlockFor, PENDING_CROSSES_MAX } from '../config/economy.source';
+import { wavesToUnlockFor, PENDING_CROSSES_MAX, GREENHOUSE_POT_SLOTS } from '../config/economy.source';
 import { GAME_SEED } from '../config';
 import { deriveSeed } from '../core/rng';
 import { createBaseVariants } from '../genome/bases';
@@ -141,6 +141,41 @@ export function consumeSeed(): MetaSave | null {
   const meta = loadMeta();
   if (meta.seedStash <= 0) return null;
   return updateMeta({ seedStash: meta.seedStash - 1 });
+}
+
+/**
+ * Einstiegs-Loop: Ein Kauf landet als KEIMLING in der Warteschlange (seedlings), nicht direkt
+ * im Besitz. Erst das Einpflanzen in einen Gewächshaus-Topf (plantSeedlingIntoPot) macht
+ * daraus eine eigene Pflanze. Der Shop verkauft also Samen — das Gewächshaus macht Pflanzen.
+ * Fail-closed: ohne Nektar kein Kauf.
+ */
+export function buySeedling(price: number): MetaSave | null {
+  const meta = loadMeta();
+  if (meta.nektar < price) return null;
+  const index = meta.breedGeneration; // deterministischer Keim-Index (B17.3-Vertrag)
+  const variant = germinateVariant(index);
+  const registered = registerVariant(variant);
+  if (!registered) return null;
+  return updateMeta({
+    nektar: meta.nektar - price,
+    breedGeneration: index + 1,
+    seedlings: [...meta.seedlings, variant.id],
+  });
+}
+
+/**
+ * Keimling → Topf (Drag&Drop-Ziel der UI). Fail-closed: unbekannter Keimling, belegter
+ * oder außerhalb der Kapazität liegender Topf ⇒ null (nichts passiert).
+ */
+export function plantSeedlingIntoPot(seedlingId: string, potIndex: number): MetaSave | null {
+  const meta = loadMeta();
+  if (potIndex < 0 || potIndex >= GREENHOUSE_POT_SLOTS) return null;
+  if (!meta.seedlings.includes(seedlingId)) return null;
+  if (meta.pots[potIndex] !== null) return null;
+  return updateMeta({
+    seedlings: meta.seedlings.filter(s => s !== seedlingId),
+    pots: meta.pots.map((p, i) => (i === potIndex ? seedlingId : p)),
+  });
 }
 
 export function addNektar(amount: number): MetaSave {

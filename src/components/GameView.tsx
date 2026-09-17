@@ -67,6 +67,9 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
   const [fxOn, setFxOn] = useState(audioOn); // B8: audioOn aus dem Meta-Save ist der Startwert
   const [devTick, setDevTick] = useState(0);
   const [placedCount, setPlacedCount] = useState(0); // B21: UI-Zähler angenommener Drops
+  // Lauf-3-Bericht: der Zettel unten blockierte dauerhaft Sichtfläche. Er gehört zur
+  // Aufbauhilfe und verschwindet mit ihr — spätestens bei der ersten Platzierung.
+  const [noteDismissed, setNoteDismissed] = useState(false);
   const [dpr, setDpr] = useState(1);
   const { t } = useI18n();
   const devActive = useMemo(() => isDevActive(), []);
@@ -310,9 +313,17 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
             <span style={styles.paperNotePin}/> {t('game.hint')}
           </div>
         )}
-        {/* Der Zettel unten greift erst, wenn der prominente Erst-Hinweis abgelöst ist —
-            sonst steht derselbe Satz zweimal auf dem Schirm. */}
-        {placedCount > 0 && <div style={styles.paperNote} aria-hidden><span style={styles.paperNotePin}/> {t('game.hint')}</div>}
+        {/* Der Zettel unten ist KEIN Dauerzustand mehr (Lauf-3-Bericht): er begleitet nur die
+            allererste Platzierung und ist danach antippbar weg — Sichtfläche gehört dem Feld. */}
+        {placedCount > 0 && !noteDismissed && !showGameOver && (
+          <button
+            onClick={() => setNoteDismissed(true)}
+            style={styles.paperNote}
+            aria-label="Hinweis ausblenden"
+          >
+            <span style={styles.paperNotePin}/> {t('game.hint')} <span aria-hidden>✕</span>
+          </button>
+        )}
       </div>
     </div>
   );

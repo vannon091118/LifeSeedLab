@@ -91,7 +91,7 @@ describe('Gate B — Resume-Vertrag der Sim', () => {
 
   it('RunSave erfüllt strukturell den ResumeSnapshot (Adapter-Brücke)', () => {
     const save: RunSave = {
-      version: 2, runId: 1, seed: 1, tick: 0, waveNumber: 2, energy: 90, lives: 18, score: 40,
+      version: 2, appVersion: '0.0.0-test', runId: 1, seed: 1, tick: 0, waveNumber: 2, energy: 90, lives: 18, score: 40,
       combo: { count: 0, timer: 0, multiplier: 1, highest: 3 },
       plants: [], inventory: { sprout: 1 }, discoveredVariants: ['sprout'], bredStats: {},
       nektarEarned: 12, mapTiles: {},

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { MetaSave, GameMode } from './types';
-import { loadMeta, beginRun, updateMeta } from './meta';
+import { loadMeta, beginRun, updateMeta, deriveLoanPlant, LOAN_PLANT_ID } from './meta';
 import { I18nProvider, detectLangFromMeta } from './i18n';
 import { deriveSeed } from './core/rng';
 import { GAME_SEED, RUN_SEED_VERSION } from './config';
@@ -15,6 +15,7 @@ import { Codex } from './components/Codex';
 import { MenuScreenShell } from './components/MenuScreenShell';
 import { TutorialProvider } from './components/tutorial/TutorialLayer';
 import { TUTORIAL_VERSION } from './components/tutorial/script';
+import { APP_VERSION_LABEL } from './version';
 import type { MenuScreen } from './components/NavIndicators';
 
 // Owner: UI (Screen-Router). LOC ≤ 200.
@@ -36,6 +37,12 @@ function AppInner() {
 
   useEffect(() => {
     setMeta(loadMeta());
+  }, []);
+
+  // Version im Fenstertitel: der Tab ist der einzige immer sichtbare Ort — auch
+  // auf Screens ohne Fußzeile (Run, Overlays) trägt jeder Blick die Nummer.
+  useEffect(() => {
+    document.title = `LifeSeedLab ${APP_VERSION_LABEL}`;
   }, []);
 
   // B2: gespeicherten Run nur übernehmen, wenn er zu Run-Identität UND Seed passt.
@@ -99,13 +106,17 @@ function AppInner() {
     switch (screen) {
       case 'run': {
         const runSeed = deriveSeed(GAME_SEED, 'world', 'run', meta.runId, RUN_SEED_VERSION);
+        // Leih-Spross (falls aktiv): die Variante muss dem Run bekannt sein, damit sie
+        // platzierbar ist — ohne savedVariants-Eintrag wäre resolvePlantStats blind.
+        const hasLoan = (meta.variantCounts[LOAN_PLANT_ID] ?? 0) > 0;
+        const runVariants = hasLoan ? [...meta.savedVariants, deriveLoanPlant(meta.runId)] : meta.savedVariants;
         return (
           <GameView
             key={meta.runId}
             seed={runSeed}
             runId={meta.runId}
             loadout={meta.loadout}
-            savedVariants={meta.savedVariants}
+            savedVariants={runVariants}
             bredStats={meta.bredStats}
             ownedCounts={meta.variantCounts}
             beetles={meta.beetles}

@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { useI18n } from '../i18n';
 import { formatScore } from './numberFormat';
+import { APP_VERSION_LABEL } from '../version';
 
 // Owner: UI (Game-Over- und Suspend-Overlays). LOC ≤ 400.
 // B2: „Tippen zum Fortsetzen" nach App-Wechsel. B7: Game-Over-Karte mit Ergebnis und Ausstieg.
@@ -32,6 +33,8 @@ export function GameOverlays({ gameOver, reason, suspended, wave, score, onNewRu
             {reason === 'lives_depleted' && (
               <div style={styles.reason}>{t('over.reasonLives')}</div>
             )}
+            {/* Version auf dem Screen: Fehlerberichte/Fotos sind ohne Nummer nicht zuordenbar. */}
+            <div style={styles.version}>{t('over.version').replace('{v}', APP_VERSION_LABEL)}</div>
             <div style={styles.row}>
               <button onClick={onNewRun} style={{ ...styles.btn, ...styles.btnPrimary }}>{t('over.retry')}</button>
               <button onClick={onMenu} style={styles.btn}>{t('over.toMenu')}</button>
@@ -54,6 +57,7 @@ const styles: Record<string, CSSProperties> = {
   title: { fontSize: 22, fontWeight: 800, color: 'var(--ink)' },
   sub: { fontSize: 13, color: '#6b6250', fontWeight: 600 },
   reason: { marginTop: 10, padding: '8px 12px', background: '#fdecea', border: '2px solid var(--danger)', borderRadius: 8, color: 'var(--danger)', fontSize: 13, fontWeight: 800 },
+  version: { fontSize: 11, color: '#6b6250', fontWeight: 600, opacity: 0.8 },
   row: { display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' },
   btn: { padding: '10px 14px', background: '#fff', border: '2px solid var(--ink)', borderRadius: 10, color: 'var(--ink)', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '3px 3px 0 var(--ink)', lineHeight: 1, minHeight: 44, minWidth: 44 },
   btnPrimary: { background: 'var(--leaf)', color: '#fff', borderColor: 'var(--ink)' },

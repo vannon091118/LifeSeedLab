@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import type { MetaSave } from '../types';
 import type { TranslationKey } from '../i18n';
 import { useI18n } from '../i18n';
-import { buySeedAndGerminate } from '../meta';
+import { buySeedling } from '../meta';
 import { SEED_SHOP_BASE_PRICE, SEED_SHOP_PRICE_STEP, SEED_SHOP_OFFERS } from '../config/economy.source';
 
 // Owner: UI (SeedShop screen). LOC ≤ 400.
@@ -28,8 +28,9 @@ export function SeedShop({ meta, onMetaChange, onClose }: Props) {
   const germinateIndex = meta.breedGeneration;
 
   const handleBuy = (price: number) => {
-    // B17.3 (Option A): Kaufen KEIMT sofort — EIN atomarer Schritt (Nektar → Bestand).
-    const m = buySeedAndGerminate(price, germinateIndex);
+    // Einstiegs-Loop: Kaufen erzeugt einen KEIMLING (seedlings) — die Pflanze entsteht
+    // erst im Gewächshaus, wenn der Spieler ihn in einen Topf einsetzt.
+    const m = buySeedling(price);
     if (m) {
       onMetaChange(m);
       setNote(t('shop.buy') + ' ✓');

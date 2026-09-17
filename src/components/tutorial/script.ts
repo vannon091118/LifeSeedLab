@@ -58,7 +58,7 @@ export function screenRank(screen: string): number {
 }
 
 /** Fassung der Tour. Erhöhen ⇒ jeder Spieler sieht die überarbeitete Tour genau einmal neu. */
-export const TUTORIAL_VERSION = 2;
+export const TUTORIAL_VERSION = 3;
 
 export const TUTORIAL_STEPS: readonly TutorialStep[] = [
   // ── Start-Screen: Krix kommt, bevor der Spieler das Labor betritt ──

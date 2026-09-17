@@ -60,7 +60,7 @@ describe('Gate B — Resume-Shape (RunSave v2)', () => {
     // strukturell: SimState enthält die gestrippten Felder NICHT im Save-Shape (über idb)
     // wir verifizieren den Shape indirekt: RunSave type hat keine enemies/projectiles
     const shapeCheck: import('../persistence/runSave').RunSave = {
-      version: 2, runId: 1, seed: 1, tick: 0, waveNumber: 1, energy: 100, lives: 20, score: 0,
+      version: 2, appVersion: '0.0.0-test', runId: 1, seed: 1, tick: 0, waveNumber: 1, energy: 100, lives: 20, score: 0,
       combo: { count: 0, timer: 0, multiplier: 1, highest: 0 }, plants: [], inventory: {}, discoveredVariants: [], bredStats: {}, nektarEarned: 0,
       mapTiles: {},
     };

@@ -33,6 +33,8 @@ export type PlantVariant = {
   parentB?: string;
   /** PLANTS_SOURCE-Verankerung für Basen (Platzierbarkeit im Run — eine Stats-Quelle). */
   sourceId?: 'sprout' | 'rootwall' | 'mycelia';
+  /** Leih-Pflanze (Krix-Spross): wandert beim Run-Ende zurück, nie echter Besitz. */
+  isLoan?: boolean;
 };
 
 // ── Meta save (persistent across runs) ───────────────────────
@@ -45,6 +47,8 @@ export type PlantVariant = {
 //    wer die alte Tour gesehen hatte, hätte die neue nie zu sehen bekommen.
 export type MetaSave = {
   version: 7;
+  /** Produktversion beim letzten Schreiben (Diagnose: Altsaves zuordnen, Support-Fälle klären). */
+  appVersion?: string;
   nektar: number;
   bestWave: number;
   runs: number;
@@ -79,6 +83,15 @@ export type MetaSave = {
   /** B21.3: Tour-Fassung, die dieser Spieler gesehen hat (0 = nie). `TUTORIAL_VERSION` in
    *  components/tutorial/script.ts ist die aktuelle — höher ⇒ es läuft genau einmal neu. */
   tutorialVersion: number;
+  /**
+   * Gewächshaus-Töpfe (Einstiegs-Loop): festes Slot-Array, `null` = leer. Jeder Eintrag
+   * ist eine Variant-ID (gekeimter Samen, der AUF DIESEN Topf gehört). Die Kapazität
+   * startet bei GREENHOUSE_POT_SLOTS (3); eine spätere Erweiterung ist PvP-Sache —
+   * die Struktur (Array) bleibt, nur die Grenze wächst dann.
+   */
+  pots: (string | null)[];
+  /** Unverteilte Keimlinge (Shop-Kauf ohne Topf-Wahl): warten auf Drag&Drop in einen Topf. */
+  seedlings: string[];
 };
 
 /** Eine Kreuzung wartet auf Reifung: verfügbar nach `wavesToUnlockFor(index)` Wellen. */

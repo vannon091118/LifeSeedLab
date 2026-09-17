@@ -9,6 +9,21 @@ export const STARTER_PLANT_COUNT = 2;
 export const SEED_SHOP_BASE_PRICE = 40;
 export const SEED_SHOP_PRICE_STEP = 15;
 
+/**
+ * Start-Nektar: GENAU EIN günstiger Samen. Der neue Spieler kann sich sofort EINE eigene
+ * Pflanze leisten — aber nur eine. Der Loop (Leih-Run → Nektar erwirtschaften → mehr Samen)
+ * bleibt der Antrieb; mehr als der erste Kauf ist aus Startkapital nie möglich.
+ */
+export const STARTING_NEKTAR = SEED_SHOP_BASE_PRICE;
+
+/**
+ * Gewächshaus: Töpfe sind PHYSISCHE Platzierungsplätze. Genau drei zu Beginn — eigene
+ * Pflanzen sind damit eine knappe Ressource. Eine spätere Erweiterung läuft über PvP
+ * (noch nicht implementiert, wird NICHT erfunden); die Slot-Struktur (Array in MetaSave)
+ * ist darauf vorbereitet: nur diese Zahl wächst dann.
+ */
+export const GREENHOUSE_POT_SLOTS = 3;
+
 /** Anzahl gleichzeitig angebotener Seeds im Shop (deterministisch rotierend). */
 export const SEED_SHOP_OFFERS = 3;
 
