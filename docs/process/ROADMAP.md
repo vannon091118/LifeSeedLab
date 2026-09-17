@@ -20,12 +20,12 @@ Alle relevanten Dokumente befinden sich nun unter `docs/`:
   - [Qualitäts-Spezifikation](docs/quality/quality-spec.md) - Definition of Done & Anforderungen.
   - [Implementierungsplan](docs/quality/implementation-plan.md) - Roadmap der Feature-Entwicklung.
   - [Audit-Berichte](docs/quality/lifegameplant-audit.md) - Analyse bestehender Logik (historischer Stand).
-  - *Versionshistorie:* aktuell nicht im Repo — `.gitignore` ignoriert `CHANGELOG.md`/`docs/quality/changelog.md`. Entweder Ausnahme in `.gitignore` oder Streichung aus der Karte (offen, siehe A13.9).
+  - *Versionshistorie:* `CHANGELOG.md` im Repo-Root (seit 0.0.18 getrackt, Changelog-Pflicht aus Regel 0) — der alte `docs/quality/changelog.md` (Milestone-Plan) ist gelöscht; Roadmap-Wahrheit ist §4 hier.
 - **Setup & Onboarding** (`docs/setup/`)
   - [Präsentation](docs/setup/presentation.md) - Projektvorstellung.
   - [Script-Dokumentation](docs/setup/script-readme.md) - Hilfe zu den Tooling-Skripten.
 
-**Root-Files im Track:** `AGENTS.md`, `README.md`, `ROADMAP.md`, `LICENSE`
+**Root-Files im Track:** `AGENTS.md`, `README.md`, `CHANGELOG.md`, `LICENSE` (kein `ROADMAP.md` im Root — die Karte selbst liegt hier unter `docs/process/`)
 
 **Nur lokal (gitignoriert, kein Bestandteil eines Klons):** `CLAUDE.md`, `docs/art/` (inkl. `styleframe.html`), `git-noir/`, `memory/`.
 

@@ -11,7 +11,8 @@
 // A19/zombie-sim-Regeln (fxOn bewusst NICHT im Effect-Deps) gelten hier weiter.
 
 import { SimulationRoot, makeCommand } from '../simulation/root';
-import { saveRun, clearRun, type RunSave } from '../persistence/runSave';
+import { saveRun, type RunSave } from '../persistence/runSave';
+import { RunSaveAutor } from '../persistence/runSaveAutor';
 import { Renderer } from './renderer';
 import { ghostForRender } from '../components/ghostPreview';
 import { Camera } from './camera';
@@ -83,6 +84,8 @@ export class RunRuntime {
   private last = performance.now();
   private saveAccum = 0;
   private hudAccum = 0;
+  /** B35: Save-Autorität liegt in persistence/ — der Renderer schreibt keine Runs mehr. */
+  private readonly saveAutor: RunSaveAutor;
   private readonly devActive: boolean;
   private readonly onResize: () => void;
   private readonly onVisibility: () => void;
@@ -178,10 +181,19 @@ export class RunRuntime {
       try {
         const next = recordRunEnd(e.payload.wave, root.getSnapshot().nektarEarned);
         input.onMetaChange(next);
-        void clearRun(); // B2: ein beendeter Run ist nicht resumierbar
+        // B35: clearRun gehört dem Save-Autor (GAME_OVER-Subscription in persistence/).
       } catch { /* meta persist must never break the run screen */ }
       this.cbs.onGameOver();
     });
+
+    // B35: Der Autor hört auf WAVE_STARTED/GAME_OVER am Bus und trägt den 10-s-Takt;
+    // der RAF-Loop füttert ihn nur mit verstrichener realer Zeit.
+    this.saveAutor = new RunSaveAutor(root, () => {
+      const ms = this.saveAccum;
+      this.saveAccum = 0;
+      return ms;
+    });
+    this.saveAutor.serve();
 
     this.onResize = () => { renderer.resize(); };
     window.addEventListener('resize', this.onResize);
@@ -190,6 +202,8 @@ export class RunRuntime {
     this.onVisibility = () => {
       if (document.visibilityState !== 'hidden') return;
       this.pausedRef.current = true; root.clock.setPaused(true);
+      // B35: Suspended-Save geht durch den Autor (direkter Snapshot-Schreibpfad bleibt
+      // bewusst: Tab-Hidden ist kein Event am Bus, sondern ein Render-Lifecycle-Moment).
       saveRun(root.getSnapshot()); this.cbs.onSuspended();
     };
     document.addEventListener('visibilitychange', this.onVisibility);
@@ -215,12 +229,12 @@ export class RunRuntime {
         ghostForRender(this.placementMirror, this.root.getSnapshot().clock.tick),
       );
       this.saveAccum += dt; this.hudAccum += dt;
+      // B35: Der 10-s-Autosave-Tick sitzt im RunSaveAutor (persistence/), nicht hier.
       if (this.hudAccum > 100) {
         this.hudAccum = 0;
         this.cbs.onHud(hudOf(this.root.getSnapshot(), this.pausedRef.current));
         if (this.devActive) this.cbs.onDevTick();
       }
-      if (this.saveAccum > 10000) { this.saveAccum = 0; saveRun(this.root.getSnapshot()); }
       this.raf = requestAnimationFrame(step);
     };
     this.raf = requestAnimationFrame(step);
@@ -310,6 +324,9 @@ export class RunRuntime {
     cancelAnimationFrame(this.raf);
     window.removeEventListener('resize', this.onResize);
     document.removeEventListener('visibilitychange', this.onVisibility);
+    this.saveAutor.destroy();
+    // B35: Der Abschluss-Save bleibt ein bewusster Render-Lifecycle-Moment (Tab weg/Screen
+    // wechselt), kein Event — deshalb direkt, aber über die persistence-Funktion.
     saveRun(this.root.getSnapshot());
     unbindSimRoot(this.root);
   }

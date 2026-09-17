@@ -213,7 +213,7 @@ Details: [`docs/setup/script-readme.md`](docs/setup/script-readme.md). Das Tooli
 | Welche Particle-Profiles/Effects/Sources sind gültig? | `src/observers/particles.ts`, `src/config/effects.source.ts` + Gate-Test `sources.test.ts` |
 | Was ist der Save-/Resume-Vertrag? | `docs/architecture/architecture.md` §4 |
 | Wie starte ich einen Run / wo wird der Seed hergeleitet? | `App.tsx` (`deriveSeed(GAME_SEED,'world','run',runId)`) → `SimulationRoot` |
-| Was wird als nächstes gebaut? | `ROADMAP.md` §4 + `docs/quality/quality-spec.md` B1→B2→B3→B4–B6→B7/B9/B10→B12/B13 (DoD B13) |
+| Was wird als nächstes gebaut? | `docs/process/ROADMAP.md` §4 + `docs/quality/quality-spec.md` B1→B2→B3→B4–B6→B7/B9/B10→B12/B13 (DoD B13) |
 | Signatur/Easter-Egg ändern (Name, Motto, Fragmente)? | `components/CreatedBy.tsx` + Gate `createdBy.test.ts` — Motto-Halbsatz 1 buchstabiert VANNON (test-gepinnt); neuer Menü-Screen ⇒ Eintrag in `FRAGMENT_BY_SCREEN` + Test nachziehen |
 | Wie schließe ich einen Sprint ab (Preview/E2E/Shinon)? | Sprint-Abschluss oben + `docs/setup/script-readme.md` |
 

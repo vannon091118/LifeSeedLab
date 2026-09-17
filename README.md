@@ -320,11 +320,11 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `8477a20` — perf(gate): Commit-Gate ~60 s auf ~4 s warm gedruckt |
-| Arbeitsbaum | 35 gestaged, 0 geändert, 0 neu |
-| Letztes Gate | 🛑 geschlossen (preflight, 1 Fehler, 1 Warnungen) |
+| HEAD | `ac071d6` — feat(loop): B31-B34 — Signatur, Tutorial, Tempo/Auto-Wellen, Loop-Schutz |
+| Arbeitsbaum | 12 gestaged, 0 geändert, 0 neu |
+| Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `8477a20` perf(gate): Commit-Gate ~60 s auf ~4 s warm gedruckt |
+| Letzter Shinon-Commit | `ac071d6` feat(loop): B31-B34 — Signatur, Tutorial, Tempo/Auto-Wellen, Loop-Schutz |
 | Letzter Push | ✅ origin/main |
 | LOC-Hotspots | `src/simulation/root.ts` 298/300 (99 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/simulation/plantSystem.ts` 283/300 (94 %)<br>`src/simulation/enemySystem.ts` 279/300 (93 %)<br>`src/config/map.source.ts` 174/200 (87 %) |
 <!-- SHINON:STATUS:END -->
@@ -348,7 +348,7 @@ Example pre‑commit setup (using husky or plain Git hook):
 ## 🗺️ Roadmap & Arbeitsliste
 
 Die verbindliche Arbeitsliste liegt in [`docs/quality/quality-spec.md`](docs/quality/quality-spec.md) (Part A: Befunde, Part B: Specs B0–B13).
-Der Stand der Meilensteine steht in [`ROADMAP.md`](ROADMAP.md).
+Der Stand der Meilensteine steht in [`docs/process/ROADMAP.md`](docs/process/ROADMAP.md).
 
 | Phase | Fokus | Status |
 |---|---|---|
@@ -394,7 +394,7 @@ Alle Entwicklerwerkzeuge leben **nur** hinter dem DevGate:
 | [`docs/architecture/architecture-contract.md`](docs/architecture/architecture-contract.md) | Rechtsverbindlicher Vertrag (Regeln, Ownership, Caps, Seeds) |
 | [`docs/architecture/architecture.md`](docs/architecture/architecture.md) | Technische Architektur, Stack-Entscheidungen, Datenfluss |
 | [`docs/quality/quality-spec.md`](docs/quality/quality-spec.md) | Forensischer Scan + Asset/Render-Spec (Arbeitsliste B0–B13) |
-| [`ROADMAP.md`](ROADMAP.md) | Projektstatus, Dokumentationskarte, nächste Meilensteine |
+| [`docs/process/ROADMAP.md`](docs/process/ROADMAP.md) | Projektstatus, Dokumentationskarte, nächste Meilensteine |
 | [`AGENTS.md`](AGENTS.md) | Agenten-Regeln, Arbeitsmodus, DoD-Checkliste |
 
 ---

@@ -146,6 +146,16 @@ Commit `6585a3d` hat die Dokumente nach `docs/{architecture,quality,setup}/` ver
 
 Tote Querverweise in `AGENTS.md`, `README.md`, `docs/architecture/architecture.md`, `docs/quality/{implementation-plan,lifegameplant-audit}.md`, `docs/setup/presentation.md` auf die neuen Pfade gezogen; Test-Badge (52 → 152) und Gate-Liste (🔄 → ✅) auf den echten Stand gehoben; `AGENTS.md`-Titel aus der vorhergehenden Absatzzeile gelöst (`werden.s# AGENTS.md` — H1 war nicht gerendert). Nicht repariert und bewusst offen: der Verweis auf das ignorierte Styleframe (A13.9, Entscheidung über Track-Zugehörigkeit nötig).
 
+### A13.12 WIEDERHOLUNG derselben Defekt-Klasse — Doku-Dopplung + tote Karten-Referenzen (Root Cause + Reparatur)
+
+**Befund (Struktur-Linse + Nachzählung):** (1) `docs/quality/changelog.md` existierte als **Zwilling** des echten `CHANGELOG.md` — ein alter Milestone-Plan (Woche 38–41, englisch), dessen Wahrheit längst in `docs/process/ROADMAP.md` §4 und der Change-Pflicht (Regel 0) lebt. (2) Vier Dateien verwiesen auf `ROADMAP.md` **im Root** — dort liegt seit dem Doku-Move keine Datei mehr (nur `docs/process/ROADMAP.md` im Track): README ×2, AGENTS.md-Ressourcenkarte, architecture.md, presentation.md. Die Struktur-Linse meldete „alle 100 Referenzen existieren“ — **falsch beruhigend**: Sie prüft den Worktree, nicht den Track; gitignorierte Datei-Reste machen tote Referenzen unsichtbar.
+
+**Root Cause (wie es dazu kommen konnte, zweimal):** Die Defekt-Klasse aus A13.10 („Datei verschoben, Referenz nicht mitgezogen“) wurde nicht als **Regel** gefixt, sondern nur als Einzelfall. Dazu zwei Verstärker: (a) Die alte Plan-Doku (`docs/quality/changelog.md`) blieb bei Umbenennung/Ablösung liegen, statt gelöscht zu werden — Parallelwahrheit nach Regel 2, nur in Doku. (b) Keine Prüfung gegen **git-tracked** statt Platten-Bestand — die Linse glaubte dem Worktree.
+
+**Reparatur (dieser Arbeitsgang):** Zwilling gelöscht (`docs/quality/changelog.md`); ROADMAP-Karte bereinigt (Versionshistorie-Wahrheit: Root-`CHANGELOG.md`, getrackt; „Root-Files im Track“ korrigiert); die vier Root-ROADMAP-Referenzen auf `docs/process/ROADMAP.md` gezogen.
+
+**Regel (verhindert die Klasse, nicht den Einzelfall):** (1) Jede Doku-Wahrheit hat genau einen Ort — ein Thema, eine Datei; Ablösung heißt **löschen**, nicht liegen lassen. (2) Doku-Referenzen prüfen gegen `git ls-files`, nie gegen den Worktree („Existiert auf der Platte“ ≠ „Existiert für einen frischen Klon“). (3) Bei jedem Doku-Move/Rename gilt dieselbe Disziplin wie bei Code: Der Move ist erst fertig, wenn alle Referenzen mitgezogen sind — Referenz-Prüfung gehört zum DoD des Moves.
+
 ### A13.11 Die systematische Frage — wo sonst leitet Code Identität aus einem Fenster ab?
 
 Prüfmuster für den Rest des Repos: jede Entitäts-Kennung muss aus einem **monotonen Zähler** oder einer **injektiv ableitbaren** Quelle kommen — nie aus `max`/`length`/`last`/`find` eines Fensters.

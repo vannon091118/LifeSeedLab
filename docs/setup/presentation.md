@@ -212,7 +212,7 @@ Observer: Event → VisualCommand (color/palette IN Payload)
 | **Technical Architecture** | [`architecture.md`](../architecture/architecture.md) |
 | **Quality Spec (Arbeitsliste)** | [`quality-spec.md`](../quality/quality-spec.md) |
 | **Agent Rules** | [`AGENTS.md`](../../AGENTS.md) |
-| **Roadmap** | [`ROADMAP.md`](../../ROADMAP.md) |
+| **Roadmap** | [`ROADMAP.md`](../process/ROADMAP.md) |
 | **Banner SVG** | [`banner.svg`](../banner.svg) |
 
 ---

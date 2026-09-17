@@ -4,7 +4,7 @@
 > Der rechtsverbindliche Vertrag steht in [`architecture-contract.md`](architecture-contract.md),
 > die forensische Bestandsaufnahme + Asset-/Render-Spezifikation in [`../quality/quality-spec.md`](../quality/quality-spec.md).
 > Agenten-Regeln und Arbeitsmodus: [`AGENTS.md`](../../AGENTS.md).
-> Projektstatus und nächste Meilensteine: [`ROADMAP.md`](../../ROADMAP.md).
+> Projektstatus und nächste Meilensteine: [`ROADMAP.md`](../process/ROADMAP.md).
 
 ---
 
