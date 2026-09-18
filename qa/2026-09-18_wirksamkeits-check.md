@@ -54,7 +54,7 @@ Status im Index — es wird nicht in Sammelberichten begraben. (Verankert im Run
 angekommen.** Die **Layout-Verdeckungs-Familie (N4) ist komplett unbearbeitet** — und genau
 dort lag der Eigentümer-#1.
 
-## 3. N4 formal aufwerten (Statuswechsel durch Eigentümer-Anweisung)
+## 3. N4 formal aufwerten (Statuswechsel durch Eigentümer-Anweisung) — STATUS: in-arbeit (DEV-Übernahme, 2026-09-18)
 
 - N4 wird aus dem Nebenbefund-Status zum **eigenständigen Befund mit Priorität HOCH** erhoben
   (Eigentümer-#1), Repro 2/3 → **3/3 heute** (Messung oben = dritter unabhängiger Zyklus:
