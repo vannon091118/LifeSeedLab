@@ -88,6 +88,13 @@ Spieler sieht (Release ohne `?dev=1`), außer die Präcondition ist selbst ein
 Nicht-Frisch-Zustand → Zyklus im Bericht definieren und deterministisch restaurieren.
 Kandidaten stehen mit `0/3` im Bericht; Zwischenstände ehrlich als `n/3`.
 
+**Messhygiene (aus Verifikation III):** Sim-Interaktion im Browser nur über echte
+Pointer-Ereignisse (`preview_click` / CDP-Input). `dispatchEvent(new PointerEvent(...))`
+auf Tray-/Karten-Buttons ist **invalid** — der Tray-Handler ruft `releasePointerCapture`
+und bricht bei synthetischen Events still ab (scheint wie „stille Ablehnung“, ist aber
+Messartefakt). DevOverlay (`?dev=1`) kann Nachkauf-Buttons verdecken → als Messstörung
+merken oder `pointerEvents:none` setzen.
+
 ## Schritt 5 — Bericht & Push (Abschluss jeder QA-Session)
 
 1. `qa/YYYY-MM-DD_<titel>.md`: Kontext (Version **v0.0.38**-Muster = Fenstertitel, Commit
