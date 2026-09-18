@@ -28,6 +28,16 @@ wurden im Spiel gemessen (echte Pointer, `__simRootRef`).
 
 ## 2. HAUPTBEFUND T1 — Mauern im Innenraum lenken NICHT: Route läuft konstant Rand-Reihe 0 (3/3)
 
+> **Status (DEV, 2026-09-18): ERLEDIGT durch den R2-Welt-Neubau.** Die R1-Wurzel ist mit der
+> Architektur gefallen: `isBuildable()`/Baubereich-Marge sind GELÖSCHT — die ganze
+> freigeschaltete Weltfläche (dynamisch, Start 12×12) ist bebaubar, EINSCHLIESSLICH des
+> Rands (Käfer dürfen außen herumlaufen). Es gibt keinen Fallback-Pfad (ENEMY_PATH tot);
+> EINE Regel: nach jedem Bau muss mindestens ein freier Weg existieren, sonst `route_blocked`
+> (Ablehnung ohne Kosten). Der Bau, der die Rand-Linie verstellen will, ist jetzt WIRKSAM:
+> Tiles/Pflanzen verteuern oder blockieren dort dieselben Zellen wie im Innenraum.
+> Verifiziert in `placement_map.test.ts` (Integritätsregel + Rand-Bebaubarkeit) und
+> `maze_plants.test.ts` (Pflanzenreihe auf der Route-Reihe biegt den Weg sofort).
+
 **Repro (drei Messpunkte in einer Session, identisches Ergebnis):**
 1. Frisch-Profil, Endlos-Run, 150⚡.
 2. Serpentine-Aufbau: 10 Blumentöpfe — Wand A bei gx=4 (gy 2–8, 7 Töpfe), Wand B bei gx=7
@@ -59,6 +69,11 @@ unabhängige Beweislinien — bei Bedarf hole ich zwei weitere Frisch-Runs nach)
 
 ## 3. Befund T2 — UI/Sim-Divergenz Leihe: UI verlangt 10⚡, Sim würde gratis nehmen (1/3 Kandidat)
 
+> **Status (DEV, 2026-09-18): IN-ARBEIT** — Kandidat (1/3), noch nicht verifiziert. Hinweis:
+> Der R2-Neubau hat `plantSystem.place()` auf Inventar-only belassen (B37: Platzieren
+> kostet Bestand, kein Harz) — die B3-Divergenz zur UI-Energie-Prüfung besteht fort und
+> wird im nächsten UI-Sprint (Bauphase-Tray) mitbehandelt.
+
 - Sim-Regel (nur gelesen): `plantSystem.place()` prüft Leihe mit `energy: Infinity, cost: 0`
   (Inventar-only) — Platzierung nach Zuerwerb wäre gratis.
 - UI-Regel (live gemessen): PlacementController prüft `board.energy + stats.cost` — die Leihe
@@ -74,6 +89,10 @@ unabhängige Beweislinien — bei Bedarf hole ich zwei weitere Frisch-Runs nach)
 **Repro-Stand: 1/3** (Kandidat — folgt im nächsten Berichtspaket).
 
 ## 4. Befund T3 — Tile-Toggle frisst Zellen-Klicks, wenn er durch sich selbst abgewählt wird (1/3 Kandidat)
+
+> **Status (DEV, 2026-09-18): IN-ARBEIT** — Kandidat (1/3), noch nicht verifiziert. Der
+> Serien-Bau ist in der R2-Bauphase der HAUPT-Interaktionsmodus; der Fix (Modus nach
+> Platzierung aktiv halten) wird mit der Bauphase-UI umgesetzt.
 
 - Tray-Tile-Buttons (Blumentopf/Weg/…) sind Toggles: Klick wählt, erneuter Klick wählt ab.
 - Beim Mauer-Bau (11 Töpfe hintereinander) wurde der Modus jedes zweite Mal abgewählt —
@@ -133,7 +152,7 @@ unabhängige Beweislinien — bei Bedarf hole ich zwei weitere Frisch-Runs nach)
 
 ## Offene Fragen (Aktion: DEV)
 
-1. **T1 (hoch, 3/3):** Rand begehbar ⇒ Innenraum-Mauern wirkungslos. Design-Entscheidung
+1. **T1 (hoch, 3/3): ERLEDIGT durch den R2-Welt-Neubau (s. Status-Block oben) — Rand bebaubar, kein Fallback-Pfad, Integritätsregel.** ~~Rand begehbar ⇒ Innenraum-Mauern wirkungslos. Design-Entscheidung~~
    für den Map-Builder: Rand als Wand, oder Tor-Geometrie, die den Innenraum erzwingt?
    (Der Mazing-Guide: „Build to the line" — aber die Linie muss den Spieler zwingen,
    einen Innenraum zu bauen.)
