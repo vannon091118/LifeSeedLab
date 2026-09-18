@@ -37,7 +37,7 @@ Status im Index — es wird nicht in Sammelberichten begraben. (Verankert im Run
 
 | Befund | DEV-Claim | Live-Verifikation heute | Wirksam? |
 |---|---|---|---|
-| **N4 Leiste verdeckt Tray** (Eigentümer-#1) | — **kein Commit** | Leiste unverändert über Tray (Messung oben) | ❌ **NICHT BEHOBEN** |
+| **N4 Leiste verdeckt Tray** (Eigentümer-#1) | Leiste über die Tray-Kante verlagert (bottom 84→172) | DEV 63222e5 — QA-Nachverifikation ausstehend (Messung wie oben) | ◐ erledigt gemeldet — QA-Nachtest offen |
 | **F1** Krix: kein Vorwärts-Signal | Pfeil-Hinweis im Cue-Modus | Notiz 4 zeigt **„→ Tap the blinking target"** sichtbar unter der Notiz | ✅ wirksam |
 | **F2** Blase blockiert Cue-Ziel | Blase kollabiert + pointer-durchlässig | Notiz 4: Blase (209 px) liegt **über dem Tray** (bottom 512 < 582) und die Ziel-Karte `data-tut="card"` (`loan_sprout×1`) ist **frei klickbar** (`elementFromPoint` trifft die Karte) | ✅ wirksam |
 | **F3** Tutorial-Deadlock (Q12) | Leihe erreicht Tray | Notiz 4 hat ihr Blink-Ziel (`loan_sprout×1` im Tray, gestern E2E platziert) | ✅ wirksam (E2E aus Vortag + heute Karte sichtbar) |
@@ -46,7 +46,7 @@ Status im Index — es wird nicht in Sammelberichten begraben. (Verankert im Run
 | **Q2** Drag-Platzierung | Drag-Pfad | Vortag: Drag down→move→up platziert | ✅ wirksam |
 | **Q3/Q4/Q5** Konsole | favicon, border | Vortag: 0 Fehler/0 Warnungen komplette Session | ✅ wirksam |
 | **Q6** Greenhouse-Crash | healEntryLoop | (Alt-Profil-Nachtest steht noch aus) | ◐ unverifiziert |
-| **R1** Zwei Weg-Wahrheiten | DEV: Bewertung läuft (in-arbeit) | — | ⏳ offen (Map-Builder-Entscheid des Eigentümers ist die Richtung) |
+| **R1** Zwei Weg-Wahrheiten | Eigentümer-Entscheid gefallen (18.09.,DEV-Channel): **Map-Builder-Sequenz vor JEDEM Endless-Run** — der Hardcode-Pfad soll weg, der Spieler baut sein Maze selbst | DEV-Umsetzung läuft | ✅ entschieden — Umsetzung durch DEV beauftragt |
 | **F4** Tray deutsch bei EN | i18n-Keys geplant (in-arbeit) | Tray weiter deutsch | ⏳ offen |
 | **Q9** Mobile-Tray 911px | — | — | ⏳ offen |
 
@@ -54,7 +54,9 @@ Status im Index — es wird nicht in Sammelberichten begraben. (Verankert im Run
 angekommen.** Die **Layout-Verdeckungs-Familie (N4) ist komplett unbearbeitet** — und genau
 dort lag der Eigentümer-#1.
 
-## 3. N4 formal aufwerten (Statuswechsel durch Eigentümer-Anweisung) — STATUS: in-arbeit (DEV-Übernahme, 2026-09-18)
+## 3. N4 formal aufwerten (Statuswechsel durch Eigentümer-Anweisung) — STATUS: erledigt (DEV 63222e5, 2026-09-18)
+
+- **DEV-Umsetzung:** Vorschlag 1 gefolgt — die Leiste hängt jetzt ÜBER der Tray-Kante (`bottom` 84→172), die Kartenreihe ist frei. Koppelfrage damit beantwortet: Mitheilung war nicht nötig, der Fix ist gefahren. **QA-Nachverifikation erbeten** (gleiche Messung: `elementFromPoint` auf die erste Karte).
 
 - N4 wird aus dem Nebenbefund-Status zum **eigenständigen Befund mit Priorität HOCH** erhoben
   (Eigentümer-#1), Repro 2/3 → **3/3 heute** (Messung oben = dritter unabhängiger Zyklus:

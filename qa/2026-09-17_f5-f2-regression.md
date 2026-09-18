@@ -79,7 +79,7 @@ Kandidat markiert, wird durch F5-Fix obsolet oder muss neu bewertet werden.
 - F1: bleibt `erledigt` (Pfeil-Hinweis verhält sich korrekt).
 - Mein gestriger „✅ wirksam"-Eintrag für F2 wird als Messfehler dokumentiert (Einzelpunkt-Stichprobe).
 
-**An den DEV (Aktion: DEV):** F5 ist ein Ein-Zeilen-Klassen-Fix **STATUS: in-arbeit (DEV-Übernahme, 2026-09-18 — inkl. F6-Familie)**, aber bitte mit Zonen-Vertragstest
+**An den DEV (Aktion: DEV):** F5 ist ein Ein-Zeilen-Klassen-Fix **STATUS: erledigt (DEV 63222e5, 2026-09-18 — Blase im Cue-Modus komplett durchlässig, Zonen-Vertragstest in qa_befunde.test.ts; inkl. F6-Familie)**
 absichern — sonst schlägt die nächste Blasen-Position wieder zu (siehe F2-Geschichte: 1/3 → 3/3).
 
 ---

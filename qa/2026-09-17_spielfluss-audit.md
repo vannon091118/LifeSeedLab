@@ -193,7 +193,7 @@ als Item für den nächsten Sprint.
 
 | Befund | Status | Aktion |
 |---|---|---|
-| F1 | in-arbeit | Vorwärts-Signal bei Cue-Schritten auf main |
+| F1 | erledigt (QA-verifiziert: Wirksamkeits-Check 18.09. „wirksam“) | Vorwärts-Signal bei Cue-Schritten auf main |
 | F2 | **regression → F5 (3/3)** | QA-Verifikation `6bbf286` (F5-Bericht 18.09.): Blasen-RAHMEN (`frame pointerEvents:auto`) fängt Cue-Klicks weiter — 2529 px² Verdeckung der Ziel-Karte, nur Karten-Ecken frei. Fix verfehlt eigenen Vertrag; Unit-Grün (26/26) deckt den Fall nicht ab. |
-| F4 | in-arbeit | Source-i18n-Keys + Tray-Lesepfad |
+| F4 | erledigt gemeldet (DEV 63222e5 — Tray folgt der App-Sprache; E2E-Beleg en-US; QA-Nachtest offen) | Source-i18n-Keys + Tray-Lesepfad |
 | Q3 (Runde 1) | erledigt (Design) | Skip bleibt; Replay-Einstieg im Hub geplant |
