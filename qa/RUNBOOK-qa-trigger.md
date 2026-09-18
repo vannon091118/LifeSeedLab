@@ -9,6 +9,18 @@ ist die Schritt-für-Schritt-Ausführung.
 Wenn ein Pfad/Port hier abweicht, gilt die aktuelle Maschine — **verifizieren, nicht raten**
 (Schritt 0 prüft alles).
 
+**PFLICHT-SCHRITT 0b — Worktree-Frieden (NIEMALS den Zweig im Haupt-Worktree wechseln):**
+Der Dev-Server serviert den HAUPT-Worktree (`~/Schreibtisch/LifeSeedLab`). Spieler und
+Agenten teilen ihn. Ein `git switch` dort zieht dem Spieler die Version unterm Hintern weg
+(Fall 18.09. 21:37: Spieler-Session Welle 14 lief auf v0.0.38, weil der Agent nach dem
+Berichts-Commit den Worktree auf `qa-reports` ließ — Regelverstoß, vom Eigentümer gerügt).
+- Bericht-Arbeit passiert auf `qa-reports` **nur in einem separaten Git-Worktree**:
+  `git worktree add /tmp/qa-worktree qa-reports` — dort committen, danach
+  `git worktree remove /tmp/qa-worktree`. Der Haupt-Worktree BLEIBT auf `main`.
+- Vor jedem Berichts-Commit prüfen: `git -C ~/Schreibtisch/LifeSeedLab branch --show-current`
+  muss `main` zeigen. Titel-Check danach (0a) erneut.
+- PUSH-Wahrheit gilt unverändert: nur `qa-reports` von diesem Gerät, nie `main`.
+
 **PFLICHT-SCHRITT 0a — Versions-/Titel-Check (nach jedem Chrome-Relaunch UND Session-Start):**
 Der Dev-Server serviert den **Worktree**. Fenster-/Seiten-Titel muss die erwartete Version zeigen
 (gespiegelt aus `package.json` auf `main`). Zeigt der Titel z. B. eine alte Version (v0.0.38,
