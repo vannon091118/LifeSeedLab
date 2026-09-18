@@ -11,6 +11,7 @@
 // A19/zombie-sim-Regeln (fxOn bewusst NICHT im Effect-Deps) gelten hier weiter.
 
 import { SimulationRoot, makeCommand } from '../simulation/root';
+import type { PlacementDecision } from '../components/placementController';
 import { saveRun, type RunSave, clearRun } from '../persistence/runSave';
 import { RunSaveAutor } from '../persistence/runSaveAutor';
 import { Renderer } from './renderer';
@@ -281,7 +282,16 @@ export class RunRuntime {
     this.setPlacement(this.controller.hover(cell));
   }
 
-  pointerUp(cell: { gx: number; gy: number }): void {
+  /**
+   * Q16 (3/3, „Hold schluckt Brett-Taps lautlos“): das Brett-Tap-Ergebnis kehrt als Decision
+   * zurück — die UI-Signal-Quelle (placedCount) zählt genau den angenommenen Drop, statt noch-
+   * mals zu raten. Während des Tutorial-Hold flushen wir die Command-Queue VOR dem Drop
+   * (`flushCommands`): die Sim-Ticks ruhen (holdRef ⇒ kein advance), aber die Platzierungs-
+   * Pipeline läuft — PLACE_PLANT wird sofort ausgeführt, Inventar/Energie/Route aktualisieren
+   * sich, und die Ablehnung für ungültige Zellen kommt aus derselben Wahrheit wie sonst.
+   */
+  pointerUp(cell: { gx: number; gy: number }): PlacementDecision {
+    if (this.holdRef.current) this.root.commands.clear();
     const decision = this.controller.drop(cell);
     if (decision.kind === 'plant') {
       this.root.commands.push(makeCommand(this.root.clock.get().tick, 'PLACE_PLANT', ++this.cmdSeq, { variantId: decision.variantId, gx: decision.gx, gy: decision.gy }));
@@ -292,6 +302,7 @@ export class RunRuntime {
       this.emitRejectionFx(decision.reason, decision.gx, decision.gy);
     }
     this.setPlacement(this.controller.getState());
+    return decision;
   }
 
   cancelPlacement(): void { this.setPlacement(this.controller.cancel()); }
@@ -353,8 +364,9 @@ export class RunRuntime {
       const snap = this.root.getSnapshot();
       const waves = snap.wave.number; // erreichte Welle, inkl. laufender
       const next = recordRunEnd(waves, snap.nektarEarned, snap.inventory);
-      // Reifungs-Uhr für den Abbruch: der Abbruch zählt als erreichte Runden.
-      advanceCrossMaturation(waves);
+      // Kein advanceCrossMaturation hier: jede angebrochene Welle hat WAVE_STARTED bereits
+      // gezählt (B17.4, ein Writer). Der frühere Zusatz-Call addierte die erreichte Welle
+      // ein ZWEITES Mal — ein Abbruch in Welle 3 buchte die Wellen doppelt (+3 Drift).
       void clearRun(); // Abbruch darf nicht wieder auferstehen (verwaister SAVE)
       this.cbs.onMetaChange(next);
       return next;

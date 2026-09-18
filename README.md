@@ -320,13 +320,13 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `e490942` — test(maze): B38 — PLANT_ROUTE_COST greift identisch auf loan_sprout |
-| Arbeitsbaum | 5 gestaged, 3 geändert, 0 neu |
-| Letztes Gate | 🛑 geschlossen (preflight, 0 Fehler, 1 Warnungen) |
+| HEAD | `6bbf286` — fix(tutorial): F1/F2 — Signal + durchlaessige Blase im Cue-Modus |
+| Arbeitsbaum | 22 gestaged, 0 geändert, 0 neu |
+| Letztes Gate | ✅ offen (preflight, 0 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `e490942` test(maze): B38 — PLANT_ROUTE_COST greift identisch auf loan_sprout |
-| Letzter Push | ✅ origin/qa-reports |
-| LOC-Hotspots | `src/simulation/root.ts` 288/300 (96 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/simulation/enemySystem.ts` 279/300 (93 %)<br>`src/components/Greenhouse.tsx` 366/400 (92 %)<br>`src/render/gameRuntime.ts` 364/400 (91 %) |
+| Letzter Shinon-Commit | `6bbf286` fix(tutorial): F1/F2 — Signal + durchlaessige Blase im Cue-Modus |
+| Letzter Push | ✅ origin/main |
+| LOC-Hotspots | `src/simulation/root.ts` 288/300 (96 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/render/gameRuntime.ts` 376/400 (94 %)<br>`src/simulation/enemySystem.ts` 279/300 (93 %)<br>`src/config/map.source.ts` 184/200 (92 %) |
 <!-- SHINON:STATUS:END -->
 
 

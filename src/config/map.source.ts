@@ -10,6 +10,8 @@ export interface MapTileSource {
   id: MapTileType;
   /** Anzeigename (UI/Tray) — die Spielwelt benennt deutsch (vgl. names.source). */
   label: string;
+  /** F4: i18n-Key der Übersetzung (translations.ts) — Content-Truth verweist, UI liest i18n. */
+  i18nKey: string;
   /** Energie-Kosten pro Platzierung (In-Run-Währung, wie Pflanzen). */
   cost: number;
   /** Pathfinding-Beteiligung: walkable = Gegner laufen darüber, block = Wand. */
@@ -22,17 +24,17 @@ export interface MapTileSource {
 
 export const MAP_TILES_SOURCE: Record<MapTileType, MapTileSource> = {
   // Blumentopf: PLATZIERFLÄCHE für Pflanzen (Pflanzen brauchen jetzt einen Topf!)
-  pot:     { id: 'pot',     label: 'Blumentopf', cost: 15, walkable: false, weight: 999, maxCount: 24 },
+  pot:     { id: 'pot',     label: 'Blumentopf', i18nKey: 'map.pot', cost: 15, walkable: false, weight: 999, maxCount: 24 },
   // Weg-Tile: Gegner BEVORZUGEN es (weight < 1) — der Spieler lenkt den Laufweg.
   // M4 (Sprint AP2): 0.6 statt 0.45 — der Vorsprung zur Wiese (1) ist kleiner, damit die
   // Pflanzen-Kosten (PLANT_ROUTE_COST) auf Weg-Zellen nicht decode und das Zucht-Layout
   // als Maze-Bauwerk spürbar bleibt. Nur Source (Regel 6).
-  path:    { id: 'path',    label: 'Weg',        cost: 5,  walkable: true,  weight: 0.6, maxCount: 30 },
+  path:    { id: 'path',    label: 'Weg', i18nKey: 'map.path',        cost: 5,  walkable: true,  weight: 0.6, maxCount: 30 },
   // Findling: BLOCKIERT den Weg — Gegner müssen umlaufen. maxCount 6 < 8 Zeilen:
   // eine komplette Spalten-Mauer ist UNMÖGLICH (Softlock-Schutz an der Quelle).
-  boulder: { id: 'boulder', label: 'Findling',   cost: 20, walkable: false, weight: 999, maxCount: 6 },
+  boulder: { id: 'boulder', label: 'Findling', i18nKey: 'map.boulder',   cost: 20, walkable: false, weight: 999, maxCount: 6 },
   // Deko: rein kosmetisch, begehbar, keine Path-Bedeutung
-  decor:   { id: 'decor',   label: 'Deko',       cost: 3,  walkable: true,  weight: 1, maxCount: 20 },
+  decor:   { id: 'decor',   label: 'Deko', i18nKey: 'map.decor',       cost: 3,  walkable: true,  weight: 1, maxCount: 20 },
 };
 
 export const MAP_TILE_IDS = Object.keys(MAP_TILES_SOURCE) as MapTileType[];

@@ -45,7 +45,7 @@ export function SeedShop({ meta, onMetaChange, onClose }: Props) {
           <h2 style={styles.title}>{t('shop.title')}</h2>
           <div style={styles.headerRight}>
             <span style={styles.nektar}>🍯 {meta.nektar}</span>
-            <button onClick={onClose} style={styles.closeBtn}>✕</button>
+            <button onClick={onClose} style={styles.closeBtn} aria-label={t('common.close')}>✕</button>
           </div>
         </div>
         <p style={styles.desc}>{t('shop.desc')}</p>

@@ -1,8 +1,9 @@
 import { Fragment } from 'react';
 import type { CSSProperties } from 'react';
 import { MAP_TILES_SOURCE, type MapTileType } from '../config/map.source';
-import { PLANTS_SOURCE, type PlantTypeId } from '../config/plants.source';
 import type { PlaceMode } from './placementController';
+import { plantLabelKey, plantLabelFallback, tileLabelKey, tileLabelFallback } from './plantLabels';
+import { useI18n } from '../i18n';
 
 // Owner: UI (PlacementTray). LOC ≤ 400.
 // B3: Tray-Karten wählen per pointerdown aus (kein Hover, kein click-Pfad) — Desktop und
@@ -26,6 +27,16 @@ export interface PlacementTrayProps {
 }
 
 export function PlacementTray({ plantIds, inventory, energy, mode, variantId, onSelectPlant, onSelectTile, onBuyPlant, restockPrice, trayPlantsLabel, trayFieldLabel }: PlacementTrayProps) {
+  const { t } = useI18n();
+  // F4: Labels über i18n-Auflösung (Source-i18nKey → Fallback-Kette in plantLabels.ts).
+  const plantLabel = (id: string): string => {
+    const key = plantLabelKey(id);
+    return key ? t(key) : plantLabelFallback(id);
+  };
+  const tileLabel = (tile: MapTileType): string => {
+    const key = tileLabelKey(tile);
+    return key ? t(key) : tileLabelFallback(tile);
+  };
   // B21: Die ERSTE Karte mit Bestand ist das Cue-Ziel des Onboardings (`data-tut="card"`) — genau
   // ein Element, damit der blinkende Ring eindeutig ist. Kein State, keine Auswahl-Logik.
   const firstPlayable = plantIds.find(id => (inventory[id] ?? 0) > 0) ?? null;
@@ -41,12 +52,13 @@ export function PlacementTray({ plantIds, inventory, energy, mode, variantId, on
         const count = inventory[id] ?? 0;
         const isSelected = variantId === id && mode === 'plant';
         const disabled = count <= 0;
-        const label = PLANTS_SOURCE[id as PlantTypeId]?.label ?? id;
+        const label = plantLabel(id);
         return (
           <Fragment key={id}>
           <button
             onPointerDown={(e) => { (e.target as HTMLElement).releasePointerCapture?.(e.pointerId); onSelectPlant(id, count); }}
             data-tut={id === firstPlayable ? 'card' : undefined}
+            data-plant={id}
             style={{ ...styles.trayItem, ...(isSelected ? styles.trayItemSelected : {}), ...(disabled ? styles.trayItemDisabled : {}) }}
             aria-pressed={isSelected} aria-disabled={disabled} title={label}
           >
@@ -62,6 +74,7 @@ export function PlacementTray({ plantIds, inventory, energy, mode, variantId, on
             <button
               key={`${id}-buy`}
               onPointerDown={(e) => { e.stopPropagation(); (e.target as HTMLElement).releasePointerCapture?.(e.pointerId); onBuyPlant(id); }}
+              data-restock={id}
               style={{ ...styles.trayItem, ...(energy < restockPrice(id) ? styles.trayItemDisabled : {}) }}
               aria-label={`${label} nachkaufen (${restockPrice(id)})`}
               title={`+1 ${label} — ${restockPrice(id)} Energie`}
@@ -91,10 +104,10 @@ export function PlacementTray({ plantIds, inventory, energy, mode, variantId, on
             onPointerDown={(e) => { (e.target as HTMLElement).releasePointerCapture?.(e.pointerId); onSelectTile(tile); }}
             style={{ ...styles.trayItem, ...(isSelected ? styles.trayItemSelected : {}), ...(affordable ? {} : styles.trayItemDisabled) }}
             aria-pressed={isSelected} aria-disabled={!affordable}
-            title={`${MAP_TILES_SOURCE[tile].label} (${MAP_TILES_SOURCE[tile].cost} Energie)`}
+            title={`${tileLabel(tile)} (${MAP_TILES_SOURCE[tile].cost} Energie)`}
           >
             <span style={{ ...styles.trayDot, background: tileSwatch(tile) }} aria-hidden/>
-            <span style={styles.trayName}>{MAP_TILES_SOURCE[tile].label}</span>
+            <span style={styles.trayName}>{tileLabel(tile)}</span>
             <span style={styles.trayCount}>{MAP_TILES_SOURCE[tile].cost}⚡</span>
           </button>
         );

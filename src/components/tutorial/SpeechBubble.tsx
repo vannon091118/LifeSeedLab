@@ -36,6 +36,21 @@ export interface SpeechBubbleProps {
   onSkip: () => void;
 }
 
+/**
+ * F5-Vertrag (Zonen-Lock): true ⇒ dieser Schritt rendert die DURCHLÄSSIGE Blase
+ * (`frameCue`, pointer-events:none) mit dem Skip als einzigem interaktiven Kind.
+ * Der Gate-Test liest genau diese Entscheidung — die nächste Blasen-Position kann die
+ * Cue-Zone nicht wieder verdecken, ohne dass dieser Vertrag rot.
+ */
+export function bubbleIsPointerTransparent(cueMode: boolean): boolean {
+  return cueMode;
+}
+
+/** F5: der gerenderte Rahmen-Stil — auto (normal) oder durchlässig (cueMode). Messbar gelockt. */
+export function bubbleFrameStyle(cueMode: boolean): CSSProperties {
+  return cueMode ? styles.frameCue : styles.frame;
+}
+
 export function SpeechBubble({
   speaker, role, note, title, text, typing, pressLabel, skipLabel, hint, cueHint, cueMode, tail, onPress, onSkip,
 }: SpeechBubbleProps): ReactNode {
@@ -43,7 +58,11 @@ export function SpeechBubble({
   // per Knopf auf — die Blase bleibt klein und das Cue-Ziel frei.
   const collapsed = cueMode;
   return (
-    <div className="tut-bubble" style={styles.frame}>
+    // F5 (F2-Regression, 4/4): Im cueMode ist die GESAMTE Blase pointer-durchlässig — der Rahmen
+    // selbst hat `auto` (340×200-Verdeckungszone) und fing jeden Klick aufs geführte Ziel (nur der
+    // Textkörper war durchlässig). Interaktiv bleiben NUR die echten Knöpfe (Skip) — Backdrop passthrough,
+    // Bedienelemente behalten ihre Funktion.
+    <div className="tut-bubble" style={bubbleFrameStyle(cueMode)}>
       <span style={tail === 'downLeft' ? styles.tailLeft : styles.tailRight} aria-hidden />
       <div style={styles.header}>
         <span style={styles.namePlate}>{speaker}</span>
@@ -75,7 +94,9 @@ export function SpeechBubble({
             {pressLabel}
           </button>
         )}
-        <button type="button" onClick={onSkip} style={styles.btn}>{skipLabel}</button>
+        {/* F5: der Skip muss im cueMode klickbar bleiben — er ist der immer erreichbare Notausgang
+            (Kommentar oben), deshalb bekommt er hier seinen PE explizit zurück. */}
+        <button type="button" onClick={onSkip} style={cueMode ? { ...styles.btn, ...styles.btnGhostOverride } : styles.btn}>{skipLabel}</button>
       </div>
     </div>
   );
@@ -158,6 +179,10 @@ const styles: Record<string, CSSProperties> = {
   },
   // F2: cueMode-Körper — Klicks/Touches fallen zum echten Ziel durch.
   bodyGhost: { pointerEvents: 'none', cursor: 'default' } as CSSProperties,
+  // F5: cueMode-Rahmen — die GESAMTE Blase durchlässig (Backdrop passthrough), nicht nur der Text.
+  frameCue: { pointerEvents: 'none' } as CSSProperties,
+  // F5: Ausnahme vom Backdrop-Passthrough — der Skip-Knopf bleibt im cueMode klickbar.
+  btnGhostOverride: { pointerEvents: 'auto' } as CSSProperties,
   // F1: der sichtbare Vorwärts-Hinweis im cueMode.
   cueHint: {
     display: 'inline-block',

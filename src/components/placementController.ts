@@ -91,9 +91,16 @@ export class PlacementController {
     return this.variantId !== null || this.mode !== 'plant';
   }
 
-  /** Tap auf eine Tray-Karte: auswählen — oder bei gleicher Karte abbrechen (B3). */
+  /**
+   * Tap auf eine Tray-Karte: auswählen — oder bei gleicher Karte abbrechen (B3).
+   *
+   * Q17 (pressed-Zombie, 3/3): bei `count <= 0` bricht der Tap die Auswahl AB (vorher: stiller
+   * No-op — der Klick auf die ×0-Karte „tut nichts" und der Zombie-Zustand blieb bestehen).
+   * Die Karte bleibt das Auswahlinstrument: Abwählen bei noch vorhandenem Bestand, Abbruch bei
+   * leerem — ein einziger Writer, keine zweite State-Quelle.
+   */
   selectFromTray(variantId: string, count: number): PlacementState {
-    if (count <= 0) return this.getState();
+    if (count <= 0) return this.cancel();
     if (this.mode === 'plant' && this.variantId === variantId) return this.cancel();
     this.mode = 'plant';
     this.variantId = variantId;
@@ -129,7 +136,13 @@ export class PlacementController {
       return { kind: 'reject', reason, gx: cell.gx, gy: cell.gy };
     }
     if (this.mode === 'plant' && this.variantId !== null) {
-      return { kind: 'plant', variantId: this.variantId, gx: cell.gx, gy: cell.gy };
+      // Q17: Konsum die letzte Einheit ⇒ Auswahl automatisch lösen. Vorher blieb die leere Karte
+      // als Zombie-Zustand stehen (Cancel + Crosshair + pressed-Gefühl ohne Inventar). Bei Rest-
+      // bestand bleibt die Sorte gewählt (Serien-Platzierung, bewusstes Verhalten).
+      const variantId = this.variantId;
+      const remaining = (this.env.board().inventory[variantId] ?? 0) - 1;
+      if (remaining <= 0) this.cancel();
+      return { kind: 'plant', variantId, gx: cell.gx, gy: cell.gy };
     }
     if (this.mode !== 'plant') {
       return { kind: 'tile', tile: this.mode, gx: cell.gx, gy: cell.gy };

@@ -21,6 +21,7 @@ import { GameTopBar } from './GameTopBar';
 import { TutorialLayer } from './tutorial/TutorialLayer';
 import { FieldToast } from './FieldToast';
 import type { FieldNotice } from './fieldNotice';
+import { countsAsPlacement } from './placementSignal';
 import { DropChipIcon, LivesChipIcon, WaveChipIcon } from './GameIcons';
 import { gameViewStyles as styles } from './gameViewStyles';
 import type { HudSnapshot } from './hudSnapshot';
@@ -145,13 +146,14 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
   const onPointerUp = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     const runtime = runtimeRef.current; if (!runtime) return;
     const cell = cellFromEvent(e); if (!cell) return;
-    runtime.pointerUp(cell);
-    if (runtime.controller.getState().mode === 'plant' && placement.variantId !== runtime.controller.getState().variantId) {
-      // B21: UI-Signal — ein angenommener Drop (Platzierung aus der Tray heraus).
-      setPlacedCount(n => n + 1);
-    }
+    // B21/Q16: die Decision ist die EINE Wahrheit des Brett-Taps. Das Onboarding-Signal
+    // (placedCount) zählt genau den angenommenen Drop — der alte Vergleich „Auswahl hat sich
+    // geändert" konnte nach einem akzeptierten Drop nie mehr springen (Auswahl blieb gesetzt):
+    // Notiz 5 wartete ewig, der Hold schluckte weitere Taps lautlos (QA-Befund Q16 3/3).
+    const decision = runtime.pointerUp(cell);
+    if (countsAsPlacement(decision)) setPlacedCount(n => n + 1);
     applyPlacement(runtime.controller.getState());
-  }, [applyPlacement, cellFromEvent, placement.variantId]);
+  }, [applyPlacement, cellFromEvent]);
 
   const cancelPlacement = useCallback(() => {
     runtimeRef.current?.cancelPlacement();

@@ -124,7 +124,7 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
           <h2 style={styles.title}>{t('greenhouse.title')}</h2>
           <div style={styles.headerRight}>
             <span style={styles.stash}>{t('shop.pending').replace('{n}', String(meta.pendingCrosses.length)).replace('{m}', String(PENDING_CROSSES_MAX))}</span>
-            <button onClick={onClose} style={styles.closeBtn}>✕</button>
+            <button onClick={onClose} style={styles.closeBtn} aria-label={t('common.close')}>✕</button>
           </div>
         </div>
         <p style={styles.desc}>{t('greenhouse.desc')}</p>

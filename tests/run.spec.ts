@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import {
-  startRun, devValue, metaWaves, placePlant,
+  startRun, devValue, metaWaves, sim, placePlant, plantCard,
 } from './helpers/harness';
 
 /**
@@ -35,7 +35,10 @@ test.describe('Run', () => {
   test('Pflanze platzieren: die Sim nimmt sie an und der Tray-Bestand sinkt', async ({ page }) => {
     await startRun(page);
 
-    const sprout = page.getByRole('button', { name: /Spross\s*×1/i });
+    // Frisch-Profil: die Leih-Karte ist die einzige mit Bestand (×1). Der alte Test traf sie
+    // nur ZUFÄLLIG über den Roh-ID-Namen "loan_sprout ×1" (N3) — seit F4 trägt sie ein
+    // sprachabhängiges Label, deshalb wird die Karte über data-plant adressiert.
+    const sprout = plantCard(page, 'loan_sprout');
     await expect(sprout).toBeVisible();
     expect(await devValue(page, 'PLANTS')).toBe(0);
 
@@ -44,7 +47,9 @@ test.describe('Run', () => {
 
     expect(cell, 'Keine erreichbare Zelle wurde von der Sim angenommen').not.toBeNull();
     expect(await devValue(page, 'PLANTS')).toBe(1);
-    await expect(page.getByRole('button', { name: /Spross\s*×0/i })).toBeVisible();
+    // Der Bestand sinkt UND die Auswahl löst sich (Q17: letzte Einheit ⇒ kein Zombie-Zustand).
+    await expect(plantCard(page, 'loan_sprout')).toHaveAttribute('aria-pressed', 'false');
+    await expect(plantCard(page, 'loan_sprout')).toHaveAttribute('aria-disabled', 'true');
   });
 
   test('Pause friert die Sim ein, Fortsetzen startet sie wieder', async ({ page }) => {
@@ -74,11 +79,13 @@ test.describe('Run', () => {
   // ── B17.4 — die Reifung zählt die ANGEBROCHENE Welle (Option A, A19.5) ──
   //
   // Der Zähler hängt an WAVE_STARTED (+1 pro angebrochener Welle), nicht mehr an WAVE_COMPLETED.
-  // Der E2E-Beweis nutzt denselben deterministischen Tod: Ohne Verteidigung stirbt der Run in
-  // Welle 1 — der Zähler muss dann GENAU +1 stehen. +0 wäre der alte (tote) Vertrag, +2 eine
-  // Doppelzählung (WAVE_STARTED + recordRunEnd) — beides ein Defekt. Kein Balance-Risiko:
-  // der Tod ohne Verteidigung ist deterministisch, kein „Welle überleben"-Glücksspiel.
-  test('Reifung zählt die angebrochene Welle: Tod in Welle 1 ⇒ Zähler genau +1 (keine Doppelzählung)', async ({ page }) => {
+  // Q1/B23.1-Nachwirkung: „Tod in Welle 1 ohne Verteidigung“ ist KEIN deterministischer Endpunkt
+  // mehr (grunt 10→4 ⇒ 3 Grunts × 4 = 12 < 20 Leben — QA R1, Zyklus 3: Welle 1 mit 20/20
+  // überlebt). Der Beweis liegt deshalb an der WELLE selbst, nicht am Balance-Ende: solange
+  // Welle 1 läuft, steht der Meta-Zähler auf GENAU +1 — +0 wäre der alte tote Vertrag, +2 die
+  // Doppelzählung (WAVE_STARTED + recordRunEnd). Danach darf er weiterwachsen: startet die
+  // Auto-Welle 2, zählt die angebrochene Welle 2 legitim +1 — das ist der Vertrag, kein Bug.
+  test('Reifung zählt die angebrochene Welle: während Welle 1 läuft ⇒ Zähler genau +1 (keine Doppelzählung)', async ({ page }) => {
     test.setTimeout(120_000);
     await startRun(page);
 
@@ -86,11 +93,16 @@ test.describe('Run', () => {
 
     // B23.1: Seit der Aufbauphase startet keine Welle mehr von selbst, solange nichts steht —
     // dieser Test verteidigt absichtlich NICHT. Er stößt die Welle deshalb selbst an: genau so
-    // kommt der Spieler in dieselbe Lage, und der Tod bleibt deterministisch.
+    // kommt der Spieler in dieselbe Lage.
     await page.getByRole('button', { name: /start wave/i }).click();
 
-    // Ohne Verteidigung laufen die Grunts durch — der Run endet in Welle 1.
-    await expect(page.getByText(/game over/i).first()).toBeVisible({ timeout: 90_000 });
+    // Auf WELLE 1 (laufend) warten — die Sim-Taktbasis, keine Wanduhr.
+    await expect
+      .poll(async () => {
+        const s = await sim(page);
+        return s.phase === 'wave' && s.wave === 1 ? 'running' : 'waiting';
+      }, { timeout: 30_000 })
+      .toBe('running');
 
     expect(await metaWaves(page), 'Angebrochene Welle zählt genau +1').toBe(before + 1);
   });

@@ -8,6 +8,8 @@ export interface PlantSource {
   id: PlantTypeId;
   /** Anzeigename (UI/Tray) — die Spielwelt benennt deutsch (vgl. names.source). */
   label: string;
+  /** F4: i18n-Key der Übersetzung (translations.ts) — Content-Truth verweist, UI liest i18n. */
+  i18nKey: string;
   role: 'shooter' | 'wall' | 'support';
   cost: number;
   stats: {
@@ -24,6 +26,7 @@ export const PLANTS_SOURCE: Record<PlantTypeId, PlantSource> = {
   sprout: {
     id: 'sprout',
     label: 'Spross',
+    i18nKey: 'plant.sprout',
     role: 'shooter',
     cost: 50,
     stats: { hp: 100, damage: 15, range: 3, cooldown: 30 },
@@ -36,6 +39,7 @@ export const PLANTS_SOURCE: Record<PlantTypeId, PlantSource> = {
   rootwall: {
     id: 'rootwall',
     label: 'Wurzelmauer',
+    i18nKey: 'plant.rootwall',
     role: 'wall',
     cost: 40,
     stats: { hp: 300, damage: 5, range: 0.5, cooldown: 60 },
@@ -48,6 +52,7 @@ export const PLANTS_SOURCE: Record<PlantTypeId, PlantSource> = {
   mycelia: {
     id: 'mycelia',
     label: 'Myzel',
+    i18nKey: 'plant.mycelia',
     role: 'support',
     cost: 60,
     stats: { hp: 80, damage: 0, range: 2, cooldown: 45 },

@@ -118,10 +118,23 @@ export async function ffUntil(
   return { reached: false, last };
 }
 
-/** Tod ohne Verteidigung: Welle anstoßen und bis Game Over takten. Deterministisch (B17.4-Pfad). */
+/**
+ * Tod ohne Aufbau: der DETERMINISTISCHE Endpunkt des Frisch-Profils.
+ *
+ * Q1-Nachwirkung: Welle 1 (3 Grunts × 4 Schaden = 12) kann den pflanzenlosen Run NICHT töten
+ * (20 Leben) — und B23.1 friert ihn danach in prep ein (kein Auto-Start ohne Pflanzen). Der
+ * Pump-Run stößt deshalb die nächste Welle MANUELL an: ihre Masse (≥ 7 Grunts × 4 ≥ 28)
+ * leakt die Restleben garantiert weg. Deterministisch: GENAU 2 angebrochene Wellen pro Pump.
+ */
 export async function runToGameOver(page: Page): Promise<void> {
   await page.getByRole('button', { name: /start wave/i }).click();
-  const r = await ffUntil(page);
+  let r = await ffUntil(page, { maxChunks: 40 });
+  if (!r.reached) {
+    const s = await sim(page);
+    // Welle 1 überlebt + prep eingefroren (B23.1) ⇒ die zweite Welle tötet sicher.
+    if (s.phase === 'prep') await page.getByRole('button', { name: /start wave/i }).click();
+    r = await ffUntil(page, { chunk: 400, maxChunks: 40 });
+  }
   expect(r.reached, 'Run endete nicht in Game Over').toBe(true);
   await expect(page.getByText(/game over/i).first()).toBeVisible();
 }
@@ -229,6 +242,15 @@ export async function plantCount(page: Page, variantId: string): Promise<number>
 }
 
 /**
+ * Tray-Karte EINES Pflanz-Variants — sprachunabhängig über `data-plant` (nicht über das Label):
+ * die F4-Arbeit macht die Tray-Labels sprachabhängig (i18n), Playwright-Chromium läuft mit
+ * en-US — Label-Regexes wie /Spross/ treffen die EN-Fläche nicht. Der Variant-Anker ist stabil.
+ */
+export function plantCard(page: Page, variantId: string): ReturnType<Page['getByRole']> {
+  return page.locator(`[aria-label="Pflanzenauswahl"] button[data-plant="${variantId}"]`);
+}
+
+/**
  * Platziert GENAU EINE Pflanze DIESES Variants über die echte Tray-UI; true nur, wenn die
  * Sim danach eine Pflanze dieses Variants mehr führt. Die Sim wird dabei als eingefroren
  * vorausgesetzt: der Command-Drain passiert explizit per `__ff(1)` (kein Wait, kein
@@ -239,10 +261,14 @@ export async function plantCount(page: Page, variantId: string): Promise<number>
  * lief deshalb mit EINER Pflanze und starb in Welle 1 (error-context: `Plants: 1`).
  */
 export async function placeOnePlant(page: Page, label: string, variantId: string): Promise<boolean> {
+  void label; // Sprachunabhängigkeit: die Karte wird über `data-plant` adressiert (siehe plantCard).
   const cells = await freeCells(page);
   if (cells.length === 0) return false;
-  const card = page.locator('[aria-label="Pflanzenauswahl"] button', { hasText: label });
-  if (!(await card.isEnabled())) return false;
+  const card = plantCard(page, variantId);
+  // Q17-Nachwirkung: ×0-Karten sind ECHT disabled — ein unbegrenztes isEnabled() würde hier
+  // für immer auf das Wiederaufleben warten. Die Probe ist deshalb hart begrenzt.
+  const ready = await card.isEnabled({ timeout: 1_000 }).then(() => true).catch(() => false);
+  if (!ready) return false;
   // Auswahl nur setzen, wenn sie nicht schon steht — ein zweiter Klick hebt sie wieder auf.
   // Ablehnungen behalten die Auswahl, deshalb bleibt sie für alle Folgezellen gültig.
   if ((await card.getAttribute('aria-pressed')) !== 'true') await card.click();
@@ -272,20 +298,22 @@ export async function placePlant(page: Page): Promise<string | null> {
 
 /** Verlässt den (toten) Run über das Game-Over-Overlay oder Exit Run und wartet auf den Hub. */
 export async function backToMenu(page: Page): Promise<void> {
-  await page.getByRole('button', { name: /to menu|menu/i }).last().click();
+  // Sprachhart (DE/EN): „Menü" trägt ein ü — der reine /menu/-Anker traf nur die EN-Fläche.
+  await page.getByRole('button', { name: /to menu|menu|menü/i }).last().click();
   await expect(page.getByRole('button', { name: /endless/i }).first()).toBeVisible({ timeout: 10_000 });
 }
 
 /**
- * Wellen-Pumpe: ein verteidigungsloser Run, bringt deterministisch +1 Reifung (B17.4 — Tod in
- * Welle 1). Zählt am Ende die Konsole nach, damit eine Doppelzählung hier laut rot wird.
+ * Wellen-Pumpe: ein verteidigungsloser Pump-Run bricht DETERMINISTISCH GENAU ZWEI Wellen an
+ * (Welle 1 überlebt das Frisch-Profil lautlos, Welle 2 leakt tödlich — siehe runToGameOver).
+ * Die exakte Zählung muss die Spec am Zähler prüfen: +2 pro Pump, jede Doppelzählung (alter
+ * countRun-Drift) oder Auslassung schlägt dort laut zu.
  */
-export async function pumpWave(page: Page, expectedTotalWaves: number): Promise<void> {
+export async function pumpWave(page: Page): Promise<void> {
   await page.getByRole('button', { name: /endless/i }).first().click();
   await expect(page.locator('canvas')).toHaveCount(1);
   await expect.simBound(page);
   await runToGameOver(page);
-  expect(await metaWaves(page), 'Reifungszähler nach dem Pump-Run').toBe(expectedTotalWaves);
   await backToMenu(page);
 }
 
