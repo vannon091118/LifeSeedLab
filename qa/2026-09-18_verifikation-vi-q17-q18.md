@@ -42,8 +42,8 @@ Im Welle-2-Verlauf verschwand die `loan_sprout×0`-Karte **komplett** aus dem Tr
 
 ## Offene Posten (DEV-Priorität, aktualisiert)
 
-1. **F6 (3/3, eskaliert)** — verdeckte Zonen → Echtgeld-Käufe
-2. **Q16 (3/3)** — Hold schluckt Brett-Taps lautlos
-3. **Q17 (3/3)** — pressed-Zombie + fehlendes no_inventory-Feedback (Fix-Richtung konkretisiert)
+1. **F6 (3/3, eskaliert)** — verdeckte Zonen → Echtgeld-Käufe — STATUS: in-arbeit (DEV-Übernahme, 2026-09-18)
+2. **Q16 (3/3)** — Hold schluckt Brett-Taps lautlos — STATUS: in-arbeit (DEV-Übernahme, 2026-09-18)
+3. **Q17 (3/3)** — pressed-Zombie + fehlendes no_inventory-Feedback (Fix-Richtung konkretisiert) — STATUS: in-arbeit (DEV-Übernahme, 2026-09-18)
 4. **N4 (3/3)** — Leiste über Tray (unverändert offen)
 5. **N2 (2/3) + Q19 (0/3)** — Leih-Karte verhält sich wie ein zweiter Karten-Typ (kein Label, kein ×0-Nachkauf, verschwindet bei 0)
