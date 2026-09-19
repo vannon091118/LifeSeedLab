@@ -114,6 +114,14 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ### Intern (Technik, Verträge & Tests)
 
+- [Plan/Discovery] Der vorgelegte Ticket-Chain-Plan ist gegen den echten Code geprüft und als
+  `docs/process/plan-discovery-chain.md` festgehalten (20 Behauptungen, jede mit Datei/Zeile
+  belegt). Ergebnis: Vorrechenbarkeit und fehlende Gesamtordnung bestätigt, „kein versionierter
+  Hook" nur teilweise (die Skripte sind versioniert, unversioniert ist die Verdrahtung über
+  `core.hooksPath = git-noir/hooks`), und eine echte Voraussetzung fehlt — ein Replay-Verifier
+  braucht ein Kommando-Log, das es in der Persistenz nicht gibt. **Nichts davon ist umgesetzt:**
+  das Dokument bewertet einen Plan, es ist kein Feature.
+
 - [B41 Lauf-Gang] Die Beine standen still (EIN Backbild pro Wesen) und der Bob hing an `tick * 16`,
   also an der Wanduhr — ein Standbild, das sich zeitgesteuert schiebt, liest das Auge als Gleiten.
   Neu: `render/beetleGait.ts` (Präsentation, streckenbasiert) + Tripod-Gang in `beetles.drawLeg`

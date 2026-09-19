@@ -195,11 +195,11 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `0f0e415` — refactor(i18n): textmodule nach domäne, loc-caps an den vertrag gezogen |
-| Arbeitsbaum | 0 gestaged, 38 geändert, 9 neu |
-| Letztes Gate | 🛑 geschlossen (preflight, 0 Fehler, 1 Warnungen) |
+| HEAD | `9824b54` — fix(spiel): karte überlebt den run, käfer laufen, krix ist lesbar |
+| Arbeitsbaum | 4 gestaged, 1 geändert, 0 neu |
+| Letztes Gate | 🛑 geschlossen (preflight, 0 Fehler, 2 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `0f0e415` refactor(i18n): textmodule nach domäne, loc-caps an den vertrag gezogen |
+| Letzter Shinon-Commit | `9824b54` fix(spiel): karte überlebt den run, käfer laufen, krix ist lesbar |
 | Letzter Push | ✅ origin/main |
 | LOC-Hotspots | `src/meta/store.ts` 283/200 (142 %)<br>`src/meta/run.ts` 265/200 (133 %)<br>`src/components/Greenhouse.tsx` 480/400 (120 %)<br>`src/config/phenotype.source.ts` 239/200 (120 %)<br>`src/meta/economy.ts` 222/200 (111 %) |
 <!-- SHINON:STATUS:END -->
