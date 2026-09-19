@@ -95,12 +95,11 @@ export function resumeCostFor(wave: number): number {
  * 1–5 ERFAHRUNG pro Kill (deterministisch via loot-RNG).
  *
  * Währungs-Klarstellung (19.09.2026): hier standen „Münzen für den In-Run-Shop". Der In-Run-Shop
- * ist mit dem Energie-System gestorben — übrig blieb ein Kontostand ohne Ausgabepunkt, also eine
- * ZWEITE Währung neben Nektar. Es gibt genau eine Währung (Nektar, ausschließlich außerhalb von
- * Runs ausgegeben); dieser Wert ist Lauf-Erfahrung und kein Geld.
+ * ist mit dem Energie-System gestorben; danach blieb „Lauf-Erfahrung" (1–5 je Kill) — ein
+ * Kontostand ohne Leser und ohne Senke. Auch der ist gestrichen (Entscheidung „Feld streichen"):
+ * es gibt genau EINE Währung (Nektar, ausschließlich außerhalb von Runs ausgegeben) und im Run
+ * nur Wertung (Score/Combo/Nektar-Ertrag).
  */
-export const EXPERIENCE_PER_KILL_MIN = 1;
-export const EXPERIENCE_PER_KILL_MAX = 5;
 
 /** Auto-Wellen: Ticks in 'prep' bis die nächste Welle automatisch startet. */
 export const AUTO_WAVE_DELAY_TICKS = 90; // 3s bei 30tps

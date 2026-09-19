@@ -29,7 +29,7 @@ export function applyResume(state: SimState, snapshot: ResumeSnapshot): void {
     prepStartTick: state.clock.tick,
     autoWaves: AUTO_WAVES_DEFAULT, // Spieler-Entscheid ist Run-Sitzung, kein Save-Bestandteil (B32)
   };
-  state.resources = { ...state.resources };
+  // Kein `resources` mehr (Entscheidung 19.09.2026): der Run hat keinen zweiten Kontostand.
   state.lives = snapshot.lives;
   state.score = snapshot.score;
   state.combo = { ...snapshot.combo };

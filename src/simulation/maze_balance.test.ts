@@ -26,7 +26,9 @@ function routeKey(route: readonly { x: number; y: number }[] | null): string {
 
 function rootWithBahn(nPlants: number): SimulationRoot {
   const root = makeRoot({ seed: SEED, runId: 1, loadout: ['sprout'], loadoutStock: 99 });
-  (root as unknown as { state: { resources: { energy: number } } }).state.resources.energy = 9999;
+  // ENTFERNT (19.09.2026): hier stand `state.resources.energy = 9999` — ein Rest des
+  // Energiesystems, das der Run nicht mehr kennt (kein Kontostand im Run). Die Zuweisung lief
+  // ins Leere; mit dem Erfahrungstopf ist auch der letzte Rest des Feldes gefallen.
   // Senkrechte Weg-Bahn gx=6 (gy 1..9) — kreuzt die Diagonale Spawn→Ausgang
   let seq = 1;
   for (let gy = 1; gy <= 9; gy++) root.commands.push(makeCommand(0, 'PLACE_TILE', seq++, { gx: 6, gy, tile: 'path' }));

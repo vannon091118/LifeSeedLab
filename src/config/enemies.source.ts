@@ -14,7 +14,11 @@ export interface EnemySource {
   hp: number;
   speed: number;      // cells per tick
   damage: number;     // lives lost when reaching the end
-  reward: number;     // Nektar-/Score-Wert bei Tod (nektarEarned += floor(reward/5), Score += reward×Combo) — es gibt KEIN Energie-System
+  // Zwei getrennte Achsen (kein Duplikat): `reward` speist den Nektar-Anteil
+  // (`nektarEarned += floor(reward/5)`), `scoreValue` den Score (`state.score += scoreValue`,
+  // combo-multipliziert). Es gibt KEIN Energie-System. Beide Werte sind heute zahlenidentisch —
+  // das ist Content-Stand, keine Regel: sie dürfen sich trennen, ohne dass Code folgt.
+  reward: number;
   scoreValue: number;
 }
 

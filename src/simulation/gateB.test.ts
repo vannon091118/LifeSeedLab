@@ -66,7 +66,6 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
       clock: { tick: 10 },
       seed: SEED,
       score: 0,
-      resources: { experience: 0 },
       nektarEarned: 0,
       combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
     };
@@ -97,12 +96,10 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
     s.enemies.length = 0;
     s.wave.spawnQueue = [];
     const beforeScore = s.score;
-    const beforeExperience = s.resources.experience;
     const beforePool = { ...s.inventory };
     const reward = (root as unknown as { waves: { checkCompletion: (s: unknown) => number | null } }).waves.checkCompletion(s);
     if (reward !== null) (root as unknown as { score: { grantWaveReward: (s: unknown, w: number, r: number) => void } }).score.grantWaveReward(s, s.wave.number, reward);
     expect(s.score).toBe(beforeScore);
-    expect(s.resources.experience).toBe(beforeExperience);
     expect(s.inventory).toEqual(beforePool);
   });
 
@@ -194,19 +191,20 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
     expect(e.poisonTicks).toBe(5);
   });
 
-  it('Kill-Münzen 1–5 deterministisch (loot-Namespace) — gleiche Eingabe ⇒ gleiche Münzen', () => {
-    const a = makeRng('loot', 12345).nextInt(1, 5);
-    const b = makeRng('loot', 12345).nextInt(1, 5);
-    expect(a).toBe(b);
-    expect(a).toBeGreaterThanOrEqual(1);
-    expect(a).toBeLessThanOrEqual(5);
-    // ScoreSystem nutzt loot-RNG pro (seed,tick,enemyId) — prüfe Range via echter ScoreSystem-Call
+  it('Ein Kill erzeugt KEINEN zweiten Kontostand (Entscheidung 19.09.2026: Feld gestrichen)', () => {
+    // Vorher schrieb jeder Kill 1–5 „Erfahrung" (loot-RNG) in `state.resources` — gelesen hat
+    // sie niemand. Der Test pinnt die Entscheidung: Wertung (Score/Nektar-Ertrag) wächst, ein
+    // Geld-/Erfahrungstopf existiert nicht. Ein zweiter Kontostand neben Nektar wäre eine zweite
+    // Wahrheit über Belohnung — und `resources` würde in `hashState` still ignoriert.
     const score = new ScoreSystem(() => {});
-    const s: unknown = { clock: { tick: 7 }, seed: SEED, score: 0, resources: { experience: 0 }, nektarEarned: 0, combo: { count: 0, timer: 0, multiplier: 1, highest: 0 } };
-    score.onEnemyDied(s as import('./state').SimState, 'enemy-0001', 10, 10, 0, 0);
-    const experience = (s as import('./state').SimState).resources.experience;
-    expect(experience).toBeGreaterThanOrEqual(1);
-    expect(experience).toBeLessThanOrEqual(5);
+    const s = {
+      clock: { tick: 7 }, seed: SEED, score: 0, nektarEarned: 0,
+      combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
+    } as unknown as import('./state').SimState;
+    score.onEnemyDied(s, 'enemy-0001', 10, 10, 0, 0);
+    expect(s.score).toBe(10);
+    expect(s.nektarEarned).toBe(2); // floor(10/5)
+    expect((s as unknown as Record<string, unknown>).resources).toBeUndefined();
   });
 
   it('EFFECT_CHAIN: Kill springt zu nächstem Gegner', () => {

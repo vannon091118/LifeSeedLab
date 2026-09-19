@@ -9,6 +9,7 @@ import { makeEvent, type GameEvent } from '../bus/events';
 import { PLANTS_SOURCE, type PlantSource } from '../config/plants.source';
 import { isInsideWorld, dist } from '../config/world.source';
 import { placementRejectReason } from './placementRules';
+import { applyPotBoost, potBoostAt } from './potBoost';
 import { nextId } from '../core/ids';
 import {
   GROWTH_TICKS_BY_RARITY,
@@ -42,6 +43,21 @@ export function resolvePlantStats(state: SimState, variantId: string): PlantStat
   return getPlantStats(variantId, state.bredStats);
 }
 
+/**
+ * EFFEKTIV-Stats EINER ZELLE: Basis (Source/BredStats) + Wirkung des Topfes, auf dem die Pflanze
+ * steht. Das ist die EINE Wahrheit für alles, was nach dem Setzen passiert — Feuern (Schaden,
+ * Reichweite, Nachladezeit), Heil-Aura und Reichweiten-Ring im Renderer lesen dieselbe Funktion.
+ *
+ * Ohne Topf identisch zu `resolvePlantStats`. Die Farbe kommt aus der ZELLE (`potBoostAt`) und
+ * wird nirgends gespeichert: keine zweite Wahrheit, kein Save-Feld, kein RNG.
+ */
+export function plantStatsAt(state: SimState, variantId: string, gx: number, gy: number): PlantStats | null {
+  const base = resolvePlantStats(state, variantId);
+  if (!base) return null;
+  const boost = potBoostAt(state.mapTiles, gx, gy);
+  return boost ? applyPotBoost(base, boost) : base;
+}
+
 /** State-independent stats lookup (used by renderer observers too). */
 export function getPlantStats(variantId: string, bred?: Record<string, BredStatsEntry>): PlantStats | null {
   const base = (PLANTS_SOURCE as Record<string, PlantSource>)[variantId];
@@ -62,7 +78,10 @@ export class PlantSystem {
   constructor(private emit: (e: GameEvent) => void) {}
 
   place(state: SimState, variantId: string, gx: number, gy: number): PlaceResult {
-    const stats = resolvePlantStats(state, variantId);
+    // Zell-gebundene Stats: steht hier ein Topf, trägt die Pflanze dessen Wirkung
+    // (Leben wird damit beim Setzen gewährt — ein später verkaufter Topf nimmt einer
+    // stehenden Pflanze ihr Leben nicht wieder weg; das Leben ist Zustand, keine Ableitung).
+    const stats = plantStatsAt(state, variantId, gx, gy);
     if (!stats) return { ok: false, reason: 'no_inventory' };
 
     const inv = state.inventory[variantId] || 0;
@@ -143,10 +162,12 @@ export class PlantSystem {
     const source = state.plants.find(p => p.id === plantId);
     if (!source) return { ok: false, reason: 'not_found' };
     if (source.growthState !== 'mature') return { ok: false, reason: 'not_mature' };
-    const stats = resolvePlantStats(state, source.variantId);
-    if (!stats) return { ok: false, reason: 'not_found' };
+    const base = resolvePlantStats(state, source.variantId);
+    if (!base) return { ok: false, reason: 'not_found' };
     const pos = this.findFreeNeighbor(state, source.gx, source.gy);
     if (!pos) return { ok: false, reason: 'occupied' };
+    // Der Setzling wächst auf SEINER Zelle — dort gilt die Topf-Wirkung, nicht die der Mutter.
+    const stats = plantStatsAt(state, source.variantId, pos.gx, pos.gy) ?? base;
     if (!isInsideWorld(state.cols, state.rows, pos.gx, pos.gy)) return { ok: false, reason: 'on_path' };
     if (state.plants.some(p => p.gx === pos.gx && p.gy === pos.gy)) return { ok: false, reason: 'occupied' };
     const rarity = rarityForCost(stats.cost);
@@ -220,7 +241,7 @@ export class PlantSystem {
     fire: (plant: PlantEntity, target: EnemyEntity, damage: number) => void
   ): void {
     for (const plant of state.plants) {
-      const stats = resolvePlantStats(state, plant.variantId);
+      const stats = plantStatsAt(state, plant.variantId, plant.gx, plant.gy);
       if (!stats || stats.damage <= 0) continue;
       const effectiveCooldown = stats.cooldown + plant.extraCooldown;
       if (state.clock.tick - plant.lastShot < effectiveCooldown) continue;
@@ -249,14 +270,14 @@ export class PlantSystem {
   /** Support plants: heal aura. */
   healTick(state: SimState): void {
     for (const plant of state.plants) {
-      const stats = resolvePlantStats(state, plant.variantId);
+      const stats = plantStatsAt(state, plant.variantId, plant.gx, plant.gy);
       if (!stats || stats.damage > 0) continue;
 
       for (const other of state.plants) {
         if (other.id === plant.id) continue;
         const d = dist(plant.gx + 0.5, plant.gy + 0.5, other.gx + 0.5, other.gy + 0.5);
         if (d <= stats.range) {
-          const maxHp = resolvePlantStats(state, other.variantId)?.hp ?? 100;
+          const maxHp = plantStatsAt(state, other.variantId, other.gx, other.gy)?.hp ?? 100;
           other.hp = Math.min(maxHp, other.hp + 2);
         }
       }

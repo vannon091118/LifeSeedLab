@@ -49,6 +49,13 @@ export const shopTexts = {
     'map.boulder': 'Findling',
     'map.decor': 'Deko',
     'map.plot': 'Feld-Erweiterung',
+    // Topf-Booster (19.09.2026): die Farbe der ZELLE entscheidet die Wirkung auf die Pflanze
+    // darauf. Vier Farben, vier Achsen — die Karte nennt die Wirkung, nicht nur die Farbe.
+    'map.potHint': 'Jede Topf-Zelle trägt eine feste Farbe; die Pflanze darauf wird verstärkt.',
+    'pot.amber': 'Bernstein: +20 % Schaden',
+    'pot.violet': 'Violett: +20 % Reichweite',
+    'pot.moss': 'Moos: feuert 20 % schneller',
+    'pot.rust': 'Rost: +30 % Leben',
   },
   en: {
     'shop.title': '🛒 Shop',
@@ -94,5 +101,11 @@ export const shopTexts = {
     'map.boulder': 'Boulder',
     'map.decor': 'Decor',
     'map.plot': 'Field expansion',
+    // Pot booster (19.09.2026): the CELL's colour decides the effect on the plant standing on it.
+    'map.potHint': 'Every pot cell carries a fixed colour; the plant on it gets stronger.',
+    'pot.amber': 'Amber: +20 % damage',
+    'pot.violet': 'Violet: +20 % range',
+    'pot.moss': 'Moss: fires 20 % faster',
+    'pot.rust': 'Rust: +30 % health',
   },
 };

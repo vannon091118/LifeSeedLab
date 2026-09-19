@@ -47,7 +47,10 @@ describe('AP4 — Observation-Serializer (Phase 2)', () => {
     expect(obsA.phase).toBe('layout'); // R1: der Run beginnt mit der Build-Sequenz
     expect(obsA.wave.number).toBe(0);
     expect(obsA.route.waypointCount).toBe(23); // R2: leere Welt ⇒ Diagonal-Treppe (23 Wegpunkte)
-    expect(obsA.route.quality).toBe(1); // ortho4-Monotone ⇒ Qualität 1 (kein Rücklauf)
+    // Laufweg in Feldern (Entscheidung 19.09.2026): auf offener 12×12-Fläche ist der echte Weg
+    // genau der kürzestmögliche — der Agent sieht dieselben Zahlen wie der HUD-Chip.
+    expect(obsA.route.tiles).toBe(obsA.route.ideal);
+    expect(obsA.route.tiles).toBeGreaterThan(0);
     expect(obsA.combat.enemies).toEqual([]);
   });
 
@@ -75,7 +78,7 @@ describe('AP4 — Observation-Serializer (Phase 2)', () => {
       makeEvent(7, 'PROJECTILE_FIRED', 'plant-0001', 2, { projectileId: 'pr1', plantId: 'p1', targetId: 'e1', damage: 15, effectId: null }),
       makeEvent(9, 'WAVE_STARTED', 'system:wave', 3, { wave: 2, enemyCount: 8 }),
       makeEvent(10, 'DAMAGE_DEALT', 'system:combat', 4, { enemyId: 'e1', amount: 12, critical: false, hp: 40, px: 3.5, py: 3.5 }),
-      makeEvent(12, 'ROUTE_CHANGED', 'system:map', 5, { waypoints: 0, quality: null, blocked: true }),
+      makeEvent(12, 'ROUTE_CHANGED', 'system:map', 5, { waypoints: 0, tiles: null, ideal: null, blocked: true }),
     ];
     const events = eventsForAgent(log);
     expect(events.map(e => e.type)).toEqual(['PLACEMENT_REJECTED', 'WAVE_STARTED', 'ROUTE_CHANGED']);

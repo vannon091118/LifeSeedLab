@@ -59,7 +59,12 @@ export type PlacementDecision =
 export interface PlacementEnvironment {
   /** Aufgelöstes Visual genau wie bei der späteren Platzierung (Identität ändert sich nie). */
   visualFor(variantId: string): ResolvedVisual;
-  statsFor(variantId: string): { cost: number; range: number } | null;
+  /**
+   * Stats der Vorschau — je ZELLE, nicht nur je Sorte: ein Topf auf der Zelle erhöht z. B. die
+   * Reichweite. Die Vorschau zeigt damit genau den Ring, den die Pflanze später hat (Topf-Booster
+   * 19.09.2026); ohne Topf liefert die Quelle die Basiswerte.
+   */
+  statsFor(variantId: string, cell: Cell): { cost: number; range: number } | null;
   board(): {
     plants: ReadonlyArray<Cell>;
     inventory: Record<string, number>;
@@ -178,7 +183,7 @@ export class PlacementController {
       visual: this.visualForCell(),
       valid: reason === null,
       reason,
-      range: this.rangeForCell(),
+      range: this.rangeForCell(cell),
     };
   }
 
@@ -186,9 +191,9 @@ export class PlacementController {
     return this.variantId !== null ? this.env.visualFor(this.variantId) : this.env.visualFor('sprout');
   }
 
-  private rangeForCell(): number | null {
+  private rangeForCell(cell: Cell): number | null {
     if (this.variantId === null) return null;
-    const stats = this.env.statsFor(this.variantId);
+    const stats = this.env.statsFor(this.variantId, cell);
     return stats && stats.range > 1 ? stats.range : null;
   }
 
@@ -201,7 +206,7 @@ export class PlacementController {
     }
     if (this.variantId === null) return 'unknown';
 
-    const stats = this.env.statsFor(this.variantId);
+    const stats = this.env.statsFor(this.variantId, cell);
     if (!stats) return 'unknown';
     return placementRejectReason({
       // Geometrie mit der ECHTEN Weltgröße: fehlten cols/rows, prüfte die Vorschau gegen 12×12

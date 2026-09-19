@@ -199,12 +199,30 @@ export function rollCandidates<T>(opts: {
   count: number;
   known?: readonly Descriptor[];
   measure?: Measure;
+  /**
+   * Zusatzbedingung der DOMÄNE (optional): `false` ⇒ dieser Entwurf zählt trotz ausreichender
+   * Distanz als nicht neu und wird übersprungen. Nötig, wo „anders" mehr heißt als „weit weg":
+   * zwei Käferkandidaten mit identischen Kampfwerten sind für den Spieler dieselbe Wahl, selbst
+   * wenn der nächste Nachbar ein dritter Kandidat war. Der Kern kennt nur die Bedingung, nie
+   * ihre Begründung — die liefert die Domäne.
+   */
+  distinct?: (candidate: T, accepted: readonly T[]) => boolean;
+  /**
+   * Suchbudget dieser Domäne (Default `BREEDING.novelty.maxAttempts`). Eine Domäne darf mehr
+   * Versuche brauchen, wenn ihr Suchraum enger ist: Greift der Neuheitsdruck nur über Mutation
+   * (zwei genetisch gleiche Eltern), braucht „ein anderes Profil" mehr Würfe als „ein anderes
+   * Bild". Die Grenze wird nur ausgeschöpft, wenn die Schwelle NICHT erreicht wird — der
+   * Normalfall bricht unverändert früh ab.
+   */
+  maxAttempts?: number;
   /** Erzeugt Kandidat + Deskriptor aus Strom, Index und Versuch (der Versuch = Neuheitsdruck). */
   make: (rng: Rng, index: number, attempt: number) => { candidate: T; descriptor: Descriptor };
 }): { candidate: T; descriptor: Descriptor; attempt: number; distance: number; reached: boolean }[] {
   const { pairSeed, namespace, count, known = [] } = opts;
+  const attempts = opts.maxAttempts ?? BREEDING.novelty.maxAttempts;
   const measure = opts.measure ?? descriptorDistance;
   const accepted: Descriptor[] = [...known];
+  const acceptedCandidates: T[] = [];
   const out: { candidate: T; descriptor: Descriptor; attempt: number; distance: number; reached: boolean }[] = [];
 
   for (let index = 0; index < count; index++) {
@@ -215,14 +233,18 @@ export function rollCandidates<T>(opts: {
     let bestAttempt = 0;
     let bestDistance = -1;
     let reached = false;
-    for (let attempt = 0; attempt < BREEDING.novelty.maxAttempts; attempt++) {
+    for (let attempt = 0; attempt < attempts; attempt++) {
       const built = opts.make(candidateRng(pairSeed, namespace, index, attempt), index, attempt);
-      const distance = nearestDistance(built.descriptor, accepted, measure);
+      // Nicht-distinkter Entwurf verliert JEDEN Vergleich (Distanz 0 statt gemessen) — er kann
+      // nur noch gewinnen, wenn ALLE Versuche Zwillinge sind: die Schleife endet immer.
+      const ok = opts.distinct ? opts.distinct(built.candidate, acceptedCandidates) : true;
+      const distance = ok ? nearestDistance(built.descriptor, accepted, measure) : 0;
       if (distance > bestDistance) { best = built; bestAttempt = attempt; bestDistance = distance; }
-      if (distance >= BREEDING.novelty.minDistance) { reached = true; break; }
+      if (ok && distance >= BREEDING.novelty.minDistance) { reached = true; break; }
     }
     const chosen = best!;
     accepted.push(chosen.descriptor);
+    acceptedCandidates.push(chosen.candidate);
     out.push({ candidate: chosen.candidate, descriptor: chosen.descriptor, attempt: bestAttempt, distance: bestDistance, reached });
   }
   return out;

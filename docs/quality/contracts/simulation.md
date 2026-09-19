@@ -89,3 +89,48 @@ die kleinste Pflanzenzahl, bei der die Dijkstra-Route die Bahn verlässt.
 - Wert 2 ist der dokumentierte Sweet Spot: 2 Pflanzen = 1 sichtbarer Knick, 4 = totale
   Auslenkung. Änderungen daran sind Balance-Entscheidungen mit diesem Datensatz als
   Vorher-Nachher-Basis — der Vertrag-Test (`maze_balance.test.ts`) muss mitgezogen werden.
+
+---
+
+## QA-Abgleich (19.09.2026) — erledigte Befunde dieser Domäne
+
+Quelle: Verständnis-QA v0.0.55 + QA v0.0.49. Nur Punkte, die am aktuellen Code **belegt**
+erledigt sind; alles weiterhin Offene steht in `docs/process/ROADMAP.md` §3.
+
+- **T1 / BUG 1 — State-Hash war nur pro Prozess stabil. BEHOBEN (19.09.2026).** `nextId(kind)`
+  zählt prozess-global, und `snapshot.toHashable` nimmt die Entity-ID in den Hash auf — zwei
+  identische Runs im selben Tab ergaben `plant-0010` vs. `plant-0011` und damit verschiedene
+  Hashes. Der `SimulationRoot`-Konstruktor setzt die Zähler jetzt selbst zurück (Run-Start =
+  Reset), womit der dokumentierte Vertrag wieder prozessübergreifend gilt. Lock:
+  `determinism.test.ts` Kern 1b — **ohne** manuellen Reset; die Mutation (Reset entfernt) macht
+  ihn rot, nachgewiesen. Grenze, im Code benannt: genau EINE lebende Simulation je Prozess;
+  ein zweiter gleichzeitiger Lauf muss `nextId`-frei über `nextScopedId(runId, kind, seq)` gehen.
+- **PATH QUALITY war bedeutungslos (immer 100 %). BEHOBEN.** Die Referenz ist nicht mehr die
+  Feld-Diagonale (die jeden Umweg auf 1 cappt), sondern die Manhattan-Distanz der
+  ROUTE-Endpunkte; das Modul `simulation/routeQuality.ts` trägt die Begründung. Der Wert fließt
+  als `quality` über `ROUTE_CHANGED` in den HUD-Chip.
+- **`resources.coins` ohne Senke. BEHOBEN durch Entfernung.** Der zweite Kontostand existiert
+  nicht mehr; `scoreSystem` dokumentiert, warum (Nektar ist die eine Meta-Währung).
+- **Blumentopf hatte keine Wirkung. BEHOBEN (19.09.2026).** Er war reiner Maze-Blocker, während
+  die Source ihn „Platzierfläche" nannte — zwei Lesarten desselben Objekts. Jetzt ist er ein
+  **Booster**: `config/pot.source.ts` trägt vier Farben auf vier BESTEHENDEN Achsen (Bernstein
+  +Schaden, Violett +Reichweite, Moos −Nachladezeit, Rost +Leben), `simulation/potBoost.ts` leitet
+  die Farbe aus der ZELLE ab (`deriveSeed(EPOCH_ROOT,'world','pot')` — kein Save-Feld, kein RNG,
+  gleiche Zelle ⇒ gleiche Farbe), und `plantSystem.plantStatsAt(state, variantId, gx, gy)` ist die
+  EINE Wahrheit für Feuern, Heil-Aura, Reichweiten-Ring und Vorschau. Beleg: `potBoost.test.ts`,
+  Mutation (Boost-Anwendung entfernt) wird rot.
+- **WEG-GÜTE konnte „gerade" nicht von „gebogen" unterscheiden. ERSETZT (19.09.2026).** Gemessen:
+  gerade Route 1,000 · Stufentreppe 1,000 · Hin-und-zurück 0,500 — die Quote erkannte nur
+  Rücklauf, behauptete aber „100 % = gerader Weg". `simulation/routeQuality.ts` ist durch
+  `routeMetrics.ts` ersetzt: `routeWalkTiles` (Felder des echten Wegs = Zeit unter Feuer) und
+  `routeIdealTiles` (kürzestmöglich). Der Abstand beider Werte IST der Maze-Gewinn. Der
+  `ROUTE_CHANGED`-Payload trägt `tiles`/`ideal` statt `quality`; die Anzeige liest dieselbe Quelle.
+- **Kein zweiter Kontostand im Run. ENTFERNT (19.09.2026).** `resources.experience` hatte genau
+  einen Writer und keinen Leser (der Hash ignorierte es bewusst). Das Feld ist gestrichen statt
+  ausgestattet — Wertung bleibt `score`/`combo`/`nektarEarned`. Ein Kill erzeugt keinen zweiten
+  Kontostand; `gateB.test.ts` pinnt genau das. Nebenbefund derselben Aufräumung: zwei tote
+  `state.resources.energy = 9999`-Zuweisungen in `maze_balance`/`maze_loan` (Rest des
+  Energiesystems) sind gefallen.
+- **`scoreValue` schien tot. BEHOBEN/aufgelöst.** `scoreSystem.onEnemyDied` verbraucht ihn
+  (`state.score += scoreValue`); `reward` bleibt der Energie-/Nektarwert. Zwei Werte, zwei
+  benannte Zwecke — eine Wahrheit je Feld.

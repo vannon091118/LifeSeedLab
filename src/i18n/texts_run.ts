@@ -18,8 +18,10 @@ export const runTexts = {
     // erklären, was der Modus tut und was zurückkommt (Material, nicht Energie).
     'game.sellHint': 'Verkaufsmodus: ein gebautes Feld antippen — das Material wandert zurück in den Pool.',
     'game.sellRefund': 'Material zurück',
-    'game.routeQuality': 'WEG-GÜTE',
-    'game.routeQualityHint': '100% = gerader Weg — je niedriger, desto mehr lenkt dein Zucht-Layout die Gegner um',
+    // Entscheidung 19.09.2026: keine Prozent-Quote mehr (sie konnte „gerade" nicht von
+    // „gebogen" unterscheiden), sondern der LAUFWEG in Feldern — das Zeit-unter-Feuer-Maß.
+    'game.pathTiles': 'LAUFWEG',
+    'game.pathTilesHint': 'Felder, die die Gegner wirklich laufen — kürzestmöglich wären {ideal}. Mehr Felder = mehr Zeit unter Beschuss.',
     'game.autoWaves': 'Auto-Wellen',
     'game.prep': 'VORBEREITUNG — Türme platzieren, dann Welle starten!',
     'game.waveActive': 'Welle',
@@ -95,8 +97,8 @@ export const runTexts = {
     'game.sellTool': 'Sell',
     'game.sellHint': 'Sell mode: tap a built plot — the material returns to your pool.',
     'game.sellRefund': 'material back',
-    'game.routeQuality': 'PATH QUALITY',
-    'game.routeQualityHint': '100% = straight path — the lower it drops, the more your plantings bend the enemies’ route',
+    'game.pathTiles': 'PATH LENGTH',
+    'game.pathTilesHint': 'Tiles the enemies actually walk — {ideal} would be the shortest possible. More tiles = more time under fire.',
     'game.autoWaves': 'Auto waves',
     'game.prep': 'PREP PHASE — Place towers, then start the wave!',
     'game.waveActive': 'Wave',

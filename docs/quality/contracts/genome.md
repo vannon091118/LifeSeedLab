@@ -251,8 +251,53 @@ Save weg, dessen Seed nicht zur aktuellen Ableitung passt).
 - [x] Kein Schema-Bump; Alteinträge werden ohne Migrationscode abgeholt
 - [x] Gegner-Domäne nachweislich unberührt (Literal-Test)
 - [x] Gate-Tests grün, tsc clean, `vite build` grün, E2E grün
-- [ ] Offen (Content, nicht Teil von B30): bei `leafhopper`×`shellbeetle` tragen zwei der drei
-      Kandidaten identische Stats (nur Genome/IDs unterscheiden sich) — der P7-Test prüft nur das
-      Bumble-Paar. Die Merge-Regel ist unverändert, das ist eine Vielfalts-Frage des Contents
+- [x] Kandidaten tragen nie zwei identische Kampfprofile (19.09.2026) — der frühere Vorbehalt
+      „zwei der drei Kandidaten mit gleichen Stats" ist damit geschlossen; Lock siehe QA-Abgleich
 
 ---
+
+## QA-Abgleich (19.09.2026) — erledigte Befunde dieser Domäne
+
+Quelle: Spielerbericht v2, QA v0.0.49, Re-Test + DE-Fassung v0.0.53, Verständnis-QA v0.0.55,
+externer Spieler-Playtest 19.09.2026. Nur am aktuellen Code **belegte** Erledigungen; alles
+weiterhin Offene steht in `docs/process/ROADMAP.md` §3.
+
+- **„Warum sehen alle Käfer fast identisch aus" — BEHOBEN (Gründer-Erbgut).** `beetles.source.ts`
+  dokumentiert den Bruch selbst: vorher trug jeder Gründer GENAU EIN Gen, und weil die Gene nur
+  Panzerdecken-Achsen bewegten, lag `carapaceForm` bei allen auf `flat` und `dress` auf `scaled`.
+  Jetzt trägt jeder Gründer ein Erbgut (Blatthüpfer sprinter+jumper+winged, Schildkäfer
+  carapace+hardshell+taunt, Hummel swarmborn+furry+winged+sting) und jede Art einen Körperplan.
+- **„Ein Farbwechsel allein ist kein neues Tier" — BEHOBEN.** Der Käfer-Deskriptor gewichtet Form
+  (Körper, Panzer, Mandibeln, Fühler, Beine, Decken, Organe) und setzt die Pigment-Achsen auf
+  Gewicht 0; der Neuheits-Vergleich läuft über diesen Vektor, nicht über die Farbe.
+- **„Zucht ist Glücksspiel / Elternähnlichkeit unsichtbar" — BEHOBEN.** Vererbung läuft über den
+  gemeinsamen Kern (`genome/breeding.ts`): Dominanz entscheidet die Form, die Kraft mischt beide
+  Allele in KANONISCHER Reihenfolge (vertauschte Eltern ergeben dasselbe Kind), rezessive Anlagen
+  wandern gedämpft mit und erwachen mit der Drift. Die Elternbindung ist als Vertrag gepinnt
+  (`parentSimilarityOk` gegen die stetige `driftFor`-Kurve), die Generation zählt wirklich weiter
+  (jüngster Elternteil + 1).
+- **Kandidaten konnten Zwillings-Profile tragen — BEHOBEN (19.09.2026).** Der Neuheits-Vergleich
+  maß nur das AUSSEHEN: gemessen trugen **11 von 48 Bruten (22,9 %)** zwei Kandidaten mit
+  identischen Stats, und die Form-Distanz dieser Paare lag bei 0,026–0,064 (Schwelle 0,055) —
+  der Spieler wählte zwischen zwei Bildern desselben Tiers. Eingriff, Source-driven und modular:
+  `rollCandidates` kennt die **optionale Domänen-Bedingung `distinct`** (ein Entwurf mit bereits
+  vergebenem Kampfprofil verliert jeden Vergleich), und die Brut sucht 12 statt 6 Versuche
+  (`BEETLE_BREED.noveltyAttempts`); die Pflanzenzucht bleibt unverändert bei 6. Ergebnis:
+  **0 von 48** Bruten mit Zwillingen, Form-Distanz der Kandidaten unverändert (Mittel 0,0753 →
+  0,0758), Determinismus nachgemessen (zwei Aufrufe bytegleich). Lock: `genome_beetle.test.ts`
+  „drei Kandidaten, drei WAHLEN" fährt ALLE Specimen-Paarungen × 8 Brut-Indizes; die Mutation
+  (Bedingung entfernt) macht ihn rot — belegt, nicht behauptet.
+- **Verworfener Zwischenstand (eigener Fehler, benannt).** Der erste Versuch mischte die
+  Kampfwerte als zusätzliche ACHSEN ins Form-Maß. Gemessen senkte das die mittlere Form-Distanz
+  der Kandidaten von 0,075 auf 0,069 — „mehr Wahl" wäre also mit „weniger sichtbarem
+  Unterschied" bezahlt worden. Deshalb ist das Profil eine ZUSATZ-Bedingung statt eines
+  Achsen-Zusatzes; der gepinnte Kandidatensatz der Fachkreuzung bleibt dadurch bitgleich, und
+  nur Bruten mit Zwillingen würfeln anders (Specimen sind Daten — keine Meta-Migration).
+- **Ehrliche Grenze (gemessen, nicht behoben — sie ist Physik dieser Maschine).** Sind zwei Eltern
+  genetisch gleich, erhält die Rekombination die Kräfte EXAKT: beide Allele sind identisch, also
+  kürzt sich der Misch-Bias heraus, und ein Dominanz-Kippen ändert die Käfer-Werte gar nicht
+  (Dominanz wirkt nur auf die Form). Vielfalt entsteht dort ausschließlich über Mutation — genau
+  deshalb steht das Brut-Budget bei 12 Versuchen. Wer noch mehr Vielfalt will, muss die
+  Mutations-Chance mit dem Neuheitsdruck koppeln; das ist eine BALANCE-Entscheidung des
+  gemeinsamen Kerns (sie bewegt auch die Pflanzenzucht) und steht als P-9 in der ROADMAP.
+

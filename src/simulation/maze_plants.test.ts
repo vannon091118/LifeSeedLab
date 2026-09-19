@@ -3,7 +3,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { SimulationRoot } from './root';
 import { makeRoot } from '../testing/testkit';
-import { routeQuality } from './mapSystem';
+import { routeWalkTiles, routeIdealTiles } from './mapSystem';
 import { resetIds } from '../core/ids';
 import { makeCommand } from '../bus/commands';
 
@@ -105,18 +105,24 @@ describe('D1 — Pflanzen sind Maze-Bauwerk (auch ohne Tiles)', () => {
     expect(after).toBe(straight);
   });
 
-  it('routeQuality: gerade Route = 1, Rücklauf (Baffle) < 1 — Formel-Vertrag als Unit', () => {
+  it('Laufweg-Messung: gerade = kürzestmöglich, Baffle = länger als der kürzeste Weg', () => {
     // Warum Unit statt Integration: PLACEMENT_PATH_MARGIN (B33) hält den Design-Korridor
     // IMMER begehbar und Rand-Reihen sind nie baubar — nicht-monotone Routen (echte
-    // Rückläufe) entstehen im Feld nur über Baffle-Kosten, nie durch Blockade. Die Formel
+    // Rückläufe) entstehen im Feld nur über Baffle-Kosten, nie durch Blockade. Die Messung
     // selbst ist hier gepinnt; die Maze-Lebendigkeit decken die Tests oben.
+    //
+    // VERTRAG (Entscheidung 19.09.2026): Statt einer Prozent-Quote, die „gerade" nicht von
+    // „monoton gebogen" unterscheiden konnte, misst der HUD den LAUFWEG in Feldern. Der
+    // Maze-Gewinn ist der ABSTAND zwischen echtem Weg und dem kürzestmöglichen — genau das
+    // prüft dieser Test an beiden Formen.
     const cells = (pts: [number, number][]) => pts.map(([x, y]) => ({ x: x + 0.5, y: y + 0.5 }));
 
     const straight = cells(Array.from({ length: 12 }, (_, gx) => [gx, 2] as [number, number]));
-    expect(routeQuality(straight)).toBe(1);
+    expect(routeWalkTiles(straight)).toBe(11);   // 11 Felder von gx=0 bis gx=11
+    expect(routeIdealTiles(straight)).toBe(11);  // kürzestmöglich = derselbe Wert ⇒ kein Umweg
 
-    // Baffle (wie der Design-Pfad): 11 Schritte hin, 4 runter, 5 ZURÜCK, 1 runter, 5 hin —
-    // 26 Manhattan-Schritte, Endpunkt-Referenz |11-0| + |7-2| = 16 ⇒ q = 16/26 < 1.
+    // Baffle (wie der Design-Pfad): 11 Schritte hin, 4 runter, 5 ZURÜCK, 1 runter, 4 hin —
+    // 25 Manhattan-Schritte; kürzestmöglich sind |10-0| + |7-2| = 15 (Endpunkte gx 0→10).
     const baffle = cells([
       ...Array.from({ length: 12 }, (_, i) => [i, 2] as [number, number]),
       ...Array.from({ length: 4 }, (_, i) => [11, 3 + i] as [number, number]),
@@ -124,8 +130,9 @@ describe('D1 — Pflanzen sind Maze-Bauwerk (auch ohne Tiles)', () => {
       [6, 7] as [number, number],
       ...Array.from({ length: 5 }, (_, i) => [6 + i, 7] as [number, number]),
     ]);
-    const q = routeQuality(baffle)!;
-    expect(q).toBeGreaterThan(0);
-    expect(q).toBeLessThan(1);
+    expect(routeWalkTiles(baffle)).toBe(25);
+    expect(routeIdealTiles(baffle)).toBe(15);
+    // Der Gewinn ist POSITIV und lesbar: 10 Felder mehr Zeit unter Feuer.
+    expect(routeWalkTiles(baffle)! - routeIdealTiles(baffle)!).toBe(10);
   });
 });

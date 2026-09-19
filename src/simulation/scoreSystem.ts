@@ -3,8 +3,6 @@
 
 import type { SimState } from './state';
 import { makeEvent, type GameEvent } from '../bus/events';
-import { makeRng } from '../core/rng';
-import { EXPERIENCE_PER_KILL_MIN, EXPERIENCE_PER_KILL_MAX } from '../config/economy.source';
 
 export class ScoreSystem {
   private seq = 0;
@@ -15,9 +13,7 @@ export class ScoreSystem {
   onEnemyDied(state: SimState, enemyId: string, reward: number, scoreValue: number, px: number, py: number): void {
     state.score += scoreValue;
     state.nektarEarned += Math.max(1, Math.floor(reward / 5));
-    // 1–5 Erfahrung deterministisch via loot-RNG (pro Kill, kein Stream-State)
-    const experience = makeRng('loot', (state.seed ^ Math.imul(state.clock.tick, 0x51ED) ^ Math.imul(enemyId.length, 0x9E37) ^ enemyId.charCodeAt(0)) >>> 0).nextInt(EXPERIENCE_PER_KILL_MIN, EXPERIENCE_PER_KILL_MAX);
-    state.resources.experience += experience;
+    void enemyId;
 
     this.emit(makeEvent(state.clock.tick, 'SCORE_CHANGED', 'system:score', ++this.seq, {
       score: state.score, delta: scoreValue,
@@ -25,11 +21,13 @@ export class ScoreSystem {
     this.emit(makeEvent(state.clock.tick, 'REWARD_GRANTED', 'system:score', ++this.seq, {
       reward, sourceId: enemyId,
     }));
-    // B29: kein COINS_GRANTED mehr. `resources.experience` bleibt State (deterministisch,
-    // testbar), aber das Event war ein Contract ohne Consumer UND ohne Senke: kein Positionsfeld
-    // (also kein Welt-FX möglich), der Stand ist Snapshot, und Erfahrung ist KEINE Währung — sie
-    // wird nie ausgegeben. Genau deshalb heißt sie nicht mehr „coins": ein zweiter Kontostand
-    // neben Nektar war eine zweite Wahrheit über Geld (Befund 19.09.2026).
+    // B29/ENTSCHEIDUNG 19.09.2026 („Feld streichen"): Es gibt KEINEN zweiten Kontostand mehr.
+    // Vorher schrieb jeder Kill 1–5 „Erfahrung" über den loot-Strom in `state.resources` —
+    // gelesen hat sie niemand (kein UI, kein Command, keine Senke), und der Hash las sie
+    // bewusst nicht. Ein deklariertes Feld ohne Leser ist eine zweite Wahrheit über Belohnung
+    // neben Score und Nektar; es ist gestrichen statt ausgestattet. Der loot-Namespace bleibt
+    // als Vertrags-Fläche in `core/rng` deklariert (kein System beansprucht ihn heute).
+    // Kein Positionsfeld benutzt: der Treffer-Ort bleibt FX-Sache (ENEMY_DIED trägt ihn).
     void px; void py;
   }
 

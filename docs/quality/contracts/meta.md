@@ -269,3 +269,28 @@ Ein Samen ist heute ein Kreuzungs-Ticket, kein Bestand: `buySeed` → `seedStash
 - [x] `tsc` clean, Suite grün (214/214), E2E 11/11, Build grün
 
 ---
+
+## QA-Abgleich (19.09.2026) — erledigte Befunde dieser Domäne
+
+Quelle: Spielerberichte v0.0.34 (2×), Lauf 3 (v0.0.36), QA v0.0.36 (3 Berichte), QA v0.0.49,
+Re-Test + Maze-QA v0.0.53, Verständnis-QA v0.0.55. Nur belegte Erledigungen:
+
+- **„Exit Run" zählte überlebte Wellen doppelt. BEHOBEN (63222e5).** `countRun()` ruft kein
+  `advanceCrossMaturation` mehr — jede angebrochene Welle ist bereits über `WAVE_STARTED`
+  gezählt (ein Writer, B17.4). Re-Test v0.0.53: Abbruch in Welle 1 ⇒ Zähler-Δ 0 (vorher +2), 2/2;
+  Tod-Pfad war schon korrekt. Lock: `tests/run.spec.ts`-+1-Gate.
+- **Brut kostete keinen Nektar. BEHOBEN.** `enqueueBrood` prüft und bucht jetzt
+  (`meta.nektar - BEETLE_BREED.nektarCost`), nicht mehr nur die UI. Der Befund stand in **fünf**
+  Berichten (v0.0.34 → v0.0.55) — er war der längste offene Vertrauensbruch der Ökonomie.
+- **Restbestand des Runs landete als Meta-„Besitz". AUFGELÖST und dokumentiert.** `applyRunEnd`
+  unterscheidet jetzt explizit: **Werkstoff** (Pool-Keys) wird verbraucht — der Rest IST der neue
+  Bestand, auch wenn er 0 ist (sonst würde jedes verbaute Tile gutgeschrieben); **Pflanzen**
+  bleiben beim positiven Max, ihr Besitz soll durch einen Run nicht schrumpfen. Der Leih-Spross
+  ist nie Besitz und wird vorher entfernt.
+- **Shop-Tiers („RARE") täuschten Inhalt vor. BEHOBEN.** Die Preiskategorien sind aus dem Shop
+  verschwunden; Samen, Tiles und Deko laufen als getrennte Pools (`shopPools`).
+- **Leih-Pflanze konnte eine Mauer sein (erster Run ungewinnbar). BEHOBEN.** `deriveLoanPlant`
+  nimmt immer den Spross als Basis (Rolle fix, die schwächste Schuss-Pflanze); die deterministische
+  Vielfalt entsteht über die Genom-Kreuzung mit sich selbst, nicht über die Rolle.
+
+---

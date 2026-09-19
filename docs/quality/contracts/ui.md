@@ -379,3 +379,50 @@ ein Auffinden-Test würde die Versteckstelle dokumentieren statt schützen.
 - [x] SVG-Banner mit Signatur; README-Badge auf 311 Tests
 - [x] Kein Stock-Icon/Emoji (gezeichnete Marke), Name unübersetzt, Bedienhilfe zweisprachig
 - [x] Gate-Tests grün, tsc clean, `vite build` grün, E2E grün
+
+---
+
+## QA-Abgleich (19.09.2026) — erledigte Befunde dieser Domäne
+
+Quelle: externer Spieler-Playtest 19.09.2026 (mit Screenshots), Re-Test + DE-Fassung v0.0.53,
+Verständnis-QA v0.0.55. Nur am aktuellen Code **belegte** Erledigungen; Offenes steht in
+`docs/process/ROADMAP.md` §3.
+
+- **Hinweisblase verdeckte die Tray-Beschriftungen. BEHOBEN (F5/B42).** Im geführten Modus ist
+  der Blasenrahmen durchlässig (`bubbleIsPointerTransparent`/`bubbleFrameStyle`) und hat keine
+  eigene Verdeckungszone mehr — der Klick aufs geführte Ziel kommt an. Dazu der zweite Teil des
+  Befunds („Nachrichten klappen ein, ohne dass man sie nachlesen kann"): `bubbleTextVisible`
+  bindet die Sichtbarkeit AUSSCHLIESSLICH an „✕ Gelesen", nie an einen Timer; jeder neue Schritt
+  startet mit sichtbarem Text.
+- **„Welle starten" vs. „Fertig gebaut" — falscher Hinweis und zwei gleiche Knöpfe. BEHOBEN.**
+  Der Hinweis nennt jetzt den echten Weg („Fertig gebaut" startet die erste Welle), und die
+  beiden Knöpfe heißen verschieden: `layout.done` („Fertig gebaut") und `layout.doneLong`
+  („Bauen beenden"). Die Begründung steht im Textfile selbst, damit sie nicht zurückgebaut wird.
+- **Roter Banner neben grünem Geist (Vorschau lehnte ab, was die Sim annimmt). BEHOBEN (R2).**
+  Die Vorschau reicht die ECHTE Weltgröße der Sim durch (`gameRuntime` → `cellRejectReason`),
+  und `PlacementBoard.cols/rows` sind Pflichtfelder — der frühere Default 12 hat jede Zelle einer
+  gewachsenen Welt als „kein Platz" gemeldet. Fehlt die Weltgröße künftig, ist das ein
+  Compile-Fehler statt eines roten Geistes. Zusätzlich nennt jede Ablehnung ihren Grund
+  (`field.reject.*`, u. a. `no_material`, `occupied_plant`, `out_of_world`).
+- **Tray-Karte zeigte eine rohe ID („seed_0") statt „Spross (Keim 1)". BEHOBEN (F4/N3).**
+  `plantLabels.ts` löst in einer Kette auf: i18n-Key → Source-Label (deutsch, kanonisch) → Roh-ID;
+  gezüchtete Varianten ohne Source-Eintrag sind über `EXTRA_LABEL_KEYS` (z. B. `loan_sprout`)
+  angebunden. Tray, Nachkauf und aria-labels nutzen dieselbe eine Quelle.
+- **Signatur-Fragment im Spielfluss („Needing 3/6"). BEHOBEN.** „Needing" existiert im Code nur
+  noch in der Signatur selbst (`CreatedBy.tsx`: VANNON = *Volatile Agent Needing No Other
+  Nonsense*) und im Easter Egg — kein UI-Text baut mehr darauf auf.
+- **Der HUD-Chip zeigt jetzt den LAUFWEG (Entscheidung 19.09.2026).** Statt „WEG-GÜTE 100 %"
+  (eine Quote, die „gerade" nicht von „monoton gebogen" unterscheiden konnte) stehen dort zwei
+  Felder-Zahlen: die echte Weglänge und daneben „· min" der kürzeste mögliche Weg — der Abstand
+  ist der Maze-Gewinn, und die Zahl ist direkt das Zeit-unter-Feuer-Maß. Quelle ist EINE Funktion
+  (`routeMetrics` über die State-Route, gelesen im `hudSnapshot`); die i18n-Keys
+  `game.pathTiles`/`game.pathTilesHint` nennen, was gemessen wird, und Krix erklärt denselben
+  Chip im Onboarding (`tut.chips.text`, beide Sprachen). Beleg: HUD-Snapshot-Test + Live-Preview.
+- **Der Blumentopf erklärt seine vier Farben dort, wo man ihn auswählt.** Die FELD-Karte trägt
+  als Titel „Jede Topf-Zelle trägt eine feste Farbe …" plus die vier Wirkungen (`pot.amber`,
+  `pot.violet`, `pot.moss`, `pot.rust`) und einen Vier-Farb-Punkt. Bewusst KEINE schwebende
+  Beschriftung — genau die hatte früher die Tray-Karten verdeckt (F5/N4).
+- **Onboarding als Spielerfluss — im Re-Test v0.0.53 belegt.** 10/10 Schritten in beiden Sprachen,
+  jeder Übergang über eine echte Spieleraktion, kein Crash, kein hängender Cue; KRIX trägt eine
+  sichtbare Rolle („Praktikant · Strich mit Klemmbrett"), `tutorialVersion 3` wird geschrieben.
+  Der Tour-Schritt nennt jetzt den echten Weg (Leih-Spross → eigene Pflanze → wegweisender Lauf).

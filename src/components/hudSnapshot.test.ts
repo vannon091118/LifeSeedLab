@@ -58,18 +58,22 @@ describe('HudSnapshot — Bestand ab dem ersten Bild', () => {
     expect(hudOf(root.getSnapshot(), true).paused).toBe(true);
   });
 
-  it('D5: routeQuality spiegelt die State-Route — Wert auch für den leeren Run (R2: Route = Pathfinding)', () => {
-    // R2: auch die leere Welt hat eine Route (gerade Spawn→Ausgang-Linie) ⇒ Qualität 1.
+  it('D5: der HUD zeigt den LAUFWEG in Feldern (Entscheidung 19.09.2026 statt Prozent-Quote)', () => {
+    // R2: auch die leere Welt hat eine Route (Spawn→Ausgang). Auf offener Fläche ist der echte
+    // Weg genau der kürzeste mögliche — der Abstand beider Zahlen ist der Maze-Gewinn (hier 0).
     const empty = makeRoot({ seed: SEED, runId: 1 });
-    expect(hudOf(empty.getSnapshot(), false).routeQuality).toBe(1);
+    const open = hudOf(empty.getSnapshot(), false);
+    expect(open.routeTiles).not.toBeNull();
+    expect(open.routeTiles!).toBeGreaterThan(0);
+    expect(open.routeTiles).toBe(open.routeIdealTiles);
 
-    // Mit Weg-Tile: Route existiert ⇒ Qualität 1 (gerade Bahn).
+    // Mit Weg-Tile: die Route existiert weiter und bleibt lesbar (Felder, ganzzahlig).
     const root = makeRoot({ seed: SEED, runId: 1, loadout: ['sprout'] });
     root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 6, gy: 5, tile: 'path' }));
     root.stepOnce();
-    const q = hudOf(root.getSnapshot(), false).routeQuality;
-    expect(q).not.toBeNull();
-    expect(q!).toBeGreaterThan(0);
-    expect(q!).toBeLessThanOrEqual(1);
+    const hud = hudOf(root.getSnapshot(), false);
+    expect(hud.routeTiles).not.toBeNull();
+    expect(Number.isInteger(hud.routeTiles)).toBe(true);
+    expect(hud.routeIdealTiles!).toBeLessThanOrEqual(hud.routeTiles!);
   });
 });

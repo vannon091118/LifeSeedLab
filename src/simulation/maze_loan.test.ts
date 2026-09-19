@@ -32,7 +32,9 @@ function loanRoot(): SimulationRoot {
     loadout: ['sprout', LOAN_PLANT_ID], loadoutStock: 99,
     bredStats: { [LOAN_PLANT_ID]: { ...loan.stats, cost: loan.cost, effects: [] } },
   });
-  (root as unknown as { state: { resources: { energy: number } } }).state.resources.energy = 9999;
+  // ENTFERNT (19.09.2026): hier stand `state.resources.energy = 9999` — ein Rest des
+  // Energiesystems. Das Feld existiert seit dessen Streichung nicht mehr; die Zuweisung lief
+  // ins Leere und ist mit dem Erfahrungstopf endgültig gefallen (der Run hat keinen Kontostand).
   // Weg-Bahn wie im B38-Datensatz: senkrechte Spalte gx=6, gy 1..9 (kreuzt die Diagonale)
   let seq = 1;
   for (let gy = 1; gy <= 9; gy++) root.commands.push(makeCommand(0, 'PLACE_TILE', seq++, { gx: 6, gy, tile: 'path' }));

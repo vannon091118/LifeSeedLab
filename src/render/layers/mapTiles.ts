@@ -4,6 +4,8 @@
 // Ink-Kontur) — Reine Präsentation, liest nur Tile-Typ + Verbindungstyp.
 
 import { resolvePathConnection, type PathConnection } from '../../config/map.source';
+import type { PotColor } from '../../config/pot.source';
+import { potColorAt } from '../../simulation/potBoost';
 
 const INK = '#2b2b26';
 const PENCIL = 'rgba(43,43,38,0.35)';
@@ -85,12 +87,25 @@ function drawPathSegment(ctx: CanvasRenderingContext2D, conn: PathConnection, x:
 }
 
 // ── Pflanztopf: CGI-Terrakotta (Verlauf + Specular + Ink) ──
-function drawPot(ctx: CanvasRenderingContext2D, x: number, y: number, cell: number): void {
+//
+// TOPF-FARBE (19.09.2026): Der Topf ist ein Booster, und die Farbe ist seine Aussage — sie wird
+// deshalb GEZEICHNET, nicht nur berechnet. Die Palette ist Präsentation (sie erklärt nur, was die
+// Sim aus derselben Zell-Ableitung tut); die Wahrheit „welche Farbe hat diese Zelle" liefert
+// `simulation/potBoost.ts`. Beide zusammen: gleiche Farbe in Bild und Wirkung.
+const POT_PALETTE: Record<PotColor, { light: string; dark: string; rim: string }> = {
+  amber:  { light: '#f0b775', dark: '#b3712f', rim: '#d59a52' },
+  violet: { light: '#c8a4e0', dark: '#7d55a0', rim: '#a884c4' },
+  moss:   { light: '#a8cd86', dark: '#5f8a41', rim: '#8bb469' },
+  rust:   { light: '#d99b84', dark: '#8f4a34', rim: '#bb7259' },
+};
+
+function drawPot(ctx: CanvasRenderingContext2D, x: number, y: number, cell: number, color: PotColor): void {
   const pad = cell * 0.16;
   const cx = x + cell / 2;
+  const tone = POT_PALETTE[color];
   const g = ctx.createLinearGradient(x + pad, y + pad, x + cell - pad, y + cell - pad);
-  g.addColorStop(0, '#e2955f');
-  g.addColorStop(1, '#a3552b');
+  g.addColorStop(0, tone.light);
+  g.addColorStop(1, tone.dark);
   ctx.beginPath();
   ctx.moveTo(x + pad, y + pad);
   ctx.lineTo(x + cell - pad, y + pad);
@@ -104,7 +119,7 @@ function drawPot(ctx: CanvasRenderingContext2D, x: number, y: number, cell: numb
   ctx.stroke();
   drawSpecular(ctx, cx - cell * 0.06, y + pad + cell * 0.14, cell * 0.16, 0.7);
   // Gefäßrand
-  ctx.fillStyle = '#c96f3b';
+  ctx.fillStyle = tone.rim;
   ctx.fillRect(x + pad, y + pad, cell - pad * 2, cell * 0.15);
   ctx.strokeStyle = INK;
   ctx.lineWidth = 2;
@@ -179,11 +194,13 @@ export function drawMapTile(
 ): void {
   const x = gx * cell;
   const y = gy * cell;
+  // Zell-Farbe des Topfes: dieselbe Ableitung, die die Sim für die Wirkung nutzt.
+  const color = potColorAt(gx, gy);
   ctx.save();
   switch (tile) {
     case 'pot':
       drawBox(ctx, x, y, cell, 'rgba(233,223,200,0.5)');
-      drawPot(ctx, x, y, cell);
+      drawPot(ctx, x, y, cell, color);
       break;
     case 'path':
       drawPathSegment(ctx, allTiles ? resolvePathConnection(allTiles, gx, gy, () => true) : 'isolated', x, y, cell);

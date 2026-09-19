@@ -59,7 +59,6 @@ export function freshState(
     // bevor die erste Vorbereitung tickt. Resume bleibt 'prep' (applyResume setzt es).
     phase: "layout",
     wave: { number: 0, schedule: null, spawnQueue: [], lastSpawnTick: 0, prepStartTick: clock.get().tick, autoWaves: AUTO_WAVES_DEFAULT },
-    resources: { experience: 0 },
     // R2: Run-Kopie der Welt — Größe UND Tiles aus dem Welt-Snapshot (keine neue Map).
     cols: world.cols, rows: world.rows,
     mapTiles: { ...world.tiles },

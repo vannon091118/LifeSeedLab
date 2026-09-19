@@ -195,11 +195,11 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `be7a0a1` — docs(quality): Register und acht Domänen-Owner-Contracts |
-| Arbeitsbaum | 0 gestaged, 12 geändert, 1 neu |
-| Letztes Gate | ✅ offen (preflight, 0 Fehler, 0 Warnungen) |
+| HEAD | `8d0ab8b` — feat(gate): Float-Exaktheit als Regel, Gate-Prüfung und Baum-Test |
+| Arbeitsbaum | 52 gestaged, 2 geändert, 0 neu |
+| Letztes Gate | 🛑 geschlossen (preflight, 0 Fehler, 1 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `be7a0a1` docs(quality): Register und acht Domänen-Owner-Contracts |
+| Letzter Shinon-Commit | `8d0ab8b` feat(gate): Float-Exaktheit als Regel, Gate-Prüfung und Baum-Test |
 | Letzter Push | ✅ origin/main |
-| LOC-Hotspots | `src/components/Greenhouse.tsx` 394/400 (99 %)<br>`src/meta/store.ts` 186/200 (93 %)<br>`src/i18n/tutorial.ts` 172/200 (86 %)<br>`src/simulation/enemySystem.ts` 249/300 (83 %)<br>`src/meta/run.ts` 154/200 (77 %) |
+| LOC-Hotspots | `src/components/Greenhouse.tsx` 394/400 (99 %)<br>`src/meta/store.ts` 186/200 (93 %)<br>`src/i18n/tutorial.ts` 172/200 (86 %)<br>`src/simulation/enemySystem.ts` 249/300 (83 %)<br>`src/simulation/plantSystem.ts` 232/300 (77 %) |
 <!-- SHINON:STATUS:END -->

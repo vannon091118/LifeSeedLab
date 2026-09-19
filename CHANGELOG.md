@@ -11,6 +11,19 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ### Für Spieler
 
+- **Der Blumentopf tut jetzt, was auf ihm steht.** Vorher war er nur ein Klotz im Weg, obwohl die
+  Beschreibung „Platz für Pflanzen" versprach. Jetzt verstärkt er die Pflanze, die auf ihm steht —
+  und seine FARBE sagt, wie: Bernstein mehr Schaden, Violett mehr Reichweite, Moos schießt
+  schneller, Rost mehr Leben. Die Farbe gehört zur Stelle, nicht zum Kauf: dieselbe Stelle behält
+  sie, du kannst also planen. Die FELD-Karte nennt alle vier Wirkungen.
+- **Der Weg-Zähler sagt jetzt, was er meint.** Statt „WEG-GÜTE 100 %" (was auch für eine
+  Treppe galt, die gar nicht gerade ist) steht oben die echte Laufweg-Länge und daneben der
+  kürzeste mögliche Weg: „LAUFWEG 26 · min 16". Je weiter die zwei auseinanderliegen, desto
+  länger stehen die Gegner unter Beschuss — genau das, worauf du beim Bauen hin spielst.
+- **Die Brut zeigt dir drei echte Wahlen.** Bei manchen Kreuzungen sahen die drei Kandidaten
+  zwar unterschiedlich aus, trugen aber exakt dieselben Kampfwerte — zwei Bilder desselben
+  Tiers. Jetzt achtet das Spiel beim Würfeln auch auf die Werte und sucht weiter, bis sich die
+  Kandidaten wirklich unterscheiden (bei gleichen Elternarten notfalls über ein neues Gen).
 - **Die Käfer laufen jetzt wirklich.** Vorher standen die Beine still, während der Körper sich
   zeitgesteuert auf und ab schob — das Auge liest das als Gleiten. Jetzt treten sie im
   Dreibein-Schritt (Insekten-Gang), und die Schrittfolge hängt an der ZURÜCKGEGLEGTEN STRECKE:
@@ -116,6 +129,71 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
   eines Laufs.
 
 ### Intern (Technik, Verträge & Tests)
+
+- [Sim/D1] **Kein Kontostand im Run: `resources.experience` ist gestrichen.** Das Feld hatte genau
+  einen Writer (`scoreSystem.onEnemyDied`, 1–5 „Erfahrung" über den loot-Strom) und KEINEN Leser —
+  kein UI, kein Command, keine Senke; der State-Hash ignorierte es bewusst. Ein deklariertes Feld
+  ohne Leser ist eine zweite Wahrheit über Belohnung neben Score und Nektar, deshalb Entscheidung
+  „streichen": Feld, Writer, die beiden Source-Konstanten und die Resume-Kopie sind weg, zwei
+  Tests, die es pinnten, ebenso. Stattdessen pinnt `gateB.test.ts` die ENTSCHEIDUNG (ein Kill
+  erzeugt keinen zweiten Kontostand). Nebenbefund derselben Durchsicht: zwei tote
+  `state.resources.energy = 9999`-Zuweisungen in `maze_balance`/`maze_loan` (Rest des
+  Energiesystems) liefen seit Monaten ins Leere und sind gefallen. Der `loot`-Namespace bleibt im
+  RNG-Vertrag deklariert; heute beansprucht ihn kein System.
+
+- [Sim/D1] **Angriff auf den Blumentopf: Farbe ⇒ Wirkung, an der ZELLE festgemacht.** Der Topf war
+  ein reiner Weg-Blocker, während die Source ihn „Platzierfläche für Pflanzen" nannte — zwei
+  Lesarten desselben Objekts. Jetzt ist er ein Booster: neue Source `config/pot.source.ts`
+  (Bernstein +20 % Schaden · Violett +20 % Reichweite · Moos −20 % Nachladezeit · Rost +30 % Leben)
+  und `simulation/potBoost.ts`, das die Farbe einer Zelle aus `deriveSeed(EPOCH_ROOT,'world','pot')`
+  ableitet. **Bewusst ohne Zustand:** kein Farbfeld im Save, kein Schema-Bump, kein RNG — dieselbe
+  Zelle trägt für immer dieselbe Farbe, auf jedem Rechner. Die Wirkung greift auf BESTEHENDE
+  Achsen (`PlantStats`), kein neuer Kampfwert. EINE Wahrheit: `plantSystem.plantStatsAt(state,
+  variantId, gx, gy)` speist Feuern, Heil-Aura, Lebensbalken, Reichweiten-Ring und die
+  Platzierungs-Vorschau (`statsFor(variantId, cell)`); ohne Topf identisch zur Basis. Das Leben
+  wird beim Setzen gewährt (Zustand, keine Ableitung) — verkauft man den Topf später, behält die
+  stehende Pflanze ihr Leben. Belegte Grenze: 5 Vertragstests, davon einer mit Mutation geprüft
+  (Boost entfernt ⇒ rot), plus Preview-Screenshot mit vier farbigen Töpfen auf einer Karte.
+
+- [Sim/D5] **Der HUD misst jetzt den LAUFWEG in Feldern statt einer Prozent-Quote.** Die alte
+  „WEG-GÜTE" (`Manhattan(Endpunkte)/Routenkosten`) lieferte gemessen für gerade Route, Stufen-
+  treppe UND jede monotone Umleitung 1,000 — erst Rücklauf fiel (0,500); sie erkannte also nur
+  Rücklauf, behauptete aber „100 % = gerader Weg". Im Mazing will man das GEGENTEIL: Zeit unter
+  Feuer. `simulation/routeQuality.ts` ist durch `routeMetrics.ts` ersetzt (`routeWalkTiles`,
+  `routeIdealTiles`), `ROUTE_CHANGED` trägt `tiles`/`ideal` statt `quality`, der Chip zeigt
+  „LAUFWEG 22 · min 22", und der Lern-Kanal (`observationSerializer`) sowie Krix' Chip-Erklärung
+  nennen dieselben Zahlen. Belege: `maze_plants.test.ts` (25 vs. 15 ⇒ 10 Felder Gewinn),
+  `hudSnapshot.test.ts`, Live-Chip im Preview, E2E grün.
+
+- [Genome/Vielfalt] **Die Brut liefert drei WAHLEN, nicht drei Bilder.** Der Neuheits-Vergleich
+  der Kandidaten maß nur das AUSSEHEN — und Dominanz kippt bei Käfern die Form, nicht die Werte.
+  Gemessen (Sonde über alle Specimen-Paarungen × 8 Brut-Indizes): **11 von 48 Bruten (22,9 %)**
+  trugen zwei Kandidaten mit identischen Stats, ihre Form-Distanz lag bei 0,026–0,064
+  (Schwelle 0,055) — der Spieler entschied zwischen zwei Ansichten desselben Tiers. Jetzt kennt
+  `rollCandidates` eine optionale Domänen-Bedingung `distinct`: ein Entwurf mit bereits
+  vergebenem KAMPFPROFIL verliert jeden Vergleich, und die Brut sucht 12 statt 6 Versuche
+  (Pflanzen unverändert). Ergebnis: **0 von 48** Bruten mit Zwillingen, Form-Distanz der
+  Kandidaten unverändert (Mittel 0,0753 → 0,0758), Determinismus nachgemessen (2× identisch).
+  **Eigener Fehler, gefunden und verworfen:** der erste Versuch mischte die Kampfwerte als
+  zusätzliche ACHSEN ins Form-Maß — gemessen senkte das die mittlere Form-Distanz von 0,075 auf
+  0,069, also Vielfalt an anderer Stelle bezahlt. Die Bedingung ist deshalb ZUSATZ, keine
+  Verdünnung; der gepinnte Kandidatensatz der Fachkreuzung bleibt dadurch bitgleich (nur
+  Zwillings-Bruten würfeln anders — Specimen sind Daten, keine Migration). **Bewusst NICHT
+  gebaut:** eine zweite Wurfschleife in `beetle.ts` (Duplikat des Kerns) und ein Anheben der
+  Mutations-Chance (BALANCE des gemeinsamen Kerns, bewegt die Pflanzenzucht mit) — letzteres
+  steht als P-9 in der ROADMAP zur Entscheidung.
+
+- [Doku/QA-Abgleich] **Die QA-Berichte sind gegen den Code abgeglichen, nicht geglaubt.** Die
+  Domänen-Contracts `genome.md` und `ui.md` tragen jetzt den Abschnitt „QA-Abgleich": dort steht
+  BELEGT, was von den Befunden aus v0.0.36–v0.0.55/externem Playtest bereits erledigt ist
+  (Gründer-Erbgut, Hinweisblase bleibt bis „✕ Gelesen" sichtbar, „Welle starten" vs. „Fertig
+  gebaut", Vorschau nutzt die echte Weltgröße, Tray-Namen statt roher IDs, Signatur-Fragment
+  „Needing" nur noch in der Signatur) — jeweils mit der Stelle, die es belegt. Die in der
+  ROADMAP §3 neu verifiziert offenen Punkte P-6 bis P-9 kommen aus derselben Durchsicht
+  (WEG-GÜTE erkennt „gebogen" nicht, `experience` ohne Senke, `reward`/`scoreValue` zahlenidentisch,
+  Inzucht-Vielfalt hängt allein an der Mutation). Nebenbefund behoben: der Feld-Kommentar in
+  `enemies.source.ts` behauptete noch „Score += reward×Combo", während `scoreSystem` `scoreValue`
+  nutzt.
 
 - [Discovery/P2'] **Der geteilte Beleg ist der Fund, nicht der Seed.** Neue Discovery-Einträge
   trugen bisher den rohen Zucht-Seed im Klartext — und im Share-Text gleich mit. Jetzt trägt

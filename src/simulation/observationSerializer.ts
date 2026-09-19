@@ -7,12 +7,13 @@
 // Weltfläche (R2: state.cols/rows), kein Wahrnehmungsfenster. Enemy-TypeIds kommen 1:1 aus der
 // EINEN Typ-Wahrheit (`EnemyTypeId` in config/enemies.source.ts — grunt|fast|tank|swarm|boss;
 // `beetle` ist Spieler-Entität, nie ein Gegner-Typ).
-// route.quality ist echt (M1-Writer in mapSystem/root), nicht null-Platzhalter.
+// route.tiles/ideal sind echt (M1-Writer in mapSystem/root), keine null-Platzhalter: der Agent
+// sieht damit denselben Laufweg in Feldern wie die Anzeige.
 
 import type { SimState } from './state';
 import type { GameEvent } from '../bus/events';
 import { tileKey, tileBlocked } from './mapSystem';
-import { routeQuality } from './routeQuality';
+import { routeWalkTiles, routeIdealTiles } from './routeMetrics';
 
 export const OBSERVATION_VERSION = 1 as const;
 
@@ -31,7 +32,7 @@ export interface Observation {
   phase: SimState['phase'];
   wave: { number: number; enemiesRemaining: number };
   grid: { w: number; h: number; tiles: ObservationTile[] };
-  route: { waypointCount: number; quality: number | null };
+  route: { waypointCount: number; tiles: number | null; ideal: number | null };
   inventory: { availableVariants: { variantId: string; count: number }[]; score: number };
   combat: {
     combo: { count: number; multiplier: number };
@@ -73,8 +74,10 @@ export function serializeObservation(state: SimState, recentEvents: Observation[
       tiles.push({
         gx, gy,
         tile,
-        // Töpfe sind Platzierfläche, nicht Belegung — blockierende Tiles (pot/boulder
-        // im State) zählen als belegt, ebenso eine vorhandene Pflanze.
+        // Töpfe sind BEIDES (eine Wahrheit, kein Widerspruch mehr): sie blockieren den Weg
+        // (`walkable:false` — Gegner umlaufen sie) UND tragen eine Wirkung für die Pflanze auf
+        // ihnen (`potBoostAt`: Farbe ⇒ Achse). Belegt im Sinne der Platzierung sind sie, sobald
+        // eine Pflanze darauf steht.
         occupied: state.plants.some(p => p.gx === gx && p.gy === gy) || tileBlocked(state.mapTiles, gx, gy),
       });
     }
@@ -92,7 +95,8 @@ export function serializeObservation(state: SimState, recentEvents: Observation[
     route: {
       waypointCount: state.currentRoute?.length ?? 0,
       // M1-Writer: mapSystem.routeQuality über root.recomputeRoute — hier nur gelesen.
-      quality: state.currentRoute ? routeQualityOf(state) : null,
+      tiles: routeWalkTiles(state.currentRoute),
+      ideal: routeIdealTiles(state.currentRoute),
     },
     inventory: {
       availableVariants: Object.entries(state.inventory)
@@ -111,7 +115,4 @@ export function serializeObservation(state: SimState, recentEvents: Observation[
   };
 }
 
-/** Route-Qualität — EINE Quelle (mapSystem.routeQuality), keine Formel-Kopie. */
-function routeQualityOf(state: SimState): number | null {
-  return routeQuality(state.currentRoute);
-}
+

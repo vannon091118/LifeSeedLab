@@ -145,7 +145,11 @@ export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPl
               onPointerDown={(e) => { (e.target as HTMLElement).releasePointerCapture?.(e.pointerId); onSelectTile(tile); }}
               style={{ ...styles.trayItem, ...(isSelected ? styles.trayItemSelected : {}), ...(affordable ? {} : styles.trayItemDisabled) }}
               aria-pressed={isSelected} aria-disabled={!affordable}
-              title={`${tileLabel(tile)} — im Pool: ${inventory[tile] ?? 0}`}
+              // Der Topf erklärt seine vier Farben dort, wo man ihn auswählt (der Titel nennt
+              // die Wirkung; keine schwebende Blase, die die Karten verdecken würde).
+              title={tile === 'pot'
+                ? `${t('map.potHint')} ${POT_LEGEND_KEYS.map(k => t(k)).join(' · ')}`
+                : `${tileLabel(tile)} — im Pool: ${inventory[tile] ?? 0}`}
             >
               <span style={{ ...styles.trayDot, background: tileSwatch(tile) }} aria-hidden/>
               <span style={styles.trayName}>{tileLabel(tile)}</span>
@@ -160,11 +164,17 @@ export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPl
   );
 }
 
+/** Die vier Topffarben als Punkt: der Topf ist ein Booster, seine Farbe sagt wie (s. Palette). */
+const POT_SWATCH = 'conic-gradient(#f0b775 0 25%, #c8a4e0 0 50%, #a8cd86 0 75%, #d99b84 0) ';
+
+/** i18n-Keys der Topf-Wirkungen (Reihenfolge = POT_COLORS-Ableitung). */
+const POT_LEGEND_KEYS = ['pot.amber', 'pot.violet', 'pot.moss', 'pot.rust'] as const;
+
 /** Tile-Farben der Tray-Punkte (Präsentation der Auswahl, nicht der Welt). */
 function tileSwatch(tile: MapTileType): string {
   switch (tile) {
     case 'path': return '#d9c9a3';
-    case 'pot': return '#c96f3b';
+    case 'pot': return POT_SWATCH;
     case 'boulder': return '#9a948a';
     default: return '#c96f8e';
   }

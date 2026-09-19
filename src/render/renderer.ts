@@ -8,7 +8,7 @@ import type { FeedbackLayer } from './layers/feedback';
 import { WEAKENED_THRESHOLD } from '../config/economy.source';
 import { resolveVisual, type ResolvedVisual } from '../visual/generator';
 import { basePlantVisualInput } from '../genome/visualMap';
-import { getPlantStats } from '../simulation/plantSystem';
+import { plantStatsAt } from '../simulation/plantSystem';
 import { strHash } from '../core/rng';
 import { drawSprite } from './spriteCache';
 import { drawBeetleSprite } from './beetleSprites';
@@ -315,7 +315,9 @@ export class Renderer {
     // Animation (sway/bob/punch/squash) lebt in den Transform-Variablen, nicht im Sprite.
     drawSprite(ctx, v, cell, this.dpr, 0, 0, sq * punch * genomScale);
     ctx.restore();
-    const stats = getPlantStats(plant.variantId, state.bredStats);
+    // Zell-gebundene Stats (Topf-Wirkung): dieselbe Quelle wie die Sim — sonst zeigt der Balken
+    // ein anderes Leben als das, mit dem die Pflanze kämpft.
+    const stats = plantStatsAt(state, plant.variantId, plant.gx, plant.gy);
     if (stats && plant.hp < stats.hp) {
       const ratio = Math.max(0, plant.hp / stats.hp);
       ctx.fillStyle = INK; ctx.fillRect(cx - cell * 0.3, cy - cell * 0.46, cell * 0.6, 4);

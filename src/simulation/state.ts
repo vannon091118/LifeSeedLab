@@ -127,12 +127,11 @@ export interface SimState {
      *  Default aus der Source (economy.source), Owner: WaveSystem (über Root-Command). */
     autoWaves: boolean;
   };
-  /** #4: ENERGIE existiert nicht mehr. In-Run bleibt nur Muenz-Loot (ohne Senke, B29) —
-   *  Platziert wird aus dem POOL (`inventory`: gekaufte Pflanzen + Material). Nektar wird
-   *  ausschliesslich AUSSERHALB des Runs ausgegeben. */
-  /** Lauf-Erfahrung (kein Geld): Nektar ist die einzige Währung und wird außerhalb von Runs
-   *  ausgegeben. Erfahrung sammelt sich deterministisch aus Kills und hat keinen Ausgabepunkt. */
-  resources: { experience: number };
+  /** #4/ENTSCHEIDUNG 19.09.2026: In-Run gibt es KEINEN Kontostand — weder Energie noch Münzen
+   *  noch Erfahrung. Platziert wird aus dem POOL (`inventory`: gekaufte Pflanzen + Material);
+   *  gewertet wird über `score`/`combo`/`nektarEarned`, ausgegeben ausschließlich AUSSERHALB des
+   *  Runs (Nektar). Der frühere `resources.experience`-Topf hatte keinen Leser und ist gestrichen
+   *  statt ausgestattet — zwei Belohnungswährungen nebeneinander wären eine zweite Wahrheit. */
   /** R2: Run-Kopie der freigeschalteten Weltfläche (Welt-Snapshot beim Run-Start). */
   cols: number;
   rows: number;

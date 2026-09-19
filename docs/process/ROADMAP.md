@@ -12,7 +12,8 @@
 - **Code-Stand (`main`):** Phasen A–F vollständig implementiert und test-locked. Phase G (Multiplayer/Backend) bewusst aufgeschoben.
 - **Verifizierungs-Baseline:**
   - TypeScript inkrementell: **0 Fehler** (`tsc -b --noEmit`)
-  - Test-Suite: **429+ Tests in 44 Testdateien alle grün** (`node scripts/test-lane.mjs --full`)
+  - Test-Suite: **541 Tests in 56 Testdateien alle grün** (`node scripts/test-lane.mjs --full`, 19.09.2026)
+  - Tooling-Suite: **38 Tests in 8 Dateien grün** (`--config tools/vitest.config.ts`)
   - E2E-Suite: **27/27 Tests grün** (`tests/`, Chromium 390×844 Portrait & Progression)
   - Vite-Build: **Produktions-Build fehlerfrei**
 - **Qualitäts-Gate (Shinon):**
@@ -49,7 +50,45 @@ Alle historischen und aktuellen Befunde aus Code-Audits (jetzt domänenweise in 
 
 ---
 
-## 3. Konsolidierte Meilensteine in logischer Reihenfolge
+## 3. Bekannte Probleme (verifiziert am Code, 19.09.2026)
+
+Aufgenommen ist nur, was am heutigen Stand **im Code belegt** offen ist — jede Zeile nennt
+Beleg und Owner. Was die Berichte gemeldet haben und inzwischen behoben ist, steht in den
+Domänen-Contracts (`docs/quality/contracts/`), nicht hier. Berichte: `2026-09-19` externer
+Spieler-Playtest, Verständnis-QA v0.0.55, Maze-/Objekt-/Mobile-QA v0.0.53, Re-Test v0.0.53.
+Entschiedene Punkte wandern nach unten in die Spur-Abschnitte (Nummern bleiben stabil).
+
+| # | Problem | Beleg am Code | Owner |
+|---|---|---|---|
+| P-2 | **Mobile Hochformat im Run.** Die rechte Knopf-Gruppe der Top-Bar steht ohne `flexWrap` in einer Zeile; auf 390×844 kann „Run beenden" dadurch aus dem Bild ragen. Das E2E deckt 390×844 nur für Router/Hub ab, nicht den Run-Screen — der Beleg in der laufenden App fehlt noch. | `components/gameViewStyles.ts` `topRight`, `tests/router.spec.ts` (Screen-Abdeckung) | `components/` |
+| P-3 | **Duell-Brett verbraucht Hub-Aufmerksamkeit.** Die Karte ist gleich groß wie die spielbaren, liefert aber nur „Bald verfügbar". | `i18n/texts_shell.ts` `menu.pvp`/`menu.pvpDesc` | `components/` + `i18n/` |
+| P-4 | **Technische Identifikatoren in Normalansichten.** Die Codex-Karte zeigt `genome_hash`/`entry_hash` direkt im Spielerfluss; der externe Playtest wünscht sie in einer Detailansicht. | `components/Codex.tsx` | `components/` |
+| P-5 | **Krix-Blase auf 390×844.** Der Umbau des Tutorials hat die alte Verankerung (`anchor.y`, zu kurze Bühne) ersetzt; ein Beleg-Screenshot bei 390×844 nach dem Umbau steht aus. Nicht als behobene Behauptung führen, sondern nachmessen. | `components/tutorial/`, `components/gameViewStyles.ts` | `components/` |
+| P-8 | **`reward` und `scoreValue` sind in der Source für ALLE fünf Gegnertypen zahlenidentisch** (grunt 10/10 · fast 15/15 · tank 30/30 · swarm 5/5 · boss 150/150). Beide werden gelesen (Nektar-Anteil bzw. Score), die Trennung ist also echt — aber solange die Werte gleich sind, ist jeder Balance-Eingriff an einem Feld eine halbe Wahrheit. Offen: bewusst differenzieren oder ein Feld benennen. | `config/enemies.source.ts`, `simulation/scoreSystem.ts` | `config/` |
+| P-9 | **Inzucht-Vielfalt hängt allein an der Mutation.** Die Mutations-Chance ist fix (`BREEDING.mutationChance`), der Neuheitsdruck skaliert nur Drift/Dominanz — bei genetisch gleichen Eltern erhält die Rekombination die Kräfte EXAKT, und ein Dominanz-Kippen bewegt die Käfer-Werte gar nicht. Die Brut fängt das mit 12 statt 6 Versuchen ab (gemessen: vorher 7 von 48 Bruten nur zwei Profile, jetzt 0 von 48) — der Kern selbst bleibt eng. Offen als BALANCE-Entscheidung, weil sie die Pflanzenzucht mitbewegt: Druck an die Mutations-Chance koppeln oder Pool/Content erweitern. | `config/phenotype.source.ts` `BREEDING`, `genome/breeding.ts` | `config/` |
+
+### Am 19.09.2026 entschieden und umgesetzt (Nummern bleiben stabil)
+
+Diese drei standen hier als offen und sind jetzt Code + belegt — die Zeile bleibt als Spur stehen,
+damit die Nummern nicht wandern und alte Verweise gültig bleiben:
+
+- **P-1 Blumentopf** → **Booster** (Entscheidung „Farbe ⇒ Effekt, Zelle bestimmt Farbe"):
+  `config/pot.source.ts` (vier Farben, vier Achsen), `simulation/potBoost.ts` (Zell-Ableitung),
+  `plantSystem.plantStatsAt` (EINE Wahrheit für Sim, Renderer und Vorschau). Beleg:
+  `potBoost.test.ts` (5 Tests, Mutation geprüft), Preview-Screenshot (vier Farben auf der Karte).
+- **P-6 WEG-GÜTE** → **LAUFWEG in Feldern** (Entscheidung „Laufweg in Feldern zeigen"):
+  `simulation/routeMetrics.ts` ersetzt `routeQuality.ts`; Chip „LAUFWEG 22 · min 22",
+  `ROUTE_CHANGED` trägt `tiles`/`ideal`. Belege: `maze_plants.test.ts` (25 vs. 15 = 10 Felder
+  Gewinn), `hudSnapshot.test.ts`, Live-Chip im Preview.
+- **P-7 `resources.experience`** → **Feld gestrichen** (Entscheidung „Feld streichen"): kein
+  zweiter Kontostand im Run; Writer, Source-Konstanten, Resume-Kopie und die Tests, die ihn
+  pinnten, sind weg. Dabei fielen zwei tote `resources.energy`-Zuweisungen in den Maze-Tests auf
+  (Rest des Energiesystems). Belege: `gateB.test.ts` pinnt jetzt, dass ein Kill KEINEN zweiten
+  Kontostand erzeugt; `hash.ts` trägt keine `resources`-Falle mehr.
+
+---
+
+## 4. Konsolidierte Meilensteine in logischer Reihenfolge
 
 Die Umsetzung erfolgt strikt sequenziell nach dem Arbeitsrhythmus: **Aufgabe → Test → Gate → Commit**.
 
@@ -123,7 +162,7 @@ Fokus: Asynchrones Teilen und Community-Features (bewusst nachgelagert).
 
 ---
 
-## 4. Dokumentations-Architektur (Wo steht was?)
+## 5. Dokumentations-Architektur (Wo steht was?)
 
 | Bereich | Primäres Dokument |
 |---|---|

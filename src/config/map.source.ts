@@ -24,7 +24,9 @@ export interface MapTileSource {
 }
 
 export const MAP_TILES_SOURCE: Record<MapTileType, MapTileSource> = {
-  // Blumentopf: PLATZIERFLÄCHE für Pflanzen (Pflanzen brauchen jetzt einen Topf!)
+  // Blumentopf: BOOSTER für die Pflanze auf ihm — Farbe ⇒ Wirkung (config/pot.source.ts),
+  // Zell-gebunden abgeleitet (simulation/potBoost.ts). Er blockiert den Weg (`walkable:false`)
+  // UND verstärkt: das ist EINE Aussage, nicht zwei Lesarten desselben Objekts.
   pot:     { id: 'pot',     label: 'Blumentopf', i18nKey: 'map.pot', price: 15, walkable: false, weight: 999, maxCount: 24 },
   // Weg-Tile: Gegner BEVORZUGEN es (weight < 1) — der Spieler lenkt den Laufweg.
   // M4 (Sprint AP2): 0.6 statt 0.45 — der Vorsprung zur Wiese (1) ist kleiner, damit die

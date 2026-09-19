@@ -7,6 +7,7 @@ import { GameClock, TICK_MS } from '../core/clock';
 import { EventBus } from '../bus/bus';
 import { CommandQueue, makeCommand, type Command } from '../bus/commands';
 import type { GameEvent } from '../bus/events';
+import { resetIds } from '../core/ids';
 import { PlantSystem, resolvePlantStats } from './plantSystem';
 import { EnemySystem } from './enemySystem';
 import { ProjectileSystem } from './projectileSystem';
@@ -16,7 +17,7 @@ import { WaveSystem } from './waveSystem';
 import { MapSystem } from './mapSystem';
 import { executeCommand, type CommandContext } from './rootCommands';
 import { freshState } from './pipeline';
-import { routeQuality } from './mapSystem';
+import { routeWalkTiles, routeIdealTiles } from './mapSystem';
 import { CYCLE_TICKS } from '../core/clock';
 
 /** E2 (A12): Catch-up-Klemme — max. nachgeholte Ticks pro Frame (Rest wird verworfen). */
@@ -71,6 +72,18 @@ export class SimulationRoot {
   private rejectSeq = 0;
 
   constructor(init: RootInit) {
+    // RUN-START-RESET der ID-Zähler (Verständnis-QA v0.0.55, T1/BUG 1): `nextId(kind)` zählt
+    // prozess-global. Ohne diesen Reset hing die Entity-ID — und damit der State-Hash über
+    // `snapshot.toHashable` — davon ab, wie viele Entitäten dieser PROZESS schon erzeugt hatte:
+    // zwei identische Runs im selben Tab ergaben plant-0010 vs plant-0011 und damit verschiedene
+    // Hashes. Jetzt gilt der dokumentierte Vertrag wieder prozessübergreifend (architecture.md:
+    // "gleicher Seed + gleiche Commands = identischer State-Hash").
+    //
+    // Grenze, bewusst hier benannt: genau EINE lebende Simulation je Prozess (produktiv der
+    // Fall — `gameRuntime` konstruiert den Root einmalig). Wer je zwei gleichzeitig laufen lässt
+    // (z. B. ein Ghost-Map-Replay), darf NICHT diesen Reset nutzen, sondern `nextScopedId(runId,
+    // kind, seq)` — der laufgebundene Pfad liegt dafür schon in `core/ids.ts`.
+    resetIds();
     this.state = this.freshState(init.seed, init);
     this.plants = new PlantSystem(e => this.publish(e));
     const enemies = new EnemySystem(e => this.publish(e));
@@ -270,15 +283,21 @@ export class SimulationRoot {
     if (state.phase === 'wave') {
       this.enemies.remapAllToRoute(state);
     }
-    // AP2 (M1): der Payload trägt den echten Qualitätswert (1 = gerade, kleiner = Umwege);
-    // blocked ist ein Diagnose-Wert für Beobachter — die Sim lässt den Zustand nie zu.
+    // AP2 (M1)/Entscheidung 19.09.2026: der Payload trägt den echten LAUFWEG in Feldern
+    // und den kürzesten möglichen Weg (der Abstand = Maze-Gewinn); `blocked` ist ein
+    // Diagnose-Wert für Beobachter — die Sim lässt den Zustand nie zu.
     this.publish({
       eventId: `${state.clock.tick}:system:map:ROUTE_CHANGED:${++this.rejectSeq}`,
       tick: state.clock.tick,
       type: 'ROUTE_CHANGED',
       sourceId: 'system:map',
       version: 1,
-      payload: { waypoints: route?.length ?? 0, quality: routeQuality(route), blocked: route === null },
+      payload: {
+        waypoints: route?.length ?? 0,
+        tiles: routeWalkTiles(route),
+        ideal: routeIdealTiles(route),
+        blocked: route === null,
+      },
     });
   }
 

@@ -87,6 +87,43 @@ describe('Determinismus — Kern 1: Replay', () => {
   });
 });
 
+// ══ Kern 1b — PROZESS-UNABHÄNGIGKEIT (T1 aus der Verständnis-QA v0.0.55) ══════
+//
+// Die Kerne 1 und 2 rufen `resetIds()` VOR jedem Root selbst auf. Genau das war der Befund:
+// der Produktivpfad tat es nicht, also hing der State-Hash davon ab, wie viele Entitäten der
+// laufende Prozess schon erzeugt hatte (plant-0010 vs plant-0011 bei identischem Run).
+// Diese Kerne bauen ihre Roots deshalb OHNE jeden manuellen Reset — sie würden ohne den Reset
+// im Root-Konstruktor fehlschlagen und beweisen damit, dass er wirkt.
+
+describe('Determinismus — Kern 1b: Run Start ist ein Reset (kein Prozess-Gedächtnis im Hash)', () => {
+  it('zwei identische Runs im SELBEN Prozess ⇒ identischer State-Hash, ohne manuellen Reset', () => {
+    const a = makeRoot({ seed: SEED, runId: 7 });
+    replayStream(a);
+    for (let i = 0; i < 400; i++) a.stepOnce();
+
+    const b = makeRoot({ seed: SEED, runId: 7 });
+    replayStream(b);
+    for (let i = 0; i < 400; i++) b.stepOnce();
+
+    // Der zweite Root startet nach einem vollen Run — vor dem Fix trugen seine Entitäten
+    // fortlaufende Nummern aus dem ersten Run. Jetzt beginnen beide bei `kind-0001`.
+    expect(b.getSnapshot().plants[0]?.id).toBe(a.getSnapshot().plants[0]?.id);
+    expect(hashOfRoot(a)).toBe(hashOfRoot(b));
+  });
+
+  it('Selbst-Kontrolle: der Hash ist nicht blind — anderer Seed ⇒ anderer Hash', () => {
+    const a = makeRoot({ seed: SEED, runId: 7 });
+    replayStream(a);
+    for (let i = 0; i < 400; i++) a.stepOnce();
+
+    const b = makeRoot({ seed: SEED + 1, runId: 7 });
+    replayStream(b);
+    for (let i = 0; i < 400; i++) b.stepOnce();
+
+    expect(hashOfRoot(a)).not.toBe(hashOfRoot(b));
+  });
+});
+
 // ══ Kern 2 — NAMESPACE-ISOLATION (FX ON/OFF) ═════════════════════════════════
 
 describe('Determinismus — Kern 2: FX-Isolation', () => {

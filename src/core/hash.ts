@@ -8,8 +8,10 @@ export interface HashableState {
   seed: number;
   clock: ClockState;
   wave: { number: number };
-  // KEIN `resources`-Feld: der Hash liest es nicht. Ein deklariertes, aber ignoriertes Feld war
-  // eine Falle („warum ändert sich mein Hash nicht?“) — entfernt am 19.09.2026 (Regel 4.3).
+  // KEIN `resources`-Feld: der Hash las es nie, und seit der Entscheidung 19.09.2026
+  // („Feld streichen") existiert der zweite Kontostand gar nicht mehr — der SimState trägt im
+  // Run nur noch Wertung (Score/Combo/Nektar-Ertrag). Frühere Falle: ein deklariertes, aber
+  // ignoriertes Feld („warum ändert sich mein Hash nicht?").
   plants: { id: string; gx: number; gy: number; hp: number; variantId: string; lastShot: number }[];
   enemies: { id: string; hp: number; px: number; py: number; pathIndex: number }[];
   // Ballistik ist spielfähige Divergenz: Geschwindigkeit, Durchschlag und Effekte entscheiden

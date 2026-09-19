@@ -14,10 +14,10 @@
 import type { SimState, MapTiles, Route } from './state';
 import { makeEvent, type GameEvent } from '../bus/events';
 import { MAP_TILES_SOURCE, MAP_TILE_IDS, MAP_DEFAULT_WEIGHT, PLANT_ROUTE_COST, PLOT_POOL_KEY, type MapTileType } from '../config/map.source';
-import { routeQuality } from './routeQuality';
+import { routeWalkTiles, routeIdealTiles } from './routeMetrics';
 // R2: Re-Export — die Route-Qualität ist Sim-Wahrheit, die Verbraucher (root, hudSnapshot,
 // Serializer, Tests) importieren sie über den Map-Owner (eine Import-Quelle).
-export { routeQuality };
+export { routeWalkTiles, routeIdealTiles };
 
 export type PlaceTileResult =
   | { ok: true }

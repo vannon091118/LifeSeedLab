@@ -93,11 +93,20 @@ export function deriveBroodSeed(ancestorAId: string, ancestorBId: string, broodI
 }
 
 /**
+ * Das spielbare Profil eines Kandidaten als Schlüssel: gleiche Werte ⇒ gleiche Wahl für den
+ * Spieler, egal wie das Tier gezeichnet ist. Genau die Signatur, die der P7-Test prüft.
+ */
+function balanceKey(stats: BeetleSpecimen['stats']): string {
+  return `${stats.hp}/${stats.attack}/${stats.speed}/${stats.spawnX}/${stats.taunt}/${stats.deathSpawnX}/${stats.cost}`;
+}
+
+/**
  * Drei Brutkandidaten (BEETLE_BREED.broodSize) — deterministisch pro Elternpaar und Brut-Index.
  *
  * Die Kandidaten laufen durch dieselbe Neuheitsprüfung wie Pflanzenkandidaten: zu ähnliche
- * Entwürfe werden mit wachsendem Neuheitsdruck neu abgeleitet. Der Käfer-Deskriptor gewichtet
- * Form (Körper, Panzer, Mandibeln, Beine) — ein Farbwechsel allein ist kein neues Tier.
+ * Entwürfe werden mit wachsendem Neuheitsdruck neu abgeleitet; der Deskriptor gewichtet die FORM
+ * (ein Farbwechsel ist kein neues Tier). Zusätzlich muss das KAMPFPROFIL neu sein — siehe
+ * `distinct` unten; Begründung und Messung stehen in `config/beetles.source.ts`.
  */
 export function rollBrood(parentA: BeetleParentRef, parentB: BeetleParentRef, broodIndex: number): BeetleSpecimen[] {
   const a = resolveAncestor(parentA);
@@ -108,27 +117,39 @@ export function rollBrood(parentA: BeetleParentRef, parentB: BeetleParentRef, br
   // Generation = eine Stufe tiefer als der jüngste Elternteil: die Kette zählt wirklich weiter.
   const generation = Math.max(a.generation, b.generation) + 1;
 
-  const rolled = rollCandidates({
+  const rolled = rollCandidates<{ genome: Genome; specimenId: string; stats: BeetleSpecimen['stats'] }>({
     pairSeed: seed, namespace: BROOD_SEED_NAMESPACE, count: BEETLE_BREED.broodSize, measure: beetleMeasure,
+    maxAttempts: BEETLE_BREED.noveltyAttempts,
+    // Kein Zwillings-Wurf: die Brut verspricht drei WAHLEN. Die Form-Distanz allein genügt dafür
+    // nicht — bei genetisch gleichen Eltern erhält die Rekombination die Kräfte exakt, und ein
+    // Dominanz-Kippen bewegt die Werte gar nicht. Ein Entwurf mit bereits vergebenem Profil
+    // verliert deshalb JEDEN Vergleich; das Suchbudget oben findet dann einen dritten Entwurf.
+    // Die Form-Schwelle bleibt unangetastet: das Profil ist eine ZUSATZ-Bedingung, keine
+    // Verdünnung des bestehenden Maßes (gemessen: eine gemeinsame Gewichtung senkte die
+    // mittlere Form-Distanz der Kandidaten von 0,075 auf 0,069).
+    distinct: (cand, accepted) => !accepted.some(prev => balanceKey(prev.stats) === balanceKey(cand.stats)),
     make: (rng, index, attempt) => {
       const genome = breedGenome(a.genome, b.genome, rng, generation, BEETLE_GENE_POOL, attempt);
       // Balance-Anker: das Junge erbt den Basis-Typ EINES Elternteils (Münzwurf, seed-bestimmt) —
       // die ERSCHEINUNG kommt nicht von hier, sondern aus dem Genom (beetlePhenotype).
       const specimenId = rng.next() < 0.5 ? a.specimenId : b.specimenId;
+      // EINMAL abgeleitet: der Deskriptor misst genau die Werte, die das Specimen später trägt
+      // (keine zweite Ableitung, kein Auseinanderlaufen von Maß und Anzeige).
+      const stats = deriveBeetleStats(specimenId, genome);
       // Deskriptor aus dem EIGENEN Phänotyp des Kandidaten — dieselbe Sprache, die gezeichnet wird.
       const descriptor = beetlePhenotypeOf({ genome, generation }).descriptor;
-      return { candidate: { genome, specimenId }, descriptor };
+      return { candidate: { genome, specimenId, stats }, descriptor };
     },
   });
 
   return rolled.map((entry, i) => {
-    const { genome, specimenId } = entry.candidate;
+    const { genome, specimenId, stats } = entry.candidate;
     return {
       id: `brood_${seed.toString(36)}_${i}`,
       name: broodName(a, b, i),
       specimenId,
       genome,
-      stats: deriveBeetleStats(specimenId, genome),
+      stats,
       // Altfeld der Anzeige (Ketten-Migration): die Brutstätte zeichnet den Phänotyp; der Wert
       // bleibt als Fallback für Stellen ohne Visual-Auflösung erhalten.
       color: BEETLES_SOURCE[specimenId]?.color ?? '#8a6b3a',

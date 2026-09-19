@@ -50,7 +50,7 @@ const SAMPLES: { [K in EventType]: EventPayloads[K] } = {
   TILE_PLACED: { gx: 3, gy: 3, tile: 'boulder' },
   TILE_REJECTED: { gx: 0, gy: 3, tile: 'path', reason: 'out_of_world' },
   TILE_REMOVED: { gx: 0, gy: 3, tile: 'path' },
-  ROUTE_CHANGED: { waypoints: 0, quality: null, blocked: true },
+  ROUTE_CHANGED: { waypoints: 0, tiles: null, ideal: null, blocked: true },
   MAP_EXPANDED: { gx: 1, gy: 1 },
   BEETLE_DEPLOYED: { beetleId: 'b1', name: 'Krabbler', px: 0.5, py: 3.5, spawnCount: 1 },
   BEETLE_DOWN: { beetleId: 'b1', px: 5.5, py: 3.5 },

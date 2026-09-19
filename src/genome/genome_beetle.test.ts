@@ -1,8 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { rollBrood, deriveBeetleStats, deriveBroodSeed, beetlePower, broodGenomeHash, toDeploySpec } from './beetle';
 import { BEETLE_GENES_SOURCE, BEETLE_GENE_POOL, BEETLES_SOURCE } from '../config/beetles.source';
+import type { BeetleSpecimen } from '../types';
 
 // P6: Käferzucht — Determinismus + echte Vielfalt (P7) + Chain-Verankerung.
+
+/** Das spielbare Profil eines Kandidaten (die Signatur, die der Spieler als Wahl erlebt). */
+const statProfile = (c: BeetleSpecimen): string =>
+  `${c.stats.hp}/${c.stats.attack}/${c.stats.speed}/${c.stats.spawnX}/${c.stats.taunt}/${c.stats.deathSpawnX}/${c.stats.cost}`;
 
 describe('beetle breeding (P6)', () => {
   it('gleiche Eltern + Generation → identischer Wurf (Determinismus)', () => {
@@ -28,9 +33,30 @@ describe('beetle breeding (P6)', () => {
 
   it('Kandidaten unterscheiden sich real (P7 — keine Seed-Massenproduktion)', () => {
     const brood = rollBrood('bumble', 'shellbeetle', 3);
-    const signatures = new Set(brood.map(c => `${c.stats.hp}/${c.stats.attack}/${c.stats.speed}/${c.stats.spawnX}/${c.stats.taunt}`));
+    const signatures = new Set(brood.map(c => statProfile(c)));
     // Mindestens 2 der 3 Kandidaten müssen messbar verschiedene Stats tragen.
     expect(signatures.size).toBeGreaterThanOrEqual(2);
+  });
+
+  it('drei Kandidaten, drei WAHLEN — kein Zwillings-Profil (gemessener Befund 19.09.2026)', () => {
+    // Beleg: Vorher maßen Bruten ihre Neuheit nur am AUSSEHEN. Bei genetisch gleichen Eltern (und
+    // bei Fachkreuzungen) erhielt die Rekombination die Kräfte exakt, und ein Dominanz-Kippen
+    // änderte die Werte gar nicht — gemessen trugen 11 von 48 Bruten (22,9 %) zwei Kandidaten mit
+    // identischen Stats; die visuelle Distanz dieser Paare lag bei 0,026–0,064 (Schwelle 0,055).
+    // Der Spieler wählte zwischen zwei Bildern desselben Tiers. Vertrag jetzt: drei Profile.
+    // Der Test hält die Zusage gegen JEDE Specimen-Paarung — auch gegen die Inzucht-Grenzfälle,
+    // die vorher genau zwei Profile hergaben.
+    const ids = Object.keys(BEETLES_SOURCE);
+    const twins: string[] = [];
+    for (const a of ids) for (const b of ids) {
+      if (a > b) continue;
+      for (let index = 1; index <= 8; index++) {
+        const brood = rollBrood(a, b, index);
+        if (brood.length < 3) continue;
+        if (new Set(brood.map(statProfile)).size !== brood.length) twins.push(`${a}×${b}#${index}`);
+      }
+    }
+    expect(twins).toEqual([]);
   });
 
   it('Specimen-Gene wirken messbar: taunt → taunt:true, swarmborn → spawnX > 1', () => {

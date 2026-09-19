@@ -85,7 +85,7 @@ export const tutorialTexts = {
       'Oben links stehen deine drei Wahrheiten — und KEINE davon ist Energie, auch wenn sie dir das im Vorstellungsgespräch anders erzählt haben:',
       'Blatt = Leben. Bei null ist der Lauf vorbei, der Kompost gewinnt, und ich schreibe es in die Statistik.',
       'Welle = Fortschritt. Jede überlebte Welle bringt dir Nektar — die einzige Währung, die hier zählt, und du gibst sie ausschließlich im Flur aus.',
-      'Weg-Güte = dein Zeugnis. Sie zeigt, wie sauber dein Beet durchlaufen wird. Ist sie schlecht, liegt es nicht am Beet. Es liegt an dir. Ich sage das so direkt, weil ich es muss.',
+      'Laufweg = dein Zeugnis. Dort stehen die Felder, die sie wirklich gehen, und daneben das Minimum. Je weiter die zwei auseinanderliegen, desto länger stehen sie unter Beschuss. Liegt der Wert am Minimum, liegt es nicht am Beet. Es liegt an dir. Ich sage das so direkt, weil ich es muss.',
     ].join('\n'),
     'tut.abschluss.title': 'Feldnotizen voll',
     'tut.abschluss.text': [
@@ -168,7 +168,7 @@ export const tutorialTexts = {
       'Top left, your three truths — and NONE of them is energy, whatever they told you in the interview:',
       'Leaf = lives. At zero the run is over, the compost wins, and I write it into the statistics.',
       'Wave = progress. Every survived wave earns nectar — the only currency that counts here, and you spend it exclusively in the corridor.',
-      'Route quality = your report card. It shows how cleanly your bed gets walked. If it is bad, it is not the bed. It is you. I say that bluntly because I have to.',
+      'Path length = your report card. It counts the tiles they actually walk, next to the minimum. The wider those two drift apart, the longer they stand under fire. If the number sits at the minimum, it is not the bed. It is you. I say that bluntly because I have to.',
     ].join('\n'),
     'tut.abschluss.title': 'Field notes full',
     'tut.abschluss.text': [

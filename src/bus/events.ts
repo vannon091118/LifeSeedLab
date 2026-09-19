@@ -101,7 +101,15 @@ export interface EventPayloads {
   TILE_PLACED: { gx: number; gy: number; tile: string };
   TILE_REMOVED: { gx: number; gy: number; tile: string };
   TILE_REJECTED: { gx: number; gy: number; tile: string; reason: TileRejectReason };
-  ROUTE_CHANGED: { waypoints: number; /** M1/AP2: 1 = gerade Route, kleiner = Maze erzwingt Umwege. */ quality: number | null; /** M5: gesetzt = der Spieler hat den Weg zugebaut — Fallback läuft unsichtbar? Nein: als Grund gemeldet. */ blocked: boolean };
+  ROUTE_CHANGED: {
+    waypoints: number;
+    /** M1/AP2 + Entscheidung 19.09.2026: Laufweg in FELDERN — das Zeit-unter-Feuer-Maß. */
+    tiles: number | null;
+    /** Kürzester möglicher Weg (Manhattan der Endpunkte); der Abstand zu `tiles` = Maze-Gewinn. */
+    ideal: number | null;
+    /** M5: gesetzt = der Spieler hat den Weg zugebaut — Fallback läuft unsichtbar? Nein: als Grund gemeldet. */
+    blocked: boolean;
+  };
   MAP_EXPANDED: { gx: number; gy: number };
   BEETLE_DEPLOYED: { beetleId: string; name: string; px: number; py: number; spawnCount: number };
   BEETLE_DOWN: { beetleId: string; px: number; py: number };

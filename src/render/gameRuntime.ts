@@ -33,7 +33,7 @@ import { makePlacementRejected } from '../bus/commands';
 import type { GameEvent } from '../bus/events';
 import { FX_EVENT_TYPES, NOTICE_EVENT_TYPES, OBSERVED_EVENT_TYPES } from '../bus/eventAudience';
 import { noticeFromEvent, type FieldNotice } from '../components/fieldNotice';
-import { resolvePlantStats } from '../simulation/plantSystem';
+import { plantStatsAt } from '../simulation/plantSystem';
 import { PlacementController, type PlacementState, type UiRejectReason } from '../components/placementController';
 import { MAP_TILES_SOURCE, type MapTileType } from '../config/map.source';
 import { recordRunEnd, advanceCrossMaturation, updateMeta } from '../meta';
@@ -155,8 +155,10 @@ export class RunRuntime {
     // B3: Zustandsmaschine liest Sim (read-only) und Präsentation — sie schreibt nichts.
     const controller = new PlacementController({
       visualFor: (variantId) => this.ghostVisual(variantId),
-      statsFor: (variantId) => {
-        const stats = resolvePlantStats(root.getSnapshot(), variantId);
+      // Zell-gebunden: die Vorschau zeigt den Ring, den die Pflanze auf DIESER Zelle bekommt
+      // (Topf-Booster). Dieselbe Funktion trägt die Sim — keine zweite Rechnung.
+      statsFor: (variantId, cell) => {
+        const stats = plantStatsAt(root.getSnapshot(), variantId, cell.gx, cell.gy);
         return stats ? { cost: stats.cost, range: stats.range } : null;
       },
       board: () => {
