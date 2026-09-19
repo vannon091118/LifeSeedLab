@@ -11,6 +11,19 @@ damit Pflicht-Schritt 0 jeder Session** (ins Runbook übernommen).
 
 ---
 
+> **Status (DEV, 19.09.2026, main `4547aa1`): erledigt.**
+> Der R2-Neubau hat beide Weg-Wahrheiten beseitigt: die Route ist das Ergebnis des Pathfindings
+> aus der echten Tile-Geometrie (ein Tile-Writer `mapSystem.placeTile`), es gibt keinen statischen
+> `ENEMY_PATH`-Fallback und keinen geschützten Korridor mehr — der Rand ist bebaubar, die 36
+> statisch gesperrten Zellen sind weg. Spawn und Ausgang liegen exakt diagonal (oben rechts →
+> unten links, skaliert mit jeder Weltgröße); die Route wird bei Run-Start, jedem Bau und jedem
+> Wellenbeginn neu gerechnet. Einzige Schranke: der Zug, der den letzten freien Weg schließt, wird
+> abgelehnt (`route_blocked`). Der Eigentümer-Entscheid (Map-Builder als Pflicht-Sequenz) ist als
+> Phase `layout` umgesetzt: jeder Run beginnt dort, Exit über „Welle starten" oder „Bauen beenden".
+> Belegt: vitest 429/429, E2E 27/27, Preview-Sicht (Route = Tile-Ergebnis), `juggling.test.ts`.
+> Die Konsequenz-Fragen oben (Bauen auf der Route?) sind damit aufgelöst: Bauen auf einer Route-Zelle
+> ist erlaubt, das Pathfinding weicht auf den schnellsten freien Weg aus.
+
 ## R1 — Endstand: 3/3 BESTÄTIGT, strukturell konstant (nicht sporadisch)
 
 | Zyklus | Run / Seed | Route (Sim) | Kernbeobachtung |
