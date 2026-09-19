@@ -47,6 +47,46 @@ export function wavesToUnlockFor(crossIndex: number): number {
  *  Die Queue wird ausschließlich beim Beanspruchen (`keepCross`) ausgebucht. */
 export const PENDING_CROSSES_MAX = 12;
 
+/**
+ * REIFUNGSPLÄTZE (Entscheidung des Spielers, 19.09.2026): Start 3 — wie die Töpfe im
+ * Gewächshaus — und bis 12 ausbaubar. Jeder zusätzliche Platz verlangt BEIDES: Nektar UND eine
+ * überlebte Wellenmarke. Ohne das Wellen-Gate wäre Reifung reine Geldwirtschaft, ohne den Preis
+ * reine Ausdauer. Beide Zahlen wachsen steil (Vorgabe: „ab Platz 4 verdoppelt sich der Aufwand
+ * grob"), damit Platz 12 ein Ziel später Läufe bleibt und nicht nach Welle 5 fällt.
+ */
+export const REARING_SLOTS_START = 3;
+export const REARING_SLOTS_MAX = 12;
+export const REARING_SLOT_GATES: readonly { nektar: number; wave: number }[] = [
+  { nektar: 100, wave: 3 },   // Platz 4
+  { nektar: 180, wave: 5 },   // Platz 5
+  { nektar: 300, wave: 8 },   // Platz 6
+  { nektar: 480, wave: 11 },  // Platz 7
+  { nektar: 720, wave: 14 },  // Platz 8
+  { nektar: 1050, wave: 18 }, // Platz 9
+  { nektar: 1500, wave: 22 }, // Platz 10
+  { nektar: 2100, wave: 26 }, // Platz 11
+  { nektar: 3000, wave: 30 }, // Platz 12
+] as const;
+
+/** Gate für den NÄCHSTEN Platz (Preis + Wellenmarke) — `null` ⇒ alle 12 stehen. */
+export function rearingSlotGate(owned: number): { nektar: number; wave: number; next: number } | null {
+  const index = owned - REARING_SLOTS_START;
+  const gate = REARING_SLOT_GATES[index];
+  if (!gate) return null;
+  return { nektar: gate.nektar, wave: gate.wave, next: owned + 1 };
+}
+
+/**
+ * FORTSETZEN kostet Nektar (Entscheidung des Spielers, 19.09.2026): Ein Abbruch BEENDET den
+ * Lauf — ein kostenloses Wiedereinsteigen gibt es nicht. Wer weiter will, zahlt 25 Nektar je
+ * erreichter Welle, ohne Cap (Welle 30 ⇒ 750). Damit ist Abbrechen eine echte Entscheidung und
+ * kein Save-Scumming-Werkzeug.
+ */
+export const RESUME_NEKTAR_PER_WAVE = 25;
+export function resumeCostFor(wave: number): number {
+  return RESUME_NEKTAR_PER_WAVE * Math.max(1, Math.floor(wave));
+}
+
 // ── Kampfökonomie & Pflanzen-Lebenszyklus (Source = Truth) ──────
 /** 1–5 Münzen pro Kill für den In-Run-Shop (deterministisch via loot-RNG). */
 export const COINS_PER_KILL_MIN = 1;

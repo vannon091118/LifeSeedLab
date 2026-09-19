@@ -47,8 +47,34 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
   etwas ab — züchten war gratis, während der Samen-Shop korrekt abbuchte. Jetzt wird gebucht,
   und wenn der Nektar nicht reicht, passiert schlicht nichts (kein stiller Kredit).
 
+- **Die Kreuzung ist jetzt deine Entscheidung.** Vorher würfelte „Aussäen" die Eltern aus
+  deinem Bestand, und die Pflanzenkarten waren im Zuchtfenster nur Zierde. Jetzt wählst du
+  A und B selbst: zwei Tipps auf deine Pflanzen, die Karten tragen A/B-Marken, und das Kind
+  gehört genau diesem Paar. Ein dritter Tipp nimmt eine Karte wieder heraus.
+- **Reifung wächst mit dir.** Du startest mit **3 Reifungsplätzen** (wie die Töpfe) und kaufst
+  dir bis zu **12**. Jeder zusätzliche Platz verlangt BEIDES: Nektar und eine überlebte Welle —
+  Platz 4: 100 🍯 + Welle 3, Platz 6: 300 + Welle 8, Platz 9: 1050 + Welle 18, Platz 12:
+  3000 + Welle 30. Die Anzeige nennt den Preis und, wenn es noch nicht reicht, wie weit du bist.
+- **Abbrechen beendet den Lauf.** Fortsetzen ist kein Freifahrtschein mehr: es kostet
+  **25 Nektar je erreichter Welle, ohne Deckel**. Die Karte im Hub nennt den Preis und bleibt
+  gesperrt, solange der Nektar nicht reicht.
+
 ### Intern (Technik, Verträge & Tests)
 
+- [Zucht-Paarwahl] `crossPair` existierte seit B38, aber die Aussaat rief weiterhin
+  `rollGachaCross` — der Playtest-Befund („Eltern automatisch gewürfelt, Karten deaktiviert")
+  war also korrekt. Das Gewächshaus hat jetzt eine A/B-Auswahl (`pickParent`, `aria-pressed`),
+  `handleSow` kreuzt das GEWÄHLTE Paar und speichert `deriveBreedSeed(a,b,gen)` als Seed;
+  Altsaves ohne `child` werden über das gespeicherte Paar rekonstruiert (`pairRollFor`), der
+  Sammelwurf bleibt nur der Notausgang für Einträge ohne Eltern-IDs. i18n DE/EN nachgezogen.
+- [Reifungsplätze] `PENDING_CROSSES_MAX` war bis hier die UI-Grenze (fest 12). Jetzt begrenzt
+  der GEKAUFTE Platz die Queue: `meta.rearingSlots` (3..12, MetaSave **v8**), Gates als
+  Source-Kurve (`REARING_SLOT_GATES`: Nektar + `bestWave`), Kauf über `buyRearingSlot`
+  (fail-closed, ein Meta-Writer). Migration + Invarianten-Heilung klemmen Altsaves auf 3..12;
+  `meta_migrations` pinnt Default und Klemme.
+- [Fortsetzen kostet] `payRunResume` (25 Nektar je Welle, ohne Cap) + `resumeCostFor` in der
+  Source; die Hub-Karte nennt den Preis und ist ohne Nektar gesperrt (Entscheidung 19.09.2026:
+  „Abbruch beendet den Lauf").
 - [B39 Brutkosten] Der QA-Befund „free beetle breeding" (v0.0.53 #2, 3/3 reproduziert) war
   echt: `BeetleLab` prüfte `meta.nektar >= BEETLE_BREED.nektarCost`, aber `enqueueBrood`
   (`meta/run.ts`) buchte nie ab — die ganze Brutzucht war kostenlos. Die Abbuchung sitzt jetzt

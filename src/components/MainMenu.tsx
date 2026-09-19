@@ -8,6 +8,7 @@ import { SproutIcon, WaveIcon, BookIcon, SwordIcon, SeedIcon, BugIcon } from './
 import type { MenuScreen } from './NavIndicators';
 import { mainMenuStyles as styles } from './mainMenuStyles';
 import { previewColor } from '../visual/generator';
+import { resumeCostFor } from '../config/economy.source';
 import { GAME_SEED } from '../config';
 
 // Owner: UI (MainMenu = Hub-Kärtchen). LOC ≤ 200.
@@ -29,6 +30,10 @@ type Props = {
 
 export function MainMenu({ meta, onMetaChange, onStartRun, onNavigate, resumeWave, onResume }: Props) {
   const { t } = useI18n();
+  // Fortsetzen ist ein KAUF (Entscheidung 19.09.2026): 25 Nektar je erreichter Welle, ohne Cap.
+  // Ein Abbruch beendet den Lauf — ohne Nektar gibt es kein Wiedereinsteigen, und die Karte sagt das.
+  const resumeCost = resumeWave === null || resumeWave === undefined ? 0 : resumeCostFor(resumeWave);
+  const resumeAffordable = resumeCost === 0 || meta.nektar >= resumeCost;
   // B18: der Hub schreibt jetzt genau EIN Meta — den Loadout-Toggle (A19.6). Alles andere
   // bleibt read-only; die Writer-Regel gilt pro Feld, nicht pro Screen.
 
@@ -84,9 +89,12 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onNavigate, resumeWav
           <ModeCard
             icon={<WaveIcon />}
             title={t('menu.resume')}
-            desc={t('menu.resumeDesc').replace('{n}', String(resumeWave))}
-            onClick={onResume}
-            highlight
+            desc={t('menu.resumeDesc')
+              .replace('{n}', String(resumeWave))
+              .replace('{cost}', String(resumeCost))}
+            onClick={resumeAffordable ? onResume : () => undefined}
+            disabled={!resumeAffordable}
+            highlight={resumeAffordable}
           />
         ) : null}
         <ModeCard

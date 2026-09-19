@@ -1,14 +1,14 @@
 import type { MetaSave, PlantVariant, PendingBrood, BeetleSpecimen } from '../types';
 import { load, save, remove } from '../persistence/storage';
 import { APP_VERSION } from '../version';
-import { STARTER_PLANT_COUNT, STARTING_NEKTAR, GREENHOUSE_POT_SLOTS } from '../config/economy.source';
+import { STARTER_PLANT_COUNT, STARTING_NEKTAR, GREENHOUSE_POT_SLOTS, REARING_SLOTS_START, REARING_SLOTS_MAX } from '../config/economy.source';
 import { createBaseVariants } from '../genome/bases';
 import { genomeEffectIds } from '../genome/visualMap';
 
 // Owner: PersistenceSystem (meta store — the only persistence owner remains storage.ts).
 
 export const META_KEY = 'lifegamelab_meta';
-export const META_VERSION = 7;
+export const META_VERSION = 8;
 
 /** Legacy-Basen-IDs (vor der PLANTS_SOURCE-Vereinheitlichung) → kanonische PlantTypeId. */
 const LEGACY_BASE_ID: Record<string, 'sprout' | 'rootwall' | 'mycelia'> = {
@@ -43,7 +43,7 @@ export function defaultMeta(): MetaSave {
   // und Gewächshaus: Es gab nie einen Grund, den Loop zu betreten.
   const counts: Record<string, number> = {};
   return {
-    version: 7,
+    version: 8,
     appVersion: APP_VERSION,
     nektar: STARTING_NEKTAR,
     bestWave: 0,
@@ -58,6 +58,7 @@ export function defaultMeta(): MetaSave {
     pvpPayouts: 0,
     seedStash: 0,
     pendingCrosses: [],
+    rearingSlots: REARING_SLOTS_START,
     totalWavesSurvived: 0,
     bredStats: {},
     // R2: mapLayouts gestorben — die Spielerwelt lebt im WorldSave (eine Quelle).
@@ -180,7 +181,7 @@ function sanitizePots(raw: unknown): (string | null)[] {
 }
 
 function migrate(raw: unknown, fromVersion: number): MetaSave | null {
-  if (fromVersion < 1 || fromVersion > 6) return null;
+  if (fromVersion < 1 || fromVersion > 7) return null;
   const old = raw as Partial<MetaSave> & { version?: number };
   if (typeof old.nektar !== 'number') return null;
   return toCurrent(defaultMeta(), old);
@@ -193,8 +194,14 @@ function migrate(raw: unknown, fromVersion: number): MetaSave | null {
  * Idempotent, reine Invarianten-Reparatur (B17-Muster).
  */
 function healEntryLoop(meta: MetaSave): MetaSave {
+  // Zucht-Sprint 19.09.2026: `rearingSlots` ist eine Invariante (3..12) — Altsaves ohne das Feld
+  // bekommen den Startwert, kaputte Werte werden geklemmt (kein `undefined` im Gewächshaus).
+  const slots = typeof meta.rearingSlots === 'number' && Number.isFinite(meta.rearingSlots)
+    ? Math.min(REARING_SLOTS_MAX, Math.max(REARING_SLOTS_START, Math.floor(meta.rearingSlots)))
+    : REARING_SLOTS_START;
   return {
     ...meta,
+    rearingSlots: slots,
     pots: sanitizePots(meta.pots),
     seedlings: Array.isArray(meta.seedlings) ? meta.seedlings.filter((s): s is string => typeof s === 'string') : [],
   };

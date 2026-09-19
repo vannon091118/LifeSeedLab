@@ -1,7 +1,7 @@
 import type { MetaSave, PendingCross, PlantVariant } from '../types';
 import { loadMeta, updateMeta } from './store';
 import { registerVariant } from './run';
-import { wavesToUnlockFor, PENDING_CROSSES_MAX, GREENHOUSE_POT_SLOTS } from '../config/economy.source';
+import { wavesToUnlockFor, PENDING_CROSSES_MAX, GREENHOUSE_POT_SLOTS, rearingSlotGate } from '../config/economy.source';
 import { GAME_SEED } from '../config';
 import { deriveSeed } from '../core/rng';
 import { createBaseVariants } from '../genome/bases';
@@ -45,6 +45,20 @@ export function germinateSeed(index: number): MetaSave | null {
   if (meta.seedStash <= 0) return null;
   const variant = germinateVariant(index);
   return registerVariant(variant) ? updateMeta({ seedStash: meta.seedStash - 1 }) : null;
+}
+
+/**
+ * Reifungsplatz kaufen: verlangt BEIDES — Nektar UND die überlebte Wellenmarke (Source-Kurve).
+ * Fail-closed wie `buySeed`: fehlt eines von beidem, bleibt der Save unverändert. Die Wellenmarke
+ * ist `bestWave` (beste je erreichte Welle) — eine Leistung, die nicht verfällt.
+ */
+export function buyRearingSlot(): MetaSave | null {
+  const meta = loadMeta();
+  const gate = rearingSlotGate(meta.rearingSlots);
+  if (!gate) return null;                       // alle 12 stehen
+  if (meta.nektar < gate.nektar) return null;   // zu teuer
+  if (meta.bestWave < gate.wave) return null;   // Wellenmarke fehlt
+  return updateMeta({ nektar: meta.nektar - gate.nektar, rearingSlots: gate.next });
 }
 
 /** Reifungs-Queue begrenzen (älteste fallen) — reine Kapazitätsgrenze, kein Verwerfen von Reifem. */

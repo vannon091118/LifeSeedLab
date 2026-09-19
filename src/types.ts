@@ -42,11 +42,13 @@ export type PlantVariant = {
 // ── v4 (P6): Käferzucht — Brut-Lager, ein eingesetzter Käfer, Brut-Reifungs-Queue.
 // ── v5 (A13.1): monotoner Brut-Zähler — Identität darf nie aus einem Fenster abgeleitet werden.
 // ── v6 (B21): `tutorialDone` — das Krix-Onboarding startet genau einmal pro Spielerprofil.
+// ── v8 (Zucht-Sprint 19.09.2026): `rearingSlots` — Reifungsplätze starten bei 3 und wachsen
+//    über steile Gates (Nektar + überlebte Welle) bis 12.
 // ── v7 (B21.3): `tutorialVersion` ersetzt das Ja/Nein. Die Tour begann früher erst im Feld;
 //    jetzt startet sie auf dem Titel-Screen. Ein Bool konnte diesen Umbau nicht ausdrücken:
 //    wer die alte Tour gesehen hatte, hätte die neue nie zu sehen bekommen.
 export type MetaSave = {
-  version: 7;
+  version: 8;
   /** Produktversion beim letzten Schreiben (Diagnose: Altsaves zuordnen, Support-Fälle klären). */
   appVersion?: string;
   nektar: number;
@@ -67,6 +69,8 @@ export type MetaSave = {
   seedStash: number;
   /** Reifungs-Queue: Kreuzungen, die X überlebte Wellen brauchen, bevor sie keimen. */
   pendingCrosses: PendingCross[];
+  /** Reifungsplätze (3..12): Start 3, Zukauf über `buyRearingSlot` (Preis + Wellenmarke). */
+  rearingSlots: number;
   /** Gesamtzahl bestandener Wellen (Reifungszähler). */
   totalWavesSurvived: number;
   /** EINE Quelle für Zucht-Stats: beim Claim abgeleitet, an jeden Run injiziert (B1). */

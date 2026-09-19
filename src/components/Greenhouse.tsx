@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import type { MetaSave, PlantVariant } from '../types';
+import type { MetaSave, PlantVariant, PendingCross } from '../types';
 import type { TranslationKey } from '../i18n';
 import { useI18n } from '../i18n';
-import { rollGachaCross, deriveGachaSeed, createBaseVariants, type GachaRoll } from '../genome';
-import { consumeSeedAndEnqueueCross, keepCross, isCrossReady, plantSeedlingIntoPot } from '../meta';
-import { wavesToUnlockFor, PENDING_CROSSES_MAX, GREENHOUSE_POT_SLOTS } from '../config/economy.source';
+import { rollGachaCross, crossPair, deriveBreedSeed, deriveGachaSeed, createBaseVariants, type GachaRoll } from '../genome';
+import { consumeSeedAndEnqueueCross, keepCross, isCrossReady, plantSeedlingIntoPot, buyRearingSlot } from '../meta';
+import { wavesToUnlockFor, rearingSlotGate, REARING_SLOTS_MAX } from '../config/economy.source';
 import { helpText } from '../i18n/help';
 import { genomeToVisualInput } from '../genome/visualMap';
 import { PlantCanvas } from './PhenotypeCanvas';
@@ -31,6 +31,20 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
   const [helpOpen, setHelpOpen] = useState(false);
   /** Aktuell gezogener Keimling (Drag&Drop-Quelle) — null = nichts in der Hand. */
   const [heldSeedling, setHeldSeedling] = useState<string | null>(null);
+  /**
+   * ELTERNWAHL (Playtest-Befund „Aussäen würfelt Myzel × Wurzelmauer automatisch", 19.09.2026):
+   * Der Spieler bestimmt das Paar — nicht der Würfel. A und B sind zwei Tipps auf die eigenen
+   * Pflanzen; ein dritter Tipp auf dieselbe Karte nimmt sie wieder heraus.
+   */
+  const [parentA, setParentA] = useState<string | null>(null);
+  const [parentB, setParentB] = useState<string | null>(null);
+  const pickParent = (id: string) => {
+    if (parentA === id) { setParentA(parentB); setParentB(null); return; }
+    if (parentB === id) { setParentB(null); return; }
+    if (parentA === null) { setParentA(id); return; }
+    if (parentB === null) { setParentB(id); return; }
+    setParentA(parentB); setParentB(id);
+  };
 
   /**
    * Trait-Tag in der Anzeige: Gen-IDs sind sprachneutral (`trait.<id>`), Alt-Saves tragen
@@ -48,10 +62,15 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
   // für immer sperren). Die Kosten liegen im Elternverbrauch beim Keep.
   // B20: fail-closed ODER je Quelle — volle Reifungs-Queue sperrt die Aussaat, sonst
   // würde `capped()` stillschweigend den ÄLTESTEN (fast reifen) Eintrag werfen.
-  const queueFull = meta.pendingCrosses.length >= PENDING_CROSSES_MAX;
+  // Die Queue-Grenze ist der GEKAUFTE Reifungsplatz (3..12) — nicht die harte Obergrenze.
+  const queueFull = meta.pendingCrosses.length >= meta.rearingSlots;
   // B34: Reife Einträge in der Queue — sie sind der Ausweg aus der vollen Queue (erst abholen).
   const readyCount = meta.pendingCrosses.filter(c => isCrossReady(meta, c.crossIndex)).length;
-  const canSow = owned.length >= 2 && !queueFull;
+  const parentsReady = parentA !== null && parentB !== null && parentA !== parentB;
+  const canSow = owned.length >= 2 && parentsReady && !queueFull;
+  // Reifungsplatz-Zukauf (Entscheidung 19.09.2026): Preis UND Wellenmarke zusammen.
+  const slotGate = rearingSlotGate(meta.rearingSlots);
+  const canBuySlot = slotGate !== null && meta.nektar >= slotGate.nektar && meta.bestWave >= slotGate.wave;
 
   /** Keimling in Topf N einsetzen (Drop-Ziel; heldSeedling ist die Hand). */
   const handleDropIntoPot = (potIndex: number) => {
@@ -65,9 +84,15 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
 
   const handleSow = () => {
     if (!canSow) return;
+    const a = owned.find(v => v.id === parentA);
+    const b = owned.find(v => v.id === parentB);
+    if (!a || !b) return;
     const crossIndex = meta.breedGeneration;
-    const gachaSeed = deriveGachaSeed(crossIndex);
-    const roll = rollGachaCross(owned, gachaSeed, crossIndex);
+    // Die Kreuzung läuft über die GEWÄHLTEN Eltern (`crossPair`, deterministisch aus beiden
+    // IDs + Generation). Der Seed wird mitgespeichert, damit die Reifungs-Zeile denselben
+    // Nachkommen rekonstruieren kann, falls ein Altsave kein `child` trägt.
+    const gachaSeed = deriveBreedSeed(a.id, b.id, crossIndex);
+    const roll = crossPair(a, b, crossIndex);
     if (!roll) return;
     // ATOMAR: Seed-Verbrauch + Cross-Enqueue in EINEM Persistenzschritt —
     // kein Zustand mehr möglich, in dem der Seed verbrannt ist, aber keine Kreuzung wartet.
@@ -134,7 +159,7 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
         <div style={styles.header}>
           <h2 style={styles.title}>{t('greenhouse.title')}</h2>
           <div style={styles.headerRight}>
-            <span style={styles.stash}>{t('shop.pending').replace('{n}', String(meta.pendingCrosses.length)).replace('{m}', String(PENDING_CROSSES_MAX))}</span>
+            <span style={styles.stash}>{t('shop.pending').replace('{n}', String(meta.pendingCrosses.length)).replace('{m}', String(meta.rearingSlots))}</span>
             <button onClick={onClose} style={styles.closeBtn} aria-label={t('common.close')}>✕</button>
           </div>
         </div>
@@ -202,17 +227,65 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
         {helpOpen && <div style={styles.helpBox}>{helpText('help.greenhouse', lang)}</div>}
 
         {/* Aussaat */}
+        {/* ELTERNWAHL: das Kernversprechen der Zucht ist eine Entscheidung, kein Wurf. */}
+        <div style={styles.parentRow}>
+          <span style={styles.sectionTitle}>{t('greenhouse.parents')}</span>
+          {owned.map(v => {
+            const isA = parentA === v.id;
+            const isB = parentB === v.id;
+            return (
+              <button
+                key={v.id}
+                onClick={() => pickParent(v.id)}
+                aria-pressed={isA || isB}
+                style={{ ...styles.parentCard, ...(isA || isB ? styles.parentCardActive : {}) }}
+                title={v.name}
+              >
+                <PlantThumb variant={v} size={40} />
+                <span style={styles.parentName}>{v.name}</span>
+                {(isA || isB) && <span style={styles.parentBadge}>{isA ? 'A' : 'B'}</span>}
+              </button>
+            );
+          })}
+        </div>
+        <div style={styles.parentLine}>
+          {t('greenhouse.parentsChosen')
+            .replace('{a}', parentA ? variantName(parentA, meta) : '—')
+            .replace('{b}', parentB ? variantName(parentB, meta) : '—')}
+        </div>
+
         <button onClick={handleSow} disabled={!canSow} style={{ ...styles.sowBtn, opacity: canSow ? 1 : 0.4 }}>
-          🌱 {t('shop.sow')}
+          🌱 {canSow ? t('shop.sow') : t('shop.sowPickParents')}
         </button>
         {!canSow && queueFull && (
           <div style={readyCount > 0 ? { ...styles.hint, color: 'var(--leaf-dark)', borderColor: 'var(--leaf-dark)' } : styles.hint}>
             {readyCount > 0
               ? t('shop.queueFullReady').replace('{r}', String(readyCount))
-              : t('shop.sowEmpty').replace('{n}', String(meta.pendingCrosses.length)).replace('{m}', String(PENDING_CROSSES_MAX))}
+              : t('shop.sowEmpty').replace('{n}', String(meta.pendingCrosses.length)).replace('{m}', String(meta.rearingSlots))}
           </div>
         )}
         {!canSow && owned.length < 2 && <div style={styles.hint}>{t('shop.needTwo')}</div>}
+
+        {/* REIFUNGSPLATZ KAUFEN: Preis UND Wellenmarke (steile Kurve bis Platz 12). */}
+        {slotGate ? (
+          <>
+            <button
+              onClick={() => { const m = buyRearingSlot(); if (m) onMetaChange(m); }}
+              disabled={!canBuySlot}
+              style={{ ...styles.slotBtn, opacity: canBuySlot ? 1 : 0.55 }}
+              data-tut="buy-slot"
+            >
+              {t('greenhouse.buySlot')} — 🍯 {slotGate.nektar} · {t('greenhouse.buySlotWave').replace('{n}', String(slotGate.wave))}
+            </button>
+            {meta.bestWave < slotGate.wave && (
+              <div style={styles.hint}>
+                {t('greenhouse.slotWaveMissing').replace('{n}', String(slotGate.wave)).replace('{s}', String(meta.bestWave))}
+              </div>
+            )}
+          </>
+        ) : (
+          <div style={styles.hint}>{t('greenhouse.slotsFull').replace('{m}', String(REARING_SLOTS_MAX))}</div>
+        )}
 
         {/* Gacha-Ergebnis */}
         {lastRoll && (
@@ -255,7 +328,7 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
           <div style={styles.pendingRow}>
             <span style={styles.sectionTitle}>
               {readyCount > 0 && ' 🌟'}
-              {t('shop.pending').replace('{n}', String(meta.pendingCrosses.length)).replace('{m}', String(PENDING_CROSSES_MAX))}
+              {t('shop.pending').replace('{n}', String(meta.pendingCrosses.length)).replace('{m}', String(meta.rearingSlots))}
             </span>
             {meta.pendingCrosses.map((c) => {
               const remaining = Math.max(0, c.neededWaves - (meta.totalWavesSurvived - c.startedWave));
@@ -270,8 +343,10 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
               // dem inzwischen veränderten Bestand. Legacy (Altsave ohne child): aus dem
               // Seed rekonstruieren; null ⇒ parentsGone-Meldung wie bisher.
               const roll = c.child
-                ? { child: c.child, parentA: BASES.find(v => v.id === c.parentAId) ?? owned.find(v => v.id === c.parentAId), parentB: BASES.find(v => v.id === c.parentBId) ?? owned.find(v => v.id === c.parentBId), probability: 1, crossIndex: c.crossIndex } as GachaRoll
-                : rollGachaCross(owned, c.seed, c.crossIndex);
+                ? { child: c.child, parentA: findVariant(c.parentAId ?? '', meta), parentB: findVariant(c.parentBId ?? '', meta), probability: 1, crossIndex: c.crossIndex } as GachaRoll
+                // Altsave ohne `child`: erst über das GESPEICHERTE Paar rekonstruieren (das ist die
+                // Kreuzung, die der Spieler gewählt hat) — der Sammelwurf ist nur der Notausgang.
+                : (pairRollFor(c, meta) ?? rollGachaCross(owned, c.seed, c.crossIndex));
               return (
                 <div key={c.crossIndex} style={styles.pendingReady}>
                   <div style={styles.childRow}>
@@ -325,6 +400,17 @@ const PlantThumb = ({ variant, size, title }: { variant?: PlantVariant; size: nu
     ? <PlantCanvas phenotype={genomeToVisualInput(variant, GAME_SEED).phenotype} size={size} title={title ?? variant.name} />
     : <span style={{ width: size, height: size, borderRadius: 8, background: '#ddd', border: '2px solid var(--ink)', display: 'block' }} />;
 
+/**
+ * Nachkomme eines gepaarten Reifungs-Eintrags rekonstruieren: dieselben Eltern + dieselbe
+ * Generation ⇒ dasselbe Kind (`crossPair` ist deterministisch aus beiden IDs abgeleitet).
+ */
+function pairRollFor(c: PendingCross, meta: MetaSave): GachaRoll | null {
+  const a = findVariant(c.parentAId ?? '', meta);
+  const b = findVariant(c.parentBId ?? '', meta);
+  if (!a || !b || a.id === b.id) return null;
+  return crossPair(a, b, c.crossIndex);
+}
+
 /** Anzeigename einer Variant-ID — Besitz-Bibliothek zuerst, Fallback die ID. */
 function variantName(id: string, meta: MetaSave): string {
   return meta.savedVariants.find(v => v.id === id)?.name ?? id;
@@ -353,6 +439,13 @@ const styles: Record<string, React.CSSProperties> = {
   desc: { fontSize: 12, color: '#6b6250', margin: '0 0 14px', fontWeight: 600 },
   shareNote: { marginBottom: 10, padding: '8px 10px', background: '#fff', border: '2px solid var(--leaf-dark)', borderRadius: 8, color: 'var(--leaf-dark)', fontSize: 12, fontWeight: 700, wordBreak: 'break-all' as const },
   sowBtn: { width: '100%', padding: 14, fontSize: 15, fontWeight: 800, color: '#fff', background: 'var(--leaf)', border: '2.5px solid var(--ink)', borderRadius: 8, cursor: 'pointer', boxShadow: '3px 3px 0 var(--ink)', marginBottom: 8 },
+  parentRow: { display: 'flex', gap: 8, flexWrap: 'wrap' as const, alignItems: 'center', marginBottom: 6 },
+  parentCard: { position: 'relative' as const, display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: '#fff', border: '2px solid var(--ink)', borderRadius: 10, cursor: 'pointer', minHeight: 52, boxShadow: '2px 2px 0 var(--ink)' },
+  parentCardActive: { background: '#eef7e6', borderColor: 'var(--leaf-dark)' },
+  parentName: { fontSize: 12, fontWeight: 800, color: 'var(--ink)' },
+  parentBadge: { position: 'absolute' as const, top: -8, right: -8, width: 22, height: 22, borderRadius: 11, background: 'var(--leaf)', color: '#fff', border: '2px solid var(--ink)', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  parentLine: { fontSize: 12, fontWeight: 700, color: '#6b6250', marginBottom: 10 },
+  slotBtn: { width: '100%', padding: 11, marginBottom: 6, background: '#fff', border: '2px dashed var(--ink)', borderRadius: 8, color: 'var(--ink)', fontSize: 12, fontWeight: 800, cursor: 'pointer', boxShadow: '2px 2px 0 var(--ink)' },
   hint: { fontSize: 11, color: '#8a8065', marginBottom: 10, fontWeight: 600 },
   helpToggle: { width: '100%', padding: '8px 12px', marginBottom: 10, background: '#fff', border: '1.5px dashed var(--ink)', borderRadius: 8, color: '#6b6250', fontSize: 12, fontWeight: 700, cursor: 'pointer', textAlign: 'center' as const, minHeight: 44 },
   helpBox: { marginBottom: 10, padding: '10px 12px', background: '#f7f3e8', border: '1.5px solid var(--ink)', borderRadius: 8, color: '#4a4437', fontSize: 12, fontWeight: 600, whiteSpace: 'pre-line' as const, lineHeight: 1.55 },

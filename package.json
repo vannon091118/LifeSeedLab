@@ -1,7 +1,7 @@
 {
   "name": "lifeseedlab",
   "private": true,
-  "version": "0.0.54",
+  "version": "0.0.55",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "browser-use-sdk": "^3.11.3",
+    "dotenv": "^18.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

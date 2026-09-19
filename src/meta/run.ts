@@ -4,6 +4,7 @@ import { isCrossReady, isMatured } from './economy';
 import { rollBrood, resolveAncestor, type BeetleParentRef } from '../genome/beetle';
 import { BEETLE_BREED } from '../config/beetles.source';
 import { deriveLoanPlant, LOAN_PLANT_ID } from './loan';
+import { resumeCostFor } from '../config/economy.source';
 
 // Owner: PersistenceSystem (meta run/variant ops). LOC ≤ 200.
 
@@ -15,6 +16,18 @@ export function canonicalVariantId(id: string): string {
     case 'base_support': return 'mycelia';
     default: return id;
   }
+}
+
+/**
+ * Fortsetzen bezahlen: 25 Nektar je erreichter Welle, ohne Cap (Entscheidung 19.09.2026).
+ * Ein Abbruch BEENDET den Lauf — es gibt kein kostenloses Wiedereinsteigen. Fail-closed: reicht
+ * der Nektar nicht, bleibt der Save unverändert und es wird NICHT fortgesetzt.
+ */
+export function payRunResume(waveNumber: number): MetaSave | null {
+  const meta = loadMeta();
+  const cost = resumeCostFor(waveNumber);
+  if (meta.nektar < cost) return null;
+  return updateMeta({ nektar: meta.nektar - cost });
 }
 
 export function reserveRunId(meta: MetaSave): MetaSave {
