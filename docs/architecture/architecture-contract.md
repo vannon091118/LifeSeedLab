@@ -100,6 +100,10 @@ Input (Pointer/Touch) → `CommandQueue` → `SimulationRoot` → `EventBus` →
   - **Präsentation:** `visual`, `particle`, `cosmetic` (nur Darstellung).
 - RNG-Aufrufe der Präsentation dürfen niemals den Gameplay-RNG vorantreiben.
 - `Math.random` und `Date.now` sind im gesamten Spielcode **verboten**. `performance.now` ist ausschließlich für Frame-Deltas in `GameView` zulässig.
+- **Float-Exaktheit in der Gameplay-Wahrheit:** In `src/simulation/**` und `src/config/*.source.ts` sind `Math.pow`, `Math.hypot` und **alle Transzendenten** (`sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`, `exp`, `expm1`, `log`, `log1p`, `log2`, `log10`) **verboten**. Erlaubt bleiben die exakten Operationen (`+ − * / %`), `Math.sqrt` sowie `abs`/`min`/`max`/`floor`/`ceil`/`round`/`trunc`/`sign` und die Ganzzahl-Bits.
+  - **Grund:** `pow`, `hypot` und die Transzendenten rechnen intern über `exp`/`log` und sind damit plattformabhängig gerundet — verschiedene Engines dürfen im letzten Bit abweichen. Ein Spielzustand, der daraus entsteht, ist nicht über Maschinen hinweg derselbe. Die Drift-Kurve (`driftFor`) ist deshalb eine Multiplikationsschleife, nicht `pow`.
+  - **Geltung bewusst begrenzt:** Die Präsentation (`render/`, `observers/`, `components/`) darf trigonometrisch zeichnen — sie beeinflusst keinen Spielzustand. Keine Ausweitung ohne Messung, die eine Abweichung belegt.
+  - **Durchsetzung:** Gate-Regel „Float-Exaktheit" (`tools/shinon/config.ts`, Diff-Scope) + Baum-Test `tools/shinon/tests/determinism_rule.test.ts` (ganzer Baum, in CI). Beide lesen dieselbe Regel — kein zweiter Listen-Ort.
 
 ---
 

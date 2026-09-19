@@ -55,15 +55,30 @@ declare module 'node:fs' {
   export function chmodSync(path: string, mode: number): void;
   export function readdirSync(path: string, options?: { recursive?: boolean; encoding?: string }): string[];
   export function rmSync(path: string, options?: { recursive?: boolean; force?: boolean }): void;
+  export function unlinkSync(path: string): void;
 }
 
 declare module 'node:path' {
+  // `posix` ist die plattformneutrale Sicht: Doku-Referenzen werden damit unabhängig vom
+  // Windows-Trenner aufgelöst (doc-link-check). Fehlte im Shim und machte `tsc -p tools` rot,
+  // obwohl der Lauf zur Laufzeit korrekt war.
+  const posix: {
+    join(...parts: string[]): string;
+    resolve(...parts: string[]): string;
+    dirname(value: string): string;
+    basename(value: string): string;
+    relative(from: string, to: string): string;
+    normalize(value: string): string;
+    readonly sep: string;
+  };
   const path: {
     join(...parts: string[]): string;
     resolve(...parts: string[]): string;
     dirname(value: string): string;
     basename(value: string): string;
     relative(from: string, to: string): string;
+    normalize(value: string): string;
+    readonly posix: typeof posix;
     readonly sep: string;
   };
   export default path;

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { buildChecks } from '../checks/index.ts';
 import { runMessageSelfTest, validateMessage } from '../checks/commit-message-check.ts';
 import { ForbiddenPatternCheck } from '../checks/forbidden-pattern-check.ts';
 import { LocCapCheck } from '../checks/loc-cap-check.ts';
@@ -19,6 +20,18 @@ function contextIn(dir: string, changedFiles: string[]): CheckContext {
     quiet: true,
   };
 }
+
+describe('Gate-Registry', () => {
+  // Die Changelog-Pflicht (Regel 0) hing allein an `shinon.config.json`: `GateChecks` deklarierte
+  // das Feld nicht, der Laufzeitwert kam aus der JSON. Ein Klon ohne die Datei hätte den Check
+  // STILL abgeschaltet und der Fehler wäre nur als fehlende Zeile im Bericht sichtbar gewesen.
+  // Jetzt ist der Default die Wahrheit, die JSON nur noch Übersteuerung — dieser Test hält das.
+  it('Changelog-Pflicht ist ein Default-Check, nicht JSON-Zufall', () => {
+    const config = defaultConfig('/tmp/shinon');
+    expect(config.gate.checks.changelog).toBe(true);
+    expect(buildChecks(config).map((check) => check.id)).toContain('changelog');
+  });
+});
 
 describe('Commit-Nachrichtenregel', () => {
   const config = defaultConfig('/tmp/shinon');

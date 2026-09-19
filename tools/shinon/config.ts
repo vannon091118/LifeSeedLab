@@ -23,6 +23,17 @@ export interface ForbiddenRule {
   pattern: string;
   message: string;
   exclude?: string[];
+  /**
+   * Geltungsbereich: nur Dateien, die auf einen dieser Einträge passen, werden geprüft.
+   * Ohne `include` gilt die Regel für ALLE Ziel-Dateien (bisheriges Verhalten).
+   *
+   * Matching (eine Regel, zwei Schreibweisen — in `matchesPath` implementiert):
+   *   · Endet der Eintrag auf `/`, ist er ein Pfad-Präfix (`src/simulation/` ⇒ alles darunter).
+   *   · Sonst ist er ein Muster, in dem `*` beliebig viele Zeichen trifft
+   *     (`src/config/*.source.ts` ⇒ nur die Source-Dateien, nicht ihre Tests).
+   * Es gibt keinen dritten Fall — was nicht passt, wird nicht geprüft.
+   */
+  include?: string[];
 }
 
 export interface CommandSpec {
@@ -36,6 +47,15 @@ export interface GateChecks {
   forbiddenPatterns: boolean;
   typecheck: boolean;
   tests: boolean;
+  /**
+   * Pflicht-Eintrag in `CHANGELOG.md` gegenüber HEAD (Regel 0).
+   *
+   * Das Feld fehlte im Typ, obwohl `checks/index.ts` es liest und `shinon.config.json` es setzt:
+   * zur Laufzeit kam der Wert nur aus der JSON-Datei — ein frischer Klon ohne sie hätte den Check
+   * STILL abgeschaltet (`enabled['changelog'] === true` gegen `undefined`). Jetzt steht er im Typ
+   * und im Default wie jeder andere Check. Die JSON darf ihn weiterhin übersteuern.
+   */
+  changelog: boolean;
   /** E2E-Stufe (Playwright) — Stufe 2 des verbindlichen Sprint-Abschlusses (AGENTS.md). */
   e2e: boolean;
   build: boolean;
@@ -129,6 +149,7 @@ export function defaultConfig(root: string): ShinonConfig {
         e2e: true,
         build: false,
         commitMessage: true,
+        changelog: true,
         docLinks: true,
       },
       failFast: true,
@@ -169,6 +190,21 @@ export function defaultConfig(root: string): ShinonConfig {
           pattern: 'localStorage\\.|indexedDB',
           message: 'Verboten: Persistenz-Zugriff außerhalb von persistence/',
           exclude: ['src/persistence/', 'tests/', 'tools/'],
+        },
+        {
+          // Float-Exaktheit in der Gameplay-Wahrheit (architecture-contract.md §6, B38-Fund):
+          // Simulation und Content-Truth dürfen nur exakte Operationen benutzen (+ − * / %,
+          // Math.sqrt, Math.abs/min/max/floor/ceil/round/trunc/sign, Ganzzahl-Bits). Verboten
+          // sind Math.pow, Math.hypot und alle Transzendenten: sie sind plattformabhängig
+          // gerundet (V8/SpiderMonkey dürfen abweichen) und damit kein Determinismus über
+          // Maschinen — genau der Grund, warum die Drift-Kurve eine Multiplikationsschleife
+          // ist. Geltung bewusst NICHT global: die Präsentation (render/, observers/) darf
+          // trigonometrisch zeichnen, sie beeinflusst keinen Spielzustand.
+          pattern:
+            'Math\\.(pow|hypot|sin|cos|tan|asin|acos|atan|atan2|sinh|cosh|tanh|asinh|acosh|atanh|exp|expm1|log|log1p|log2|log10)\\s*\\(',
+          message:
+            'Verboten in Simulation/Source: Math.pow, Math.hypot und Transzendente — exakte Operationen nutzen (Multiplikationsschleife, Math.sqrt)',
+          include: ['src/simulation/', 'src/config/*.source.ts'],
         },
       ],
       commands: {

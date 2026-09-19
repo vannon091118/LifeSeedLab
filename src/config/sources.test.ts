@@ -3,7 +3,7 @@ import { EFFECTS_SOURCE, EFFECT_IDS, isValidEffect } from './effects.source';
 import { GENE_EFFECTS } from './genes.source';
 import { GENE_POOL } from '../genome/pool';
 import {
-  PLANT_AXES_BY_GENE, PLANT_AXIS_RANGE, PLANT_PIGMENT_RAMP, PLANT_HABIT_BY_ROLE, BREEDING,
+  PLANT_AXES_BY_GENE, PLANT_AXIS_RANGE, PLANT_PIGMENT_RAMP, PLANT_HABIT_BY_ROLE, BREEDING, driftFor,
 } from './phenotype.source';
 import { PLANTS_SOURCE } from './plants.source';
 
@@ -62,14 +62,28 @@ describe('Phase 5 gate: source validation', () => {
 
   it('Zucht-Kurve ist eine stetige Drift-Kurve, kein Generations-Schalter', () => {
     // Die Drift darf NIE springen: G1 nah an den Eltern, später freier, aber monoton wachsend
-    // und nach oben begrenzt. Ein harter Schalter („ab Gen 4 frei“) würde hier auffallen.
-    const d = [1, 2, 3, 4, 5, 8, 13].map(g => BREEDING.drift.start + (BREEDING.drift.cap - BREEDING.drift.start) * (1 - Math.pow(BREEDING.drift.retain, g - 1)));
+    // und nach oben begrenzt. Ein harter Schalter („ab Gen 4 frei") würde hier auffallen.
+    //
+    // Nachgerechnet mit derselben exakten Arithmetik wie die Quelle: Produkt statt `Math.pow`.
+    // Der Test ist damit selbst pow-frei; dass projektweit keine Potenz und keine Transzendente
+    // in Simulation und Content-Truth steht, prüft zusätzlich die Gate-Regel samt Baum-Test
+    // (tools/shinon/tests/determinism_rule.test.ts).
+    const keep = (g: number): number => {
+      let p = 1;
+      for (let i = 1; i < g; i += 1) p *= BREEDING.drift.retain;
+      return p;
+    };
+    const d = [1, 2, 3, 4, 5, 8, 13].map(g => BREEDING.drift.start + (BREEDING.drift.cap - BREEDING.drift.start) * (1 - keep(g)));
     for (let i = 1; i < d.length; i++) {
       expect(d[i]!, `Drift fällt von Generation ${i} auf ${i + 1}`).toBeGreaterThan(d[i - 1]!);
       expect(d[i]! - d[i - 1]!, 'Sprung statt stetiger Drift').toBeLessThan(0.3);
     }
     expect(d[0]!).toBeLessThan(0.2);
     expect(d[d.length - 1]!).toBeLessThan(BREEDING.drift.cap);
+    // Exaktheit an der Wurzel: `retain^0` ist exakt 1 — Generation 1 also exakt `start`,
+    // ohne Rundung. Mit einer Zeile mehr beweist das die Schleife in `driftFor`.
+    expect(d[0]!).toBe(BREEDING.drift.start);
+    expect(driftFor(1)).toBe(BREEDING.drift.start);
   });
 
   it('R2: die Route ist das Pathfinding-Ergebnis — es gibt keinen Fallback-Pfad mehr', async () => {

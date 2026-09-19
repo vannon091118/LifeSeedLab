@@ -218,11 +218,22 @@ export const BREEDING = {
   parentSimilarityFloor: 0.42,
 } as const;
 
-/** Stetige Generations-Drift (rein arithmetisch, kein RNG — deshalb reproduzierbar). */
+/**
+ * Stetige Generations-Drift (rein arithmetisch, kein RNG — deshalb reproduzierbar).
+ *
+ * Die Potenz ist eine Multiplikationsschleife, kein `Math.pow`: `pow` rechnet intern über
+ * exp/log und ist damit plattformabhängig gerundet — kein Determinismus über Maschinen hinweg.
+ * Exakt sind `+ − * /` und `Math.sqrt`; deshalb steht das Kurven-Gesetz jetzt als Produkt.
+ * `retain^0` fällt exakt zu 1 heraus, Generation 1 liefert also exakt `start`.
+ * Durchgesetzt wird das projektweit von der Gate-Regel „Float-Exaktheit"
+ * (tools/shinon/config.ts) samt Baum-Test (tools/shinon/tests/determinism_rule.test.ts).
+ */
 export function driftFor(generation: number): number {
   const { start, cap, retain } = BREEDING.drift;
   const g = Math.max(1, generation);
-  return cap - (cap - start) * Math.pow(retain, g - 1);
+  let keep = 1;
+  for (let i = 1; i < g; i += 1) keep *= retain;
+  return cap - (cap - start) * keep;
 }
 
 /**

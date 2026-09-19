@@ -15,6 +15,19 @@ import type { CheckContext, Finding, ShinonCheck } from './check.ts';
  * (Strings, die `//` enthalten, wie URLs), sonst würde er Code verschlucken und das Verbot
  * unterlaufen. Was nach dem Abtrennen als Code übrig bleibt, wird geprüft — kein Schlupfloch.
  */
+/**
+ * Pfad-Matching einer Verbot-Regel — EINE Semantik für `include` und `exclude`.
+ *   · Eintrag mit Endung `/` ⇒ Präfix (`src/simulation/` trifft alles darunter).
+ *   · sonst Muster mit `*` ⇒ beliebig viele Zeichen (`src/config/*.source.ts` trifft die
+ *     Source-Dateien, nicht ihre Tests). Beide Formen sind an den Eintrag verankert.
+ * Kein dritter Fall: was nicht passt, gilt als nicht betroffen.
+ */
+export function matchesPath(entry: string, file: string): boolean {
+  if (entry.endsWith('/')) return file.startsWith(entry);
+  const escaped = entry.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^${escaped.replace(/\*/g, '.*')}$`).test(file);
+}
+
 export class ForbiddenPatternCheck implements ShinonCheck {
   readonly id = 'forbidden-patterns';
   readonly title = 'Architektur-Constraints';
@@ -84,7 +97,10 @@ export class ForbiddenPatternCheck implements ShinonCheck {
       }
 
       for (const file of targetFiles(ctx)) {
-        if (rule.exclude?.some((entry) => file.startsWith(entry))) continue;
+        if (rule.exclude?.some((entry) => matchesPath(entry, file))) continue;
+        // Geltungsbereich (z. B. nur Simulation + Content-Truth). Ohne `include` gilt die Regel
+        // für alle Ziel-Dateien — das bestehende Verhalten bleibt damit unverändert.
+        if (rule.include && !rule.include.some((entry) => matchesPath(entry, file))) continue;
         const content = fs.readFileSync(path.resolve(ctx.root, file), 'utf8');
         for (const { line, number } of this.codeLines(content)) {
           if (!regex.test(line)) continue;

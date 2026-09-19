@@ -9,6 +9,7 @@ Die **IDs (A…/B…) sind unverändert** — sie bleiben die stabile Referenz a
 Commit-Historie. Dieses Dokument ist die Arbeitsliste dieser Domäne: Befund → Spezifikation → DoD.
 
 > Gameplay-Wahrheit. Deterministisch: `Math.random`/`Date.now` verboten, Zufall nur über `core/rng.ts` mit Gameplay-Namespaces (`world`, `wave`, `enemy`, `plant`, `brood`, `loot`).
+> **Float-Exaktheit** (Regel: `architecture-contract.md` §6): `Math.pow`, `Math.hypot` und Transzendente sind in dieser Domäne verboten, erlaubt sind exakte Operationen und `Math.sqrt` — geprüft von der Gate-Regel „Float-Exaktheit" und dem Baum-Test `tools/shinon/tests/determinism_rule.test.ts`.
 
 ---
 

@@ -38,6 +38,8 @@ Neue Berichte unter `qa/` lesen (Input für Task), Status der Befunde auf `in-ar
 
 ---
 
+- **Regel 6 — Berater-Modus:** Bei Auslösung durch das Stichwort "Berater" antwortet der Agent ausschließlich im direkten, zynischen, kurzen Ton — kein Fülltext, keine Erklärungen, nur die notwendige Aussage.
+
 ## Ownership-Karte (Writer — nicht verhandelbar)
 
 | Slice | Writer (genau einer) | Readers / Transfer |
@@ -79,6 +81,7 @@ Neue Berichte unter `qa/` lesen (Input für Task), Status der Befunde auf `in-ar
   - Gameplay-Namespaces: `world`, `wave`, `enemy`, `plant`, `brood`, `loot` (nur Simulation).
   - Präsentations-Namespaces: `visual`, `particle`, `cosmetic` (nur Observer/Renderer).
   - Keine gegenseitige Beeinflussung! FX ON/OFF muss bit-identischen Spielzustand liefern.
+- **Float-Exaktheit:** In `src/simulation/**` + `src/config/*.source.ts` sind `Math.pow`, `Math.hypot` und alle Transzendenten (`sin/cos/tan/…`, `exp/log/…`) verboten — erlaubt sind exakte Operationen und `Math.sqrt`. Potenz = Multiplikationsschleife. Durchgesetzt von der Gate-Regel „Float-Exaktheit" + Baum-Test (`tools/shinon/tests/determinism_rule.test.ts`); Präsentation (`render/`, `observers/`) darf trigonometrisch zeichnen. Details: `architecture-contract.md` §6.
 - Run-Identität = `runId` (Autorität in `meta`).
 
 ---
