@@ -44,9 +44,11 @@ const REASON_KEY: Record<NoticeReason, TranslationKey> = {
   unknown_tile: 'field.reject.unknown_tile',
   max_count: 'field.reject.max_count',
   occupied_plant: 'field.reject.occupied_plant',
-  spawn_corridor: 'field.reject.spawn_corridor',
   not_expandable: 'field.reject.not_expandable',
   already_buildable: 'field.reject.already_buildable',
+  // R2-Neubau: out_of_world = außerhalb der freigeschalteten Weltfläche
+  out_of_world: 'field.reject.out_of_world',
+  max_size: 'field.reject.max_size',
   // Brutling
   already_deployed: 'field.reject.already_deployed',
   none_available: 'field.reject.none_available',

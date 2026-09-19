@@ -14,6 +14,8 @@ import { SimulationRoot, makeCommand } from '../simulation/root';
 import type { PlacementDecision } from '../components/placementController';
 import { saveRun, type RunSave, clearRun } from '../persistence/runSave';
 import { RunSaveAutor } from '../persistence/runSaveAutor';
+import { WorldAutor } from '../persistence/worldAutor';
+import { worldSnapshotOf } from '../world/world_state';
 import { Renderer } from './renderer';
 import { ghostForRender } from '../components/ghostPreview';
 import { Camera } from './camera';
@@ -34,6 +36,7 @@ import { PlacementController, type PlacementState, type UiRejectReason } from '.
 import { MAP_TILES_SOURCE, type MapTileType } from '../config/map.source';
 import { recordRunEnd, advanceCrossMaturation, updateMeta } from '../meta';
 import type { MetaSave, BeetleSpecimen } from '../types';
+import type { WorldState } from '../world/world_state';
 import { isDevActive } from '../dev/gate';
 import { bindSimRoot, installTestHooks, unbindSimRoot } from '../dev/testHooks';
 import type { HudSnapshot } from '../components/hudSnapshot';
@@ -63,6 +66,8 @@ export interface RunRuntimeInput {
   beetles: BeetleSpecimen[];
   audioOn: boolean;
   resume?: RunSave | null;
+  /** R2: die persistente Welt (Pflicht) — der Run läuft auf ihrem Snapshot. */
+  world: WorldState;
   onMetaChange: (meta: MetaSave) => void;
 }
 
@@ -90,6 +95,7 @@ export class RunRuntime {
   private hudAccum = 0;
   /** B35: Save-Autorität liegt in persistence/ — der Renderer schreibt keine Runs mehr. */
   private readonly saveAutor: RunSaveAutor;
+  private readonly worldAutor: WorldAutor;
   private readonly devActive: boolean;
   private readonly onResize: () => void;
   private readonly onVisibility: () => void;
@@ -104,7 +110,12 @@ export class RunRuntime {
       seed: input.seed, runId: input.runId, loadout: input.loadout,
       ownedCounts: input.ownedCounts,
       bredStats: input.bredStats, beetles: input.beetles, resume: input.resume ?? undefined,
+      // R2: der Run läuft auf dem Welt-Snapshot — nie auf einer frisch erzeugten Map.
+      worldSnapshot: worldSnapshotOf(input.world),
     });
+    // R2: der EINZIGE Schreibpfad in die persistente Welt — der Autor spiegelt die
+    // akzeptierten Bau-Events (TILE_PLACED/MAP_EXPANDED) deterministisch ins WorldSave.
+    this.worldAutor = new WorldAutor(input.world, root.bus);
     this.root = root;
     installTestHooks(); bindSimRoot(root); // DevGate-only E2E-Brücke (Release: no-op)
 
@@ -146,6 +157,7 @@ export class RunRuntime {
           inventory: snap.inventory,
           energy: snap.resources.energy,
           mapTiles: snap.mapTiles,
+          route: snap.currentRoute, // R1: die Vorschau misst dieselbe Route wie die Sim
         };
       },
       tileCost: (tile) => MAP_TILES_SOURCE[tile].cost,
@@ -298,6 +310,9 @@ export class RunRuntime {
     } else if (decision.kind === 'tile') {
       // Tiles entscheidet die Sim (TILE_REJECTED fängt Baubereich/Korridor ab) — gleicher Command-Pfad.
       this.root.commands.push(makeCommand(this.root.clock.get().tick, 'PLACE_TILE', ++this.cmdSeq, { gx: decision.gx, gy: decision.gy, tile: decision.tile }));
+    } else if (decision.kind === 'sell') {
+      // Juggling: Tile verkaufen (Refund 50%) — die Route kippt mid-Welle, Gegner drehen um.
+      this.root.commands.push(makeCommand(this.root.clock.get().tick, 'REMOVE_TILE', ++this.cmdSeq, { gx: decision.gx, gy: decision.gy }));
     } else if (decision.kind === 'reject') {
       this.emitRejectionFx(decision.reason, decision.gx, decision.gy);
     }
@@ -308,6 +323,8 @@ export class RunRuntime {
   cancelPlacement(): void { this.setPlacement(this.controller.cancel()); }
   selectPlant(variantId: string, count: number): void { this.setPlacement(this.controller.selectFromTray(variantId, count)); }
   selectTile(tile: MapTileType): void { this.setPlacement(this.controller.selectTile(tile)); }
+  /** Juggling-Werkzeug: Verkaufsmodus — Tap auf ein Tile kassiert 50% Refund. */
+  selectSell(): void { this.setPlacement(this.controller.selectSell()); }
 
   togglePause(): void {
     this.pausedRef.current = !this.pausedRef.current;
@@ -333,6 +350,11 @@ export class RunRuntime {
     this.root.commands.push(makeCommand(this.root.clock.get().tick, 'START_WAVE', ++this.cmdSeq, {}));
   }
 
+  /** R1: Build-Sequenz sanft beenden — der „Fertig"-Knopf des Layout-Screens. */
+  beginWavePrep(): void {
+    this.root.commands.push(makeCommand(this.root.clock.get().tick, 'BEGIN_WAVE_PREP', ++this.cmdSeq, {}));
+  }
+
   /** P6: Brutling einsetzen — eigener Command-Pfad (Spawns während Welle oder Vorbereitung). */
   deployBeetle(beetleId: string): void {
     this.root.commands.push(makeCommand(this.root.clock.get().tick, 'DEPLOY_BEETLE', ++this.cmdSeq, { beetleId }));
@@ -351,6 +373,9 @@ export class RunRuntime {
     cancelAnimationFrame(this.raf);
     window.removeEventListener('resize', this.onResize);
     document.removeEventListener('visibilitychange', this.onVisibility);
+    // R2: die Welt zuerst schließen — der letzte Flush spiegelt verbleibende Bau-Ops,
+    // bevor der Run-Snapshot geschrieben wird.
+    this.worldAutor.destroy();
     this.saveAutor.destroy();
     saveRun(this.root.getSnapshot());
     unbindSimRoot(this.root);

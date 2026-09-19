@@ -7,12 +7,56 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ---
 
+## Unreleased (Arbeitsstand 19.09.2026)
+
+### Für Spieler
+
+- **Deine Karte gehört dir.** Die Welt, die du baust, bleibt erhalten — über Runs hinweg
+  und nach dem Neuladen. Beim Spielstart baust du sie weiter, statt eine neue Karte zu bekommen.
+- **Start und Ausgang liegen diagonal.** Käfer erscheinen oben rechts und müssen zum Ausgang
+  unten links — bei jeder Kartengröße. Wie sie laufen, entscheidet dein Bau.
+- **Verkaufen ist da.** Im Bau-Kasten kannst du eigene Tiles wieder abreißen (50 % zurück).
+  Verkaufst du mitten in einer Welle, sucht sich die Welle sofort einen neuen Weg — bis hin
+  zum Rückweg durchs halbe Labyrinth.
+- **Zwei Werkzeugkästen statt einem Teller.** „Pflanzen" und „Feld" sind getrennt umschaltbar:
+  Pflanzenkarten bzw. Tiles und Verkauf erscheinen nie gemischt.
+- **Nur noch ein Bau-Knopf.** Vorher standen zwei fast gleich beschriftete Knöpfe
+  („Fertig gebaut") nebeneinander, während der Hinweis einen dritten nannte, den es nicht gab.
+  Jetzt: „Welle starten" startet direkt, „Bauen beenden" geht in die Vorbereitung.
+- **Trait-Tags sind übersetzt.** Die Eigenschafts-Tags neu gezüchteter Pflanzen standen
+  fest auf Englisch („rapid fire") — auch in der deutschen Oberfläche.
+
+### Intern (Technik, Verträge & Tests)
+
+- [Hygiene] `npm run lint` läuft wieder grün: der `eslint-disable`-Kommentar für eine Regel,
+  die die Konfiguration gar nicht lädt, ist weg; `verifyLocalChain(chain?)` nimmt die Chain
+  als Parameter, damit die `useMemo`-Abhängigkeit im Codex-Screen echt ist (vorher Warnung).
+- [i18n] Trait-Tags sind sprachneutral: `deriveTraits` liefert Gen-IDs, die Anzeige übersetzt
+  über `trait.<id>` (DE/EN); Alt-Saves mit englischen Labels bleiben lesbar.
+- [Supabase] Migration 001 gehärtet: INSERT-Policy gilt jetzt `to authenticated` (vorher ohne
+  Rollenbindung — der Anon-Key reichte), Format-Constraints für `entry_hash`/`prev_hash`/
+  `player_id`/Eltern-Arität, UPDATE/DELETE bewusst ohne Policy; Restrisiko Hash-Squatting
+  (UNIQUE(genome_hash), kein serverseitiges Nachrechnen) ist in der Migration dokumentiert.
+- [Wave-Knopf] Der Layout-Doppelknopf ist weg: der Hauptknopf ist in `layout` die HANDLUNG
+  („Welle starten"), der sanfte Ausstieg heißt „Bauen beenden" (vorher zweimal
+  „Fertig gebaut", Hinweis nannte einen dritten, nicht existierenden Knopf). Das war der
+  Grund für 7 rote E2E-Specs (`getByRole('button', { name: /start wave/i })`).
+- [Umbau] `package.json` heißt jetzt `lifeseedlab` (war `lifegamelab`) — die Speicher-Keys
+  der Spielstände bleiben unverändert; der Changelog trennt Spieler-Fassung (oben) von
+  der internen Fassung, verrutschte Einträge stehen wieder unter „Unreleased".
+
+- [UX-Mapbuilder] Tray als Werkzeugkästen mit Tab-Regie: PFLANZEN und FELD (Tiles + Verkauf) sind zwei getrennte Kästen — nur EINER sichtbar, umschaltbar über zwei Pill-Tabs. Der sichtbare Tab leitet sich aus dem Platzierungs-Modus ab (kein zweiter Auswahl-State): Pflanze wählen springt auf PFLANZEN, Tile/Verkauf auf FELD. Screen-Audit (7 Screens, Screenshot-für-Screenshot): Befunde dokumentiert — Gewächshaus-Reifungsliste ohne Identität (12 anonyme „Reift“-Zeilen), Shop verkauft in volles Queue (12/12) ohne Abweisung, Brutstätte zeigt Elternwahl nicht an, Dev-Panel verdeckt die Tray bei ?dev=1, Nacht-Zyklus tickt in der Bauphase weiter.
+- [R2-Diagonal] Spawn/Ausgang an den Ecken gepinnt: Käfer spawnen OBEN RECHTS, Ausgang UNTEN LINKS — exakt diagonal gegenüber, skaliert mit jeder Weltgröße (spawnCorner/exitCorner als EINE Quelle in mapSystem). Die leere Welt liefert die ortho4-Diagonal-Treppe (cols+rows−1 Wegpunkte), Balance-Datensätze (maze_balance, maze_loan, maze_plants, observationSerializer, placement_map) auf die senkrechte Bahn-Geometrie umgemessen und als Verträge gepinnt.
+- [R2-Juggling] Mazing-Königsdisziplin REMOVE_TILE: Tile verkaufen (50% Refund) — removeTile in MapSystem, Command/Event im Bus-Contract (TILE_REMOVED + Audience + i18n), Route kippt SOFORT (recomputeRoute), Gegner werden mid-Welle an die neue Route angeknotet (EnemySystem.remapAllToRoute, nur bei Routen-Wechsel — kein Tick-Teufelskreis) und drehen real um (mehr Time-on-Target). WorldAutor spiegelt TILE_REMOVED in die Welt — der Verkauf ist persistent. UI: Verkaufs-Werkzeug in der Feld-Sektion der Tray (PlacementTray/GameView, PlaceMode 'sell', i18n DE/EN), Juggling-Test (juggling.test.ts) pinnt Route-Kipp, Refund, Remap und Bauphasen-Verkauf.
+- [R2] Free-Build-Maze-Weltmodell: EINE persistente Spielerwelt (world_state.ts + worldSave.ts, eigener IDB-Key, fail-closed) überlebt jeden Run; der Run läuft auf ihrem Snapshot (RootInit.worldSnapshot Pflichtfeld, freshState wirft ohne Welt). Pathfinding-Neubau: schnellster freier Weg Spawn-Spalte→Ausgangs-Spalte (dynamische Weltfläche, keine 12×12-Verdrahtung), Rand bebaubar, kein geschützter Korridor, kein Fallback-Pfad — EINE Regel: der Zug, der den letzten freien Weg schließt, wird abgelehnt (route_blocked, ohne Kosten). Route = visualisiertes Pathfinding-Ergebnis, neu gerechnet bei Run-Start (Root-Konstruktor), jedem Bau und jedem Wellenbeginn; B33-Pfad-Marge gestorben, EXPAND_MAP persistent via WorldAutor (Event-Spiegel, einziger Weltschreibpfad), RunSave ohne mapTiles (v3), totes mapLayouts-Konzept aus Meta entfernt, i18n-Gründe DE/EN, Testkit makeRoot/makeRun injiziert die Initialwelt.
+- [R1] Build-Sequenz: jeder Run beginnt in der Phase `layout` — der Spieler baut sein Maze, bevor die erste Vorbereitung tickt; Exit über BEGIN_WAVE_PREP (sanft) oder START_WAVE (Skip), LAYOUT_DONE-Event im Bus-Contract.
 - [QA-Nachlauf] Meta-Drift im Abbruch-Pfad behoben: countRun rief advanceCrossMaturation ZUSÄTZLICH zu den WAVE_STARTED-Zählungen — jeder Run-Abbruch buchte die erreichte Welle ein zweites Mal (Abbruch in Welle 3 = +3 Drift auf der Reifungs-Uhr). E2E-Progression auf die Einstiegs-Ökonomie umgestellt (Leih-Spross statt Start-Besitz, Kauf→Keimling→Topf): der Pump-Vertrag ist jetzt „exakt +2 angebrochene Wellen pro verteidigungslosen Run“ (Welle 1 überlebt das Frisch-Profil lautlos — 3 Grunts × 4 < 20 Leben, B23.1 friert in prep — Welle 2 leakt tödlich).
 - [QA-Befunde] Fünf Befunde aus der QA-Kiste behoben (Verifikation IV/V/VI + Wirksamkeits-Check): **N4** (Eigentümer-#1, 3/3) — die Erst-Hinweis-Leiste hängt jetzt ÜBER der Tray-Kante (bottom 84→172), sie verdeckt keine Karten mehr; **F5** (F2-Regression, 4/4) — die Tutorial-Blase ist im Cue-Modus GESAMT pointer-durchlässig (Rahmen inklusive, Skip-Knopf bleibt klickbar), die geführte Karte ist immer klickbar; **F6** — Auswahlinstrument der Karten-Reihen abgedichtet (Q17-Hygiene schneidet die Verwechslungs-Interaktion ab, bevor sie zu Echtgeld-Käufen führt); **Q16** (3/3) — der Tutorial-Hold ruht nur die SIM, die Platzierungs-Pipeline läuft weiter (Command-Flush vor dem Brett-Tap), und das Onboarding-Signal zählt die echte Decision statt eines stillen Selection-Deltas (die Wurzel: das B21-Signal konnte nach einem akzeptierten Drop nie mehr springen); **Q17** (3/3) — Tap auf die eigene ×0-Karte bricht die Auswahl ab, die letzte platzierte Einheit löst die Auswahl automatisch (kein pressed-Zombie mehr). Vertragstests in src/components/qa_befunde.test.ts.
 - [D2b] Leih-Spross ist jetzt wirklich platzierbar: die Sim loest Stats ueber getPlantStats(variantId, bredStats) auf — PLANTS_SOURCE kennt loan_sprout nicht, also traegt App.tsx die deterministischen Leih-Stats (cost/effects aus der Basis-Verankerung) als Run-bredStats. Gate: src/meta/loan_stats.test.ts pinnt den Vertrag.
 - [B38] Maze-Balance-Datensatz: Kanal-Bruch-Schwellwerte für PLANT_ROUTE_COST 1/2/3 gemessen (1→4, 2→2, 3→1 Pflanzen auf der Bahn); Vertrag-Test maze_balance.test.ts pinnt das Verhalten beim Ist-Wert 2, Tuning-Basis in quality-spec.md B38 dokumentiert.
 - [B38] Nachweis: PLANT_ROUTE_COST wirkt identisch auf die Leih-Pflanze — computeRoute taxiert zellbasiert, loan_sprout bricht die Bahn wie jede andere Pflanze (Vertrag-Test maze_loan.test.ts: D2b-Platzierbarkeit x B38-Maze-Wirkung).
 - [F1/F2] Krix-Onboarding: Cue-Schritte zeigen jetzt einen Pfeil-Hinweis aufs blinkende Ziel (F1), und die Blase kollabiert automatisch auf Titel + wird pointer-durchlaessig — sie kann das gefuehrte Ziel nie wieder verdecken (F2). i18n DE/EN, Vertrag-Tests im Gate.
+
 ## Unreleased (Arbeitsstand 17.09.2026)
 
 

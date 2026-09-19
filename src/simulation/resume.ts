@@ -4,7 +4,7 @@
 // Wellen-Schedule werden bewusst verworfen — die nächste Welle regeneriert sich
 // deterministisch aus (seed, waveNumber+1). Deshalb startet ein Resume immer in `prep`.
 
-import type { MapTiles, PlantEntity, SimState } from './state';
+import type { PlantEntity, SimState } from './state';
 import { AUTO_WAVES_DEFAULT } from '../config/economy.source';
 
 export interface ResumeSnapshot {
@@ -16,7 +16,6 @@ export interface ResumeSnapshot {
   plants: PlantEntity[];
   inventory: Record<string, number>;
   discoveredVariants: string[];
-  mapTiles: MapTiles;
   nektarEarned: number;
 }
 
@@ -38,7 +37,6 @@ export function applyResume(state: SimState, snapshot: ResumeSnapshot): void {
   state.plants = snapshot.plants.map(p => ({ ...p }));
   state.inventory = { ...snapshot.inventory };
   state.discoveredVariants = [...snapshot.discoveredVariants];
-  state.mapTiles = { ...snapshot.mapTiles };
   state.nektarEarned = snapshot.nektarEarned;
 
   // Vertrag: keine Wiederherstellung laufender Entitäten.
@@ -46,4 +44,6 @@ export function applyResume(state: SimState, snapshot: ResumeSnapshot): void {
   state.projectiles = [];
   state.currentRoute = null;
   state.deployedBeetle = null;
+  // R2: mapTiles wird hier BEWUSST NICHT angefasst — die Run-Kopie der Welt kommt
+  // ausschließlich aus dem Welt-Snapshot (freshState). Das ResumeSave ist kein Weltspeicher.
 }

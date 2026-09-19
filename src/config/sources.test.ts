@@ -92,15 +92,13 @@ describe('Phase 5 gate: source validation', () => {
     });
   });
 
-  it('route resolution: one fallback truth for every consumer', async () => {
-    const { resolveActiveRoute, ENEMY_PATH } = await import('./world.source');
-    // null ⇒ DEFAULT-Pfad (dieselbe Referenz wie die Konfiguration — keine Kopien)
-    expect(resolveActiveRoute(null)).toBe(ENEMY_PATH);
-    // Zu kurz (keine Verbindung) ⇒ ebenfalls DEFAULT
-    expect(resolveActiveRoute([{ x: 0, y: 0 }])).toBe(ENEMY_PATH);
-    // Gültige Route ⇒ unverändert durchgereicht
-    const route = [{ x: 1, y: 1 }, { x: 2, y: 1 }];
-    expect(resolveActiveRoute(route)).toBe(route);
+  it('R2: die Route ist das Pathfinding-Ergebnis — es gibt keinen Fallback-Pfad mehr', async () => {
+    // Alter Vertrag (resolveActiveRoute + ENEMY_PATH) ist GELÖSCHT: die Wahrheit des
+    // Laufwegs lebt in der Sim (mapSystem.computeRoute), die Quelle kennt keine Route.
+    const world = (await import('./world.source')) as unknown as Record<string, unknown>;
+    expect(world.resolveActiveRoute).toBeUndefined();
+    expect(world.ENEMY_PATH).toBeUndefined();
+    expect(typeof world.isInsideWorld).toBe('function');
   });
 
   it('M4 (Sprint AP2): Weg-Gewicht ist source-only und bleibt unter der Wiese — 0.6 statt 0.45', async () => {

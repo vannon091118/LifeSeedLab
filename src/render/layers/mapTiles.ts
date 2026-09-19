@@ -4,7 +4,6 @@
 // Ink-Kontur) — Reine Präsentation, liest nur Tile-Typ + Verbindungstyp.
 
 import { resolvePathConnection, type PathConnection } from '../../config/map.source';
-import { isInsideGrid } from '../../config/world.source';
 
 const INK = '#2b2b26';
 const PENCIL = 'rgba(43,43,38,0.35)';
@@ -187,7 +186,7 @@ export function drawMapTile(
       drawPot(ctx, x, y, cell);
       break;
     case 'path':
-      drawPathSegment(ctx, allTiles ? resolvePathConnection(allTiles, gx, gy, isInsideGrid) : 'isolated', x, y, cell);
+      drawPathSegment(ctx, allTiles ? resolvePathConnection(allTiles, gx, gy, () => true) : 'isolated', x, y, cell);
       drawBox(ctx, x, y, cell);
       break;
     case 'boulder':

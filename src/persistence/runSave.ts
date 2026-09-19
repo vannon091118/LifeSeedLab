@@ -3,16 +3,21 @@ import { idbSet, idbGet, idbRemove } from './storage';
 import { APP_VERSION } from '../version';
 
 // Owner: PersistenceSystem (run schema adapter). LOC ≤ 200.
-// Run-Snapshot v2 mit RESUME-VERTRAG (QUALITY_SPEC B2):
+// Run-Snapshot v3 mit RESUME-VERTRAG (QUALITY_SPEC B2):
 // Gespeichert werden nur deterministisch rekonstruierbare Felder.
 // enemies/projectiles/schedule werden bewusst NICHT gespeichert —
 // Resume startet in 'prep', das nächste Schedule regeneriert aus (seed, waveNumber+1).
+//
+// R2-NEUBAU: mapTiles ist hier GESTORBEN — die Welt ist kein Run-Zustand. Sie lebt
+// ausschließlich im WorldSave (eigener IDB-Key) und wird jedem Run als Snapshot
+// injiziert (RootInit.worldSnapshot). Der Resume-Snapshot beschreibt nur den
+// Run-Fortschritt, nie die Karte.
 
 const RUN_KEY = 'run';
-const RUN_VERSION = 2;
+const RUN_VERSION = 3;
 
 export interface RunSave {
-  version: 2;
+  version: 3;
   /** Produktversion beim Speichern (Diagnose: Altsaves/Never-versionierte Felder zuordnen). */
   appVersion: string;
   runId: number;
@@ -28,14 +33,14 @@ export interface RunSave {
   discoveredVariants: string[];
   bredStats: NonNullable<SimState['bredStats']>;
   nektarEarned: number;
-  /** P5: Spieler-Tiles ("gx,gy":type) — die Map gehört zum Run-Zustand. */
-  mapTiles: Record<string, string>;
+  cols: number;
+  rows: number;
 }
 
 export function saveRun(state: SimState): void {
   if (state.phase === 'gameover') return; // game over runs are not resumable
   const s: RunSave = {
-    version: 2,
+    version: 3,
     appVersion: APP_VERSION,
     runId: state.runId,
     seed: state.seed,
@@ -50,7 +55,8 @@ export function saveRun(state: SimState): void {
     discoveredVariants: state.discoveredVariants,
     bredStats: state.bredStats ?? {},
     nektarEarned: state.nektarEarned,
-    mapTiles: state.mapTiles,
+    cols: state.cols,
+    rows: state.rows,
   };
   void idbSet(RUN_KEY, s, RUN_VERSION);
 }

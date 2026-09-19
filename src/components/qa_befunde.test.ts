@@ -40,10 +40,10 @@ describe('F6 — Tray-Reihen (PFLANZEN / FELD): Auswahlinstrument, keine Verwech
     expect(MAP_TILE_IDS.length).toBe(4);
   });
 
-  it('die Leiste (N4-Position) liegt NACH dem Fix ÜBER der Tray-Kante (bottom 84 → 172)', () => {
+  it('die Leiste (N4-Position) liegt ÜBER der Tray-Kante (bottom 84 → 190)', () => {
     // N4 (Eigentümer-#1, 3/3): vorher bottom: 84 — die Leiste lag AUF der Tray-Oberkante
     // (gemessen 580–642 vs. Tray-Top 582). Der Fix docket sie über die Karten.
-    expect(gameViewStyles.firstRunHint.bottom).toBe(172);
+    expect(gameViewStyles.firstRunHint.bottom).toBe(190);
     expect(gameViewStyles.firstRunHint.pointerEvents).toBe('none');
   });
 });

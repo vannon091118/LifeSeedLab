@@ -39,6 +39,12 @@ export interface RootInit {
   beetles?: import('../types').BeetleSpecimen[];
   /** B2: gespeicherter Run-Zustand (Resume startet in `prep`, ohne Gegner/Projektile). */
   resume?: import('./resume').ResumeSnapshot;
+  /**
+   * R2: Die persistente Welt des Spielers als Run-Snapshot — PFLICHTFELD.
+   * Ein Run ohne Welt ist ein Vertragsbruch (stiller Default = der alte Fehler:
+   * „persistente nirgendwo“). freshState wirft ohne dieses Feld fail-closed.
+   */
+  worldSnapshot: import('../world/world_state').WorldSnapshot;
 }
 
 export class SimulationRoot {
@@ -73,6 +79,10 @@ export class SimulationRoot {
     this.combo = new ComboSystem(e => this.publish(e));
     this.waves = new WaveSystem(e => this.publish(e));
     this.map = new MapSystem(e => this.publish(e));
+    // R2: RUN-START — die erste Route wird aus dem Welt-Snapshot abgeleitet (Vertrag:
+    // Neuberechnung bei Run-Start, jedem Bau und jedem Wellenbeginn). Die UI/Terrain
+    // sehen damit ab dem ersten Bild das echte Pathfinding-Ergebnis, nie einen Default.
+    this.recomputeRoute(this.state);
   }
 
   private publish(e: GameEvent): void {
@@ -241,31 +251,29 @@ export class SimulationRoot {
     return structuredClone(this.state);
   }
 
-  /** P5: Route aus dem Map-Grid ableiten und an EnemySystem geben (Fallback: null = DEFAULT).
-   * Ohne eigene Tiles gilt der gestaltete DEFAULT-Pfad (Terrain-Weg) — das leere
-   * Spielfeld ist bereits gestaltet; erst Platzierungen lenken den Laufweg um. */
+  /** P5: Route aus dem Map-Grid ableiten und an EnemySystem geben. R2: die Route ist das
+   * ERGEBNIS des Pathfindings (kein „leeres Feld ⇒ Default-Pfad“-Zweig) und läuft bei Run-Start,
+   * jedem Bau und jedem Wellenbeginn; `null` heißt NUR „zugebaut“ — was placeTile/PLACE_PLANT nie
+   * zulassen (Integritätsregel). */
   private recomputeRoute(state: SimState): void {
-    // D1 (Maze-Drift): der Dijkstra läuft, sobald der Spieler IRGENDWAS gebaut hat — Tiles
-    // ODER Pflanzen. Nur das komplett leere Feld behält den gestalteten Default-Pfad.
-    // Vorher: `hasTiles ? computeRoute : null` machte PLANT_ROUTE_COST zum No-op, solange
-    // kein Weg-/Topf-Tile gekauft war — das Zucht-Maze war unsichtbar (Hauptbefund).
-    const hasTiles = Object.keys(state.mapTiles).length > 0;
-    const hasPlants = state.plants.length > 0;
-    const route = hasTiles || hasPlants ? this.map.computeRoute(state) : null;
-    // B16.1: die Route lebt NUR im State (Ein-Writer); EnemySystem liest sie pro Tick aus dem State —
-    // keine zweite Kopie im System mehr (A14: getRoute/setRoute gestorben).
+    // B16.1: die Route lebt NUR im State (Ein-Writer) — keine zweite Kopie im System.
+    const route = this.map.computeRoute(state);
     state.currentRoute = route;
-    // AP2 (M1): Route-Qualität hat jetzt einen Writer — der Payload trägt den echten Wert
-    // (1 = gerade Route, kleiner = Maze erzwingt Umwege), statt dass die Observation `null` liefert.
-    // M5: keine Route trotz Tiles = zugebaut — der Default-Pfad greift, und DAS wird gemeldet
-    // (gestern noch unsichtbar: der Fallback lief stillschweigend durch Wände).
+    // Juggling: nach einem ROUTEN-WECHSEL mitten in der Welle werden alle Gegner an die neue
+    // Route angeknotet (nächster Knoten, deterministisch) — liegt der hinter ihrem Fortschritt,
+    // laufen sie um (die Umdreh-Wirkung). Außerhalb der Welle: No-op, keine Gegner im Feld.
+    if (state.phase === 'wave') {
+      this.enemies.remapAllToRoute(state);
+    }
+    // AP2 (M1): der Payload trägt den echten Qualitätswert (1 = gerade, kleiner = Umwege);
+    // blocked ist ein Diagnose-Wert für Beobachter — die Sim lässt den Zustand nie zu.
     this.publish({
       eventId: `${state.clock.tick}:system:map:ROUTE_CHANGED:${++this.rejectSeq}`,
       tick: state.clock.tick,
       type: 'ROUTE_CHANGED',
       sourceId: 'system:map',
       version: 1,
-      payload: { waypoints: route?.length ?? 0, quality: routeQuality(route), blocked: hasTiles && route === null },
+      payload: { waypoints: route?.length ?? 0, quality: routeQuality(route), blocked: route === null },
     });
   }
 

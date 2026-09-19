@@ -220,7 +220,7 @@ describe('B14 — Migration v4 → v5', () => {
       version: 4, nektar: 123, bestWave: 3, runs: 2, runId: 3, breedGeneration: 1,
       variantCounts: {}, savedVariants: [], loadout: [], language: 'de', audioOn: true,
       pvpPayouts: 0, seedStash: 0, pendingCrosses: [], totalWavesSurvived: 4,
-      bredStats: {}, mapLayouts: {}, beetleDeployed: null,
+      bredStats: {}, beetleDeployed: null,
       beetles: [{ id: 'brood_legacy', generation: 9 }],
       pendingBroods: [{ broodIndex: 7, specimenAId: A, specimenBId: B, neededWaves: 1, startedWave: 0, chosenIndex: -1 }],
     }, 4);

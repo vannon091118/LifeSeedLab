@@ -4,6 +4,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 // Mechanik-Its aus sim.test.ts (Kills/Score, Wellen-Start, Ablehnung, Lives-Leak).
 
 import { SimulationRoot, makeCommand } from './root';
+import { makeRoot } from '../testing/testkit';
 import { resetIds } from '../core/ids';
 import { AUTO_WAVE_DELAY_TICKS } from '../config/economy.source';
 import { autoStartTicksLeft } from './waveTiming';
@@ -22,8 +23,15 @@ function place(root: SimulationRoot, variantId: string, gx: number, gy: number, 
 describe('B23.1 — Aufbauphase ohne Beschuss', () => {
   beforeEach(() => resetIds());
 
+  /** R1: jeder Run beginnt in der BUILD-SEQUENZ (`layout`) — prep-Messungen verlassen sie bewusst. */
+  function intoPrep(root: SimulationRoot): void {
+    root.commands.push(makeCommand(0, 'BEGIN_WAVE_PREP', 1, {}));
+    advance(root, 1);
+  }
+
   it('startet KEINE Welle, solange nichts gepflanzt ist — auch nach 20 Sekunden nicht', () => {
-    const root = new SimulationRoot({ seed: PREP_SEED });
+    const root = makeRoot({ seed: PREP_SEED });
+    intoPrep(root);
     advance(root, AUTO_WAVE_DELAY_TICKS * 7);
 
     const s = root.getSnapshot();
@@ -34,7 +42,8 @@ describe('B23.1 — Aufbauphase ohne Beschuss', () => {
   });
 
   it('startet die Welle, sobald eine Pflanze steht und das Fenster abgelaufen ist', () => {
-    const root = new SimulationRoot({ seed: PREP_SEED });
+    const root = makeRoot({ seed: PREP_SEED });
+    intoPrep(root);
     advance(root, AUTO_WAVE_DELAY_TICKS * 2);   // die Wartezeit läuft schon, ohne Pflanze
     expect(root.getSnapshot().phase).toBe('prep');
 
@@ -49,7 +58,8 @@ describe('B23.1 — Aufbauphase ohne Beschuss', () => {
   });
 
   it('lässt den Knopf der Sim immer zu — Warten ist eine Wahl, kein Softlock', () => {
-    const root = new SimulationRoot({ seed: PREP_SEED });
+    const root = makeRoot({ seed: PREP_SEED });
+    intoPrep(root);
     advance(root, AUTO_WAVE_DELAY_TICKS * 3);
     expect(root.getSnapshot().wave.number).toBe(0);
 
@@ -73,7 +83,7 @@ describe('B23.1 — Aufbauphase ohne Beschuss', () => {
 
 describe('Phase 4 — Kills via ENEMY_DIED & Score', () => {
   it('ENEMY_DIED grants score and combo via events', () => {
-    const root = new SimulationRoot({ seed: SEED });
+    const root = makeRoot({ seed: SEED });
     root.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 1, gy: 2 }));
     root.commands.push(makeCommand(0, 'START_WAVE', 2, {}));
     for (let i = 0; i < 1200; i++) root.stepOnce();
@@ -88,7 +98,7 @@ describe('Phase 4 — Kills via ENEMY_DIED & Score', () => {
 
 describe('Phase 4 — Wellen-Start prep → wave', () => {
   it('START_WAVE transitions prep → wave deterministically', () => {
-    const root = new SimulationRoot({ seed: SEED });
+    const root = makeRoot({ seed: SEED });
     root.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
     root.stepOnce();
     expect(root.getSnapshot().phase).toBe('wave');
@@ -99,10 +109,10 @@ describe('Phase 4 — Wellen-Start prep → wave', () => {
 });
 
 describe('Phase 4 — Platzierungs-Ablehnung (Weg, belegt, Inventar)', () => {
-  it('invalid placements are rejected (on path / occupied / no energy)', () => {
-    const root = new SimulationRoot({ seed: SEED });
-    // on path (0,3) is within 1.2 cells of waypoint (0,3.5)
-    root.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 0, gy: 3 }));
+  it('invalid placements are rejected (out of world / occupied / no inventory)', () => {
+    const root = makeRoot({ seed: SEED });
+    // R2: außerhalb der Weltfläche — dort gibt es keine Zelle, keine Platzierung.
+    root.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 40, gy: 3 }));
     root.stepOnce();
     expect(root.getSnapshot().plants.length).toBe(0);
 
@@ -115,7 +125,7 @@ describe('Phase 4 — Platzierungs-Ablehnung (Weg, belegt, Inventar)', () => {
     expect(root.getSnapshot().plants.length).toBe(first); // second placement rejected
 
     // inventory exhausted → eventually no_inventory
-    const r2 = new SimulationRoot({ seed: SEED });
+    const r2 = makeRoot({ seed: SEED });
     for (let i = 0; i < 10; i++) {
       r2.commands.push(makeCommand(0, 'PLACE_PLANT', 10 + i, { variantId: 'sprout', gx: i % 12, gy: Math.floor(i / 12) + 6 }));
       r2.stepOnce();
@@ -126,7 +136,7 @@ describe('Phase 4 — Platzierungs-Ablehnung (Weg, belegt, Inventar)', () => {
 
 describe('Phase 4 — Gegner-Leak kostet Leben', () => {
   it('enemy leaking reduces lives', () => {
-    const root = new SimulationRoot({ seed: SEED });
+    const root = makeRoot({ seed: SEED });
     root.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
     root.stepOnce();
     // run far without any plants → enemies leak

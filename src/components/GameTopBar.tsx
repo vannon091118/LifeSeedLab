@@ -31,13 +31,15 @@ export interface GameTopBarProps {
   deployLabel: string;
   onTogglePause: () => void;
   onStartWave: () => void;
+  /** R1: Build-Sequenz sanft beenden („Fertig gebaut") — nur im Layout gerufen. */
+  onFinishLayout: () => void;
   onDeployBeetle: () => void;
   onExit: () => void;
 }
 
 export function GameTopBar({
   wave, paused, phase, prepTicksLeft, speed, onCycleSpeed, autoWaves, onToggleAutoWaves,
-  canDeployBeetle, deployLabel, onTogglePause, onStartWave, onDeployBeetle, onExit,
+  canDeployBeetle, deployLabel, onTogglePause, onStartWave, onFinishLayout, onDeployBeetle, onExit,
 }: GameTopBarProps) {
   const { t } = useI18n();
   const waveBtn = waveButtonState({ phase, prepTicksLeft });
@@ -90,6 +92,18 @@ export function GameTopBar({
         >
           {waveLabel}
         </button>
+        {/* R1: nur im Layout sichtbar — der sanfte Ausstieg aus der Build-Sequenz. */}
+        {phase === 'layout' && (
+          <button
+            onClick={onFinishLayout}
+            style={{ ...styles.btn, ...styles.btnBeetle }}
+            data-tut="layout-done"
+            title={t('layout.hint')}
+          >
+            {t('layout.doneLong')}
+            {' ✓'}
+          </button>
+        )}
         <button onClick={onExit} style={styles.btn}>{t('game.exitRun')}</button>
         {canDeployBeetle && (
           <button onClick={onDeployBeetle} style={{ ...styles.btn, ...styles.btnBeetle }} title={`${deployLabel} einsetzen`}>

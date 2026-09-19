@@ -8,6 +8,7 @@ import { CommandQueue, makeCommand } from './commands';
 import { nextScopedId, resetIds } from '../core/ids';
 import { serializeSnapshot, deserializeSnapshot, SNAPSHOT_VERSION, EVENT_STREAM_VERSION, snapshotHash } from '../simulation/snapshot';
 import { SimulationRoot, makeCommand as rootMakeCommand } from '../simulation/root';
+import { makeRoot } from '../testing/testkit';
 
 describe('Phase 3.3 Commands', () => {
   it('command schema is complete and stable', () => {
@@ -97,7 +98,7 @@ describe('Gate E — Snapshot-Serialisierung, Event-Stream-Version und State-Has
   beforeEach(() => resetIds());
 
   it('serialize → deserialize ist round-trip mit Hash-Check', () => {
-    const root = new SimulationRoot({ seed: 123 });
+    const root = makeRoot({ seed: 123 });
     root.commands.push(rootMakeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 1, gy: 1 }));
     for (let i = 0; i < 20; i++) root.stepOnce();
     const raw = serializeSnapshot(root.getSnapshot());
@@ -110,14 +111,14 @@ describe('Gate E — Snapshot-Serialisierung, Event-Stream-Version und State-Has
   });
 
   it('State-Hash ist öffentlich und stabil (gleicher State ⇒ gleicher Hash)', () => {
-    const a = new SimulationRoot({ seed: 999 });
-    const b = new SimulationRoot({ seed: 999 });
+    const a = makeRoot({ seed: 999 });
+    const b = makeRoot({ seed: 999 });
     for (let i = 0; i < 50; i++) { a.stepOnce(); b.stepOnce(); }
     expect(snapshotHash(a.getSnapshot())).toBe(snapshotHash(b.getSnapshot()));
   });
 
   it('korrupter Hash / falsche Version wirft', () => {
-    const root = new SimulationRoot({ seed: 1 });
+    const root = makeRoot({ seed: 1 });
     const raw = serializeSnapshot(root.getSnapshot());
     const tampered = raw.replace(/"hash":"[0-9a-f]+"/, '"hash":"deadbeef"');
     expect(() => deserializeSnapshot(tampered)).toThrow();

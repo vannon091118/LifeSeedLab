@@ -30,6 +30,14 @@ export function waveButtonState(input: { phase: string; prepTicksLeft: number | 
   if (input.phase === 'wave') {
     return { labelKey: 'wave.running', disabled: true, hintKey: null, seconds: null, waitingForPlant: false };
   }
+  // R1: Build-Sequenz — der Hauptknopf ist die HANDLUNG („Welle starten") und startet Welle 1
+  // direkt; der sanfte Weg („Bauen beenden" → Vorbereitung mit Countdown) steht daneben (TopBar).
+  // Vorher hieß der Hauptknopf im Layout selbst „Fertig gebaut" — gleich benannt wie der
+  // Layout-Knopf daneben, während der Hinweis „Welle starten" nannte: zwei fast gleiche Knöpfe
+  // und ein Hinweis auf einen dritten, der nicht existierte.
+  if (input.phase === 'layout') {
+    return { labelKey: 'game.startWave', disabled: false, hintKey: 'layout.hint', seconds: null, waitingForPlant: false };
+  }
   if (input.phase === 'prep') {
     if (input.prepTicksLeft === null) {
       // Kein Auto-Start geplant: noch keine Pflanze (B23.1) oder keine Vorbereitung offen.

@@ -4,12 +4,13 @@ import { ParticlePool } from './particles';
 import { Camera } from '../render/camera';
 import { makeEvent } from '../bus/events';
 import { SimulationRoot, makeCommand } from '../simulation/root';
+import { makeRoot } from '../testing/testkit';
 import { executeVisualCommand } from './visualExecutor';
 import { FeedbackLayer } from '../render/layers/feedback';
 
 describe('Phase 8: Visual Observer purity', () => {
   it('observer never mutates gameplay state (Test G light)', () => {
-    const root = new SimulationRoot({ seed: 583921 });
+    const root = makeRoot({ seed: 583921 });
     root.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 1, gy: 2 }));
     root.commands.push(makeCommand(0, 'START_WAVE', 2, {}));
     for (let i = 0; i < 300; i++) root.stepOnce();

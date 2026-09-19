@@ -60,7 +60,7 @@ export function defaultMeta(): MetaSave {
     pendingCrosses: [],
     totalWavesSurvived: 0,
     bredStats: {},
-    mapLayouts: {},
+    // R2: mapLayouts gestorben — die Spielerwelt lebt im WorldSave (eine Quelle).
     beetles: [],
     beetleDeployed: null,
     pendingBroods: [],
@@ -150,7 +150,7 @@ function toCurrent(base: MetaSave, raw: Partial<MetaSave>): MetaSave {
     seedStash: typeof raw.seedStash === 'number' ? Math.max(0, raw.seedStash) : 0,
     pendingCrosses: Array.isArray(raw.pendingCrosses) ? raw.pendingCrosses : [],
     totalWavesSurvived: typeof raw.totalWavesSurvived === 'number' ? raw.totalWavesSurvived : 0,
-    mapLayouts: raw.mapLayouts && typeof raw.mapLayouts === 'object' ? raw.mapLayouts : {},
+    // R2: mapLayouts aus Altsaves wird verworfen — die Welt ist WorldSave-Besitz, nicht Meta.
     // P6: Käfer-Felder sind v4-neu — Altsaves starten mit leerem Brut-Lager.
     beetles,
     beetleDeployed: raw.beetleDeployed ?? null,

@@ -67,6 +67,12 @@ export const AUTO_WAVES_DEFAULT = true;
 export const INGAME_RESTOCK_MARKUP = 2;
 
 /**
+ * R1 (Screenshot-Befund): Die Aufbauhilfe ist eine Begleitung, kein Dauerzustand — nach dieser
+ * Frist (Sim-Ticks) verblasst sie endgültig. Zeitbasis ist der Sim-Tick (B23.2), keine Wanduhr.
+ */
+export const HINT_FADE_AFTER_TICKS = 600; // 20 s bei 30 tps
+
+/**
  * B23.1 (Befund beider Spielerberichte): Solange KEINE Pflanze steht, startet keine Welle von
  * selbst — das Labor wartet auf die erste Platzierung. Vorher lief Welle 1 drei Sekunden nach
  * Betreten des Feldes los: wer erst las oder ausprobierte, verlor mit Score 0.

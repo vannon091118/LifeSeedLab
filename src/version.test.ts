@@ -44,15 +44,14 @@ describe('Version-Ausweis — sichtbare wie unsichtbare Orte', () => {
       phase: 'prep', runId: 1, seed: 42, wave: { number: 1 }, resources: { energy: 100 },
       lives: 20, score: 0, combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
       plants: [], inventory: {}, discoveredVariants: [], bredStats: {}, nektarEarned: 0,
-      mapTiles: {},
     } as unknown as SimState;
     expect(() => saveRun(state)).not.toThrow(); // gameover-Run: kein Save, aber auch kein Crash
     const probe: RunSave = {
-      version: 2, appVersion: APP_VERSION, runId: 1, seed: 42, tick: 0, waveNumber: 1,
+      version: 3, appVersion: APP_VERSION, runId: 1, seed: 42, tick: 0, waveNumber: 1,
       energy: 100, lives: 20, score: 0,
       combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
       plants: [], inventory: {}, discoveredVariants: [], bredStats: {}, nektarEarned: 0,
-      mapTiles: {},
+      cols: 12, rows: 12,
     };
     expect(probe.appVersion).toBe(APP_VERSION);
     void loadRun; // Öffentlich-API importiert (Contract-Nachbar), IDB-Roundtrip im Resume-Gate

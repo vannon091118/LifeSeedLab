@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { SimulationRoot, makeCommand } from './root';
+import { makeRoot } from '../testing/testkit';
 import { hashState, type HashableState } from '../core/hash';
 import { resetIds } from '../core/ids';
 import { VisualObserver } from '../observers/visualObserver';
@@ -35,7 +36,7 @@ describe('Gate B — deterministische Wiederholung', () => {
   it('FX an/aus verändert den Gameplay-State nicht', () => {
     // Sequential runs — shared global ID counters must not interleave
     resetIds();
-    const a = new SimulationRoot({ seed: SEED });
+    const a = makeRoot({ seed: SEED });
     const camA = new Camera();
     const obsA = new VisualObserver(camA, true);
     for (const t of ['DAMAGE_DEALT', 'ENEMY_DIED', 'PROJECTILE_FIRED', 'CRITICAL_HIT'] as const) a.bus.subscribe(t, e => obsA.observe(e));
@@ -46,7 +47,7 @@ describe('Gate B — deterministische Wiederholung', () => {
     const scoreA = a.getSnapshot().score;
 
     resetIds();
-    const b = new SimulationRoot({ seed: SEED });
+    const b = makeRoot({ seed: SEED });
     const camB = new Camera();
     const obsB = new VisualObserver(camB, false);
     for (const t of ['DAMAGE_DEALT', 'ENEMY_DIED', 'PROJECTILE_FIRED', 'CRITICAL_HIT'] as const) b.bus.subscribe(t, e => obsB.observe(e));
@@ -94,7 +95,7 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
   });
 
   it('WaveReward erhöht Energy, aber nicht Score', () => {
-    const root = new SimulationRoot({ seed: SEED });
+    const root = makeRoot({ seed: SEED });
     root.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
     root.stepOnce();
     const s = root.getSnapshot();
@@ -114,9 +115,9 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
     const resume = {
       waveNumber: 1, energy: 200, lives: 1_000_000_000, score: 0,
       combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
-      plants: [], inventory: {}, discoveredVariants: [], mapTiles: {}, nektarEarned: 0,
+      plants: [], inventory: {}, discoveredVariants: [], nektarEarned: 0,
     };
-    const root = new SimulationRoot({ seed: SEED, resume });
+    const root = makeRoot({ seed: SEED, resume });
     let sawNight = false;
     let sawDay = false;
     root.bus.subscribe('NIGHT_STARTED', () => { sawNight = true; });
@@ -134,9 +135,9 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
     const resume: import('./resume').ResumeSnapshot = {
       waveNumber: 20, energy: 500, lives: 1, score: 0,
       combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
-      plants: [], inventory: {}, discoveredVariants: [], mapTiles: {}, nektarEarned: 0,
+      plants: [], inventory: {}, discoveredVariants: [], nektarEarned: 0,
     };
-    const root = new SimulationRoot({ seed: SEED, resume });
+    const root = makeRoot({ seed: SEED, resume });
     let sawGameOver = false;
     root.bus.subscribe('GAME_OVER', () => { sawGameOver = true; });
     root.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
@@ -149,7 +150,7 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
   });
 
   it('Pierce-Pflanze erzeugt Projektil mit remainingPierce=2', () => {
-    const root = new SimulationRoot({
+    const root = makeRoot({
       seed: SEED,
       loadout: ['cross_pierce'],
       bredStats: { cross_pierce: { hp: 100, damage: 10, range: 5, cooldown: 10, cost: 30, effects: ['EFFECT_PIERCE'] } },
@@ -171,7 +172,7 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
   });
 
   it('EFFECT_BURN / SLOW / POISON setzen Statusfelder deterministisch', () => {
-    const root = new SimulationRoot({ seed: SEED });
+    const root = makeRoot({ seed: SEED });
     const s = root.getSnapshot();
     const e: import('./state').EnemyEntity = {
       id: 'enemy-0001', typeId: 'grunt', hp: 100, maxHp: 100, px: 2, py: 3, pathIndex: 0, pathProgress: 0,
@@ -203,7 +204,7 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
   });
 
   it('EFFECT_CHAIN: Kill springt zu nächstem Gegner', () => {
-    const root = new SimulationRoot({
+    const root = makeRoot({
       seed: SEED,
       loadout: ['cross_chain'],
       bredStats: { cross_chain: { hp: 100, damage: 80, range: 5, cooldown: 10, cost: 30, effects: ['EFFECT_CHAIN'] } },
@@ -235,7 +236,7 @@ describe('Gate B — Snapshot-Härtung (Audit Fix 1: kein Live-State-Leak)', () 
   beforeEach(() => resetIds());
 
   it('getSnapshot() ist eine defensive Kopie — Mutationen sickern nicht in die Sim', () => {
-    const root = new SimulationRoot({ seed: SEED });
+    const root = makeRoot({ seed: SEED });
     root.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 1, gy: 2 }));
     root.stepOnce();
     const snap = root.getSnapshot();
@@ -246,13 +247,13 @@ describe('Gate B — Snapshot-Härtung (Audit Fix 1: kein Live-State-Leak)', () 
     snap.inventory['sprout'] = 999;
     root.stepOnce(); // Sim läuft unbeeindruckt weiter
     const after = root.getSnapshot();
-    expect(after.phase).toBe('prep');
+    expect(after.phase).toBe('layout'); // R1: die Build-Sequenz bleibt unbeeindruckt bestehen
     expect(after.plants.some(p => p.id === 'plant-FAKE')).toBe(false);
     expect(after.inventory['sprout']).not.toBe(999);
   });
 
   it('Zwei Snapshots sind unabhängige Objekte', () => {
-    const root = new SimulationRoot({ seed: SEED });
+    const root = makeRoot({ seed: SEED });
     root.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 1, gy: 2 }));
     root.stepOnce();
     const a = root.getSnapshot();
@@ -266,7 +267,7 @@ describe('Gate B — Snapshot-Härtung (Audit Fix 1: kein Live-State-Leak)', () 
     // Der Log lebt nur WÄHREND eines Ticks (stepOnce leert ihn am Tick-Ende).
     // Beweis in EINEM Tick: Wir mutieren das getEventLog()-Ergebnis im Handler
     // und prüfen, dass ein zweiter Aufruf davon unberührt bleibt.
-    const root = new SimulationRoot({ seed: SEED });
+    const root = makeRoot({ seed: SEED });
     let leakedThroughCopy = false;
     root.bus.subscribe('PLANT_PLACED', () => {
       const log = root.getEventLog();

@@ -12,12 +12,14 @@ import {
   type DiscoveryEntry,
   type DiscoveryInput,
 } from './chain';
+import { fnv1aHex } from '../core/hash';
 import type { Genome } from '../types';
 
 const CODEX_KEY = 'lifegamelab_codex';
 const CODEX_VERSION = 1;
 const PLAYER_KEY = 'lifegamelab_player_id';
 const PLAYER_VERSION = 1;
+const PLAYER_SEQ_KEY = 'lifegamelab_player_seq';
 
 interface CodexSave {
   version: 1;
@@ -40,9 +42,20 @@ function generatePlayerId(): string {
   } catch {
     // ignore
   }
-  // Fallback: zeitbasiert — nur für Identität, nie für Gameplay-RNG.
-  const t = typeof Date !== 'undefined' ? Date.now() : 0;
-  return `player_${t.toString(36).slice(-6)}_${Math.floor(t % 9973).toString(36)}`;
+  // Fallback ohne Web-Crypto: Geräte-Fingerabdruck + persistenter Zähler — bewusst ohne
+  // Uhr- oder Zufallsquelle (die Gate-Regel verbietet beides dateiweit) und damit ohne
+  // Zeitabhängigkeit für die Identität. Der Zähler hält neue Identitäten auf demselben
+  // Gerät eindeutig, der Fingerabdruck unterscheidet Geräte.
+  let seq = 0;
+  try {
+    seq = Number(load<number>(PLAYER_SEQ_KEY, { version: 1, fallback: () => 0 })) || 0;
+    save(PLAYER_SEQ_KEY, seq + 1, 1);
+  } catch {
+    // ignore — Persistenz der Identität ist best-effort
+  }
+  const nav = (globalThis as { navigator?: { userAgent?: string; language?: string; platform?: string; hardwareConcurrency?: number } }).navigator;
+  const fingerprint = [nav?.userAgent, nav?.language, nav?.platform, nav?.hardwareConcurrency].join('~');
+  return `player_${fnv1aHex(fingerprint)}${seq.toString(36)}`;
 }
 
 export function getPlayerId(): string {
@@ -123,8 +136,13 @@ export function appendDiscovery(input: Omit<DiscoveryInput, 'player_id'> & { pla
 }
 
 // ── Verifikation & Sharing ───────────────────────────────────────────
-export function verifyLocalChain(): ReturnType<typeof verifyChain> {
-  return verifyChain(loadCodex());
+/**
+ * Verifikation der lokalen Chain. Nimmt die Chain optional entgegen, damit Aufrufer mit
+ * eigener Momentaufnahme (z. B. Codex-Screen) genau dann neu rechnen, wenn SICH verändert
+ * hat — sonst liest die Funktion selbst aus dem Store.
+ */
+export function verifyLocalChain(chain?: DiscoveryEntry[]): ReturnType<typeof verifyChain> {
+  return verifyChain(chain ?? loadCodex());
 }
 
 /** Seed-Teilstring für Sharing: `lifeseed:<seed>:<gen>:<genome_hash>` */

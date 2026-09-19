@@ -24,7 +24,7 @@ describe('TestKit — Kontrakt (B32.2)', () => {
     const state = root.getSnapshot();
     expect(state.runId).toBe(1);
     expect(state.seed).toBe(makeRunSeed(1));
-    expect(state.phase).toBe('prep');
+    expect(state.phase).toBe('layout'); // R1: der Run beginnt mit der Build-Sequenz
   });
 
   it('zwei makeRun(1)-Instanzen produzieren hash-identische SimStates (Determinismus)', () => {

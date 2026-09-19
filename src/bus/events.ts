@@ -4,6 +4,7 @@ export type EventType =
   // lifecycle / waves
   | 'DAY_STARTED'
   | 'NIGHT_STARTED'
+  | 'LAYOUT_DONE'
   | 'WAVE_STARTED'
   | 'WAVE_COMPLETED'
   | 'GAME_OVER'
@@ -32,6 +33,8 @@ export type EventType =
   | 'PROPAGATE_REJECTED'
   // map (P5)
   | 'TILE_PLACED'
+  /** Juggling: Tile verkauft (Refund) — Route kippt, Gegner drehen mid-Welle um. */
+  | 'TILE_REMOVED'
   | 'TILE_REJECTED'
   | 'ROUTE_CHANGED'
   | 'MAP_EXPANDED'
@@ -53,8 +56,10 @@ export type EventType =
 export type PlacementRejectReason = 'occupied' | 'on_path' | 'no_inventory' | 'no_energy';
 /** Pflanzen-Aktionen: Düngen/Vermehrung (`FERTILIZE_REJECTED`/`PROPAGATE_REJECTED`). */
 export type PlantRejectReason = 'not_growing' | 'max_reached' | 'not_found' | 'not_mature' | 'on_path' | 'occupied';
-/** Karten-Bau (`TILE_REJECTED`) — alle Gründe kommen aus `simulation/mapSystem.ts` (B33: + `on_path` für blockierende Tiles im Pfad-Korridor). */
-export type TileRejectReason = 'unknown_tile' | 'no_energy' | 'max_count' | 'occupied_plant' | 'spawn_corridor' | 'not_expandable' | 'already_buildable' | 'on_path';
+/** Karten-Bau (`TILE_REJECTED`) — alle Gründe kommen aus `simulation/mapSystem.ts`.
+ *  R2-Neubau: `spawn_corridor` ist gestorben (kein geschützter Korridor mehr); neu sind
+ *  `out_of_world` (außerhalb der freigeschalteten Fläche) und `max_size` (Wachstumsgrenze). */
+export type TileRejectReason = 'unknown_tile' | 'no_energy' | 'max_count' | 'occupied_plant' | 'not_expandable' | 'already_buildable' | 'on_path' | 'out_of_world' | 'max_size';
 /** Brutling-Einsatz (`BEETLE_REJECTED`). */
 export type BeetleRejectReason = 'already_deployed' | 'no_energy' | 'none_available';
 /** M5 (Sprint AP2): zugebauter Laufweg — der Default-Pfad greift, und das muss sichtbar sein. */
@@ -67,6 +72,8 @@ export type RejectReason = PlacementRejectReason | PlantRejectReason | TileRejec
 export interface EventPayloads {
   DAY_STARTED: { cycle: number };
   NIGHT_STARTED: { cycle: number };
+  /** R1: Build-Sequenz abgeschlossen — der Spieler hat die Bauphase verlassen. */
+  LAYOUT_DONE: { tiles: number };
   WAVE_STARTED: { wave: number; enemyCount: number };
   WAVE_COMPLETED: { wave: number; reward: number };
   /** B36: Ursache im Payload — der Spieler soll sehen, WARUM der Lauf endete (Playtest R2 #1). */
@@ -95,6 +102,7 @@ export interface EventPayloads {
   FERTILIZE_REJECTED: { plantId: string; reason: Exclude<PlantRejectReason, 'not_mature'> };
   PROPAGATE_REJECTED: { plantId: string; reason: Exclude<PlantRejectReason, 'not_growing' | 'max_reached'> };
   TILE_PLACED: { gx: number; gy: number; tile: string; cost: number };
+  TILE_REMOVED: { gx: number; gy: number; tile: string; refund: number };
   TILE_REJECTED: { gx: number; gy: number; tile: string; reason: TileRejectReason };
   ROUTE_CHANGED: { waypoints: number; /** M1/AP2: 1 = gerade Route, kleiner = Maze erzwingt Umwege. */ quality: number | null; /** M5: gesetzt = der Spieler hat den Weg zugebaut — Fallback läuft unsichtbar? Nein: als Grund gemeldet. */ blocked: boolean };
   MAP_EXPANDED: { gx: number; gy: number; cost: number };

@@ -320,13 +320,13 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `6bbf286` — fix(tutorial): F1/F2 — Signal + durchlaessige Blase im Cue-Modus |
-| Arbeitsbaum | 22 gestaged, 0 geändert, 0 neu |
+| HEAD | `63222e5` — fix(qa): befunde N4/F5/F6/Q16/Q17 + abbruch-drift im reifungszähler |
+| Arbeitsbaum | 0 gestaged, 75 geändert, 5 neu |
 | Letztes Gate | ✅ offen (preflight, 0 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `6bbf286` fix(tutorial): F1/F2 — Signal + durchlaessige Blase im Cue-Modus |
+| Letzter Shinon-Commit | `63222e5` fix(qa): befunde N4/F5/F6/Q16/Q17 + abbruch-drift im reifungszähler |
 | Letzter Push | ✅ origin/main |
-| LOC-Hotspots | `src/simulation/root.ts` 288/300 (96 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/render/gameRuntime.ts` 376/400 (94 %)<br>`src/simulation/enemySystem.ts` 279/300 (93 %)<br>`src/config/map.source.ts` 184/200 (92 %) |
+| LOC-Hotspots | `src/simulation/enemySystem.ts` 301/300 (100 %)<br>`src/render/gameRuntime.ts` 401/400 (100 %)<br>`src/simulation/root.ts` 296/300 (99 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/components/Greenhouse.tsx` 376/400 (94 %) |
 <!-- SHINON:STATUS:END -->
 
 

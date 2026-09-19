@@ -14,6 +14,7 @@ import { SimulationRoot, type RootInit } from '../simulation/root';
 import { makeCommand, type CommandPayloads } from '../bus/commands';
 import { deriveSeed } from '../core/rng';
 import { GAME_SEED, RUN_SEED_VERSION } from '../config';
+import { createInitialWorld, worldSnapshotOf } from '../world/world_state';
 
 /** Leert Meta-Speicher + Test-Storage (Standard-Setup der meisten Tests). */
 export function resetTestState(): void {
@@ -65,6 +66,20 @@ export function makeRunSeed(runId: number): number {
   return deriveSeed(GAME_SEED, 'world', 'run', runId, RUN_SEED_VERSION);
 }
 
+/**
+ * R2: Root-Konstruktion für Tests — der Pflicht-Welt-Snapshot (initiale 12×12-Welt)
+ * wird automatisch injiziert; Tests, die eine spezielle Welt brauchen, überschreiben
+ * `worldSnapshot` explizit. Der produktive Pfad (gameRuntime) bleibt fail-closed.
+ */
+export function makeRoot(
+  init: Omit<RootInit, 'worldSnapshot'> & Partial<Pick<RootInit, 'worldSnapshot'>>,
+): SimulationRoot {
+  return new SimulationRoot({
+    ...init,
+    worldSnapshot: init.worldSnapshot ?? worldSnapshotOf(createInitialWorld()),
+  } as RootInit);
+}
+
 export interface MakeRunOptions {
   runId?: number;
   /** Weitere RootInit-Zusätze (loadout, beetles, resume, …) — wird 1:1 durchgereicht. */
@@ -81,7 +96,13 @@ export function makeRun(options: MakeRunOptions = {}): SimulationRoot {
   const meta = loadMeta();
   const runId = options.runId ?? Math.max(meta.runId, meta.runs) + 1;
   const seed = makeRunSeed(runId);
-  return new SimulationRoot({ seed, runId, ...(options.init ?? {}) });
+  // R2: ohne Welt kein Run — Tests bekommen die initiale Welt (12×12, leer),
+  // sofern `init` nichts anderes vorgibt (worldSnapshot ist Pflichtfeld).
+  const init = options.init ?? {};
+  return new SimulationRoot({
+    seed, runId, ...init,
+    worldSnapshot: init.worldSnapshot ?? worldSnapshotOf(createInitialWorld()),
+  });
 }
 
 /**

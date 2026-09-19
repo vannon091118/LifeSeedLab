@@ -13,10 +13,15 @@ export class WaveSystem {
 
   constructor(private emit: (e: GameEvent) => void) {}
 
-  /** START_WAVE command handler. Returns false if wave can't start. */
+  /**
+   * START_WAVE command handler. Returns false if wave can't start.
+   * R1: aus der Layout-Phase heraus ist START_WAVE der BEWUSSTE Skip — der Spieler hat
+   * sein Maze so gebaut, wie er wollte, und verzichtet auf die geräumige Vorbereitung.
+   */
   startWave(state: SimState): boolean {
-    if (state.phase !== 'prep') return false;
+    if (state.phase !== 'prep' && state.phase !== 'layout') return false;
 
+    state.phase = 'prep';
     state.wave.number++;
     const schedule = generateWaveSchedule(state.seed, state.wave.number);
     state.wave.schedule = schedule;
@@ -80,6 +85,7 @@ export class WaveSystem {
    * Pflanze: der Anker (`prepStartTick`, Besitz dieses Systems) wird nachgezogen, solange das Feld
    * leer ist. Warten kostet also keine Zeit; vorher lief Welle 1 drei Sekunden nach Betreten des
    * Feldes los und der Spieler verlor mit Score 0, bevor er eine Entscheidung treffen konnte.
+   * R1: in `layout` startet NIE von selbst — dort entscheidet nur der Spieler.
    */
   maybeAutoStart(state: SimState): boolean {
     if (state.phase !== 'prep') return false;

@@ -5,7 +5,7 @@
 // Kosten pro Frame; Re-Bake NUR bei Routen- oder Seed-Wechsel (B16.1, B12).
 // Alle Streuung aus dem 'visual'-Namespace (deterministisch).
 
-import { GRID_COLS, GRID_ROWS, resolveActiveRoute, type RoutePoint } from '../../config/world.source';
+import type { RoutePoint } from '../../config/world.source';
 import { makeRng, deriveSeed } from '../../core/rng';
 
 const PAPER = '#f5efdc';
@@ -16,13 +16,13 @@ const DIRT = '#d9c9a3';
 const DIRT_EDGE = '#b7a986';
 const PENCIL = 'rgba(43,43,38,0.09)';
 
-export function bakeTerrain(seed: number, route: ReadonlyArray<RoutePoint> | null): HTMLCanvasElement {
+export function bakeTerrain(seed: number, route: ReadonlyArray<RoutePoint> | null, cols: number, rows: number): HTMLCanvasElement {
   const cell = 64;
-  // B16.1: der gezeichnete Weg IST der aktive Laufweg der Gegner (Auflösung: eine Quelle
-  // in world.source) — der Renderer kennt keinen eigenen Fallback mehr.
+  // R2: Canvas-Größe aus der DYNAMISCHEN Weltfläche (Run-Kopie) — nicht aus Konstanten.
+  // B16.1: der gezeichnete Weg IST das Pathfinding-Ergebnis (aktive Route).
   const canvas = document.createElement('canvas');
-  canvas.width = GRID_COLS * cell;
-  canvas.height = GRID_ROWS * cell;
+  canvas.width = cols * cell;
+  canvas.height = rows * cell;
   const ctx = canvas.getContext('2d')!;
   const rng = makeRng('visual', deriveSeed(seed, 'visual', 'terrain', 0, 1));
 
@@ -37,13 +37,13 @@ export function bakeTerrain(seed: number, route: ReadonlyArray<RoutePoint> | nul
   // ── Kästchen-Raster (exakt auf CELL_SIZE — die Welt wohnt im Heft) ──
   ctx.strokeStyle = GRID_BLUE;
   ctx.lineWidth = 1;
-  for (let gx = 0; gx <= GRID_COLS; gx++) {
+  for (let gx = 0; gx <= cols; gx++) {
     ctx.beginPath();
     ctx.moveTo(gx * cell + 0.5, 0);
     ctx.lineTo(gx * cell + 0.5, canvas.height);
     ctx.stroke();
   }
-  for (let gy = 0; gy <= GRID_ROWS; gy++) {
+  for (let gy = 0; gy <= rows; gy++) {
     ctx.beginPath();
     ctx.moveTo(0, gy * cell + 0.5);
     ctx.lineTo(canvas.width, gy * cell + 0.5);
@@ -71,23 +71,24 @@ export function bakeTerrain(seed: number, route: ReadonlyArray<RoutePoint> | nul
   }
 
   // ── Bleistift-Kritzeleien (Archive verlorener Rechenstunden) ──
-  drawScribbles(ctx, rng, cell);
+  drawScribbles(ctx, rng, cell, cols, rows);
 
   // ── Collage-Fetzen + Klebestreifen (2–4, Rand-nah) ──
-  drawCollageScraps(ctx, rng, cell);
+  drawCollageScraps(ctx, rng, cell, cols, rows);
 
   // ── Route: handgezeichneter Tinten-/Erden-Strich ÜBER dem Raster ──
-  drawPath(ctx, rng, cell, resolveActiveRoute(route));
+  // R2: ohne berechnete Route wird KEIN Weg gezeichnet — das Bild ist kein Pfad-Besitzer.
+  if (route && route.length > 1) drawPath(ctx, rng, cell, route);
 
   return canvas;
 }
 
 // ── Kritzeleien: Sterne, Spiralen, Mini-Formeln, Kringel ──
-function drawScribbles(ctx: CanvasRenderingContext2D, rng: ReturnType<typeof makeRng>, cell: number): void {
+function drawScribbles(ctx: CanvasRenderingContext2D, rng: ReturnType<typeof makeRng>, cell: number, cols: number, rows: number): void {
   const count = 12;
   for (let i = 0; i < count; i++) {
-    const gx = 1 + Math.floor(rng.next() * (GRID_COLS - 1));
-    const gy = Math.floor(rng.next() * GRID_ROWS);
+    const gx = 1 + Math.floor(rng.next() * (cols - 1));
+    const gy = Math.floor(rng.next() * rows);
     const cx = gx * cell + cell * 0.3 + rng.next() * cell * 0.4;
     const cy = gy * cell + cell * 0.3 + rng.next() * cell * 0.4;
     const kind = Math.floor(rng.next() * 4);
@@ -130,12 +131,12 @@ function drawScribbles(ctx: CanvasRenderingContext2D, rng: ReturnType<typeof mak
 }
 
 // ── Collage: Papier-Fetzen + Klebestreifen (Collageblock-Identität) ──
-function drawCollageScraps(ctx: CanvasRenderingContext2D, rng: ReturnType<typeof makeRng>, cell: number): void {
+function drawCollageScraps(ctx: CanvasRenderingContext2D, rng: ReturnType<typeof makeRng>, cell: number, cols: number, rows: number): void {
   // 2–3 Fetzen: leicht gedrehte Rechtecke in Papier-Tönen mit Ink-Kante
   const scraps = 2 + Math.floor(rng.next() * 2);
   for (let i = 0; i < scraps; i++) {
-    const x = rng.next() * GRID_COLS * cell;
-    const y = rng.next() * GRID_ROWS * cell;
+    const x = rng.next() * cols * cell;
+    const y = rng.next() * rows * cell;
     const w = cell * (0.7 + rng.next() * 0.9);
     const h = cell * (0.5 + rng.next() * 0.6);
     const rot = (rng.next() - 0.5) * 0.3;
@@ -154,8 +155,8 @@ function drawCollageScraps(ctx: CanvasRenderingContext2D, rng: ReturnType<typeof
   // 1–2 Klebestreifen (halbdurchscheinend, leicht rotiert)
   const tapes = 1 + Math.floor(rng.next() * 2);
   for (let i = 0; i < tapes; i++) {
-    const x = rng.next() * GRID_COLS * cell;
-    const y = rng.next() * GRID_ROWS * cell;
+    const x = rng.next() * cols * cell;
+    const y = rng.next() * rows * cell;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate((rng.next() - 0.5) * 0.6);

@@ -13,7 +13,6 @@
 import type { SimState } from './state';
 import { makeCommand, type Command, type CommandType, type CommandPayloads } from '../bus/commands';
 import { canBuildAt, tileBlocked } from './mapSystem';
-import { SPAWN_CORRIDOR_COL, isBuildable } from '../config/map.source';
 import { cellRejectReason } from './placementRules';
 
 export const AGENT_SYSTEM_PROMPT = `# LifeSeedLab LLM Decision Agent
@@ -79,15 +78,14 @@ export function parseDecision(raw: string): AgentDecision | null {
   }
 }
 
-/** PLACE_PLANT-Geometrie: exakt die Sim-Regel (cellRejectReason) + Source-Bereiche. */
+/** PLACE_PLANT-Geometrie: exakt die Sim-Regel (cellRejectReason) + Welt-Belegung. */
 function placementGeometricallyOk(state: SimState, gx: number, gy: number): boolean {
   if (!Number.isInteger(gx) || !Number.isInteger(gy)) return false;
-  if (!isBuildable(gx, gy)) return false;               // map.source: 8×8-Baubereich
-  if (gx === SPAWN_CORRIDOR_COL) return false;          // Spawn-Spalte bleibt frei
+  if (gx < 0 || gy < 0 || gx >= state.cols || gy >= state.rows) return false; // R2: dynamische Weltfläche
   if (tileBlocked(state.mapTiles, gx, gy)) return false; // boulder o. ä.
   if (!canBuildAt(gx, gy, state.mapTiles)) return false; // nur pot-Tiles (leer = Papier-Wiese)
-  // Dieselbe Geometrie-Regel wie PlantSystem.place (on_path/occupied) — eine Wahrheit.
-  if (cellRejectReason({ gx, gy, plants: state.plants })) return false;
+  // Dieselbe Geometrie-Regel wie PlantSystem.place (occupied) — eine Wahrheit.
+  if (cellRejectReason({ gx, gy, plants: state.plants, cols: state.cols, rows: state.rows })) return false;
   return true;
 }
 
@@ -152,7 +150,6 @@ function validateAndBuild(
   }
 }
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /** Typ-Gate für den Command-Vokabular-Ausschnitt, den die Bridge erzeugen darf. */
 export type AgentCommandType = Extract<CommandType, 'PLACE_PLANT' | 'FERTILIZE_PLANT' | 'START_WAVE'>;
 export type AgentCommand = Extract<Command, { type: AgentCommandType }>;

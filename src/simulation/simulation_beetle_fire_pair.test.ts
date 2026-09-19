@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 // Konsolidierung: simulation_beetle.test.ts + simulation_fire_pair.test.ts + gameover.test.ts + simulation_notice.test.ts.
 
 import { SimulationRoot, makeCommand } from './root';
+import { makeRoot } from '../testing/testkit';
 import { resetIds } from '../core/ids';
 import type { Genome, PlantVariant } from '../types';
 import { rollBrood } from '../genome/beetle';
@@ -23,7 +24,7 @@ import { GAME_SEED } from '../config';
 describe('beetle deploy (P6 Integration)', () => {
   it('DEPLOY_BEETLE setzt den Brutling ein, zieht Energie ab, feuert BEETLE_DEPLOYED', () => {
     const brood = rollBrood('leafhopper', 'shellbeetle', 5);
-    const root = new SimulationRoot({ seed: 77, beetles: brood });
+    const root = makeRoot({ seed: 77, beetles: brood });
 
     const events: string[] = [];
     root.bus.subscribe('BEETLE_DEPLOYED', () => events.push('DEPLOYED'));
@@ -42,7 +43,7 @@ describe('beetle deploy (P6 Integration)', () => {
 
   it('Zweiter Deploy wird abgewiesen (BEETLE_REJECTED, already_deployed)', () => {
     const brood = rollBrood('bumble', 'bumble', 2);
-    const root = new SimulationRoot({ seed: 78, beetles: brood });
+    const root = makeRoot({ seed: 78, beetles: brood });
     const rejects: string[] = [];
     root.bus.subscribe('BEETLE_REJECTED', (e) => rejects.push((e as unknown as { payload: { reason: string } }).payload.reason));
 
@@ -57,7 +58,7 @@ describe('beetle deploy (P6 Integration)', () => {
 
   it('Brutling beißt Gegner (HP sinkt über Ticks, echte Wave-Phase)', () => {
     const brood = rollBrood('leafhopper', 'bumble', 9);
-    const root = new SimulationRoot({ seed: 79, beetles: brood });
+    const root = makeRoot({ seed: 79, beetles: brood });
 
     root.commands.push(makeCommand(0, 'DEPLOY_BEETLE', 1, { beetleId: brood[0].id }));
     root.stepOnce();
@@ -82,7 +83,7 @@ describe('beetle deploy (P6 Integration)', () => {
   });
 
   it('Ohne Käfer im Lager: kein Deploy (BEETLE_REJECTED, none_available)', () => {
-    const root = new SimulationRoot({ seed: 80 });
+    const root = makeRoot({ seed: 80 });
     const rejects: string[] = [];
     root.bus.subscribe('BEETLE_REJECTED', (e) => rejects.push((e as unknown as { payload: { reason: string } }).payload.reason));
     root.commands.push(makeCommand(0, 'DEPLOY_BEETLE', 1, { beetleId: 'ghost' }));
@@ -165,7 +166,7 @@ describe('B26 — fire als Paar: eine Zeile, drei Kanäle', () => {
 
   it('3b) im echten Run fährt EFFECT_BURN auf dem Projektil und brennt beim Treffer', () => {
     const entry = deriveBredEntry(fireVariant);
-    const root = new SimulationRoot({
+    const root = makeRoot({
       seed: SEED,
       runId: 1,
       loadout: [fireVariant.id],

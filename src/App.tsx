@@ -6,6 +6,8 @@ import { deriveSeed } from './core/rng';
 import { GAME_SEED, RUN_SEED_VERSION } from './config';
 import { PLANTS_SOURCE } from './config/plants.source';
 import { clearRun, loadRun, type RunSave } from './persistence/runSave';
+import { ensureWorld } from './persistence/worldSave';
+import { worldSnapshotOf, type WorldState } from './world/world_state';
 import { StartScreen } from './components/StartScreen';
 import { MainMenu } from './components/MainMenu';
 import { GameView } from './components/GameView';
@@ -35,9 +37,14 @@ function AppInner() {
   const [screen, setScreen] = useState<Screen>('start');
   const [pendingRun, setPendingRun] = useState<RunSave | null>(null);
   const [resuming, setResuming] = useState(false);
+  // R2: die PERSISTENTE WELT — einmal pro App-Start geladen, jeden Run überdauernd.
+  // Fehlt sie (erster Start), wird sie EINMAL explizit erzeugt und sofort persistiert;
+  // Korruption bleibt sichtbar (null ⇒ Ladeschirm), nie stiller Ersatz.
+  const [world, setWorld] = useState<WorldState | null>(null);
 
   useEffect(() => {
     setMeta(loadMeta());
+    void ensureWorld().then(w => { if (w) setWorld(w); });
   }, []);
 
   // Version im Fenstertitel: der Tab ist der einzige immer sichtbare Ort — auch
@@ -99,7 +106,7 @@ function AppInner() {
     setScreen('run');
   }, [pendingRun]);
 
-  if (!meta) {
+  if (!meta || !world) {
     return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}>…</div>;
   }
 
@@ -149,6 +156,7 @@ function AppInner() {
             beetles={meta.beetles}
             audioOn={meta.audioOn}
             resume={resuming ? pendingRun : null}
+            world={world}
             onMetaChange={setMeta}
             onExit={handleExitRun}
           />

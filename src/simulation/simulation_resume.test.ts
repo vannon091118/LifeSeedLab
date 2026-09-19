@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 // Konsolidierung: simulation_resume.test.ts + simulation_speed_autowaves.test.ts.
 
 import { SimulationRoot, makeCommand } from './root';
+import { makeRoot } from '../testing/testkit';
 import { resetIds } from '../core/ids';
 import type { ResumeSnapshot } from './resume';
 import type { RunSave } from '../persistence/runSave';
@@ -21,14 +22,13 @@ function snapshotOf(root: SimulationRoot): ResumeSnapshot {
     plants: s.plants.map(p => ({ ...p })),
     inventory: { ...s.inventory },
     discoveredVariants: [...s.discoveredVariants],
-    mapTiles: { ...s.mapTiles },
     nektarEarned: s.nektarEarned,
   };
 }
 
 describe('Gate B — Resume-Vertrag der Sim', () => {
   it('stellt Welle, Pflanzen und Wirtschaft wieder her und startet in prep', () => {
-    const source = new SimulationRoot({ seed: 7, runId: 3 });
+    const source = makeRoot({ seed: 7, runId: 3 });
     source.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 3, gy: 2 }));
     source.commands.push(makeCommand(0, 'START_WAVE', 2, {}));
     for (let i = 0; i < 120; i++) source.stepOnce();
@@ -37,7 +37,7 @@ describe('Gate B — Resume-Vertrag der Sim', () => {
     // echte Pipeline geprüft; die wiederhergestellte Wellennummer kommt aus dem Snapshot.
     const snapshot = snapshotOf(source);
 
-    const resumed = new SimulationRoot({ seed: 7, runId: 3, resume: snapshot });
+    const resumed = makeRoot({ seed: 7, runId: 3, resume: snapshot });
     const after = resumed.getSnapshot();
 
     expect(after.phase).toBe('prep');
@@ -51,12 +51,12 @@ describe('Gate B — Resume-Vertrag der Sim', () => {
   });
 
   it('verwirft Gegner, Projektile und den Wellen-Schedule (ehrlicher Vertrag)', () => {
-    const source = new SimulationRoot({ seed: 11, runId: 1 });
+    const source = makeRoot({ seed: 11, runId: 1 });
     source.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
     for (let i = 0; i < 400; i++) source.stepOnce();
     expect(source.getSnapshot().enemies.length).toBeGreaterThan(0);
 
-    const resumed = new SimulationRoot({ seed: 11, runId: 1, resume: snapshotOf(source) });
+    const resumed = makeRoot({ seed: 11, runId: 1, resume: snapshotOf(source) });
     const after = resumed.getSnapshot();
 
     expect(after.enemies).toEqual([]);
@@ -66,13 +66,13 @@ describe('Gate B — Resume-Vertrag der Sim', () => {
   });
 
   it('ein fortgesetzter Run läuft deterministisch weiter (Welle startet aus dem Snapshot)', () => {
-    const source = new SimulationRoot({ seed: 21, runId: 5 });
+    const source = makeRoot({ seed: 21, runId: 5 });
     source.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 3, gy: 2 }));
     for (let i = 0; i < 30; i++) source.stepOnce();
     const snapshot = snapshotOf(source);
 
-    const a = new SimulationRoot({ seed: 21, runId: 5, resume: snapshot });
-    const b = new SimulationRoot({ seed: 21, runId: 5, resume: snapshot });
+    const a = makeRoot({ seed: 21, runId: 5, resume: snapshot });
+    const b = makeRoot({ seed: 21, runId: 5, resume: snapshot });
     for (const root of [a, b]) {
       root.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
       for (let i = 0; i < 60; i++) root.stepOnce();
@@ -91,13 +91,13 @@ describe('Gate B — Resume-Vertrag der Sim', () => {
 
   it('RunSave erfüllt strukturell den ResumeSnapshot (Adapter-Brücke)', () => {
     const save: RunSave = {
-      version: 2, appVersion: '0.0.0-test', runId: 1, seed: 1, tick: 0, waveNumber: 2, energy: 90, lives: 18, score: 40,
+      version: 3, appVersion: '0.0.0-test', runId: 1, seed: 1, tick: 0, waveNumber: 2, energy: 90, lives: 18, score: 40,
       combo: { count: 0, timer: 0, multiplier: 1, highest: 3 },
       plants: [], inventory: { sprout: 1 }, discoveredVariants: ['sprout'], bredStats: {},
-      nektarEarned: 12, mapTiles: {},
+      nektarEarned: 12, cols: 12, rows: 12,
     };
     const asSnapshot: ResumeSnapshot = save;
-    const root = new SimulationRoot({ seed: save.seed, runId: save.runId, resume: asSnapshot });
+    const root = makeRoot({ seed: save.seed, runId: save.runId, resume: asSnapshot });
     expect(root.getSnapshot().wave.number).toBe(2);
     expect(root.getSnapshot().lives).toBe(18);
   });
@@ -119,14 +119,14 @@ describe('B32 — Sim-Tempo', () => {
   beforeEach(() => resetIds());
 
   it('×1 ist der Vertragswert und die Stufen sind 1–4', () => {
-    const root = new SimulationRoot({ seed: SPEED_SEED });
+    const root = makeRoot({ seed: SPEED_SEED });
     expect(root.speed).toBe(1);
     expect([...SPEED_STEPS]).toEqual([1, 2, 3, 4]);
   });
 
   it('×4 liefert in 1/4 der Realzeit exakt denselben Tick-Stand wie ×1 (Determinismus)', () => {
     const target = 40; // Ziel-Ticks
-    const slow = new SimulationRoot({ seed: SPEED_SEED });
+    const slow = makeRoot({ seed: SPEED_SEED });
     slow.setSpeed(1);
     advance(slow, 1); // Warmup (Command-Drain etc.) — dann reale Zeit messen
     const slowStart = slow.getSnapshot().clock.tick;
@@ -134,7 +134,7 @@ describe('B32 — Sim-Tempo', () => {
     slow.advance(realMsSlow);
     const slowTicks = slow.getSnapshot().clock.tick - slowStart;
 
-    const fast = new SimulationRoot({ seed: SPEED_SEED });
+    const fast = makeRoot({ seed: SPEED_SEED });
     fast.setSpeed(4);
     advance(fast, 1);
     const fastStart = fast.getSnapshot().clock.tick;
@@ -146,12 +146,12 @@ describe('B32 — Sim-Tempo', () => {
   });
 
   it('Tempo ändert NICHTS am Spielzustand bei gleichen Ticks (nur die Wanduhr läuft schneller)', () => {
-    const slow = new SimulationRoot({ seed: SPEED_SEED });
+    const slow = makeRoot({ seed: SPEED_SEED });
     slow.setSpeed(3);
     for (let i = 0; i < 25; i++) slow.advance(TICK_MS); // reale Ms, Uhr skaliert ⇒ ~75 Ticks
     const a = slow.getSnapshot();
 
-    const ref = new SimulationRoot({ seed: SPEED_SEED });
+    const ref = makeRoot({ seed: SPEED_SEED });
     advance(ref, a.clock.tick); // exakt dieselbe Tick-Zahl, aber per stepOnce
     const b = ref.getSnapshot();
 
@@ -163,7 +163,7 @@ describe('B32 — Sim-Tempo', () => {
   });
 
   it('ungültige Stufen werden ignoriert (kein halbes Tempo, kein Überdrehen)', () => {
-    const root = new SimulationRoot({ seed: SPEED_SEED });
+    const root = makeRoot({ seed: SPEED_SEED });
     root.setSpeed(0.5);
     expect(root.speed).toBe(1);
     root.setSpeed(10);
@@ -176,21 +176,29 @@ describe('B32 — Sim-Tempo', () => {
 describe('B32 — Auto-Wellen-Schalter', () => {
   beforeEach(() => resetIds());
 
+  /** R1: aus der Build-Sequenz (`layout`) in die erste Vorbereitung (`prep`). */
+  function intoPrep(root: SimulationRoot): void {
+    root.commands.push(makeCommand(0, 'BEGIN_WAVE_PREP', 1, {}));
+    advance(root, 1);
+  }
+
   it('Default kommt aus der Source und Auto-Wellen starten wie gehabt', () => {
     expect(AUTO_WAVES_DEFAULT).toBe(true);
-    const root = new SimulationRoot({ seed: SPEED_SEED });
+    const root = makeRoot({ seed: SPEED_SEED });
+    intoPrep(root);
     const place = (seq: number) =>
       root.commands.push(makeCommand(root.clock.get().tick, 'PLACE_PLANT', seq, { variantId: 'sprout', gx: 1, gy: 2 }));
-    place(1);
+    place(2);
     advance(root, 2);
     advance(root, AUTO_WAVE_DELAY_TICKS + 2);
     expect(root.getSnapshot().wave.number).toBe(1); // autoWaves default an ⇒ alter Vertrag
   });
 
   it('ausgeschaltet startet NIE eine Welle von selbst — auch mit Pflanzen und viel Zeit nicht', () => {
-    const root = new SimulationRoot({ seed: SPEED_SEED });
-    root.commands.push(makeCommand(root.clock.get().tick, 'SET_AUTO_WAVES', 1, { enabled: false }));
-    root.commands.push(makeCommand(root.clock.get().tick, 'PLACE_PLANT', 2, { variantId: 'sprout', gx: 1, gy: 2 }));
+    const root = makeRoot({ seed: SPEED_SEED });
+    intoPrep(root);
+    root.commands.push(makeCommand(root.clock.get().tick, 'SET_AUTO_WAVES', 2, { enabled: false }));
+    root.commands.push(makeCommand(root.clock.get().tick, 'PLACE_PLANT', 3, { variantId: 'sprout', gx: 1, gy: 2 }));
     advance(root, AUTO_WAVE_DELAY_TICKS * 10);
 
     const s = root.getSnapshot();
@@ -201,23 +209,25 @@ describe('B32 — Auto-Wellen-Schalter', () => {
   });
 
   it('der Knopf bleibt der Ausweg (kein Softlock) — START_WAVE geht auch bei ausgeschaltetem Auto', () => {
-    const root = new SimulationRoot({ seed: SPEED_SEED });
-    root.commands.push(makeCommand(root.clock.get().tick, 'SET_AUTO_WAVES', 1, { enabled: false }));
+    const root = makeRoot({ seed: SPEED_SEED });
+    intoPrep(root);
+    root.commands.push(makeCommand(root.clock.get().tick, 'SET_AUTO_WAVES', 2, { enabled: false }));
     advance(root, 1);
-    root.commands.push(makeCommand(root.clock.get().tick, 'START_WAVE', 2, {}));
+    root.commands.push(makeCommand(root.clock.get().tick, 'START_WAVE', 3, {}));
     advance(root, 1);
     expect(root.getSnapshot().phase).toBe('wave');
     expect(root.getSnapshot().wave.number).toBe(1);
   });
 
   it('der Schalter ist umkehrbar — an ⇒ Countdown läuft wieder', () => {
-    const root = new SimulationRoot({ seed: SPEED_SEED });
-    root.commands.push(makeCommand(root.clock.get().tick, 'SET_AUTO_WAVES', 1, { enabled: false }));
-    root.commands.push(makeCommand(root.clock.get().tick, 'PLACE_PLANT', 2, { variantId: 'sprout', gx: 1, gy: 2 }));
+    const root = makeRoot({ seed: SPEED_SEED });
+    intoPrep(root);
+    root.commands.push(makeCommand(root.clock.get().tick, 'SET_AUTO_WAVES', 2, { enabled: false }));
+    root.commands.push(makeCommand(root.clock.get().tick, 'PLACE_PLANT', 3, { variantId: 'sprout', gx: 1, gy: 2 }));
     advance(root, AUTO_WAVE_DELAY_TICKS * 5);
     expect(root.getSnapshot().wave.number).toBe(0);
 
-    root.commands.push(makeCommand(root.clock.get().tick, 'SET_AUTO_WAVES', 3, { enabled: true }));
+    root.commands.push(makeCommand(root.clock.get().tick, 'SET_AUTO_WAVES', 4, { enabled: true }));
     advance(root, AUTO_WAVE_DELAY_TICKS + 2);
     expect(root.getSnapshot().wave.number).toBe(1);
   });
@@ -225,7 +235,7 @@ describe('B32 — Auto-Wellen-Schalter', () => {
   // RootInit - autoritative Run-Identitaet (migriert aus sim.test.ts)
 
   it('RootInit übernimmt autoritative Run-ID und Loadout in den SimState', () => {
-    const root = new SimulationRoot({
+    const root = makeRoot({
       seed: 583921,
       runId: 17,
       loadout: ['cross_seedling'],

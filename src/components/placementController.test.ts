@@ -82,11 +82,11 @@ describe('PlacementController (B3)', () => {
     expect(state.ghost?.reason).toBe('occupied');
   });
 
-  it('Pfad-Korridor wird schon in der Vorschau abgelehnt', () => {
+  it('R2: die alte Korridor-Zelle ist in der Vorschau VALID (kein Pfad-Konzept mehr)', () => {
     controller.selectFromTray('sprout', 2);
     const state = controller.hover(ON_PATH);
-    expect(state.ghost?.valid).toBe(false);
-    expect(state.ghost?.reason).toBe('on_path');
+    expect(state.ghost?.valid).toBe(true);
+    expect(state.ghost?.reason).toBeNull();
   });
 
   it('ohne Bestand lehnt die Vorschau mit no_inventory ab', () => {

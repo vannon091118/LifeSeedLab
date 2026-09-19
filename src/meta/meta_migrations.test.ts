@@ -42,7 +42,7 @@ describe('B21 — Tour-Fassung (MetaSave v7)', () => {
       version: 5, nektar: 321, bestWave: 9, runs: 4, runId: 5, breedGeneration: 2,
       variantCounts: { sprout: 2 }, savedVariants: [], loadout: ['sprout'], language: 'de',
       audioOn: false, pvpPayouts: 1, seedStash: 3, pendingCrosses: [], totalWavesSurvived: 12,
-      bredStats: {}, mapLayouts: { test: {} }, beetles: [], beetleDeployed: null,
+      bredStats: {}, beetles: [], beetleDeployed: null,
       pendingBroods: [], broodGeneration: 7,
     }, 5);
 
@@ -71,7 +71,7 @@ describe('B21 — Tour-Fassung (MetaSave v7)', () => {
       version: 6, nektar: 60, bestWave: 3, runs: 2, runId: 2, breedGeneration: 0,
       variantCounts: { sprout: 1 }, savedVariants: [], loadout: [], language: 'de',
       audioOn: true, pvpPayouts: 0, seedStash: 0, pendingCrosses: [], totalWavesSurvived: 3,
-      bredStats: {}, mapLayouts: {}, beetles: [], beetleDeployed: null, pendingBroods: [],
+      bredStats: {}, beetles: [], beetleDeployed: null, pendingBroods: [],
       broodGeneration: 0, tutorialDone: true,
     }, 6);
 

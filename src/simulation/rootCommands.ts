@@ -30,8 +30,33 @@ export interface CommandContext {
 }
 
 export function executeCommand(ctx: CommandContext, state: SimState, cmd: Command): void {
+  // ── R1: Layout-Phase (Build-Sequenz) ──────────────────────────────────
+  // Im Layout gilt für ALLE Spielzüge dieselbe Wahrheit wie in der Vorbereitung (bauen,
+  // pflanzen, kaufen) — der einzige Unterschied: kein Auto-Start (WaveSystem) und kein
+  // Countdown (waveTiming). Exit nur über den Spieler: BEGIN_WAVE_PREP (sanft) oder
+  // START_WAVE (bewusster Skip — startWave deckt 'layout'). Kein Command-Gate: die Phase
+  // ist eine Zeitschleife, kein Verbot.
   switch (cmd.type) {
+    case 'BEGIN_WAVE_PREP':
+      // R1: der „Fertig"-Knopf der Build-Sequenz — sanft in die erste Vorbereitung.
+      if (state.phase === 'layout') {
+        state.phase = 'prep';
+        state.wave.prepStartTick = state.clock.tick;
+        ctx.publish({
+          eventId: `${state.clock.tick}:system:wave:LAYOUT_DONE:${ctx.nextSeq()}`, 
+          tick: state.clock.tick,
+          type: 'LAYOUT_DONE',
+          sourceId: 'system:wave',
+          version: 1,
+          payload: { tiles: Object.keys(state.mapTiles).length },
+        });
+      }
+      break;
     case 'PLACE_PLANT': {
+      // R2-Integritätsregel vor dem Platzieren: eine Pflanze verteuert ihre Zelle
+      // (PLANT_ROUTE_COST), blockiert sie aber NIE — der Weg kann durch den Umweg-Druck
+      // nie ganz verschwinden. Die Regel greift deshalb nur bei BLOCKIERENDEN Zügen
+      // (placeTile), hier genügt die Sim-Geometrie + sofortige Route-Nachführung.
       const r = ctx.plants.place(state, cmd.payload.variantId, cmd.payload.gx, cmd.payload.gy);
       if (!r.ok) {
         // Rejections are EVENTS, not silence (Defect: stilles Scheitern — UI/FX hängen am Bus)
@@ -64,12 +89,30 @@ export function executeCommand(ctx: CommandContext, state: SimState, cmd: Comman
           type: 'TILE_REJECTED',
           sourceId: 'system:map',
           version: 1,
-          payload: { gx: cmd.payload.gx, gy: cmd.payload.gy, tile: cmd.payload.tile, reason: r.reason },
+          payload: { gx: cmd.payload.gx, gy: cmd.payload.gy, tile: cmd.payload.tile, reason: r.reason as import('../bus/events').TileRejectReason },
         });
       } else {
         // D1: Tiles BIEGEN den Weg ebenfalls sofort — vorher sah der Spieler nur beim
         // nächsten Wellenstart (START_WAVE) die Wirkung seines Baus.
         ctx.recomputeRoute(state);
+      }
+      break;
+    }
+    case 'REMOVE_TILE': {
+      // Juggling: Tile verkaufen (Refund 50%) — die Route kippt mid-Welle, Gegner
+      // auf der alten Route drehen um (EnemySystem erkennt den Routen-Wechsel).
+      const r = ctx.map.removeTile(state, cmd.payload.gx, cmd.payload.gy);
+      if (!r.ok) {
+        ctx.publish({
+          eventId: `${state.clock.tick}:system:map:TILE_REJECTED:${ctx.nextSeq()}`,
+          tick: state.clock.tick,
+          type: 'TILE_REJECTED',
+          sourceId: 'system:map',
+          version: 1,
+          payload: { gx: cmd.payload.gx, gy: cmd.payload.gy, tile: 'boulder', reason: r.reason === 'occupied_plant' ? 'occupied_plant' : 'out_of_world' },
+        });
+      } else {
+        ctx.recomputeRoute(state); // Route kippt SOFORT — das ist der Sinn des Jugglings
       }
       break;
     }
@@ -164,7 +207,9 @@ export function executeCommand(ctx: CommandContext, state: SimState, cmd: Comman
       break;
     }
     case 'EXPAND_MAP': {
-      const r = ctx.map.expandMap(state, cmd.payload.gx, cmd.payload.gy);
+      // R2: vergrößert die Run-Kopie der Weltfläche; die Persistenz spiegelt das
+      // MAP_EXPANDED-Event in die Welt (worldAutor) — die Erweiterung überlebt den Run.
+      const r = ctx.map.expandMap(state);
       if (!r.ok) {
         ctx.publish({
           eventId: `${state.clock.tick}:system:map:TILE_REJECTED:${ctx.nextSeq()}`,
@@ -172,7 +217,7 @@ export function executeCommand(ctx: CommandContext, state: SimState, cmd: Comman
           type: 'TILE_REJECTED',
           sourceId: 'system:map',
           version: 1,
-          payload: { gx: cmd.payload.gx, gy: cmd.payload.gy, tile: 'boulder', reason: r.reason ?? 'not_expandable' },
+          payload: { gx: state.cols, gy: state.rows, tile: 'boulder', reason: (r.reason ?? 'not_expandable') as import('../bus/events').TileRejectReason },
         });
       }
       break;

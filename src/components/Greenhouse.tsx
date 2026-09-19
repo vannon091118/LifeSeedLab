@@ -31,6 +31,16 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
   /** Aktuell gezogener Keimling (Drag&Drop-Quelle) — null = nichts in der Hand. */
   const [heldSeedling, setHeldSeedling] = useState<string | null>(null);
 
+  /**
+   * Trait-Tag in der Anzeige: Gen-IDs sind sprachneutral (`trait.<id>`), Alt-Saves tragen
+   * noch die früheren englischen Labels — die bleiben als Rohtext stehen (kein Datenverlust,
+   * neue Pflanzen sind übersetzt).
+   */
+  const traitTagLabel = (trait: string): string => {
+    if (trait.includes(' ')) return trait; // Alt-Save-Label (z. B. „rapid fire“)
+    return t(`trait.${trait}` as TranslationKey);
+  };
+
   const owned: PlantVariant[] = useMemoOwned(meta);
 
   // B18.3: Aussaat ist frei (B17.3 keimt Käufe direkt — ein Stash-Gate würde die Zucht
@@ -213,7 +223,7 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
                 <strong style={styles.childName}>{lastRoll.child.name}</strong>
                 <div style={styles.traitRow}>
                   {lastRoll.child.traits.slice(0, 3).map(tr => (
-                    <span key={tr} style={styles.traitTag}>{tr}</span>
+                    <span key={tr} style={styles.traitTag}>{traitTagLabel(tr)}</span>
                   ))}
                 </div>
               </div>

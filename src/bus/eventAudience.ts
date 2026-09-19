@@ -41,6 +41,10 @@ export const EVENT_AUDIENCE: Record<EventType, AudienceEntry> = {
     audiences: ['fx'],
     why: 'Nacht: Manga-Text „NACHT …" + Sporen + Renderer-Nachtmodus.',
   },
+  LAYOUT_DONE: {
+    audiences: ['fx'],
+    why: 'R1: Build-Sequenz verlassen — Wellenbanner-Vorbereitung + Aufbauhilfe-Fade.',
+  },
   WAVE_STARTED: {
     audiences: ['fx'],
     why: 'Wellenbanner + Warnpuls; zusätzlich Reifungszähler (eigener Pfad, B17.4).',
@@ -124,6 +128,11 @@ export const EVENT_AUDIENCE: Record<EventType, AudienceEntry> = {
     audiences: ['snapshot'],
     why: 'Der Bau erscheint im nächsten Frame aus `state.mapTiles`, die Kosten zeigt der Energie-Chip. '
       + 'Offen: der Bau selbst hat keinen Moment (kein Ton, kein Staub) — Kandidat für die Karten-Politur.',
+  },
+  TILE_REMOVED: {
+    audiences: ['snapshot'],
+    why: 'Juggling-Verkauf: die Zelle wird frei und die Route kippt mid-Welle (Gegner drehen um). '
+      + 'Refund zeigt der Energie-Chip; der Moment (Verkaufs-FX) ist Karten-Politur-Kandidat.',
   },
   ROUTE_CHANGED: {
     audiences: ['notice'],

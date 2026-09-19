@@ -8,6 +8,7 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import type { MetaSave, BeetleSpecimen } from '../types';
 import type { RunSave } from '../persistence/runSave';
+import type { WorldState } from '../world/world_state';
 import { RunRuntime } from '../render/gameRuntime';
 import { clearRun } from '../persistence/runSave';
 import type { PlacementState, UiRejectReason } from './placementController';
@@ -27,7 +28,7 @@ import { gameViewStyles as styles } from './gameViewStyles';
 import type { HudSnapshot } from './hudSnapshot';
 import { hudOf } from './hudSnapshot';
 import { SPEED_STEPS } from '../core/clock';
-import { AUTO_WAVES_DEFAULT, INGAME_RESTOCK_MARKUP } from '../config/economy.source';
+import { AUTO_WAVES_DEFAULT, INGAME_RESTOCK_MARKUP, HINT_FADE_AFTER_TICKS } from '../config/economy.source';
 import { isDevActive } from '../dev/gate';
 
 interface Props {
@@ -40,12 +41,14 @@ interface Props {
   audioOn: boolean;
   /** B2: gespeicherter Run-Zustand — nur gesetzt, wenn der Spieler „Fortsetzen“ wählt. */
   resume?: RunSave | null;
+  /** R2: die persistente Welt (Pflicht) — der Run läuft auf ihrem Snapshot, nie auf einer frischen Map. */
+  world: WorldState;
   onMetaChange: (meta: MetaSave) => void; onExit: () => void;
 }
 
 const IDLE: PlacementState = { mode: 'plant', variantId: null, ghost: null, rejection: null };
 
-export function GameView({ seed, runId, loadout, savedVariants, bredStats, ownedCounts, beetles, audioOn, resume, onMetaChange, onExit }: Props){
+export function GameView({ seed, runId, loadout, savedVariants, bredStats, ownedCounts, beetles, audioOn, resume, world, onMetaChange, onExit }: Props){
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const runtimeRef = useRef<RunRuntime | null>(null);
   const pausedRef = useRef(false);
@@ -71,6 +74,14 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
   // Lauf-3-Bericht: der Zettel unten blockierte dauerhaft Sichtfläche. Er gehört zur
   // Aufbauhilfe und verschwindet mit ihr — spätestens bei der ersten Platzierung.
   const [noteDismissed, setNoteDismissed] = useState(false);
+  // R1 (Screenshot-Befund): die Aufbauhilfe FADET selbst ab — sie begleitet nur den Anfang
+  // (Layout + erste Vorbereitung), nicht den ganzen Run. Zeitbasis ist der Sim-Tick (B23.2).
+  const [hintFaded, setHintFaded] = useState(false);
+  // R1: Auto-Fade — die Hilfe verblasst nach ihrer Frist (Sim-Tick, eine Quelle) endgültig.
+  useEffect(() => {
+    if (hintFaded || (hud?.tick ?? 0) < HINT_FADE_AFTER_TICKS) return;
+    setHintFaded(true);
+  }, [hud?.tick, hintFaded]);
   const [dpr, setDpr] = useState(1);
   const { t } = useI18n();
   const devActive = useMemo(() => isDevActive(), []);
@@ -92,7 +103,7 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;
     const runtime = new RunRuntime(
-      { canvas, seed, runId, loadout, savedVariants, bredStats, ownedCounts, beetles, audioOn, resume: resume ?? null, onMetaChange },
+      { canvas, seed, runId, loadout, savedVariants, bredStats, ownedCounts, beetles, audioOn, resume: resume ?? null, world, onMetaChange },
       {
         onPlacement: applyPlacement,
         onHud: setHud,
@@ -167,6 +178,11 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
     runtimeRef.current?.selectTile(tile);
   }, []);
 
+  // Juggling-Werkzeug: Verkaufsmodus (50% Refund, Route kippt mid-Welle)
+  const selectSell = useCallback(() => {
+    runtimeRef.current?.selectSell();
+  }, []);
+
   const togglePause = useCallback(() => {
     const runtime = runtimeRef.current; if (!runtime) return;
     runtime.togglePause();
@@ -175,6 +191,11 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
 
   const handleStartWave = useCallback(() => {
     runtimeRef.current?.startWave();
+  }, []);
+
+  /** R1: Build-Sequenz sanft beenden — „Fertig gebaut" in der Layout-Phase. */
+  const handleFinishLayout = useCallback(() => {
+    runtimeRef.current?.beginWavePrep();
   }, []);
 
   // Abbruch = Run von X Wellen — zählen wie GameOver (Reifung, BestWave, Restbestand).
@@ -239,6 +260,7 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
         deployLabel={beetles[beetles.length - 1]?.name ?? ''}
         onTogglePause={togglePause}
         onStartWave={handleStartWave}
+        onFinishLayout={handleFinishLayout}
         onDeployBeetle={handleDeployBeetle}
         onExit={handleExit}
       />
@@ -297,6 +319,7 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
             variantId={placement.variantId}
             onSelectPlant={selectPlant}
             onSelectTile={selectTile}
+            onSelectSell={selectSell}
             onBuyPlant={handleBuyPlant}
             restockPrice={restockPrice}
             trayPlantsLabel={t('game.trayPlants')}
@@ -317,11 +340,12 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
           run={{ selectedVariant: placement.variantId, placements: placedCount, phase: hud?.phase ?? 'prep', paused: hud?.paused ?? false }}
           onHold={tutorialHold}
         />
-        {/* P3QA-05 + B36 (Playtest R2 #7): Die Aufbauhilfe steht nur BIS zur ersten Platzierung
-            im Feld — danach blockiert sie keinen Boden mehr. pointer-events:none — nichts blockiert. */}
-        {placedCount === 0 && !showGameOver && (
-          <div style={styles.firstRunHint} aria-hidden>
-            <span style={styles.paperNotePin}/> {t('game.hint')}
+        {/* P3QA-05 + R1: Die Aufbauhilfe steht nur bis zur ersten Platzierung ODER dem
+            Ablauf ihrer Frist (Sim-Tick) — danach blockiert sie keinen Boden mehr und
+            verblasst, statt zu kleben. pointer-events:none — nichts blockiert. */}
+        {placedCount === 0 && !hintFaded && !showGameOver && (
+          <div style={{ ...styles.firstRunHint, ...(hintFaded ? styles.firstRunHintFaded : {}) }} aria-hidden data-hint-fade={hintFaded ? 'faded' : 'on'}>
+            <span style={styles.paperNotePin}/> {hud?.phase === 'layout' ? t('game.hintLayout') : t('game.hint')}
           </div>
         )}
         {/* Der Zettel unten ist KEIN Dauerzustand mehr (Lauf-3-Bericht): er begleitet nur die

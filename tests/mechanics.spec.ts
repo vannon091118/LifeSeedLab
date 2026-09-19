@@ -29,7 +29,9 @@ test.describe('Mechanik-Schnellchecks', () => {
   });
 
   test('Canvas rendert 10 Sekunden', async ({ page }) => {
-    test.setTimeout(20_000);
+    // Budget: Boot + Welt-Laden (IDB) + 10 s Wartezeit. Vorher 20 s — auf belasteter Maschine
+    // (parallele Worker) lag der Boot allein über 10 s, der Test brach dann IM Warten ab.
+    test.setTimeout(40_000);
     await startRun(page);
     await page.waitForTimeout(10_000);
     await expect(page.locator('canvas')).toHaveCount(1);

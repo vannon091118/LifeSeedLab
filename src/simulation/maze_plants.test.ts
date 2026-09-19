@@ -2,6 +2,7 @@
 // Der Plan-Satz „das Zucht-Layout wirkt als Maze-Bauwerk" ist hier als Sim-Vertrag gepinnt.
 import { describe, it, expect, beforeEach } from 'vitest';
 import { SimulationRoot } from './root';
+import { makeRoot } from '../testing/testkit';
 import { routeQuality } from './mapSystem';
 import { resetIds } from '../core/ids';
 import { makeCommand } from '../bus/commands';
@@ -30,35 +31,45 @@ function layPathTileCorridor(root: SimulationRoot): void {
 describe('D1 — Pflanzen sind Maze-Bauwerk (auch ohne Tiles)', () => {
   beforeEach(() => { resetIds(); });
 
-  it('PLACE_PLANT triggert recomputeRoute: die Route nach der ersten Pflanze existiert (kein Default-No-op)', () => {
+  it('PLACE_PLANT biegt die Route SOFORT: die Route nach der ersten Pflanze weicht vom geraden Weg ab', () => {
     // Loadout ⇒ B1-Fallback-Bestand (wie in gameover_notice/gateB) — die Pflanze muss
     // platzierbar sein, sonst prüft der Test die Leihe mit, nicht D1.
-    const root = new SimulationRoot({ seed: SEED, runId: 1, loadout: ['sprout'] });
-    // Ohne Platzierung: leeres Feld → bewusst KEINE Route (gestalteter Default-Pfad, s. Kommentar root.ts)
-    expect(routeOf(root)).toBeNull();
+    const root = makeRoot({ seed: SEED, runId: 1, loadout: ['sprout'], loadoutStock: 99 });
+    // R2: ohne Platzierung ist die Route der GERADE Weg (Pathfinding-Ergebnis der leeren Welt)
+    // — sie wird im ROOT-KONSTRUKTOR abgeleitet (Run-Start-Vertrag).
+    root.stepOnce();
+    const before = routeKey(routeOf(root));
+    expect(before.length).toBeGreaterThan(0);
 
-    root.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 6, gy: 3 }));
+    // Pflanzenreihe quer durch die Route-Reihe (gy=0, gx 2..9): der Dijkstra löst Kosten-
+    // Ties über die oberste Reihe — die REIHE dort erzwingt den Biege-Beweis
+    // (PLANT_ROUTE_COST verteuert jede Zelle, der Weg weicht auf gy=1 aus).
+    let seq = 1;
+    for (const gx of [2, 3, 4, 5, 6, 7, 8, 9]) {
+      root.commands.push(makeCommand(0, 'PLACE_PLANT', seq++, { variantId: 'sprout', gx, gy: 0 }));
+    }
     root.stepOnce();
 
-    // D1-Kern: SOFORT nach der Platzierung existiert eine berechnete Route —
-    // der Dijkstra ist gelaufen (vorher: hasTiles=false ⇒ null ⇒ No-op).
+    // D1-Kern: SOFORT nach der Platzierung biegt die berechnete Route um —
+    // die Pflanzen verteuern ihre Zellen (PLANT_ROUTE_COST) und drücken den Weg davon.
     expect(routeOf(root)).not.toBeNull();
     expect(routeOf(root)!.length).toBeGreaterThan(1);
+    expect(routeKey(routeOf(root))).not.toBe(before);
   });
 
   it('Pflanzenwand vor der Route zwingt den Laufweg in einen anderen Kanal (vorher/nachher am selben Root)', () => {
     // Am SELBEN Root messen — der offene Vergleich zweier Roots scheitert an der
     // Gleichwertigkeit freier Korridore (mehrere Optimalrouten, gleiche Kosten).
-    const root = new SimulationRoot({ seed: SEED, runId: 1, loadout: ['sprout'], loadoutStock: 99 });
+    const root = makeRoot({ seed: SEED, runId: 1, loadout: ['sprout'], loadoutStock: 99 });
     layPathTileCorridor(root);
     root.stepOnce();
     const before = routeKey(routeOf(root));
     expect(before.length).toBeGreaterThan(0);
 
-    // Wand quer VOR die bestehende Route (die gy-2-Korridor-Reihe vollstellen, legal bei gy 2:
-    // gx 2..9 frei laut Marge — die Route muss umbiegen).
-    for (const gx of [2, 3, 4, 6, 7, 8, 9]) {
-      root.commands.push(makeCommand(0, 'PLACE_PLANT', 20 + gx, { variantId: 'sprout', gx, gy: 2 }));
+    // Wand quer DURCH den bestehenden Korridor (Spalte gx=5, Route läuft dort hinunter):
+    // gx=5 mit einer Lücke bei gy=5 — die Route muss auf Spalte 6 ausweichen.
+    for (const gy of [2, 3, 4, 6, 7, 8, 9]) {
+      root.commands.push(makeCommand(0, 'PLACE_PLANT', 20 + gy, { variantId: 'sprout', gx: 5, gy }));
     }
     root.stepOnce();
     const after = routeKey(routeOf(root));
@@ -68,20 +79,30 @@ describe('D1 — Pflanzen sind Maze-Bauwerk (auch ohne Tiles)', () => {
   });
 
   it('REMOVE_PLANT zieht nach: Route kehrt zur freien Geometrie zurück', () => {
-    const root = new SimulationRoot({ seed: SEED, runId: 1, loadout: ['sprout'] });
-    root.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 6, gy: 3 }));
+    const root = makeRoot({ seed: SEED, runId: 1, loadout: ['sprout'], loadoutStock: 99 });
     root.stepOnce();
-    const withPlant = routeKey(routeOf(root));
+    const straight = routeKey(routeOf(root)); // R2: der gerade Weg der leeren Welt
 
-    const plant = root.getSnapshot().plants.find(p => p.gx === 6 && p.gy === 3);
-    expect(plant).toBeDefined(); // Platzierung muss geklappt haben (D1-Voraussetzung)
-    root.commands.push(makeCommand(0, 'REMOVE_PLANT', 2, { plantId: plant!.id }));
+    // Dieselbe Pflanzenreihe wie im Biege-Test (gy=0, auf der Route-Reihe) — sie verlegt den Weg REAL.
+    let seq = 1;
+    const placed: string[] = [];
+    for (const gx of [2, 3, 4, 5, 6, 7, 8, 9]) {
+      root.commands.push(makeCommand(0, 'PLACE_PLANT', seq++, { variantId: 'sprout', gx, gy: 0 }));
+    }
+    root.stepOnce();
+    for (const p of root.getSnapshot().plants) placed.push(p.id);
+    const withPlants = routeKey(routeOf(root));
+    expect(withPlants).not.toBe(straight); // die Reihe hat den Weg verlegt
+
+    for (const id of placed) {
+      root.commands.push(makeCommand(0, 'REMOVE_PLANT', seq++, { plantId: id }));
+    }
     root.stepOnce();
 
-    // Ohne Pflanze UND ohne Tiles: wieder null (leeres Feld ⇒ Default-Pfad) — jedenfalls
-    // NICHT mehr die Pflanzenroute. Der Kern: der Weg hat auf die Entfernung reagiert.
+    // R2: ohne Pflanzen UND ohne Tiles kehrt die Route zum GERADEN Weg zurück —
+    // der Weg hat auf die Entfernung reagiert.
     const after = routeKey(routeOf(root));
-    expect(after).not.toBe(withPlant);
+    expect(after).toBe(straight);
   });
 
   it('routeQuality: gerade Route = 1, Rücklauf (Baffle) < 1 — Formel-Vertrag als Unit', () => {

@@ -5,7 +5,7 @@
 import type { SimState, PlantEntity, EnemyEntity } from './state';
 import { makeEvent, type GameEvent } from '../bus/events';
 import { PLANTS_SOURCE, type PlantSource } from '../config/plants.source';
-import { ENEMY_PATH, PLACEMENT_PATH_MARGIN, isInsideGrid, dist, GRID_COLS, GRID_ROWS } from '../config/world.source';
+import { isInsideWorld, dist } from '../config/world.source';
 import { placementRejectReason } from './placementRules';
 import { nextId } from '../core/ids';
 import {
@@ -54,7 +54,7 @@ export class PlantSystem {
     // B3: identische Regel wie die UI-Vorschau (PlacementController) — eine Wahrheit.
     // B37+Korrektur: Platzieren kostet Inventory, kein Harz (user: pflanzen aus loadout, 0 passives Einkommen).
     const reject = placementRejectReason({
-      board: { gx, gy, plants: state.plants },
+      board: { gx, gy, plants: state.plants, cols: state.cols, rows: state.rows },
       inventoryCount: inv,
       energy: Infinity,
       cost: 0,
@@ -137,9 +137,7 @@ export class PlantSystem {
     if (!stats) return { ok: false, reason: 'not_found' };
     const pos = this.findFreeNeighbor(state, source.gx, source.gy);
     if (!pos) return { ok: false, reason: 'occupied' };
-    if (!isInsideGrid(pos.gx, pos.gy)) return { ok: false, reason: 'on_path' };
-    const cx = pos.gx + 0.5, cy = pos.gy + 0.5;
-    for (const p of ENEMY_PATH) if (dist(cx, cy, p.x, p.y) < PLACEMENT_PATH_MARGIN) return { ok: false, reason: 'on_path' };
+    if (!isInsideWorld(state.cols, state.rows, pos.gx, pos.gy)) return { ok: false, reason: 'on_path' };
     if (state.plants.some(p => p.gx === pos.gx && p.gy === pos.gy)) return { ok: false, reason: 'occupied' };
     const rarity = rarityForCost(stats.cost);
     const baseGrowth = GROWTH_TICKS_BY_RARITY[rarity];
@@ -174,24 +172,18 @@ export class PlantSystem {
     const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]];
     for (const [dx, dy] of dirs) {
       const nx = gx + dx, ny = gy + dy;
-      if (!isInsideGrid(nx, ny)) continue;
+      if (!isInsideWorld(state.cols, state.rows, nx, ny)) continue;
       if (state.plants.some(p => p.gx === nx && p.gy === ny)) continue;
-      const cx = nx + 0.5, cy = ny + 0.5;
-      let onPath = false;
-      for (const p of ENEMY_PATH) if (dist(cx, cy, p.x, p.y) < PLACEMENT_PATH_MARGIN) { onPath = true; break; }
-      if (!onPath) return { gx: nx, gy: ny };
+      return { gx: nx, gy: ny };
     }
     // fallback: scan outward ring 2
     for (let r = 2; r <= 3; r++) {
       for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) {
         if (Math.abs(dx) !== r && Math.abs(dy) !== r) continue;
         const nx = gx + dx, ny = gy + dy;
-        if (!isInsideGrid(nx, ny)) continue;
+        if (!isInsideWorld(state.cols, state.rows, nx, ny)) continue;
         if (state.plants.some(p => p.gx === nx && p.gy === ny)) continue;
-        const cx = nx + 0.5, cy = ny + 0.5;
-        let onPath = false;
-        for (const p of ENEMY_PATH) if (dist(cx, cy, p.x, p.y) < PLACEMENT_PATH_MARGIN) { onPath = true; break; }
-        if (!onPath) return { gx: nx, gy: ny };
+        return { gx: nx, gy: ny };
       }
     }
     return null;
@@ -210,7 +202,6 @@ export class PlantSystem {
         }));
       }
     }
-    void GRID_COLS; void GRID_ROWS;
   }
 
   /** Shooters acquire targets and request projectile spawns via callback. */

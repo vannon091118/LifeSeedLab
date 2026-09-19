@@ -5,7 +5,6 @@
 import type { SimState, PlantEntity, Route } from '../simulation/state';
 import type { ParticlePool } from '../observers/particles';
 import type { FeedbackLayer } from './layers/feedback';
-import { GRID_COLS, GRID_ROWS } from '../config/world.source';
 import { WEAKENED_THRESHOLD } from '../config/economy.source';
 import { resolveVisual, type ResolvedVisual } from '../visual/generator';
 import { getPlantStats } from '../simulation/plantSystem';
@@ -41,6 +40,9 @@ export class Renderer {
   private terrainKey = '';
   private nightAlpha = 0; private nightTarget = 0;
   private bredVisuals = new Map<string, ResolvedVisual>();
+  /** R2: dynamische Weltgröße — wird pro Frame aus dem State gespiegelt (Beobachter, kein Besitz). */
+  private worldCols = 12;
+  private worldRows = 12;
 
   setBredVisuals(map: Map<string, ResolvedVisual>): void { this.bredVisuals = map; }
 
@@ -77,16 +79,19 @@ export class Renderer {
   }
 
   /**
-   * B16.1: der Terrain-Bake hängt an (Seed, aktive Route) — der gezeichnete Weg IST der
-   * Laufweg der Gegner. Lazy Re-Bake bei Schlüssel-Wechsel (Recompute passiert nur bei
-   * START_WAVE) — nie pro Frame (B12). Kein Render-Konsument hält eine ENEMY_PATH-Kopie.
+   * R2: der Terrain-Bake hängt an (Seed, aktive Route, WELTGRÖSSE) — der gezeichnete
+   * Weg IST das Pathfinding-Ergebnis. Lazy Re-Bake bei Schlüssel-Wechsel — nie pro
+   * Frame (B12). Kein Render-Konsument hält eine Weg-Kopie.
    */
   private terrainFor(state: SimState): HTMLCanvasElement | null {
-    const sig = state.currentRoute?.map(p => `${p.x},${p.y}`).join(';') ?? 'default';
+    const sig = `${state.cols}x${state.rows}|${state.currentRoute?.map(p => `${p.x},${p.y}`).join(';') ?? 'none'}`;
     const key = `${state.seed}|${sig}`;
     if (this.terrain && this.terrainKey === key) return this.terrain;
-    this.terrain = bake(state.seed, state.currentRoute);
+    this.terrain = bake(state.seed, state.currentRoute, state.cols, state.rows);
     this.terrainKey = key;
+    // R2: dynamische Weltgröße spiegeln — der Beobachter besitzt die Größe nicht.
+    this.worldCols = state.cols;
+    this.worldRows = state.rows;
     return this.terrain;
   }
 
@@ -95,7 +100,7 @@ export class Renderer {
   gridFromPixel(x: number, y: number): { gx: number; gy: number } | null {
     const { ox, oy, cell } = this.metrics();
     const gx = Math.floor((x - ox) / cell); const gy = Math.floor((y - oy) / cell);
-    if (gx < 0 || gx >= GRID_COLS || gy < 0 || gy >= GRID_ROWS) return null;
+    if (gx < 0 || gx >= this.worldCols || gy < 0 || gy >= this.worldRows) return null;
     return { gx, gy };
   }
 
@@ -106,9 +111,9 @@ export class Renderer {
 
   private metrics(): { ox: number; oy: number; cell: number } {
     const pad = 20;
-    const cell = Math.min((this.w - pad * 2) / GRID_COLS, (this.h - pad * 2) / GRID_ROWS);
-    const ox = (this.w - cell * GRID_COLS) / 2;
-    const oy = (this.h - cell * GRID_ROWS) / 2 + 8;
+    const cell = Math.min((this.w - pad * 2) / this.worldCols, (this.h - pad * 2) / this.worldRows);
+    const ox = (this.w - cell * this.worldCols) / 2;
+    const oy = (this.h - cell * this.worldRows) / 2 + 8;
     return { ox, oy, cell };
   }
 
@@ -120,6 +125,9 @@ export class Renderer {
     ghost?: RenderGhost | null,
   ): void {
     const ctx = this.ctx;
+    // R2: die Weltgröße kommt ausschließlich aus dem Sim-State (Run-Kopie der Welt).
+    this.worldCols = state.cols;
+    this.worldRows = state.rows;
     const { ox, oy, cell } = this.metrics();
     const toPx = (wx: number) => wx * cell;
     const toPy = (wy: number) => wy * cell;
@@ -129,7 +137,7 @@ export class Renderer {
     ctx.translate(ox + shakeX, oy + shakeY);
 
     const terrain = this.terrainFor(state);
-    if (terrain) ctx.drawImage(terrain, 0, 0, GRID_COLS * cell, GRID_ROWS * cell);
+    if (terrain) ctx.drawImage(terrain, 0, 0, this.worldCols * cell, this.worldRows * cell);
 
     // P5: Spieler-Tiles unter allem Gameplay zeichnen (read-only aus dem State)
     for (const [key, tile] of Object.entries(state.mapTiles)) {

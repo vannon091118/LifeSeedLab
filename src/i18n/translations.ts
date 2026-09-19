@@ -110,6 +110,24 @@ export const translations = {
     'map.boulder': 'Findling',
     'map.decor': 'Deko',
     'game.trayField': 'FELD',
+    'game.sellTool': 'Verkauf',
+    // Trait-Tags (Gen-IDs sind sprachneutral, die Anzeige übersetzt — Trait-Tags waren
+    // vorher fest englisch („rapid fire") und schlugen in der deutschen UI durch.
+    'trait.fire': 'Feuer',
+    'trait.ice': 'Frost',
+    'trait.rapid': 'Schnellfeuer',
+    'trait.heavy': 'Schwerhieb',
+    'trait.heal': 'Heilung',
+    'trait.shield': 'Schild',
+    'trait.venom': 'Gift',
+    'trait.splash': 'Fläche',
+    'trait.pierce': 'Durchschlag',
+    'trait.regen': 'Regeneration',
+    'trait.lure': 'Lockduft',
+    'trait.thorns': 'Dornen',
+    'trait.swift': 'Flink',
+    'trait.crit': 'Kritisch',
+    'trait.aura': 'Aura',
     'game.routeQuality': 'WEG-GÜTE',
     'game.routeQualityHint': '100% = gerader Weg — je niedriger, desto mehr lenkt dein Zucht-Layout die Gegner um',
     'game.autoWaves': 'Auto-Wellen',
@@ -123,6 +141,8 @@ export const translations = {
     // 'menu.startRun', 'breed.chance/offspring/generation/collection', 'common.close/confirm':
     // entfernt — bestätigt ungenutzt (Toter-Key-Audit, Icons ersetzen hud.* im Feld).
     'game.hint': 'Tippe eine Pflanze unten, ziehe den Geist übers Feld — Tap platziert, ✕ bricht ab. Welt ist Papier, Pflanzen sind lebendig.',
+    // R1: Build-Sequenz — der Feld-Hinweis der Layout-Phase.
+    'game.hintLayout': 'Bau dein Labyrinth: Wege lenken, Töpfe tragen Pflanzen, Findlinge blockieren. „Fertig gebaut" startet die erste Welle.',
     'hud.journal': 'Forschungsbuch',
     'game.startWave': 'Welle starten',
     'game.exitRun': 'Run beenden',
@@ -130,6 +150,13 @@ export const translations = {
     'wave.running': 'Welle {n} läuft',
     'wave.startIn': 'Welle startet in {s}s',
     'wave.waitingHint': 'Das Labor wartet auf deine erste Pflanze.',
+    // R1: Layout-Phase — der Wellen-Knopf wird zum sanften Ausstieg.
+    'layout.done': 'Fertig gebaut',
+    // Sanfter Ausstieg aus der Bauphase (führt in die Vorbereitung mit Auto-Start-Countdown).
+    // Der Name unterscheidet sich klar vom Hauptknopf „Welle starten" — vorher hießen beide
+    // „Fertig gebaut" (Doppelknopf) und der Hinweis nannte einen dritten, der nicht existierte.
+    'layout.doneLong': 'Bauen beenden',
+    'layout.hint': 'Welle 1 direkt starten? „Welle starten". Erst vorbereiten? „Bauen beenden".',
     // B23.3: Ablehnungsgründe der Platzierung — vorher passierte sichtbar nichts.
     'field.reject.occupied': 'Da wächst schon etwas.',
     'field.reject.on_path': 'Da läuft jemand drüber — hier ist kein Platz.',
@@ -141,7 +168,8 @@ export const translations = {
     'field.reject.unknown_tile': 'Dieses Feld gibt es hier nicht.',
     'field.reject.max_count': 'Von diesem Feld steht schon das Maximum.',
     'field.reject.occupied_plant': 'Da wächst schon eine Pflanze.',
-    'field.reject.spawn_corridor': 'Der Eingang muss frei bleiben.',
+    'field.reject.out_of_world': 'Hier ist noch keine Welt — erst erweitern (R2).',
+    'field.reject.max_size': 'Die Welt hat ihre größte Fläche erreicht.',
     'field.reject.not_expandable': 'Hier lässt sich nichts anbauen.',
     'field.reject.already_buildable': 'Das Feld ist schon bebaut.',
     // B29: Düngen und Vermehren — der Zustand liegt in der Sim, sie sagt auch ab.
@@ -153,7 +181,7 @@ export const translations = {
     'field.reject.already_deployed': 'Es ist schon ein Brutling draußen.',
     'field.reject.none_available': 'Kein Brutling im Lager.',
     // M5: zugebauter Laufweg — der gelegte Weg greift nicht mehr, der Fallback übernimmt.
-    'field.reject.route_blocked': 'Der Weg ist zugebaut — die Gegner nehmen den alten Pfad!',
+    'field.reject.route_blocked': 'Das wäre der letzte freie Weg — der Bau wird abgelehnt!',
     'over.title': 'Run beendet',
     'over.waveReached': 'Erreichte Welle',
     'over.nektarEarned': 'Nektar verdient',
@@ -284,6 +312,22 @@ export const translations = {
     'map.boulder': 'Boulder',
     'map.decor': 'Decor',
     'game.trayField': 'FIELD',
+    'game.sellTool': 'Sell',
+    'trait.fire': 'Fire',
+    'trait.ice': 'Frost',
+    'trait.rapid': 'Rapid fire',
+    'trait.heavy': 'Heavy hit',
+    'trait.heal': 'Heal',
+    'trait.shield': 'Shield',
+    'trait.venom': 'Venom',
+    'trait.splash': 'Splash',
+    'trait.pierce': 'Pierce',
+    'trait.regen': 'Regen',
+    'trait.lure': 'Lure',
+    'trait.thorns': 'Thorns',
+    'trait.swift': 'Swift',
+    'trait.crit': 'Crit strike',
+    'trait.aura': 'Aura',
     'game.routeQuality': 'PATH QUALITY',
     'game.routeQualityHint': '100% = straight path — the lower it drops, the more your plantings bend the enemies’ route',
     'game.autoWaves': 'Auto waves',
@@ -293,6 +337,8 @@ export const translations = {
     'game.gameover': 'GAME OVER',
     'game.resumeTap': 'Tap to Resume',
     'game.hint': 'Tap a plant below, drag the ghost over the field — tap places, ✕ cancels. World is paper, plants are alive.',
+    // R1: build sequence — the layout-phase field hint.
+    'game.hintLayout': 'Build your maze: paths steer, pots carry plants, boulders block. "Done building" starts the first wave.',
     'hud.journal': 'Research Journal',
     'game.startWave': 'Start Wave',
     'game.exitRun': 'Exit Run',
@@ -300,6 +346,10 @@ export const translations = {
     'wave.running': 'Wave {n} running',
     'wave.startIn': 'Wave starts in {s}s',
     'wave.waitingHint': 'The lab is waiting for your first plant.',
+    // R1: layout phase — the wave button becomes the gentle exit.
+    'layout.done': 'Done building',
+    'layout.doneLong': 'Finish building',
+    'layout.hint': 'Start wave 1 now? Press "Start wave". Prepare first? Press "Finish building".',
     // B23.3: placement rejections — nothing visible used to happen at all.
     'field.reject.occupied': 'Something is already growing there.',
     'field.reject.on_path': 'Someone walks here — no room.',
@@ -311,7 +361,8 @@ export const translations = {
     'field.reject.unknown_tile': 'That plot does not exist.',
     'field.reject.max_count': 'The maximum of this plot is already built.',
     'field.reject.occupied_plant': 'A plant is already growing there.',
-    'field.reject.spawn_corridor': 'The entrance must stay clear.',
+    'field.reject.out_of_world': 'No world here yet — expand first (R2).',
+    'field.reject.max_size': 'The world has reached its maximum size.',
     'field.reject.not_expandable': 'Nothing can be built here.',
     'field.reject.already_buildable': 'This plot is already built.',
     // B29: fertilising and propagation — the state lives in the sim, so the sim refuses.
@@ -323,7 +374,7 @@ export const translations = {
     'field.reject.already_deployed': 'A broodling is already out.',
     'field.reject.none_available': 'No broodling in the stash.',
     // M5: route blocked — the fallback path takes over, and that is announced.
-    'field.reject.route_blocked': 'The path is blocked — enemies take the old route!',
+    'field.reject.route_blocked': 'That would close the last free path — build rejected!',
     'over.title': 'Run Over',
     'over.waveReached': 'Wave Reached',
     'over.nektarEarned': 'Nectar Earned',

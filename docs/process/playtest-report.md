@@ -59,7 +59,7 @@ Alle beobachteten Mechaniken funktionieren wie erwartet. Keine kritischen Fehler
   - `src/simulation/enemySystem.ts` 288/300 (96%)
 - **TypeScript:** `npx tsc -b --noEmit` → 0 Fehler
 - **Build:** `npm run build` → durchläuft ohne Fehler
-- **Tests:** `npx vitest run` → 220 Tests grün
+- **Tests:** `node node_modules/vitest/vitest.mjs run` → 429 Tests grün (44 Dateien); E2E `node node_modules/@playwright/test/cli.js test` → 27 Specs grün
 
 ---
 

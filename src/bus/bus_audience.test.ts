@@ -24,6 +24,7 @@ import { translations } from '../i18n/translations';
 const SAMPLES: { [K in EventType]: EventPayloads[K] } = {
   DAY_STARTED: { cycle: 1 },
   NIGHT_STARTED: { cycle: 1 },
+  LAYOUT_DONE: { tiles: 5 },
   WAVE_STARTED: { wave: 1, enemyCount: 4 },
   WAVE_COMPLETED: { wave: 1, reward: 25 },
   GAME_OVER: { wave: 3, score: 1200, reason: 'lives_depleted' as const },
@@ -47,7 +48,8 @@ const SAMPLES: { [K in EventType]: EventPayloads[K] } = {
   FERTILIZE_REJECTED: { plantId: 'p1', reason: 'not_growing' },
   PROPAGATE_REJECTED: { plantId: 'p1', reason: 'not_mature' },
   TILE_PLACED: { gx: 3, gy: 3, tile: 'boulder', cost: 20 },
-  TILE_REJECTED: { gx: 0, gy: 3, tile: 'path', reason: 'spawn_corridor' },
+  TILE_REJECTED: { gx: 0, gy: 3, tile: 'path', reason: 'out_of_world' },
+  TILE_REMOVED: { gx: 0, gy: 3, tile: 'path', refund: 5 },
   ROUTE_CHANGED: { waypoints: 0, quality: null, blocked: true },
   MAP_EXPANDED: { gx: 1, gy: 1, cost: 45 },
   BEETLE_DEPLOYED: { beetleId: 'b1', name: 'Krabbler', px: 0.5, py: 3.5, spawnCount: 1 },
@@ -108,7 +110,7 @@ describe('B29 — Event-Audience: jede Zeile ist entschieden', () => {
       PLACEMENT_REJECTED: ['occupied', 'on_path', 'no_inventory', 'no_energy'],
       // Alle sieben Gründe aus `simulation/mapSystem.ts` — ohne Konsument zahlte der Spieler
       // Energie und es passierte sichtbar nichts.
-      TILE_REJECTED: ['unknown_tile', 'no_energy', 'max_count', 'occupied_plant', 'spawn_corridor', 'not_expandable', 'already_buildable'],
+      TILE_REJECTED: ['unknown_tile', 'no_energy', 'max_count', 'occupied_plant', 'out_of_world', 'max_size', 'not_expandable', 'already_buildable'],
       FERTILIZE_REJECTED: ['not_growing', 'max_reached', 'not_found'],
       PROPAGATE_REJECTED: ['not_mature', 'not_found', 'on_path', 'occupied'],
       BEETLE_REJECTED: ['already_deployed', 'no_energy', 'none_available'],

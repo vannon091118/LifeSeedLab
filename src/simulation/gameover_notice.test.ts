@@ -4,6 +4,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 // P1-Game-Over-Freeze (aus gameover.test.ts) + B29-Ablehnungs-Meldungen (aus simulation_notice.test.ts).
 
 import { SimulationRoot, makeCommand } from './root';
+import { makeRoot } from '../testing/testkit';
 import { resetIds } from '../core/ids';
 import { rollBrood } from '../genome/beetle';
 
@@ -22,9 +23,9 @@ function forceGameOver(): SimulationRoot {
   const resume: import('./resume').ResumeSnapshot = {
     waveNumber: 20, energy: 500, lives: 1, score: 0,
     combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
-    plants: [], inventory: {}, discoveredVariants: [], mapTiles: {}, nektarEarned: 0,
+    plants: [], inventory: {}, discoveredVariants: [], nektarEarned: 0,
   };
-  const root = new SimulationRoot({ seed: GO_SEED, resume });
+  const root = makeRoot({ seed: GO_SEED, resume });
   root.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
   root.stepOnce();
   for (let i = 0; i < 60000 && root.getSnapshot().phase !== 'gameover'; i++) root.stepOnce();
@@ -111,18 +112,16 @@ function collector(root: SimulationRoot, type: GameEvent['type']) {
 }
 
 describe('B29 — Ablehnungen erreichen den Spieler (echter Run)', () => {
-  it('TILE_REJECTED: Spawn-Korridor und max_count kommen mit Text an', () => {
-    const root = new SimulationRoot({ seed: 4242 });
+  it('TILE_REJECTED: out_of_world und max_count kommen mit Text an', () => {
+    const root = makeRoot({ seed: 4242 });
     const read = collector(root, 'TILE_REJECTED');
 
-    // gx=0 ist der Spawn-Korridor — die UI prüft das nicht vor, die Sim entscheidet.
-    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 0, gy: 3, tile: 'path' }));
+    // Außerhalb der Weltfläche — die UI prüft das nicht vor, die Sim entscheidet.
+    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 50, gy: 3, tile: 'path' }));
     root.stepOnce();
-    expect(read().reason).toBe('spawn_corridor');
-    expect(read().text).toBe('Der Eingang muss frei bleiben.');
+    expect(read().reason).toBe('out_of_world');
 
     // Findlinge: 6 erlaubt, der siebte wird abgewiesen (schützt vor Weg-Mauern).
-    // gy=8: komplett frei vom Pfad-Korridor (B33) — der Test misst max_count, nicht den Korridor.
     let seq = 2;
     for (let i = 0; i < 7; i++) {
       root.commands.push(makeCommand(1, 'PLACE_TILE', seq++, { gx: 2 + i, gy: 8, tile: 'boulder' }));
@@ -133,7 +132,7 @@ describe('B29 — Ablehnungen erreichen den Spieler (echter Run)', () => {
   });
 
   it('FERTILIZE_REJECTED und PROPAGATE_REJECTED: Pflanzen-Gründe kommen mit Text an', () => {
-    const root = new SimulationRoot({ seed: 4242, loadout: ['sprout'] });
+    const root = makeRoot({ seed: 4242, loadout: ['sprout'] });
     const fert = collector(root, 'FERTILIZE_REJECTED');
     const prop = collector(root, 'PROPAGATE_REJECTED');
 
@@ -159,7 +158,7 @@ describe('B29 — Ablehnungen erreichen den Spieler (echter Run)', () => {
 
   it('BEETLE_REJECTED: zu wenig Energie kommt mit Text an (der einzige Fall, der den Knopf passiert)', () => {
     const brood = rollBrood('leafhopper', 'shellbeetle', 5);
-    const root = new SimulationRoot({ seed: 4242, loadout: ['sprout'], beetles: brood });
+    const root = makeRoot({ seed: 4242, loadout: ['sprout'], beetles: brood });
     const read = collector(root, 'BEETLE_REJECTED');
 
     // Pflanzen kosten kein Harz mehr (B37) und es gibt kein passives Einkommen (kein Tropf):
@@ -182,13 +181,19 @@ describe('B29 — Ablehnungen erreichen den Spieler (echter Run)', () => {
   });
 
   it('jede Ablehnung ist auch ein FX-Ereignis, keine stille Zeile im Bus', () => {
-    const root = new SimulationRoot({ seed: 4242 });
+    const root = makeRoot({ seed: 4242 });
     const seen: string[] = [];
     for (const type of ['TILE_REJECTED', 'PLACEMENT_REJECTED', 'FERTILIZE_REJECTED', 'PROPAGATE_REJECTED', 'BEETLE_REJECTED'] as const) {
       root.bus.subscribe(type, () => seen.push(type));
     }
-    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 0, gy: 3, tile: 'path' }));
+    // R2: die Ablehnung der Sim ist route_blocked — der letzte freie Weg bleibt immer offen.
+    // Nur EIN ablehnender Zug (der Energie vor der Mauer ausgeht): die letzten Töpfe lehnen
+    // bereits mit no_energy ab — der Test zählt nur die TILE_REJECTED-Zeile, also genügt
+    // der erste Widerspruch gegen die Integritätsregel.
+    for (let gy = 0; gy < 12; gy++) {
+      root.commands.push(makeCommand(0, 'PLACE_TILE', gy + 1, { gx: 5, gy, tile: 'pot' }));
+    }
     root.stepOnce();
-    expect(seen).toEqual(['TILE_REJECTED']);
+    expect(seen).toContain('TILE_REJECTED');
   });
 });

@@ -231,6 +231,11 @@ test.describe('Progression — Wellen-Marathon', () => {
     // Maschinengeschwindigkeit ab, wie viele Ticks Welle 1 vor dem Aufbau gelaufen ist
     // (Prep-Auto-Start). Eingefroren taktet nur __ff — der Aufbau steht VOR der Welle.
     await page.getByRole('button', { name: /^Pause$/ }).click();
+    // R1-Build-Sequenz: jeder Run beginnt in `layout`. Für diesen Marathon ist die Warte-Phase
+    // `prep` gemeint (Auto-Start-Fenster) — der sanfte Ausstieg führt dorthin. Adressiert über
+    // `data-tut` statt über die Beschriftung, damit der Test sprachunabhängig bleibt.
+    await page.locator('[data-tut="layout-done"]').click();
+    await ff(page, 1);
     const frozen = await sim(page);
     expect(frozen.phase, 'Run war beim Einfrieren nicht in prep — der Aufbau wäre realzeit-abhängig').toBe('prep');
 

@@ -212,19 +212,7 @@ export function readyBroods(meta: MetaSave): PendingBrood[] {
   return meta.pendingBroods.filter(p => isMatured(p.startedWave, p.neededWaves, meta.totalWavesSurvived));
 }
 
-// ── P5: Spieler-Maps (spielbarer Inhalt — Layout speichern/laden) ──
-
-/** Speichert/überschreibt ein benanntes Map-Layout (gleiche Grundraster-Instanz für alle). */
-export function saveMapLayout(name: string, tiles: Record<string, string>): MetaSave {
-  return updateMeta({ mapLayouts: { ...loadMeta().mapLayouts, [name]: tiles } });
-}
-
-/** Liest ein Layout (null = unbekannt). Validierung macht der Caller über die Map-Source. */
-export function loadMapLayout(name: string): Record<string, string> | null {
-  return loadMeta().mapLayouts[name] ?? null;
-}
-
-/** Liste der gespeicherten Map-Namen (Map-Auswahl). */
-export function listMapLayouts(): string[] {
-  return Object.keys(loadMeta().mapLayouts);
-}
+// R2: Das alte P5-Map-Layout-Konzept (saveMapLayout/loadMapLayout/listMapLayouts) ist
+// GESTORBEN — es war eine tote Sammlung im Meta-Save ohne einen einzigen UI-Aufrufer.
+// Die EINE persistente Spielerwelt lebt im WorldSave (persistence/worldSave.ts); Bau-
+// Änderungen spiegelt der WorldAutor deterministisch aus den Bau-Events des Runs.

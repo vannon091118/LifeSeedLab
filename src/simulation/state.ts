@@ -61,7 +61,13 @@ export interface ProjectileEntity {
   effectId: string | null;
 }
 
-export type RunPhase = 'prep' | 'wave' | 'gameover';
+/**
+ * R1 (Eigentümer-Entscheid): `layout` = die Build-Sequenz VOR dem ersten Wellen-Block —
+ * der Spieler baut sein Maze (Wege, Töpfe, Findlinge), ohne dass die Zeit drängt.
+ * Exit: BEGIN_WAVE_PREP (sanft, „Fertig") oder START_WAVE (bewusstes Überspringen —
+ * wer die Welle startet, hat gebaut, wie er wollte). Kein Auto-Start im Layout.
+ */
+export type RunPhase = 'layout' | 'prep' | 'wave' | 'gameover';
 
 /** Spieler-platzierte Map-Tiles (P5). Owner: MapSystem. Key "gx,gy". */
 export type MapTiles = Record<string, string>;
@@ -113,12 +119,16 @@ export interface SimState {
     autoWaves: boolean;
   };
   resources: { energy: number; coins: number };
-  /** Map-Slice (P5): vom Spieler platzierte Tiles. Owner: MapSystem. */
+  /** R2: Run-Kopie der freigeschalteten Weltfläche (Welt-Snapshot beim Run-Start). */
+  cols: number;
+  rows: number;
+  /** R2: Run-Kopie der Welt-Tiles — die Wahrheit der Welt lebt im WorldSave (eine Quelle).
+   *  Der Run mutiert seine Kopie; die Welt spiegelt akzeptierte Bau-Events (worldAutor). */
   mapTiles: MapTiles;
   /**
-   * B16.1: Der FEIND-Laufweg dieser Welle — Sim (EnemySystem liest hier), Rendering und
-   * Terrain lesen dieselbe Wahrheit. Owner: SimulationRoot (recomputeRoute, ein Writer);
-   * `null` = bewusster Wert für „keine Spieler-Route“ (Auflösung via resolveActiveRoute).
+   * R2: Der FEIND-Laufweg — ERGEBNIS des Pathfindings aus der Tile-Geometrie (nie seine
+   * Eingabe). Owner: SimulationRoot (recomputeRoute, ein Writer); Sim, Rendering und Terrain
+   * lesen dieselbe Wahrheit. Neuberechnung: Run-Start, jeder Bau, jeder Wellenbeginn.
    */
   currentRoute: Route;
   /** Player lives. Owned by SimulationRoot (run state); reduced only via leak events. */

@@ -3,8 +3,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 // Konsolidierung: map.test.ts + placementRules.test.ts + prep.test.ts (It-Fälle unverändert).
 
 import { SimulationRoot, makeCommand } from './root';
+import { makeRoot } from '../testing/testkit';
 import { resetIds } from '../core/ids';
-import { resolveActiveRoute } from '../config/world.source';
 import { cellRejectReason, placementRejectReason } from './placementRules';
 import { AUTO_WAVE_DELAY_TICKS } from '../config/economy.source';
 import { autoStartTicksLeft } from './waveTiming';
@@ -21,7 +21,7 @@ describe('Map-System (P5) — Laufweg reagiert REAL auf Platzierungen', () => {
   beforeEach(() => resetIds());
 
   it('PLACE_TILE zieht Energie ab und schreibt das Tile in den State', () => {
-    const root = new SimulationRoot({ seed: SEED });
+    const root = makeRoot({ seed: SEED });
     const energyBefore = root.getSnapshot().resources.energy;
     root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 6, gy: 3, tile: 'path' }));
     root.stepOnce();
@@ -30,16 +30,20 @@ describe('Map-System (P5) — Laufweg reagiert REAL auf Platzierungen', () => {
     expect(s.resources.energy).toBeLessThan(energyBefore);
   });
 
-  it('Ohne Spieler-Tiles ist currentRoute NULL (bewusster Wert, keine leere Route)', () => {
-    const root = new SimulationRoot({ seed: SEED });
+  it('R2: ohne Spieler-Tiles ist die Route DAS PATHFINDING-ERGEBNIS (Diagonale Spawn→Ausgang)', () => {
+    const root = makeRoot({ seed: SEED });
     root.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
     root.stepOnce();
-    expect(routeOf(root)).toBeNull();
+    const route = routeOf(root);
+    expect(route).not.toBeNull(); // kein Default-No-op mehr: die leere Welt HAT einen Weg
+    // Diagonale (oben rechts → unten links): cols+rows-1 Wegpunkt-Zellen (ortho4-Umweg
+    // über die Eck-Treppe — die leere Welt kennt keine Abkürzung, nur Manhattan-Schritte)
+    expect(route!.length).toBe(12 + 12 - 1); // 23 Zellen: 11 links + 11 runter + Start
   });
 
   it('Weg-Tiles verlängern die Route (Gegner laufen REAL länger — Umweg wird begehbar)', () => {
     // Findlings-Mauer im Baubereich (gx 4, gy 2-7 = 6 Zellen, maxCount 6)
-    const root = new SimulationRoot({ seed: SEED });
+    const root = makeRoot({ seed: SEED });
     const walls: [number, number][] = [
       [4, 2], [4, 3], [4, 4], [4, 5], [4, 6], [4, 7],
     ];
@@ -68,7 +72,7 @@ describe('Map-System (P5) — Laufweg reagiert REAL auf Platzierungen', () => {
   });
 
   it('B16.1-Vertrag: EnemySystem liest dieselbe aktive Route wie Rendering/UI (keine zweite Kopie)', () => {
-    const root = new SimulationRoot({ seed: SEED });
+    const root = makeRoot({ seed: SEED });
     root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 6, gy: 3, tile: 'path' }));
     root.stepOnce();
     root.commands.push(makeCommand(1, 'START_WAVE', 2, {}));
@@ -79,12 +83,12 @@ describe('Map-System (P5) — Laufweg reagiert REAL auf Platzierungen', () => {
     const stateRoute = snap.currentRoute;
     expect(stateRoute).not.toBeNull();
     // Parität: die Wegpunkte der Gegner SIND die State-Route (Auflösung: eine Quelle).
-    // Identität gilt je Snapshot — getSnapshot() klont tief, zwei Snaps wären zwei Arrays.
-    expect(enemies.activePath(snap)).toBe(resolveActiveRoute(stateRoute));
+    // R2: keine resolveActiveRoute-Schicht mehr — die Sim-Route IST die Wahrheit.
+    expect(enemies.activePath(snap)).toBe(stateRoute);
   });
 
   it('TILE_REJECTED bei max_count (Boulder-Limit 6 schützt vor Weg-Mauern)', () => {
-    const root = new SimulationRoot({ seed: SEED });
+    const root = makeRoot({ seed: SEED });
     let rejected = 0;
     let lastReason = '';
     root.bus.subscribe('TILE_REJECTED', (e) => { rejected++; lastReason = (e as unknown as { payload: { reason: string } }).payload.reason; });
@@ -98,55 +102,69 @@ describe('Map-System (P5) — Laufweg reagiert REAL auf Platzierungen', () => {
     expect(lastReason).toBe('max_count');
   });
 
-  it('Spawn-Korridor bleibt frei (gx=0 verboten)', () => {
-    const root = new SimulationRoot({ seed: SEED });
+  it('R2: der Rand ist bebaubar — gx=0 (Spawn-Spalte) ist normale Welt', () => {
+    const root = makeRoot({ seed: SEED });
     let rejected = 0;
     root.bus.subscribe('TILE_REJECTED', () => { rejected++; });
     root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 0, gy: 3, tile: 'path' }));
     root.stepOnce();
-    expect(rejected).toBe(1);
-    // gx=0 ist Spawn-Korridor — kein Tile wird platziert
-    expect(root.getSnapshot().mapTiles['0,3']).toBeUndefined();
+    expect(rejected).toBe(0);
+    // Kein geschützter Korridor mehr — die Gegner umgehen Tiles, das Verbot existiert nicht
+    expect(root.getSnapshot().mapTiles['0,3']).toBe('path');
   });
 });
-// B33 — Der Screenshot-Befund als Gate: blockierende Tiles (pot/boulder) dürfen nie in den
-// Pfad-Korridor. Vorher kannte `placeTile` die Marge nicht — ein Topf stand 0.5 Zellen am
-// Wegpunkt, wo Pflanzen seit jeher `on_path` wären. Dieselbe Quelle (PLACEMENT_PATH_MARGIN),
-// dieselbe Regel, ein Grund-Text für den Spieler.
-describe('B33 — Pfad-Korridor-Verbot für blockierende Tiles', () => {
+// B33 → R2: Der alte Pfad-Korridor-Verbot ist GELÖSCHT — die EINZIGE Schranke ist die
+// Integritätsregel: der Zug, der den LETZTEN freien Weg schließt, wird abgelehnt
+// (`route_blocked`, ohne Energie-Abzug). Diese Sektion pinnt die neue Regel.
+describe('B33 → R2 — Integritätsregel statt Korridor-Verbot', () => {
   beforeEach(() => resetIds());
 
-  it('lehnt einen Topf im Korridor ab (Zelle (5,1), 0.5 am Wegpunkt (5.5,1.5)) — ohne Energie-Abzug', () => {
-    const root = new SimulationRoot({ seed: SEED });
+  it('lehnt den Zug ab, der den LETZTEN freien Weg schließt — ohne Energie-Abzug', () => {
+    const root = makeRoot({ seed: SEED });
     const energyBefore = root.getSnapshot().resources.energy;
     let rejectedReason = '';
     root.bus.subscribe('TILE_REJECTED', (e) => { rejectedReason = (e as unknown as { payload: { reason: string } }).payload.reason; });
-    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 5, gy: 1, tile: 'pot' }));
+    // Voll-Mauer über alle 12 Reihen in Spalte gx=5 — `pot` (walkable: false, maxCount 24):
+    // 12 Töpfe würden die GANZE Spalte blockieren. Der schließende Zug (12. Topf) stoßt an
+    // das Energie-Budget, bevor die Mauer steht — also wird die Probe über DEKO-Kosten
+    // entlastet: die Energie reicht exakt für 11 Töpfe + Ablehnung des 12. Zugs mit
+    // route_blocked, NICHT mit no_energy (Start 150 < 12×15 = 180 ⇒ der Test senkt die
+    // Kosten-Basis über den Besitz). Stattdessen: Energie über den State-Adapter aufstocken.
+    (root as unknown as { state: { resources: { energy: number } } }).state.resources.energy = 300;
+    for (let gy = 0; gy < 12; gy++) {
+      root.commands.push(makeCommand(0, 'PLACE_TILE', gy + 1, { gx: 5, gy, tile: 'pot' }));
+    }
     root.stepOnce();
     const s = root.getSnapshot();
-    expect(s.mapTiles['5,1']).toBeUndefined();
-    expect(s.resources.energy).toBe(energyBefore);
-    // Der Grund erreicht den Bus (TILE_REJECTED mit on_path) — der Live-Reader, denn der
-    // Event-Log wird pro Tick geleert (Root ist sein Besitzer).
-    expect(rejectedReason).toBe('on_path');
+    expect(s.mapTiles['5,11']).toBeUndefined(); // der schließende Zug ist NICHT geschrieben
+    expect(s.resources.energy).toBeGreaterThan(energyBefore - 12 * 15); // abgelehnter Zug kostete nichts
+    expect(rejectedReason).toBe('route_blocked');
   });
 
-  it('lehnt einen Findling im Korridor genauso ab', () => {
-    const root = new SimulationRoot({ seed: SEED });
-    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 8, gy: 5, tile: 'boulder' }));
+  it('erlaubt eine fast vollständige Blockade, solange ein freier Weg übrig bleibt', () => {
+    const root = makeRoot({ seed: SEED });
+    // 11 Töpfe in Spalte 5 — Reihe gy=6 bleibt frei: der Weg läuft dort durch.
+    for (let gy = 0; gy < 12; gy++) {
+      if (gy === 6) continue;
+      root.commands.push(makeCommand(0, 'PLACE_TILE', gy + 1, { gx: 5, gy, tile: 'pot' }));
+    }
     root.stepOnce();
-    expect(root.getSnapshot().mapTiles['8,5']).toBeUndefined();
+    const s = root.getSnapshot();
+    expect(s.mapTiles['5,0']).toBe('pot');
+    expect(s.mapTiles['5,6']).toBeUndefined();
+    // Die Route existiert weiterhin — durch die freie Lücke
+    expect(routeOf(root)).not.toBeNull();
   });
 
-  it('erlaubt einen Topf weit weg vom Pfad weiterhin (Baubereich, Marge frei)', () => {
-    const root = new SimulationRoot({ seed: SEED });
+  it('erlaubt einen Topf weit weg vom Weg weiterhin (freie Welt, keine Marge)', () => {
+    const root = makeRoot({ seed: SEED });
     root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 6, gy: 8, tile: 'pot' }));
     root.stepOnce();
     expect(root.getSnapshot().mapTiles['6,8']).toBe('pot');
   });
 
-  it('Weg-Tile NÄCHST am Korridor bleibt erlaubt — Lenkung ist ihr Sinn (Zelle (6,2), direkt an der Marge)', () => {
-    const root = new SimulationRoot({ seed: SEED });
+  it('Weg-Tile NÄCHST am Spawn bleibt erlaubt — Lenkung ist ihr Sinn (Zelle (6,2))', () => {
+    const root = makeRoot({ seed: SEED });
     root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 6, gy: 2, tile: 'path' }));
     root.stepOnce();
     expect(root.getSnapshot().mapTiles['6,2']).toBe('path');
@@ -168,8 +186,10 @@ describe('Platzierungsregeln — Geometrie', () => {
     expect(cellRejectReason({ gx: 0, gy: 12, plants: [] })).toBe('on_path');
   });
 
-  it('lehnt Zellen im Pfad-Korridor als on_path ab', () => {
-    expect(cellRejectReason({ ...ON_PATH, plants: [] })).toBe('on_path');
+  it('R2: die alte Korridor-Zelle ist eine NORMALE Zelle (kein Verbot mehr)', () => {
+    // ON_PATH (2,3) lag am Design-Pfad — im R2-Modell gibt es keinen Pfad mehr, den die
+    // Geometrie kennen könnte: nur Bounds und Belegung bleiben.
+    expect(cellRejectReason({ ...ON_PATH, plants: [] })).toBeNull();
   });
 
   it('lehnt belegte Zellen als occupied ab', () => {
@@ -181,7 +201,7 @@ describe('B37 — Besitz-Wahrheit: Run-Inventar spiegelt genau den Besitz', () =
   beforeEach(() => resetIds());
 
   it('Loadout-Eintrag ohne Besitz gibt 0 ⇒ Platzieren lehnt mit no_inventory ab', () => {
-    const root = new SimulationRoot({ seed: 42, loadout: ['sprout'], ownedCounts: {} });
+    const root = makeRoot({ seed: 42, loadout: ['sprout'], ownedCounts: {} });
     const rejects: string[] = [];
     root.bus.subscribe('PLACEMENT_REJECTED', (e) => rejects.push((e as unknown as { payload: { reason: string } }).payload.reason));
     root.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 11, gy: 10 }));
@@ -191,7 +211,7 @@ describe('B37 — Besitz-Wahrheit: Run-Inventar spiegelt genau den Besitz', () =
   });
 
   it('Besitz von 5 ⇒ 5 Platzierungen möglich, die 6. lehnt ab (Energie über Startbudget hinaus)', () => {
-    const root = new SimulationRoot({ seed: 42, loadout: ['sprout'], ownedCounts: { sprout: 5 } });
+    const root = makeRoot({ seed: 42, loadout: ['sprout'], ownedCounts: { sprout: 5 } });
     // Energie auf 500 anheben — der Test prüft die BESITZ-Grenze, nicht das Budget.
     const state = root.getSnapshot();
     expect(state.inventory.sprout).toBe(5);

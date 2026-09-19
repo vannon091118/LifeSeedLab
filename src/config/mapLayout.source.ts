@@ -3,7 +3,7 @@
 // (PvP-Vertrag, geteilte/geladene Maps) ist eine eigene Verantwortung — der Tile-/
 // Bau-/Korridor-Teil bleibt in map.source.ts. Einzige Quelle für MapLayout + Validierung.
 
-import { MAP_TILES_SOURCE, MAP_TILE_IDS, defaultMapTiles, type MapTileType } from './map.source';
+import { MAP_TILES_SOURCE, MAP_TILE_IDS, type MapTileType } from './map.source';
 
 /** Serialized Map-Layout (Spieler-Maps, P5/PvP): tiles als "x,y":type-Map. */
 export interface MapLayout {
@@ -12,7 +12,7 @@ export interface MapLayout {
 }
 
 export function emptyMapLayout(): MapLayout {
-  return { version: 1, tiles: defaultMapTiles() };
+  return { version: 1, tiles: {} };
 }
 
 export function isValidTileType(t: string): t is MapTileType {

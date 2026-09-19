@@ -88,6 +88,13 @@ export class VisualObserver {
         this.push({ type: 'SpawnParticleBurst', profile: 'warn_pulse', x: 0, y: 3.5, seed: (e.tick * 23) | 0, intensity: 1, color: '#a94438' });
         break;
 
+      case 'LAYOUT_DONE':
+        // R1: die Build-Sequenz ist abgeschlossen — ein beruhigender Puls signalisiert
+        // den Übergang in die erste Vorbereitung (denselben Kanal wie der Wellen-Warncall).
+        this.push({ type: 'ShowMangaText', text: 'BAUPHASE BEENDET', x: 3, y: 0.6, intensity: 3 });
+        this.push({ type: 'SpawnParticleBurst', profile: 'warn_pulse', x: 0, y: 3.5, seed: (e.tick * 23) | 0, intensity: 1, color: '#a94438' });
+        break;
+
       case 'WAVE_COMPLETED':
         // P3QA-06: auch Clear/K.O. nicht mehr über der Bau-Mitte, sondern im HUD-freien Rand.
         this.push({ type: 'ShowMangaText', text: 'CLEAR!', x: 3, y: 0.6, intensity: 5 });

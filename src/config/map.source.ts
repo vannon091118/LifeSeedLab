@@ -123,61 +123,8 @@ export function resolvePathConnection(
   return 'corner_bl';
 }
 
-/** Sicherheitsnetz: Wenn kein Weg zum Ausgang existiert, gilt der DEFAULT-Pfad
- * (ENEMY_PATH) — die Map kann den Run nicht softlocken. */
-export const MAP_FALLBACK_TO_DEFAULT_PATH = true;
-
-/** B33: Spawn-Korridor — Gegner-Spalte, bleibt von Tiles frei (eine Quelle statt `gx === 0`). */
-export const SPAWN_CORRIDOR_COL = 0;
-
-/** Startgebiet: 8×8 Innenbereich frei, Rand logisch blockiert (Quelle für beide Zahlen —
- *  identisch mit GRID_START_* aus world.source, hier gelockt, damit ein Grenzwechsel bricht,
- *  nicht still bleibt). */
-export const BUILD_AREA_MIN = 2;
-export const BUILD_AREA_MAX = 9;
-
-/** Startgebiet: 8×8 Innenbereich frei, Rand logisch blockiert. */
-export function defaultMapTiles(): Record<string, MapTileType> {
-  // leer — der Rand wird logisch blockiert (isBuildable + MapSystem.placeTile)
-  return {};
-}
-
-/** Prüft ob eine Zelle im aktuellen Baubereich liegt (Start: 8×8 Zentrum). */
-export function isBuildable(gx: number, gy: number): boolean {
-  return gx >= BUILD_AREA_MIN && gx <= BUILD_AREA_MAX && gy >= BUILD_AREA_MIN && gy <= BUILD_AREA_MAX;
-}
-
-/** Expansion: Zellen die freigeschaltet werden können (Reihenfolge = Kosten-Reihenfolge). */
-export interface ExpansionTile {
-  gx: number;
-  gy: number;
-  cost: number;
-}
-
-/** Alle expandierbaren Zellen (Rand-Zellen, die freigeschaltet werden können). */
-export function expansionTiles(): ExpansionTile[] {
-  const tiles: ExpansionTile[] = [];
-  let tier = 0;
-  // Zuerst die inneren Rand-Zellen (gx 1/10, gy 2-9 und gy 1/10, gx 2-9)
-  for (let i = 0; i < 4; i++) {
-    const ring = i; // 0=innerster Ring
-    const cost = 30 + ring * 15;
-    //_oben_
-    for (let gx = 2 + ring; gx <= 9 - ring; gx++) {
-      tiles.push({ gx, gy: 1 - ring, cost });
-    }
-    //unten
-    for (let gx = 2 + ring; gx <= 9 - ring; gx++) {
-      tiles.push({ gx, gy: 10 + ring, cost });
-    }
-    // links
-    for (let gy = 2 + ring; gy <= 9 - ring; gy++) {
-      tiles.push({ gx: 1 - ring, gy, cost });
-    }
-    // rechts
-    for (let gy = 2 + ring; gy <= 9 - ring; gy++) {
-      tiles.push({ gx: 10 + ring, gy, cost });
-    }
-  }
-  return tiles;
-}
+// R2-Neubau: Es gibt keinen Fallback-Pfad mehr (die Integritätsregel ersetzt ihn),
+// keinen Spawn-Korridor (die Spawn-Spalte ist normale Welt — der Pfad STARTET dort)
+// und keinen 8×8-Baubereich-Hardcode (die Fläche ist die freigeschaltete Welt).
+// EXPAND_MAP vergrößert die ganze Fläche (mapSystem.expandMap, EXPAND_STEP Zellen je
+// Richtung) — die Persistenz spiegelt das in die Welt (worldAutor), sie überlebt den Run.

@@ -22,7 +22,7 @@ export function Codex({ onClose }: Props) {
   const { t } = useI18n();
   const [copied, setCopied] = useState<string | null>(null);
   const chain = useMemo(() => loadCodex(), []);
-  const verification = useMemo(() => verifyLocalChain(), [chain]);
+  const verification = useMemo(() => verifyLocalChain(chain), [chain]);
   const playerId = useMemo(() => getPlayerId(), []);
   // newest first for display, but verification expects tip order — keep source order under the hood
   const display = useMemo(() => [...chain].reverse(), [chain]);

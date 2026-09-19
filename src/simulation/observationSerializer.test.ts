@@ -8,10 +8,11 @@ import { serializeObservation, eventsForAgent, OBSERVATION_VERSION } from './obs
 import { makeEvent } from '../bus/events';
 import { GRID_COLS, GRID_ROWS } from '../config/world.source';
 import { snapshotHash } from './snapshot';
+import { makeRoot } from '../testing/testkit';
 
 /** Frischer Run mit dem echten Run-Seed (AGENTS: deriveSeed(GAME_SEED,'world','run',runId)). */
 function freshRoot(): SimulationRoot {
-  return new SimulationRoot({ seed: makeRunSeed(1), runId: 1 });
+  return makeRoot({ seed: makeRunSeed(1), runId: 1 });
 }
 
 beforeEach(() => resetTestState());
@@ -43,10 +44,10 @@ describe('AP4 — Observation-Serializer (Phase 2)', () => {
     const obsB = serializeObservation(b.getSnapshot(), []);
     expect(obsA).toEqual(obsB);
     expect(obsA.tick).toBe(0);
-    expect(obsA.phase).toBe('prep');
+    expect(obsA.phase).toBe('layout'); // R1: der Run beginnt mit der Build-Sequenz
     expect(obsA.wave.number).toBe(0);
-    expect(obsA.route.waypointCount).toBe(0); // keine Spieler-Tiles ⇒ null-Route (Default)
-    expect(obsA.route.quality).toBeNull();
+    expect(obsA.route.waypointCount).toBe(23); // R2: leere Welt ⇒ Diagonal-Treppe (23 Wegpunkte)
+    expect(obsA.route.quality).toBe(1); // ortho4-Monotone ⇒ Qualität 1 (kein Rücklauf)
     expect(obsA.combat.enemies).toEqual([]);
   });
 

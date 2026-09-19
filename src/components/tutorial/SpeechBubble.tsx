@@ -10,6 +10,7 @@
 // F1: Im cueMode zeigt ein Pfeil-Hinweis aufs Cue-Ziel („→ HIER DRÜCKEN") statt des
 // Expandier-Hinweises — der Erstspieler erkennt die passende Aktion.
 
+import { useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
 export interface SpeechBubbleProps {
@@ -51,12 +52,27 @@ export function bubbleFrameStyle(cueMode: boolean): CSSProperties {
   return cueMode ? styles.frameCue : styles.frame;
 }
 
+/**
+ * R1 (Eigentümer-Feedback): der ZONEN-Vertrag des Aufklappers — im cueMode bleibt die ge-
+ * klappte Textzeile pointer-DURCHLÄSSIG (das Ziel darunter bleibt klickbar), der Knopf selbst
+ * ist der einzige Interaktionspunkt. `open` klappt den vollen Krix-Text auf: pointer-events
+ * AUTO, damit gelesenes Nachschlägen die Handlung nicht blockiert — und die Textzeile verliert
+ * ihre Durchlässigkeit erst, wenn wirklich aufgeklappt ist.
+ */
+export function bubbleGhostRowEvents(cueMode: boolean, open: boolean): CSSProperties {
+  return cueMode && !open ? { pointerEvents: 'none', cursor: 'default' } : { pointerEvents: 'auto', cursor: 'pointer' };
+}
+
 export function SpeechBubble({
   speaker, role, note, title, text, typing, pressLabel, skipLabel, hint, cueHint, cueMode, tail, onPress, onSkip,
 }: SpeechBubbleProps): ReactNode {
   // F2 Auto-Kollaps: im cueMode steht nur der Titel (1 Zeile), der volle Text klappt
   // per Knopf auf — die Blase bleibt klein und das Cue-Ziel frei.
   const collapsed = cueMode;
+  // R1 (Nachlesbarkeit): klappt den vollständigen Text AUF — einmal offen bleibt offen
+  // (Nachschlagen während der Handlung), der Skip wechselt nie die Bedeutung.
+  const [expanded, setExpanded] = useState(false);
+  const open = collapsed && expanded;
   return (
     // F5 (F2-Regression, 4/4): Im cueMode ist die GESAMTE Blase pointer-durchlässig — der Rahmen
     // selbst hat `auto` (340×200-Verdeckungszone) und fing jeden Klick aufs geführte Ziel (nur der
@@ -70,10 +86,24 @@ export function SpeechBubble({
         <span style={styles.note}>{note}</span>
       </div>
       {collapsed ? (
-        // F2: pointer-events none — Klicks/Touches erreichen das echte Cue-Ziel.
-        <div style={{ ...styles.body, ...styles.bodyGhost }}>
+        // F2 + R1: KLAPP-Zustand — die Zeile ist durchlässig (Ziel darunter klickbar), der
+        // Knopf hebt den Text nach. AUFGEKLAPPT: pointer-events auto — der volle Text bleibt
+        // lesbar stehen, die Handlung läuft darunter weiter.
+        <div
+          style={{ ...styles.body, ...bubbleGhostRowEvents(cueMode, open) }}
+          onClick={() => { if (!open) { setExpanded(true); onPress(); } }}
+          role={open ? undefined : 'button'}
+          aria-expanded={open}
+          title={hint}
+        >
           <span style={styles.title}>{title}</span>
-          {typing && <span style={styles.text}>{text}<span className="tut-caret" aria-hidden>▌</span></span>}
+          {open && (
+            <span style={styles.text}>
+              {text}
+              {typing && <span className="tut-caret" aria-hidden>▌</span>}
+            </span>
+          )}
+          {!open && typing && <span style={styles.text}>{text}<span className="tut-caret" aria-hidden>▌</span></span>}
         </div>
       ) : (
         <button type="button" onClick={onPress} title={hint} style={styles.body}>

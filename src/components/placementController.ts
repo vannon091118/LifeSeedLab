@@ -15,7 +15,7 @@ import type { MapTileType } from '../config/map.source';
 import type { ResolvedVisual } from '../visual/generator';
 import { placementRejectReason, type PlacementRejectReason } from '../simulation/placementRules';
 
-export type PlaceMode = 'plant' | MapTileType;
+export type PlaceMode = 'plant' | 'sell' | MapTileType;
 
 /** Ablehnungsgrund in der UI. Die Energie-Vorprüfung spricht dieselbe Sprache wie die Sim
  *  (`no_energy`) — vorher gab es dafür einen eigenen Grund mit eigenem Text, obwohl der
@@ -52,6 +52,7 @@ export interface PlacementState {
 export type PlacementDecision =
   | { kind: 'plant'; variantId: string; gx: number; gy: number }
   | { kind: 'tile'; tile: MapTileType; gx: number; gy: number }
+  | { kind: 'sell'; gx: number; gy: number }
   | { kind: 'reject'; reason: UiRejectReason; gx: number; gy: number }
   | { kind: 'none' };
 
@@ -84,6 +85,15 @@ export class PlacementController {
 
   getState(): PlacementState {
     return { mode: this.mode, variantId: this.variantId, ghost: this.ghost, rejection: this.rejection };
+  }
+
+  /** Juggling-Werkzeug: Verkaufsmodus — jeder Tap auf ein Tile verkauft es (50% Refund). */
+  selectSell(): PlacementState {
+    this.mode = 'sell';
+    this.variantId = null;
+    this.ghost = null;
+    this.rejection = null;
+    return this.getState();
   }
 
   /** true ⇒ ein Objekt ist ausgewählt (Tray-Feedback, Cursor). */
@@ -145,6 +155,7 @@ export class PlacementController {
       return { kind: 'plant', variantId, gx: cell.gx, gy: cell.gy };
     }
     if (this.mode !== 'plant') {
+      if (this.mode === 'sell') return { kind: 'sell', gx: cell.gx, gy: cell.gy };
       return { kind: 'tile', tile: this.mode, gx: cell.gx, gy: cell.gy };
     }
     return { kind: 'none' };
@@ -183,6 +194,7 @@ export class PlacementController {
 
   private reasonFor(cell: Cell): UiRejectReason | null {
     const board = this.env.board();
+    if (this.mode === 'sell') return null; // Verkauf: die Sim entscheidet (empty_cell/occupied)
     if (this.mode !== 'plant') {
       if (board.mapTiles[`${cell.gx},${cell.gy}`] === this.mode) return null;
       return board.energy < this.env.tileCost(this.mode) ? 'no_energy' : null;

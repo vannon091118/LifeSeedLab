@@ -1,10 +1,16 @@
 // Owner: Simulation (placement rules). LOC ≤ 200.
-// EINE Wahrheit für „darf hier platziert werden": Geometrie (Grid, Pfad-Abstand, Belegung)
-// und Ökonomie (Inventar, Energie). Der autoritative Command-Pfad (PlantSystem.place) nutzt
-// dieselbe Funktion wie die UI-Vorschau (PlacementController) — der Geist kann damit nie eine
-// Zelle grün zeigen, die die Simulation anschließend verwirft.
+// EINE Wahrheit für „darf hier platziert werden": Geometrie (Grid, Belegung) und
+// Ökonomie (Inventar, Energie). Der autoritative Command-Pfad (PlantSystem.place)
+// nutzt dieselbe Funktion wie die UI-Vorschau (PlacementController) — der Geist kann
+// damit nie eine Zelle grün zeigen, die die Simulation anschließend verwirft.
+//
+// R2-Neubau: Die alte Pfad-Marge ist GESTORBEN. Wege dürfen frei bebaut werden —
+// die EINZIGE Weg-Schranke ist die Integritätsregel der Sim (route_blocked,
+// mapSystem.placeTile): der letzte freie Weg wird nie zugebaut. Die Vorschau zeigt
+// sie bewusst nicht vorab (sie braucht eine hypothetische Pathfinding-Probe, die
+// allein die Sim fährt) — die Ablehnung kommt als rote Welle + Grund-Text an.
 
-import { ENEMY_PATH, PLACEMENT_PATH_MARGIN, isInsideGrid, dist } from '../config/world.source';
+import { isInsideWorld } from '../config/world.source';
 
 export type PlacementRejectReason = 'occupied' | 'on_path' | 'no_inventory' | 'no_energy';
 
@@ -14,18 +20,18 @@ export interface PlacementBoard {
   gy: number;
   /** Zellkoordinaten aller stehenden Pflanzen. */
   plants: ReadonlyArray<{ gx: number; gy: number }>;
+  /** R2: freigeschaltete Weltfläche (Run-Kopie der Weltgröße). */
+  cols?: number;
+  rows?: number;
 }
 
-/** Geometrie: Grid-Grenzen → Pfad-Abstand → Belegung (Reihenfolge wie in der Sim). */
+/** Geometrie: Grid-Grenzen → Belegung (Reihenfolge wie in der Sim). */
 export function cellRejectReason(board: PlacementBoard): 'occupied' | 'on_path' | null {
   const { gx, gy, plants } = board;
-  if (!isInsideGrid(gx, gy)) return 'on_path';
-
-  const cx = gx + 0.5;
-  const cy = gy + 0.5;
-  for (const point of ENEMY_PATH) {
-    if (dist(cx, cy, point.x, point.y) < PLACEMENT_PATH_MARGIN) return 'on_path';
-  }
+  const cols = board.cols ?? 12;
+  const rows = board.rows ?? 12;
+  // R2: Bounds über die dynamische Weltfläche — außerhalb ist NICHTS (auch kein Rand-Verbot).
+  if (!isInsideWorld(cols, rows, gx, gy)) return 'on_path';
   if (plants.some(p => p.gx === gx && p.gy === gy)) return 'occupied';
   return null;
 }

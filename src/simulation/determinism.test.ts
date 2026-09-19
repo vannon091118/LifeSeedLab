@@ -12,6 +12,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 // tragen — hier liegt die kanonische Fassung.
 
 import { SimulationRoot } from '../simulation/root';
+import { makeRoot } from '../testing/testkit';
 import { resetIds } from '../core/ids';
 import { VisualObserver } from '../observers/visualObserver';
 import { Camera } from '../render/camera';
@@ -34,7 +35,7 @@ describe('Determinismus — E2: Frame-Burst-Klemme', () => {
   beforeEach(() => resetIds());
 
   it('advance mit riesigem dt execuiert max 40 Ticks (Frame-Spike-Schutz, Tempo-Vertrag-skaliert)', () => {
-    const root = new SimulationRoot({ seed: SEED, runId: 1 });
+    const root = makeRoot({ seed: SEED, runId: 1 });
     // 10 Sekunden realer Zeit in einem Frame — ohne Klemme wären das ~300 Ticks.
     const executed = root.advance(10_000);
     expect(executed).toBe(40);
@@ -42,7 +43,7 @@ describe('Determinismus — E2: Frame-Burst-Klemme', () => {
   });
 
   it('verworfener Rückstand läuft nicht als Schuldenlauf ins nächste Frame', () => {
-    const root = new SimulationRoot({ seed: SEED, runId: 1 });
+    const root = makeRoot({ seed: SEED, runId: 1 });
     expect(root.advance(10_000)).toBe(40); // Burst: Klemme greift, Rest-Rückstand verfällt
     expect(root.advance(16)).toBe(0);      // 16 ms < TICK_MS ⇒ sauber 0 Ticks, KEINE Schulden
     expect(root.advance(50)).toBe(1);      // ein volles Tick-Budget läuft normal weiter
@@ -55,12 +56,12 @@ describe('Determinismus — E2: Frame-Burst-Klemme', () => {
 describe('Determinismus — Kern 1: Replay', () => {
   it('gleicher Seed + gleiche Commands ⇒ identischer State-Hash (600 Ticks, Welle läuft)', () => {
     resetIds();
-    const a = new SimulationRoot({ seed: SEED });
+    const a = makeRoot({ seed: SEED });
     replayStream(a);
     for (let i = 0; i < 600; i++) a.stepOnce();
 
     resetIds();
-    const b = new SimulationRoot({ seed: SEED });
+    const b = makeRoot({ seed: SEED });
     replayStream(b);
     for (let i = 0; i < 600; i++) b.stepOnce();
 
@@ -73,12 +74,12 @@ describe('Determinismus — Kern 1: Replay', () => {
     // Selbst-Kontrolle: ein veränderter Stream MUSS einen anderen Hash erzeugen —
     // sonst wäre der Replay-Test unempfindlich (False Truth, REQ-003).
     resetIds();
-    const a = new SimulationRoot({ seed: SEED });
+    const a = makeRoot({ seed: SEED });
     replayStream(a);
     for (let i = 0; i < 300; i++) a.stepOnce();
 
     resetIds();
-    const b = new SimulationRoot({ seed: SEED });
+    const b = makeRoot({ seed: SEED });
     pushCommand(b, 'PLACE_PLANT', { variantId: 'sprout', gx: 1, gy: 2 }, 1); // kein Wellen-Start
     for (let i = 0; i < 300; i++) b.stepOnce();
 
@@ -92,7 +93,7 @@ describe('Determinismus — Kern 2: FX-Isolation', () => {
   it('FX an/aus verändert den Gameplay-State nicht (bit-identisch, 500 Ticks)', () => {
     // Sequential runs — shared global ID counters must not interleave
     resetIds();
-    const a = new SimulationRoot({ seed: SEED });
+    const a = makeRoot({ seed: SEED });
     const camA = new Camera();
     const obsA = new VisualObserver(camA, true);
     for (const t of ['DAMAGE_DEALT', 'ENEMY_DIED', 'PROJECTILE_FIRED', 'CRITICAL_HIT'] as const) a.bus.subscribe(t, e => obsA.observe(e));
@@ -102,7 +103,7 @@ describe('Determinismus — Kern 2: FX-Isolation', () => {
     const scoreA = a.getSnapshot().score;
 
     resetIds();
-    const b = new SimulationRoot({ seed: SEED });
+    const b = makeRoot({ seed: SEED });
     const camB = new Camera();
     const obsB = new VisualObserver(camB, false);
     for (const t of ['DAMAGE_DEALT', 'ENEMY_DIED', 'PROJECTILE_FIRED', 'CRITICAL_HIT'] as const) b.bus.subscribe(t, e => obsB.observe(e));
@@ -136,7 +137,7 @@ describe('Determinismus — Kern 3: Run-Kontext ist gepinnt', () => {
 
   it('zweites Replay-Skript (3 Pflanzen, Welle) => identischer Hash - migriert aus sim.test.ts', () => {
     resetIds();
-    const a = new SimulationRoot({ seed: 583921 });
+    const a = makeRoot({ seed: 583921 });
     for (const [v, gx, gy, seq] of [['sprout', 1, 2, 1], ['sprout', 4, 0, 2], ['rootwall', 3, 4, 3]] as const) {
       pushCommand(a, 'PLACE_PLANT', { variantId: v, gx, gy }, seq);
     }
@@ -144,7 +145,7 @@ describe('Determinismus — Kern 3: Run-Kontext ist gepinnt', () => {
     for (let i = 0; i < 600; i++) a.stepOnce();
 
     resetIds();
-    const b = new SimulationRoot({ seed: 583921 });
+    const b = makeRoot({ seed: 583921 });
     for (const [v, gx, gy, seq] of [['sprout', 1, 2, 1], ['sprout', 4, 0, 2], ['rootwall', 3, 4, 3]] as const) {
       pushCommand(b, 'PLACE_PLANT', { variantId: v, gx, gy }, seq);
     }
@@ -157,14 +158,14 @@ describe('Determinismus — Kern 3: Run-Kontext ist gepinnt', () => {
   it('Entity-ID-Sequenzen sind ueber identische Laeufe identisch (Phase 2.4)', () => {
     // Vor JEDER der beiden Aufnahmen zurücksetzen (vorher: beforeEach im Original).
     resetIds();
-    const a = new SimulationRoot({ seed: 583921 });
+    const a = makeRoot({ seed: 583921 });
     pushCommand(a, 'PLACE_PLANT', { variantId: 'sprout', gx: 1, gy: 2 }, 1);
     pushCommand(a, 'START_WAVE', {}, 2);
     for (let i = 0; i < 400; i++) a.stepOnce();
     const idsA = a.getSnapshot().enemies.map(e => e.id).concat(a.getSnapshot().plants.map(p => p.id));
 
     resetIds();
-    const b = new SimulationRoot({ seed: 583921 });
+    const b = makeRoot({ seed: 583921 });
     pushCommand(b, 'PLACE_PLANT', { variantId: 'sprout', gx: 1, gy: 2 }, 1);
     pushCommand(b, 'START_WAVE', {}, 2);
     for (let i = 0; i < 400; i++) b.stepOnce();

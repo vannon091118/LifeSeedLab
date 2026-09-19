@@ -1,12 +1,12 @@
 // Owner: EnemySystem (enemies slice). LOC ≤ 300.
-// May: move, target, receive damage, die, carry statuses.
-// May not: render, spawn particles, shake camera (contract Phase 4.2).
-// B16.1: die aktive Route liegt im State (`currentRoute`, Writer: SimulationRoot)
-// — dieses System hält KEINE zweite Kopie mehr (A14: drei Tode derselben Wahrheit).
+// May: move, target, receive damage, die, carry statuses. May not: render, spawn
+// particles, shake camera (contract Phase 4.2).
+// B16.1: die aktive Route liegt im State (`currentRoute`, Writer: SimulationRoot) —
+// dieses System hält KEINE zweite Kopie mehr (A14: drei Tode derselben Wahrheit).
 
 import type { SimState, EnemyEntity } from './state';
 import { ENEMIES_SOURCE, type EnemySource } from '../config/enemies.source';
-import { resolveActiveRoute, type RoutePoint } from '../config/world.source';
+import type { RoutePoint } from '../config/world.source';
 import { makeEvent, type GameEvent } from '../bus/events';
 import { nextId } from '../core/ids';
 import { makeRng } from '../core/rng';
@@ -29,11 +29,13 @@ export interface BeetleDeploySpec {
 export class EnemySystem {
   private seq = 0;
 
-  constructor(private emit: (e: GameEvent) => void) {}
+  constructor(private readonly emit: (e: GameEvent) => void) {}
 
-  /** Aktive Wegpunkte DIESER Tick: aus dem State — dieselbe Wahrheit wie Rendering/UI (B16.1). */
+  /** Aktive Wegpunkte DIESER Tick: aus dem State — dieselbe Wahrheit wie Rendering/UI (B16.1).
+   *  R2: die Route ist DAS Pathfinding-Ergebnis; fehlt sie (vor der ersten Berechnung),
+   *  fällt der Spawn auf die linke Rand-Spalte zurück (die Quelle des Wegs). */
   activePath(state: SimState): ReadonlyArray<RoutePoint> {
-    return resolveActiveRoute(state.currentRoute);
+    return state.currentRoute ?? [{ x: 0.5, y: 0.5 }];
   }
 
   /** Deterministic per (rootSeed, waveNumber, spawnIndex) — no stream state (A4-6 pattern). */
@@ -80,7 +82,6 @@ export class EnemySystem {
       const dx = target.x - e.px;
       const dy = target.y - e.py;
       const d = Math.sqrt(dx * dx + dy * dy) || 1;
-
       const src = (ENEMIES_SOURCE as Record<string, EnemySource>)[e.typeId];
       const slowed = state.clock.tick < e.slowUntil;
       const speed = (src?.speed ?? 0.02) * (slowed ? 0.5 : 1);
@@ -97,6 +98,29 @@ export class EnemySystem {
 
     state.enemies = state.enemies.filter(e => e.hp > 0);
     return leaked;
+  }
+
+  /**
+   * Juggling-Mapping (nur bei ROUTEN-WECHSEL, nie pro Tick): je Gegner der Routen-Knoten
+   * mit minimaler Distanz zur Position (Ties: kleinster Index — deterministisch). Liegt
+   * er vor dem alten Fortschritt, läuft der Gegner rückwärts — die Umdreh-Wirkung, die
+   * Time-on-Target erzeugt. Nach dem Wechsel läuft jeder Gegner ECHT auf der neuen Route.
+   */
+  remapAllToRoute(state: SimState): void {
+    const path = this.activePath(state);
+    for (const e of state.enemies) {
+      let bestIdx = 0;
+      let bestD = Infinity;
+      for (let i = 0; i < path.length; i++) {
+        const dx = path[i].x - e.px;
+        const dy = path[i].y - e.py;
+        const d = dx * dx + dy * dy;
+        if (d < bestD) { bestD = d; bestIdx = i; }
+      }
+      e.pathIndex = bestIdx;
+      e.px = path[bestIdx].x;
+      e.py = path[bestIdx].y;
+    }
   }
 
   /** Damage-over-time + expiry for statuses (deterministic — no per-enemy streams). */
@@ -167,11 +191,11 @@ export class EnemySystem {
     }));
   }
 
-  // ── P6: Eingesetzter Brutling (allierter Kämpfer) ─────────────────
-  // Keine zweite Gegnerlogik: der Brutling kämpft GEGEN state.enemies und
-  // nutzt dieselben applyDamage/damage-Pfade. Owner: EnemySystem (ein Writer).
+  // ── P6: Eingesetzter Brutling (allierter Kämpfer) ────────────────
+  // Keine zweite Gegnerlogik: er kämpft GEGEN state.enemies über dieselben
+  // applyDamage/damage-Pfade. Owner: EnemySystem (ein Writer).
 
-  /** Deploy: setzt den gezüchteten Brutling (Spawn 1×–5× = erste Welle an Brutlingen). */
+  /** Deploy: setzt den gezüchteten Brutling (Spawn 1×–5×). */
   deployBeetle(state: SimState, spec: BeetleDeploySpec): { ok: boolean; reason?: 'already_deployed' | 'no_energy' } {
     if (state.deployedBeetle) return { ok: false, reason: 'already_deployed' };
     if (state.resources.energy < spec.cost) return { ok: false, reason: 'no_energy' };
@@ -193,9 +217,8 @@ export class EnemySystem {
       freezeTicksLeft: 0,
       broodlings: [],
     };
-    // Spawn 1×–5×: X−1 zusätzliche Mini-Brutlinge mit halbierten Werten (P6-Spec).
-    // EIGENER Slice (deployedBeetle.broodlings), NICHT state.enemies — sonst
-    // beschießen die eigenen Pflanzen die Verbündeten (Befund aus dem Integrationstest).
+    // Spawn 1×–5×: X−1 Mini-Brutlinge, halbe Werte. EIGENER Slice (deployedBeetle.
+    // broodlings), NICHT state.enemies — sonst beschiesen die Pflanzen die Verbündeten.
     for (let i = 1; i < spec.spawnX; i++) {
       this.spawnBroodling(state, 0.5, i);
     }
@@ -205,7 +228,7 @@ export class EnemySystem {
     return { ok: true };
   }
 
-  /** Ein halbwertiger Brutling (Einsatz-Multiplikation oder Todes-Spawn) im Käfer-Slice. */
+  /** Halbwertiger Brutling (Einsatz-Multiplikation oder Todes-Spawn). */
   private spawnBroodling(state: SimState, factor: number, seq: number): void {
     const b = state.deployedBeetle;
     if (!b) return;
@@ -218,14 +241,14 @@ export class EnemySystem {
     });
   }
 
-  /** Brutlings-KI (alliert): friert bei Deploy, sucht Ziel, beißt, stirbt mit Death-Spawn. */
+  /** Brutlings-KI (alliert): friert bei Deploy, sucht Ziel, beißt, Death-Spawn. */
   updateBeetle(state: SimState): void {
     const b = state.deployedBeetle;
     if (!b) return;
 
     if (b.freezeTicksLeft > 0) { b.freezeTicksLeft--; return; }
 
-    // Ziel: nächster lebender Gegner (Taunt: der Brutling sucht BEWAUSST den vordersten)
+    // Ziel: nächster lebender Gegner (Taunt: BEWUSST der vorderste)
     let target: EnemyEntity | null = null;
     let bestD = Infinity;
     for (const e of state.enemies) {
@@ -259,11 +282,10 @@ export class EnemySystem {
       if (bd > 0.4) { br.px += (bdx / bd) * b.speed; br.py += (bdy / bd) * b.speed; }
     }
 
-    // Gegenseitiger Schaden: Gegner beißen zurück (Brutling-HP sinkt)
+    // Gegenseitiger Schaden: Gegner beißen zurück (Brutling-HP sinkt; Splash auf Mit-Brutlinge)
     if (d <= 0.55 && state.clock.tick % 30 === 0) {
       const src = (ENEMIES_SOURCE as Record<string, EnemySource>)[target.typeId];
       b.hp -= Math.max(1, Math.round((src?.damage ?? 5) * 0.2));
-      // Splash trifft auch die Mit-Brutlinge (halber Schaden) — sie sind sterblich.
       for (const br of b.broodlings) br.hp -= Math.max(1, Math.round((src?.damage ?? 5) * 0.1));
       b.broodlings = b.broodlings.filter(br => br.hp > 0);
     }
@@ -272,7 +294,7 @@ export class EnemySystem {
       this.emit(makeEvent(state.clock.tick, 'BEETLE_DOWN', b.id, ++this.seq, {
         beetleId: b.id, px: b.px, py: b.py,
       }));
-      state.deployedBeetle = null; // Mit-Brutlinge fallen mit dem Leader (ein Slice, ein Schicksal)
+      state.deployedBeetle = null; // Mit-Brutlinge fallen mit dem Leader (ein Slice)
     }
   }
 }

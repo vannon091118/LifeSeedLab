@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SimulationRoot, makeCommand } from '../simulation/root';
+import { makeRoot } from '../testing/testkit';
 import type { MetaSave } from '../types';
 import { defaultMeta, META_VERSION } from '../meta';
 
@@ -30,7 +31,7 @@ describe('Gate B — Resume-Shape (RunSave v2)', () => {
   beforeEach(() => { localStorage.clear(); });
 
   it('saveRun schreibt Resume-Shape ohne enemies/projectiles/schedule und mit version 2', () => {
-    const root = new SimulationRoot({ seed: 123 });
+    const root = makeRoot({ seed: 123 });
     root.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 2, gy: 2 }));
     root.commands.push(makeCommand(0, 'START_WAVE', 2, {}));
     for (let i = 0; i < 200; i++) root.stepOnce();
@@ -43,12 +44,12 @@ describe('Gate B — Resume-Shape (RunSave v2)', () => {
     // Fallback: prüfe, dass gameover-Runs nicht gespeichert werden
     // Q1-Balance-fest (grunt damage 4): Welle 1 ohne Abwehr endet nicht mehr — High-Wave-
     // Resume mit 1 Leben (Welle 21, ~60 Gegner) leakt garantiert über die echte Pipeline.
-    const gameoverRoot = new SimulationRoot({
+    const gameoverRoot = makeRoot({
       seed: 123,
       resume: {
         waveNumber: 20, energy: 500, lives: 1, score: 0,
         combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
-        plants: [], inventory: {}, discoveredVariants: [], mapTiles: {}, nektarEarned: 0,
+        plants: [], inventory: {}, discoveredVariants: [], nektarEarned: 0,
       },
     });
     let ended = false;
@@ -68,11 +69,11 @@ describe('Gate B — Resume-Shape (RunSave v2)', () => {
     // strukturell: SimState enthält die gestrippten Felder NICHT im Save-Shape (über idb)
     // wir verifizieren den Shape indirekt: RunSave type hat keine enemies/projectiles
     const shapeCheck: import('../persistence/runSave').RunSave = {
-      version: 2, appVersion: '0.0.0-test', runId: 1, seed: 1, tick: 0, waveNumber: 1, energy: 100, lives: 20, score: 0,
+      version: 3, appVersion: '0.0.0-test', runId: 1, seed: 1, tick: 0, waveNumber: 1, energy: 100, lives: 20, score: 0,
       combo: { count: 0, timer: 0, multiplier: 1, highest: 0 }, plants: [], inventory: {}, discoveredVariants: [], bredStats: {}, nektarEarned: 0,
-      mapTiles: {},
+      cols: 12, rows: 12,
     };
-    expect(shapeCheck.version).toBe(2);
+    expect(shapeCheck.version).toBe(3);
     expect((shapeCheck as unknown as Record<string, unknown>)).not.toHaveProperty('enemies');
     expect((shapeCheck as unknown as Record<string, unknown>)).not.toHaveProperty('projectiles');
     expect((shapeCheck as unknown as Record<string, unknown>)).not.toHaveProperty('schedule');
@@ -81,7 +82,7 @@ describe('Gate B — Resume-Shape (RunSave v2)', () => {
   it('Resume startet in prep und regeneriert Schedule aus (seed, waveNumber+1)', async () => {
     // Resume-Contract: enemies/projectiles/schedule entfallen, Phase prep,
     // tick 0 + erhaltene waveNumber (Regeneration aus seed+waveNumber+1).
-    const root = new SimulationRoot({ seed: 42 });
+    const root = makeRoot({ seed: 42 });
     root.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
     root.stepOnce();
     root.stepOnce();

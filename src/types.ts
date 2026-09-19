@@ -71,8 +71,8 @@ export type MetaSave = {
   totalWavesSurvived: number;
   /** EINE Quelle für Zucht-Stats: beim Claim abgeleitet, an jeden Run injiziert (B1). */
   bredStats: Record<string, { hp: number; damage: number; range: number; cooldown: number; cost: number; effects: string[] }>;
-  /** P5 Spieler-Maps: benannte Layouts ("gx,gy":tile) — spielbarer Inhalt zwischen Spielern. */
-  mapLayouts: Record<string, Record<string, string>>;
+  // R2: `mapLayouts` ist GESTORBEN — die Spielerwelt lebt als EINE persistente Welt im
+  // WorldSave (persistence/worldSave.ts), nicht als benannte Layout-Sammlung im Meta.
   /** P6 Käferzucht: gezüchtete Specimen (Brut-Lager) + Reifungs-Queue. */
   beetles: BeetleSpecimen[];
   beetleDeployed: string | null;

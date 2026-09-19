@@ -45,17 +45,16 @@ export function deriveStats(type: PlantType, genome: Genome): PlantVariant['stat
   };
 }
 
+/**
+ * Trait-Tags einer Pflanze: SPRACHNEUTRALE Gen-IDs (nur Gene über der Wahrnehmungsschwelle).
+ * Die Übersetzung passiert in der Anzeige (`t('trait.<id>')`) — vorher standen hier feste
+ * englische Labels („rapid fire“), die in der deutschen Oberfläche durchschlugen.
+ */
 export function deriveTraits(genome: Genome): string[] {
-  const labels: Record<string, string> = {
-    fire: 'fire', ice: 'frost', rapid: 'rapid fire', heavy: 'heavy hit',
-    heal: 'heal', shield: 'shield', venom: 'venom', splash: 'splash',
-    pierce: 'pierce', regen: 'regen', lure: 'lure', thorns: 'thorns',
-    swift: 'swift', crit: 'crit strike', aura: 'aura',
-  };
   return genome
     .filter(g => g.power > 0.2)
     .sort((a, b) => b.power - a.power)
-    .map(g => labels[g.id] || g.id);
+    .map(g => String(g.id));
 }
 
 export function deriveColor(type: PlantType, genome: Genome): string {

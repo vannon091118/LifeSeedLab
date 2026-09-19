@@ -3,16 +3,15 @@
 // Bewusst NICHT in snapshot.ts: dessen Rolle ist Integrität (Hash/Envelope, Gate E),
 // nicht Wahrnehmung — zwei Rollen wären zwei Verantwortungen in einer Datei.
 //
-// Verifizierte Fakten (Ledger): Grid 12×12 (world.source GRID_COLS/ROWS = 12) — die
-// Observation trägt das GANZE Raster, kein Wahrnehmungsfenster (96-Zellen-Annahme des
-// ersten Entwurfs war falsch). Enemy-TypeIds kommen 1:1 aus dem State-Literal
+// Verifizierte Fakten (Ledger): die Observation trägt das GANZE Raster der dynamischen
+// Weltfläche (R2: state.cols/rows), kein Wahrnehmungsfenster. Enemy-TypeIds kommen 1:1 aus dem State-Literal
 // (grunt|fast|tank|swarm|boss — `beetle` ist Spieler-Entität, nie ein Gegner-Typ).
 // route.quality ist echt (M1-Writer in mapSystem/root), nicht null-Platzhalter.
 
 import type { SimState } from './state';
 import type { GameEvent } from '../bus/events';
-import { GRID_COLS, GRID_ROWS } from '../config/world.source';
-import { tileKey, tileBlocked, routeQuality } from './mapSystem';
+import { tileKey, tileBlocked } from './mapSystem';
+import { routeQuality } from './routeQuality';
 
 export const OBSERVATION_VERSION = 1 as const;
 
@@ -65,8 +64,9 @@ export function eventsForAgent(eventLog: readonly GameEvent[]): Observation['rec
  */
 export function serializeObservation(state: SimState, recentEvents: Observation['recentEvents']): Observation {
   const tiles: ObservationTile[] = [];
-  for (let gy = 0; gy < GRID_ROWS; gy++) {
-    for (let gx = 0; gx < GRID_COLS; gx++) {
+  // R2: Grid-Größe aus dem State (Run-Kopie der Weltfläche), nicht aus Konstanten.
+  for (let gy = 0; gy < state.rows; gy++) {
+    for (let gx = 0; gx < state.cols; gx++) {
       const key = tileKey(gx, gy);
       const tile = state.mapTiles[key] ?? null;
       tiles.push({
@@ -87,7 +87,7 @@ export function serializeObservation(state: SimState, recentEvents: Observation[
       number: state.wave.number,
       enemiesRemaining: state.enemies.length + state.wave.spawnQueue.length,
     },
-    grid: { w: GRID_COLS, h: GRID_ROWS, tiles },
+    grid: { w: state.cols, h: state.rows, tiles },
     route: {
       waypointCount: state.currentRoute?.length ?? 0,
       // M1-Writer: mapSystem.routeQuality über root.recomputeRoute — hier nur gelesen.
