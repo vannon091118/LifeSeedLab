@@ -47,6 +47,12 @@ export const tutorialTexts = {
       'Ziel ist eine freie Zelle: nicht auf den Weg, nicht in einen Findling, nicht auf die Kollegin. Umriss grün heißt ja, Umriss rot heißt nein — und ich mache das enttäuschte Gesicht.',
       'Tippe aufs Blattgitter. Gebaut wird aus DEINEM Material, nicht aus Stationsgeld. Niemand fragt nach Belegen.',
     ].join('\n'),
+    'tut.bau.title': 'Zwei Wege aus dem Bau',
+    'tut.bau.text': [
+      'Die Karte gehört dir. Tiles, Pflanzen und Deko legst du selbst — das Material kommt aus deinem Vorrat, nicht aus einer Stationskasse.',
+      'Fertig? Dann hast du die Wahl: Der Hauptknopf oben startet Welle eins SOFORT. Daneben liegt der sanfte Weg — bauen beenden, kurz durchatmen, Countdown. Beides ist richtig, nur nicht dasselbe.',
+      'Und das Wichtigste: Was du jetzt baust, entscheidet, WIE sie laufen. Sie nehmen immer den schnellsten freien Weg. Bauen heißt hier Wege formen — nicht hinstellen.',
+    ].join('\n'),
     'tut.welle.title': 'Welle starten',
     'tut.welle.text': [
       'Steht die Pflanze, kommen die Gäste: klein, hungrig, ohne Termin. Sie laufen den Weg entlang auf dein Labor zu.',
@@ -72,7 +78,7 @@ export const tutorialTexts = {
     ].join('\n'),
     'tut.abschluss.title': 'Feldnotizen voll',
     'tut.abschluss.text': [
-      'Das war es von meiner Seite. Du weißt jetzt: Karte tippen, Feld tippen, Welle starten, Pause atmen lassen.',
+      'Das war es von meiner Seite. Du weißt jetzt: Karte tippen, Feld tippen, bauen, Welle starten, Pause atmen lassen.',
       'Und jetzt das Wichtigste, zwischen uns: Diese Pflanze hier ist eine LEIHGABE. Meine, um genau zu sein. Sie gehört dir nicht — sie läuft mit dir diesen Run und geht danach wieder zurück ins Regal.',
       'Dein Teil des Deals: Überlebe Wellen, sammle Nektar, geh in den Shop und kauf dir einen EIGENEN Samen. Der Keimling wartet dann im Gewächshaus — drei Töpfe stehen da, du setzt ihn in einen freien. Aus dem Topf wächst DEINE Pflanze, und die bleibt.',
       'Ab dann dreht der Kreislauf von allein: Run spielen → Nektar → Samen → Topf → eigene Pflanze → nächster Run. Und wenn du irgendwann mit leeren Händen dastehst, leih ich dir wieder was. Nicht aus Freundschaft — aus Verwaltungslogik.',
@@ -122,6 +128,12 @@ export const tutorialTexts = {
       'Aim for a free cell: not the path, not a boulder, not your colleague. Green outline means yes, red outline means no — and I make the disappointed face.',
       'Tap the leaf grid. You build from your own material, not from station credit. Nobody asks for receipts.',
     ].join('\n'),
+    'tut.bau.title': 'Two ways out of the build',
+    'tut.bau.text': [
+      'The map is yours. Tiles, plants and decor are yours to lay down — the material comes from your own stock, not from station credit.',
+      'Done? Then you choose: the main button up top starts wave one RIGHT NOW. Next to it lies the gentle way — finish building, breathe, countdown. Both are fine, they are just not the same.',
+      'And the important part: what you build now decides HOW they walk. They always take the fastest free route. Building here means shaping paths, not just placing things.',
+    ].join('\n'),
     'tut.welle.title': 'Start the wave',
     'tut.welle.text': [
       'The plant is standing, so here come the guests: small, hungry, no appointment. They walk the path straight at your lab.',
@@ -147,7 +159,7 @@ export const tutorialTexts = {
     ].join('\n'),
     'tut.abschluss.title': 'Field notes full',
     'tut.abschluss.text': [
-      'That is all from my side. You now know: tap a card, tap a field, start a wave, let pause breathe.',
+      'That is all from my side. You now know: tap a card, tap a field, build, start a wave, let pause breathe.',
       'And now the important part, between us: this plant here is a LOAN. Mine, to be precise. It is not yours — it plays this run with you and goes back on the shelf afterwards.',
       'Your part of the deal: survive waves, collect nectar, go to the shop and buy your OWN seed. The seedling then waits in the greenhouse — three pots are standing there, drop it into a free one. What grows in the pot is YOUR plant, and it stays.',
       'From then on the cycle turns by itself: play a run → nectar → seed → pot → own plant → next run. And if you ever stand there empty-handed, I will lend you something again. Not out of friendship — out of administrative logic.',

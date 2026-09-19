@@ -1,32 +1,71 @@
-import type { Gene, Genome, BeetleSpecimen } from '../types';
+import type { BeetleAncestor, Genome, BeetleSpecimen } from '../types';
 import { GAME_SEED } from '../config';
-import { deriveSeed, makeRng, type Rng } from '../core/rng';
-import { crossGenomes } from './cross';
+import { deriveSeed } from '../core/rng';
+import { breedGenome, expressed, genomePower, rollCandidates } from './breeding';
 import {
   BEETLES_SOURCE, BEETLE_GENES_SOURCE, BEETLE_GENE_POOL, BEETLE_BREED, BROOD_SEED_NAMESPACE,
 } from '../config/beetles.source';
+import { beetleMeasure, beetlePhenotypeOf } from './beetlePhenotype';
 import { hashGenome } from '../discovery/chain';
 import type { BeetleDeploySpec } from '../simulation/enemySystem';
 
-// Owner: Source (beetle breeding engine — extends the plant genome machinery, P6).
-// LOC ≤ 300. Determinism: identical inputs → identical brood (core/rng only).
-// „Brüten" ≠ Pflanzenzucht: ELTERNWAHL (bewusstes Zuchtpaar) statt Samen-Gacha,
-// ganzer Genome-Merge statt Mutation-Überraschung — mechanisch + sichtbar anders.
+// Owner: Source (beetle breeding engine). LOC ≤ 300.
+// Die Käferzucht läuft über DENSELBEN Kern wie die Pflanzenzucht (genome/breeding.ts) — nur mit
+// eigener biologischer Sprache (genome/beetlePhenotype.ts) und eigenem Gen-Pool/Namespace.
+//
+// R3-Neubaul: Vorher war jeder Brutling eine Neukombination der GEN-SÄTZE DER DREI FOUNDER
+// (`BEETLES_SOURCE[a].genes`), egal was als Eltern übergeben wurde — ein gezüchtetes Tier konnte
+// deshalb NIE Elternteil sein, und seine Nachkommen fielen genetisch auf die Gründer zurück.
+// Jetzt ist jedes Specimen ein vollwertiger Vorfahre: sein eigenes Genom, seine Generation und
+// seine Elternhistorie bestimmen die nächste Brut.
 
-/** Käfer-Genom-Stärke (Gene * Dominanz) — Balance-Hebel für Reifung + Ökonomie. */
+/** Ein Vorfahre: Identität + Genom + Generation. Basis-Tiere ebenso wie gezüchtete Tiere. */
+export type { BeetleAncestor };
+
+/** Ein Elternteil ist entweder eine Basis-ID oder ein vollwertiges (gezüchtetes) Tier. */
+export type BeetleParentRef = string | BeetleAncestor;
+
+/** Käfer-Genom-Stärke (Gene × Dominanz) — Balance-Hebel für Reifung + Ökonomie. */
 export function beetlePower(genome: Genome): number {
-  return genome.reduce((s, g) => s + g.power * (g.dominant ? 1.3 : 1), 0);
+  return genomePower(genome);
+}
+
+/** Basis-Tier als Vorfahre (Gründer-Pool der Kette). */
+function founderAncestor(baseId: string): BeetleAncestor | null {
+  const src = BEETLES_SOURCE[baseId];
+  if (!src) return null;
+  return {
+    id: baseId,
+    specimenId: baseId,
+    generation: 1,
+    genome: src.genes.map(geneFromSource),
+  };
+}
+
+/** Gezüchtetes Tier als Vorfahre — sein EIGENES Genom, nicht das seiner Gründer. */
+export function ancestorOf(spec: BeetleSpecimen): BeetleAncestor {
+  return {
+    id: spec.id,
+    specimenId: spec.specimenId,
+    genome: spec.genome.map(g => ({ ...g })),
+    generation: spec.generation ?? 1,
+  };
+}
+
+/** Elternteil auflösen: Basis-ID ⇒ Gründer-Vorfahre, Tier ⇒ sein eigener Vorfahre. */
+export function resolveAncestor(ref: BeetleParentRef): BeetleAncestor | null {
+  return typeof ref === 'string' ? founderAncestor(ref) : ref;
 }
 
 /** Die Brut-Stats eines Specimen: Basen-Werte × Gen-Multiplikatoren (Source-driven). */
 export function deriveBeetleStats(specimenId: string, genome: Genome): BeetleSpecimen['stats'] {
-  const src = BEETLES_SOURCE[specimenId];
+  const src = BEETLES_SOURCE[specimenId] ?? Object.values(BEETLES_SOURCE)[0]!;
   let hpMult = 1, speed = src.speed, attack = src.attack, cost = 0;
   let taunt = false, spawnX = 1, deathSpawnX = 0;
 
-  for (const g of genome) {
+  for (const g of expressed(genome)) {
     const gs = BEETLE_GENES_SOURCE[g.id];
-    if (!gs || g.power <= 0.2) continue;
+    if (!gs) continue;
     hpMult += gs.hpMult * g.power;
     speed += gs.speedAdd * g.power;
     attack += gs.attackAdd * g.power;
@@ -48,67 +87,65 @@ export function deriveBeetleStats(specimenId: string, genome: Genome): BeetleSpe
 }
 
 /** Deterministischer Brut-Seed — eigene Domäne 'brood' (B30), getrennt von 'plant' (Pflanzenzucht)
- *  und 'enemy' (Gegner-Spawn/Crit). Die Zuchtwirtschaft ist ein eigener Spielbereich: wer hier
- *  die Ableitung ändert, darf nicht versehentlich Gegnerverhalten mitziehen. */
-export function deriveBroodSeed(specimenAId: string, specimenBId: string, generation: number): number {
-  return deriveSeed(GAME_SEED, BROOD_SEED_NAMESPACE, specimenAId, `${specimenBId}:${generation}`, 1);
+ *  und 'enemy' (Gegner-Spawn/Crit). Siehe Migrationsnotiz an BROOD_SEED_NAMESPACE. */
+export function deriveBroodSeed(ancestorAId: string, ancestorBId: string, broodIndex: number): number {
+  return deriveSeed(GAME_SEED, BROOD_SEED_NAMESPACE, ancestorAId, `${ancestorBId}:${broodIndex}`, 1);
 }
 
-/** Brutfortschritt: Ganze Genome mergen (beide Elterngene wandern ins Kind). */
-function mergeGenomes(a: Genome, b: Genome, rng: Rng): Genome {
-  const child: Gene[] = [];
-  for (const g of a) child.push({ ...g });
-  for (const g of b) {
-    const existing = child.find(c => c.id === g.id);
-    if (existing) {
-      // Dominanter Elternteil gewinnt die Stärke; leichte Schwankung (deterministisch)
-      const blend = 0.5 + (rng.next() - 0.5) * 0.2;
-      existing.power = Math.min(1, Math.max(existing.power, g.power) * blend + Math.min(existing.power, g.power) * (1 - blend));
-      existing.dominant = existing.dominant || g.dominant;
-    } else {
-      child.push({ ...g, power: Math.max(0.15, g.power * (0.8 + rng.next() * 0.2)) });
-    }
-  }
-  return child;
-}
-
-/** Drei Brutkandidaten (BEETLE_BREED.broodSize) — deterministisch pro Seed. */
-export function rollBrood(
-  specimenAId: string,
-  specimenBId: string,
-  generation: number
-): BeetleSpecimen[] {
-  const a = BEETLES_SOURCE[specimenAId];
-  const b = BEETLES_SOURCE[specimenBId];
+/**
+ * Drei Brutkandidaten (BEETLE_BREED.broodSize) — deterministisch pro Elternpaar und Brut-Index.
+ *
+ * Die Kandidaten laufen durch dieselbe Neuheitsprüfung wie Pflanzenkandidaten: zu ähnliche
+ * Entwürfe werden mit wachsendem Neuheitsdruck neu abgeleitet. Der Käfer-Deskriptor gewichtet
+ * Form (Körper, Panzer, Mandibeln, Beine) — ein Farbwechsel allein ist kein neues Tier.
+ */
+export function rollBrood(parentA: BeetleParentRef, parentB: BeetleParentRef, broodIndex: number): BeetleSpecimen[] {
+  const a = resolveAncestor(parentA);
+  const b = resolveAncestor(parentB);
   if (!a || !b) return [];
 
-  const seed = deriveBroodSeed(specimenAId, specimenBId, generation);
-  // Aus der Konstante, nicht aus einem zweiten Literal: Ableitung und Wurf-Strom sind EINE Domäne.
-  const rng = makeRng(BROOD_SEED_NAMESPACE, seed);
-  const brood: BeetleSpecimen[] = [];
+  const seed = deriveBroodSeed(a.id, b.id, broodIndex);
+  // Generation = eine Stufe tiefer als der jüngste Elternteil: die Kette zählt wirklich weiter.
+  const generation = Math.max(a.generation, b.generation) + 1;
 
-  for (let i = 0; i < BEETLE_BREED.broodSize; i++) {
-    const genome = mergeGenomes(a.genes.map(id => geneFromSource(id)), b.genes.map(id => geneFromSource(id)), rng);
-    // Specimen-Nachfahre: Mischform der Eltern (bestimmt Basis-Werte + Farbe)
-    const specimenId = rng.next() < 0.5 ? specimenAId : specimenBId;
-    const stats = deriveBeetleStats(specimenId, genome);
-    brood.push({
+  const rolled = rollCandidates({
+    pairSeed: seed, namespace: BROOD_SEED_NAMESPACE, count: BEETLE_BREED.broodSize, measure: beetleMeasure,
+    make: (rng, index, attempt) => {
+      const genome = breedGenome(a.genome, b.genome, rng, generation, BEETLE_GENE_POOL, attempt);
+      // Balance-Anker: das Junge erbt den Basis-Typ EINES Elternteils (Münzwurf, seed-bestimmt) —
+      // die ERSCHEINUNG kommt nicht von hier, sondern aus dem Genom (beetlePhenotype).
+      const specimenId = rng.next() < 0.5 ? a.specimenId : b.specimenId;
+      // Deskriptor aus dem EIGENEN Phänotyp des Kandidaten — dieselbe Sprache, die gezeichnet wird.
+      const descriptor = beetlePhenotypeOf({ genome, generation }).descriptor;
+      return { candidate: { genome, specimenId }, descriptor };
+    },
+  });
+
+  return rolled.map((entry, i) => {
+    const { genome, specimenId } = entry.candidate;
+    return {
       id: `brood_${seed.toString(36)}_${i}`,
-      name: `${a.label.slice(0, 4)}${b.label.slice(0, 4)}-Brut ${i + 1}`,
+      name: broodName(a, b, i),
       specimenId,
       genome,
-      stats,
-      color: specimenId === specimenAId ? a.color : b.color,
+      stats: deriveBeetleStats(specimenId, genome),
+      // Altfeld der Anzeige (Ketten-Migration): die Brutstätte zeichnet den Phänotyp; der Wert
+      // bleibt als Fallback für Stellen ohne Visual-Auflösung erhalten.
+      color: BEETLES_SOURCE[specimenId]?.color ?? '#8a6b3a',
       generation,
-      parentA: specimenAId,
-      parentB: specimenBId,
+      parentA: a.id,
+      parentB: b.id,
       discovered: false,
-    });
-  }
-  return brood;
+    };
+  });
 }
 
-function geneFromSource(id: string): Gene {
+function broodName(a: BeetleAncestor, b: BeetleAncestor, index: number): string {
+  const label = (anc: BeetleAncestor) => (BEETLES_SOURCE[anc.specimenId]?.label ?? anc.specimenId).slice(0, 4);
+  return `${label(a)}${label(b)}-Brut ${index + 1}`;
+}
+
+function geneFromSource(id: string): { id: string; power: number; dominant: boolean } {
   const gs = BEETLE_GENES_SOURCE[id];
   const dominant = !!gs && (BEETLE_GENE_POOL[id]?.dominant ?? false);
   return { id, power: 0.6, dominant }; // Basis-Power; Schwankung kommt aus dem Merge

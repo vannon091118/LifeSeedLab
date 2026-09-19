@@ -35,8 +35,8 @@ Execution Prompt nennt das Ziel **`LifegamePlant`**, das Repository heißt **`Li
 | `src/config/world.source.ts` | Source | `GRID_COLS/ROWS/CELL_SIZE`, `ENEMY_PATH`, `PLACEMENT_PATH_MARGIN`, `WAVES_PER_NIGHT` | — | 42 | **REUSE** |
 | `src/config/plants.source.ts` | Source | 3 Archetypen + `STARTING_INVENTORY` + `BREED_SOURCE` | — | 75 | **REUSE** |
 | `src/config/enemies.source.ts` | Source | 5 Archetypen + `generateWaveSchedule(rootSeed,waveN)` | `core/rng` | 67 | **REUSE** |
-| `src/config/bases.source.ts` | Source | **10 Bases** (silhouette/layers/palette/anchors/allowedExtras/allowedEffects/animation) | — | 125 | **REUSE** — §16 erfüllt, Silhouetten distinct |
-| `src/config/extras.source.ts` | Source | **10 Extras** (hat/leafcrown/spike/gem/shroom/vine/eye/mouth/antenna/scar) | — | 35 | **REUSE** — §17 erfüllt |
+| ~~Basen-Baukasten~~ | — | **ENTFERNT (R3-Neubaul)**: der Base/Extra-Baukasten ist gestorben — die sichtbare Form entsteht aus dem Phänotyp (Achsen in `src/config/phenotype.source.ts`, Ableitung in `src/genome/plantPhenotype.ts`) | — | — | **DELETED** |
+| ~~Extras-Baukasten~~ | — | **ENTFERNT (R3-Neubaul)**: „ein Gen ⇒ ein Extra" vernichtete Information; jetzt verschiebt jedes Gen mehrere Phänotyp-Achsen | — | — | **DELETED** |
 | `src/config/effects.source.ts` | Source | **10 Effects** (palette/particle/projectile/impact/status/sound) | — | 36 | **REUSE** — §18 erfüllt |
 | `src/config/economy.source.ts` | Source | Shop-Preise, `GROWTH/LIFESPAN_TICKS`, `FERTILIZE_BONUS`, `COINS 1–5`, Auto-Wave | — | 66 | **REUSE** |
 | `src/config/names.source.ts` | Source | Namens-Kerne/Präfix/Suffix für Gacha-Namen | — | 38 | **REUSE** |

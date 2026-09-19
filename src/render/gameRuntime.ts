@@ -26,7 +26,9 @@ import { executeVisualCommand } from '../observers/visualExecutor';
 import { ParticlePool } from '../observers/particles';
 import type { ResolvedVisual } from '../visual/generator';
 import { resolveBredVisuals, resolveVisual } from '../visual/generator';
+import { resolveBeetleVisuals, type ResolvedBeetleVisual } from '../visual/beetleGenerator';
 import { strHash } from '../core/rng';
+import { basePlantVisualInput } from '../genome/visualMap';
 import { makePlacementRejected } from '../bus/commands';
 import type { GameEvent } from '../bus/events';
 import { FX_EVENT_TYPES, NOTICE_EVENT_TYPES, OBSERVED_EVENT_TYPES } from '../bus/eventAudience';
@@ -82,6 +84,8 @@ export class RunRuntime {
   private readonly camera = new Camera();
   private readonly feedback = new FeedbackLayer();
   private readonly bredVisuals: Map<string, ResolvedVisual>;
+  /** P6/R3: der eingesetzte Käfer wird als DIESES Individuum gezeichnet — Visual kommt aus dem Lager. */
+  private readonly beetleVisuals: Map<string, ResolvedBeetleVisual>;
   private readonly ghostVisual: (variantId: string) => ResolvedVisual;
   private readonly cbs: RunRuntimeCallbacks;
   private readonly pausedRef: { current: boolean };
@@ -125,6 +129,8 @@ export class RunRuntime {
     // passiert lazy im Render aus dem State (leere Map ⇒ DEFAULT-Pfad, wie bisher).
     this.bredVisuals = resolveBredVisuals(input.savedVariants.filter(v => input.loadout.includes(v.id)), input.seed);
     renderer.setBredVisuals(this.bredVisuals);
+    this.beetleVisuals = resolveBeetleVisuals(input.beetles, input.seed);
+    renderer.setBeetleVisuals(this.beetleVisuals);
 
     const observer = new VisualObserver(this.camera, input.audioOn);
     this.observer = observer;
@@ -138,9 +144,9 @@ export class RunRuntime {
     this.ghostVisual = (variantId: string) => {
       const bred = this.bredVisuals.get(variantId);
       if (bred) return bred;
-      const baseId = variantId === 'rootwall' ? 'BASE_ROOT'
-        : variantId === 'mycelia' ? 'BASE_MUSHROOM' : 'BASE_THORN';
-      return resolveVisual({ baseId: baseId as never, extraIds: [], effectIds: [], visualSeed: strHash(`plant:${input.seed}:${variantId}`) });
+      // Grundpflanze: derselbe Ableitungspfad wie der Renderer (Genom → Phänotyp → Visual).
+      const baseInput = basePlantVisualInput(variantId, input.seed) ?? basePlantVisualInput('sprout', input.seed)!;
+      return resolveVisual(baseInput);
     };
 
     // B3: Zustandsmaschine liest Sim (read-only) und Präsentation — sie schreibt nichts.

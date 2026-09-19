@@ -1,17 +1,17 @@
 import { useMemo, useState } from 'react';
-import type { MetaSave, BeetleSpecimen } from '../types';
-import type { TranslationKey } from '../i18n';
+import type { BeetleAncestor, MetaSave } from '../types';
 import { useI18n } from '../i18n';
 import { enqueueBrood, readyBroods, claimBrood } from '../meta';
-import { rollBrood, broodGenomeHash, beetlePower } from '../genome/beetle';
+import { rollBrood, broodGenomeHash, beetlePower, resolveAncestor } from '../genome/beetle';
+import { beetlePhenotypeOf } from '../genome/beetlePhenotype';
 import { BEETLES_SOURCE, beetleWavesToUnlock, BEETLE_BREED } from '../config/beetles.source';
-import { BugIcon } from './MenuIcons';
+import { BeetleCanvas } from './PhenotypeCanvas';
 
 // Owner: UI (BeetleLab screen). LOC ≤ 400.
-// P6/P8: BRÜTEN — mechanisch + präsentatorisch KEINE Kopie der Pflanzenzucht:
-//   • Elternwahl ist BEWUSST (beide Tiere chosen), kein Samen-Gacha
-//   • ganze Genome mergen statt mutieren → Kinder ähneln erkennbar den Eltern
-//   • Bernstein/Tusche-Präsentation (amber), keine Grün-Töne, kein chime
+// R3: BRÜTEN ist echte Nachzucht. Eltern sind VORFAHREN — ein Basis-Tier genauso wie ein Tier
+// aus dem eigenen Brut-Lager. Damit ist die Kette endlos: Eltern → Kind → dieses Kind wird
+// Elternteil → nächste Generation. Und was der Spieler sieht, ist der PHÄNOTYP des Kandidaten
+// (Panzer, Mandibeln, Beine, Panzerkleid) — keine Farbpunkte, keine Basis-Schablone.
 
 type Props = {
   meta: MetaSave;
@@ -19,8 +19,10 @@ type Props = {
   onClose: () => void;
 };
 
-// Befund Übergang UI→Gameplay: der Brut-Kosten-Wert ist Content-Truth (BEETLE_BREED.nektarCost)
-// und wird hier nur noch angezeigt/geprüft — keine Regel im UI (B27).
+/** Gründer-Tiere als Vorfahren auflösen (einzige Quelle bleibt der Käfer-Genom-Adapter). */
+const FOUNDERS: BeetleAncestor[] = Object.keys(BEETLES_SOURCE)
+  .map(id => resolveAncestor(id))
+  .filter((a): a is BeetleAncestor => a !== null);
 
 export function BeetleLab({ meta, onMetaChange, onClose }: Props) {
   const { t } = useI18n();
@@ -28,32 +30,56 @@ export function BeetleLab({ meta, onMetaChange, onClose }: Props) {
   const [parentB, setParentB] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
 
-  const specimens = BEETLES_SOURCE;
-  const specimenIds = Object.keys(specimens);
-  const ready = readyBroods(meta);
-  const lastBrood = meta.beetles[meta.beetles.length - 1] as BeetleSpecimen | undefined;
+  // Auswahl-Pool: Gründer + das eigene Lager. Ein gezüchtetes Tier ist ein vollwertiger Elternteil.
+  const pool: BeetleAncestor[] = useMemo(() => [
+    ...FOUNDERS,
+    ...meta.beetles.map(s => ({ id: s.id, specimenId: s.specimenId, genome: s.genome, generation: s.generation ?? 1 })),
+  ], [meta.beetles]);
+  const byId = useMemo(() => new Map(pool.map(a => [a.id, a])), [pool]);
+  const ancestorA = parentA ? byId.get(parentA) ?? null : null;
+  const ancestorB = parentB ? byId.get(parentB) ?? null : null;
 
-  // Live-Brutvorschau: deterministisch dieselben 3 Kandidaten, die enqueue produzieren würde.
-  // A13.2/B14.1: DERSELBE monotone Zähler, den `enqueueBrood` liest — keine zweite Ableitung.
+  // Live-Brutvorschau: DIESELBEN Vorfahren, DERSELBE monotone Zähler wie `enqueueBrood`.
   const preview = useMemo(() => {
-    if (!parentA || !parentB) return [];
-    return rollBrood(parentA, parentB, meta.broodGeneration);
-  }, [parentA, parentB, meta.broodGeneration]);
+    if (!ancestorA || !ancestorB) return [];
+    return rollBrood(ancestorA, ancestorB, meta.broodGeneration);
+  }, [ancestorA, ancestorB, meta.broodGeneration]);
+
+  const pick = (id: string) => {
+    if (parentA === id) { setParentA(null); return; }
+    if (parentB === id) { setParentB(null); return; }
+    if (!parentA) { setParentA(id); return; }
+    if (!parentB) { setParentB(id); return; }
+    setParentA(id); setParentB(null); // dritte Wahl ersetzt das ältere Elternteil
+  };
 
   const handleBreed = () => {
-    if (!parentA || !parentB) { setNote(t('beetle.needTwo')); return; }
+    if (!ancestorA || !ancestorB) { setNote(t('beetle.needTwo')); return; }
     if (meta.nektar < BEETLE_BREED.nektarCost) { setNote(t('beetle.notEnoughNektar')); return; }
     const waves = beetleWavesToUnlock(
-      preview.reduce((s, c) => s + beetlePower(c.genome), 0) / Math.max(1, preview.length)
+      preview.reduce((s, c) => s + beetlePower(c.genome), 0) / Math.max(1, preview.length),
     );
-    const m = enqueueBrood(parentA, parentB, waves);
-    if (m) {
-      onMetaChange(m);
-      setNote(t('beetle.enqueued').replace('{n}', String(waves)));
-      setParentA(null); setParentB(null);
-      setTimeout(() => setNote(null), 2200);
-    }
+    const m = enqueueBrood(ancestorA, ancestorB, waves);
+    onMetaChange(m);
+    setNote(t('beetle.enqueued').replace('{n}', String(waves)));
+    setParentA(null); setParentB(null);
+    setTimeout(() => setNote(null), 2200);
   };
+
+  const card = (a: BeetleAncestor, tag?: 'A' | 'B') => (
+    <button
+      key={a.id}
+      data-tut="beetle-parent"
+      aria-pressed={tag !== undefined}
+      onClick={() => pick(a.id)}
+      style={{ ...styles.specimenCard, ...(tag ? styles.specimenSelected : {}) }}
+    >
+      <BeetleCanvas phenotype={beetlePhenotypeOf({ genome: a.genome, generation: a.generation })} size={64} title={a.specimenId} />
+      <span style={styles.specimenName}>{BEETLES_SOURCE[a.specimenId]?.label ?? a.specimenId}</span>
+      <span style={styles.specimenStats}>Gen {a.generation} · {a.genome.length} Gene</span>
+      {tag && <span style={styles.specimenTag}>{tag}</span>}
+    </button>
+  );
 
   return (
     <div style={styles.overlay}>
@@ -68,61 +94,65 @@ export function BeetleLab({ meta, onMetaChange, onClose }: Props) {
         <p style={styles.desc}>{t('beetle.desc')}</p>
         {note && <div style={styles.note}>{note}</div>}
 
-        {/* Basen-Tiere — bewusste Elternwahl (P8-Identität: kein Gacha) */}
-        <div style={styles.specimenRow}>
-          {specimenIds.map(id => {
-            const s = specimens[id];
-            const selA = parentA === id, selB = parentB === id;
-            return (
-              <button
-                key={id}
-                style={{ ...styles.specimenCard, ...(selA || selB ? styles.specimenSelected : {}) }}
-                onClick={() => {
-                  if (selA) setParentA(null);
-                  else if (selB) setParentB(null);
-                  else if (!parentA) setParentA(id);
-                  else if (!parentB) setParentB(id);
-                }}
-              >
-                <span style={{ ...styles.specimenDot, background: s.color }} aria-hidden />
-                <span style={styles.specimenName}>{s.label}</span>
-                <span style={styles.specimenStats}>HP {s.hp} · ATK {s.attack}</span>
-                {(selA || selB) && <span style={styles.specimenTag}>{selA ? 'A' : 'B'}</span>}
-              </button>
-            );
-          })}
+        <div style={styles.parentLine}>
+          <span style={styles.parentSlot}>
+            Eltern A: <strong>{ancestorA ? labelOf(ancestorA) : '—'}</strong>
+          </span>
+          <span style={styles.parentSlot}>
+            Eltern B: <strong>{ancestorB ? labelOf(ancestorB) : '—'}</strong>
+          </span>
+          <button onClick={() => { setParentA(null); setParentB(null); }} style={styles.clearBtn}>Auswahl leeren</button>
         </div>
 
-        <button onClick={handleBreed} style={{ ...styles.breedBtn, opacity: meta.nektar < BEETLE_BREED.nektarCost ? 0.5 : 1 }} disabled={!parentA || !parentB}>
+        <h3 style={styles.sectionTitle}>{t('beetle.library')} ({meta.beetles.length})</h3>
+        <div style={styles.specimenRow}>
+          {meta.beetles.length > 0
+            ? [...meta.beetles].reverse().map(s => card({ id: s.id, specimenId: s.specimenId, genome: s.genome, generation: s.generation ?? 1 },
+              parentA === s.id ? 'A' : parentB === s.id ? 'B' : undefined))
+            : <span style={styles.hintEmpty}>Noch keine eigenen Tiere — die Gründer unten sind der Anfang.</span>}
+        </div>
+
+        <h3 style={styles.sectionTitle}>Gründer-Pool</h3>
+        <div style={styles.specimenRow}>
+          {FOUNDERS.map(f => card(f, parentA === f.id ? 'A' : parentB === f.id ? 'B' : undefined))}
+        </div>
+
+        <button onClick={handleBreed} disabled={!ancestorA || !ancestorB} style={{ ...styles.breedBtn, opacity: meta.nektar < BEETLE_BREED.nektarCost ? 0.5 : 1 }}>
           {t('beetle.breed')} (🍯 {BEETLE_BREED.nektarCost})
         </button>
 
-        {/* Live-Brutvorschau: die 3 deterministischen Kandidaten */}
         {preview.length > 0 && (
           <div style={styles.broodSection}>
             <h3 style={styles.sectionTitle}>{t('beetle.preview')}</h3>
             <div style={styles.broodRow}>
-              {preview.map((c, i) => (
-                <div key={c.id} style={styles.broodCard}>
-                  <span style={{ ...styles.specimenDot, background: c.color }} aria-hidden />
-                  <span style={styles.broodName}>{c.name}</span>
-                  <span style={styles.broodStats}>HP {c.stats.hp} · ATK {c.stats.attack} · ×{c.stats.spawnX}</span>
-                  <span style={styles.broodHash}>{broodGenomeHash(c).slice(0, 10)}</span>
-                  <span style={styles.broodIdx}>#{i + 1}</span>
-                </div>
-              ))}
+              {preview.map((c, i) => {
+                const p = beetlePhenotypeOf({ genome: c.genome, generation: c.generation ?? 1 });
+                return (
+                  <div key={c.id} style={styles.broodCard} data-tut="brood-candidate">
+                    <BeetleCanvas phenotype={p} size={72} title={c.name} />
+                    <span style={styles.broodName}>{c.name}</span>
+                    <span style={styles.traitLine}>{p.dress} · {p.bearing} · {p.carapace.form}</span>
+                    <span style={styles.broodStats}>HP {c.stats.hp} · ATK {c.stats.attack} · ×{c.stats.spawnX}</span>
+                    <span style={styles.broodHash}>{broodGenomeHash(c).slice(0, 10)}</span>
+                    <span style={styles.broodIdx}>#{i + 1}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
 
-        {/* Reifende Bruten */}
         {meta.pendingBroods.length > 0 && (
           <div style={styles.broodSection}>
             <h3 style={styles.sectionTitle}>{t('beetle.maturing')} ({meta.pendingBroods.length})</h3>
             {meta.pendingBroods.map(p => {
               const remaining = Math.max(0, p.neededWaves - (meta.totalWavesSurvived - p.startedWave));
-              const isReady = ready.some(r => r.broodIndex === p.broodIndex);
-              const rolled = rollBrood(p.specimenAId, p.specimenBId, p.broodIndex);
+              const isReady = readyBroods(meta).some(r => r.broodIndex === p.broodIndex);
+              const rolled = rollBrood(
+                p.parentAAncestor ?? p.specimenAId,
+                p.parentBAncestor ?? p.specimenBId,
+                p.broodIndex,
+              );
               return (
                 <div key={p.broodIndex} style={styles.pendingRow}>
                   <span style={styles.pendingLabel}>
@@ -131,8 +161,9 @@ export function BeetleLab({ meta, onMetaChange, onClose }: Props) {
                   {isReady && (
                     <div style={styles.broodRow}>
                       {rolled.map((c, i) => (
-                        <button key={c.id} style={styles.broodCard} onClick={() => onMetaChange(claimBrood(p.broodIndex, i))}>
-                          <span style={{ ...styles.specimenDot, background: c.color }} aria-hidden />
+                        <button key={c.id} style={styles.broodCard} onClick={() => onMetaChange(claimBrood(p.broodIndex, i))}
+                          data-tut="brood-claim">
+                          <BeetleCanvas phenotype={beetlePhenotypeOf({ genome: c.genome, generation: c.generation ?? 1 })} size={72} title={c.name} />
                           <span style={styles.broodName}>{c.name}</span>
                           <span style={styles.broodStats}>HP {c.stats.hp} · ×{c.stats.spawnX}</span>
                         </button>
@@ -144,33 +175,18 @@ export function BeetleLab({ meta, onMetaChange, onClose }: Props) {
             })}
           </div>
         )}
-
-        {/* Brut-Lager */}
-        {lastBrood && (
-          <div style={styles.broodSection}>
-            <h3 style={styles.sectionTitle}>{t('beetle.library')} ({meta.beetles.length})</h3>
-            <div style={styles.broodRow}>
-              {[...meta.beetles].reverse().slice(0, 6).map(b => (
-                <div key={b.id} style={styles.broodCard}>
-                  <span style={{ ...styles.specimenDot, background: b.color }} aria-hidden />
-                  <span style={styles.broodName}>{b.name}</span>
-                  <span style={styles.broodStats}>HP {b.stats.hp} · ×{b.stats.spawnX}{b.stats.taunt ? ' · TAUNT' : ''}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
 }
 
-// Icon in MenuIcons.tsx (eine Präsentations-Verantwortung pro Datei)
+function labelOf(a: BeetleAncestor): string {
+  return `${BEETLES_SOURCE[a.specimenId]?.label ?? a.specimenId} (Gen ${a.generation})`;
+}
 
 const styles: Record<string, React.CSSProperties> = {
-  // Screen-Betrieb: Vollbild-Inhalt in MenuScreenShell (kein Fixed-Overlay mehr)
   overlay: { display: 'flex', flexDirection: 'column', alignItems: 'center' },
-  panel: { width: '100%', maxWidth: 620, background: '#f3ecd9', border: '2.5px solid var(--ink)', borderRadius: 8, boxShadow: '6px 6px 0 var(--ink)', padding: 22, color: 'var(--ink)' },
+  panel: { width: '100%', maxWidth: 640, background: '#f3ecd9', border: '2.5px solid var(--ink)', borderRadius: 8, boxShadow: '6px 6px 0 var(--ink)', padding: 22, color: 'var(--ink)' },
   header: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 },
   title: { flex: 1, fontSize: 20, fontWeight: 800, color: 'var(--ink)', margin: 0, textTransform: 'uppercase' as const, letterSpacing: 0.5 },
   headerRight: { display: 'flex', gap: 8, alignItems: 'center' },
@@ -178,10 +194,13 @@ const styles: Record<string, React.CSSProperties> = {
   closeBtn: { width: 34, height: 34, background: '#fff', border: '2px solid var(--ink)', borderRadius: 8, color: 'var(--ink)', cursor: 'pointer', fontWeight: 800, boxShadow: '2px 2px 0 var(--ink)' },
   desc: { fontSize: 12, color: '#6b6250', margin: '0 0 14px', fontWeight: 600 },
   note: { marginBottom: 10, padding: '8px 10px', background: '#fdeec9', border: '2px solid #a16207', borderRadius: 8, color: '#78350f', fontSize: 12, fontWeight: 700 },
+  parentLine: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' as const, marginBottom: 10 },
+  parentSlot: { padding: '6px 10px', background: '#fff', border: '1.5px solid var(--ink)', borderRadius: 8, fontSize: 12, fontWeight: 700 },
+  clearBtn: { padding: '6px 10px', background: '#fff', border: '1.5px dashed var(--ink)', borderRadius: 8, fontSize: 12, fontWeight: 700, color: '#6b6250', cursor: 'pointer', minHeight: 40 },
+  hintEmpty: { fontSize: 12, color: '#8a8065', fontWeight: 600 },
   specimenRow: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 14 },
-  specimenCard: { position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: 14, background: '#fff', borderWidth: '2.5px', borderStyle: 'solid', borderColor: 'var(--ink)', borderRadius: 8, cursor: 'pointer', color: 'var(--ink)', boxShadow: '3px 3px 0 var(--ink)' },
+  specimenCard: { position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: 12, background: '#fff', borderWidth: '2.5px', borderStyle: 'solid', borderColor: 'var(--ink)', borderRadius: 8, cursor: 'pointer', color: 'var(--ink)', boxShadow: '3px 3px 0 var(--ink)' },
   specimenSelected: { background: '#fdeec9', borderColor: '#a16207', boxShadow: '3px 3px 0 #a16207' },
-  specimenDot: { width: 22, height: 22, borderRadius: 7, border: '2px solid var(--ink)' },
   specimenName: { fontSize: 13, fontWeight: 800 },
   specimenStats: { fontSize: 10, color: '#6b6250', fontWeight: 700 },
   specimenTag: { position: 'absolute', top: -8, right: -6, width: 22, height: 22, borderRadius: '50%', background: '#a16207', color: '#fff', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--ink)' },
@@ -191,6 +210,7 @@ const styles: Record<string, React.CSSProperties> = {
   broodRow: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 },
   broodCard: { position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: 10, background: '#fff', border: '2px solid var(--ink)', borderRadius: 8, boxShadow: '2px 2px 0 var(--ink)', cursor: 'pointer', color: 'var(--ink)', fontSize: 11, fontWeight: 700 },
   broodName: { fontSize: 11, fontWeight: 800, textAlign: 'center' as const },
+  traitLine: { fontSize: 10, color: '#7c4a2c', fontWeight: 800, textTransform: 'uppercase' as const, letterSpacing: 0.5 },
   broodStats: { fontSize: 10, color: '#6b6250', fontWeight: 700 },
   broodHash: { fontSize: 9, fontFamily: 'ui-monospace, Menlo, monospace', color: '#8a8065' },
   broodIdx: { position: 'absolute', top: -8, left: -6, width: 20, height: 20, borderRadius: '50%', background: '#2b2b26', color: '#f5efdc', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' },

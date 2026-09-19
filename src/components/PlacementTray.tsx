@@ -29,9 +29,13 @@ export interface PlacementTrayProps {
   /** D3: i18n-Sektions-Labels — die Tray trennt KAMPF (Pflanzen) von FELD (Tiles). */
   trayPlantsLabel: string;
   trayFieldLabel: string;
+  /** QA v0.0.53 #3: gezüchtete Varianten stehen nicht in `PLANTS_SOURCE` — ohne diese Namen
+   *  fiel die Karte auf die Roh-ID zurück („seed_0 ×1" im Run, während das Gewächshaus
+   *  „Spross (Keim 1)" zeigte: zwei Screens, zwei Wahrheiten über dieselbe Pflanze). */
+  names?: Record<string, string>;
 }
 
-export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPlant, onSelectTile, onSelectSell, trayPlantsLabel, trayFieldLabel }: PlacementTrayProps) {
+export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPlant, onSelectTile, onSelectSell, trayPlantsLabel, trayFieldLabel, names }: PlacementTrayProps) {
   const { t } = useI18n();
   // Tab-Regie: 'sell' gehört zum BAU-Kasten, ein MapTileType ebenfalls; 'plant' zum
   // PFLANZEN-Kasten. Der sichtbare Tab leitet sich aus dem Modus AB (kein zweiter
@@ -43,7 +47,9 @@ export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPl
   // F4: Labels über i18n-Auflösung (Source-i18nKey → Fallback-Kette in plantLabels.ts).
   const plantLabel = (id: string): string => {
     const key = plantLabelKey(id);
-    return key ? t(key) : plantLabelFallback(id);
+    if (key) return t(key);
+    // Besitz-Bibliothek des Spielers vor der Roh-ID: eine gezüchtete Pflanze hat einen Namen.
+    return names?.[id] ?? plantLabelFallback(id);
   };
   const tileLabel = (tile: MapTileType): string => {
     const key = tileLabelKey(tile);

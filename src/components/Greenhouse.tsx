@@ -6,7 +6,8 @@ import { rollGachaCross, deriveGachaSeed, createBaseVariants, type GachaRoll } f
 import { consumeSeedAndEnqueueCross, keepCross, isCrossReady, plantSeedlingIntoPot } from '../meta';
 import { wavesToUnlockFor, PENDING_CROSSES_MAX, GREENHOUSE_POT_SLOTS } from '../config/economy.source';
 import { helpText } from '../i18n/help';
-import { previewColor } from '../visual/generator';
+import { genomeToVisualInput } from '../genome/visualMap';
+import { PlantCanvas } from './PhenotypeCanvas';
 import { GAME_SEED } from '../config';
 
 // Owner: UI (Greenhouse screen). LOC ≤ 400.
@@ -159,7 +160,7 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
             >
               {occupant
                 ? <>
-                    <span style={styles.potPlant}>{plantPreviewGlyph(occupant, meta)}</span>
+                    <PlantThumb variant={findVariant(occupant, meta)} size={34} />
                     <span style={styles.potName}>{variantName(occupant, meta)}</span>
                   </>
                 : <span style={styles.potEmpty}>{heldSeedling ? t('greenhouse.potDropHere') : t('greenhouse.potFree')}</span>
@@ -218,7 +219,7 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
           <div style={styles.resultCard}>
             <div style={styles.resultTitle}>{t('gacha.result')}</div>
             <div style={styles.childRow}>
-              <div style={{ ...styles.preview, background: preview(lastRoll.child) }} />
+              <PlantThumb variant={lastRoll.child} size={48} />
               <div style={styles.childInfo}>
                 <strong style={styles.childName}>{lastRoll.child.name}</strong>
                 <div style={styles.traitRow}>
@@ -274,7 +275,7 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
               return (
                 <div key={c.crossIndex} style={styles.pendingReady}>
                   <div style={styles.childRow}>
-                    <div style={{ ...styles.preview, background: roll ? preview(roll.child) : '#ddd' }} />
+                    <PlantThumb variant={roll?.child} size={40} />
                     <div style={styles.childInfo}>
                       <strong style={styles.childName}>{roll?.child.name ?? t('shop.parentsGone')}</strong>
                       <div style={styles.parentsLine}>
@@ -308,23 +309,30 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
 function useMemoOwned(meta: MetaSave): PlantVariant[] {
   return Object.keys(meta.variantCounts)
     .filter(id => (meta.variantCounts[id] ?? 0) > 0)
-    .map(id => BASES.find(v => v.id === id) ?? meta.savedVariants.find(v => v.id === id))
+    .map(id => findVariant(id, meta))
     .filter((v): v is PlantVariant => v !== undefined);
 }
 
-// Befund Breeding→Visual (B27/B26): die Vorschau-Farbe kommt aus `visual/generator.previewColor`
-// — EINE Quelle für Gewächshaus und Hub, dieselbe Paar-Ableitung wie das Feld.
-const preview = (variant: PlantVariant) => previewColor(variant, GAME_SEED);
+/**
+ * Befund B27 (Breeding→Visual): das Gewächshaus zeigte bisher ein Farbfeld — dieselbe Pflanze
+ * sah im Zucht-Screen anders aus als im Feld. Jetzt zeichnet die Vorschau mit DERSELBEN
+ * Anatomie-Funktion wie der Run (render/plants.ts): Silhouette, Blattstellung, Dornenkleid und
+ * Muster sind an der Karte ablesbar, nicht nur ihr Grundton.
+ * Unbekannte (Altsave-)IDs bleiben neutral grau — lieber kein Bild als ein gelogenes.
+ */
+const PlantThumb = ({ variant, size, title }: { variant?: PlantVariant; size: number; title?: string }) =>
+  variant
+    ? <PlantCanvas phenotype={genomeToVisualInput(variant, GAME_SEED).phenotype} size={size} title={title ?? variant.name} />
+    : <span style={{ width: size, height: size, borderRadius: 8, background: '#ddd', border: '2px solid var(--ink)', display: 'block' }} />;
 
 /** Anzeigename einer Variant-ID — Besitz-Bibliothek zuerst, Fallback die ID. */
 function variantName(id: string, meta: MetaSave): string {
   return meta.savedVariants.find(v => v.id === id)?.name ?? id;
 }
 
-/** Farbglyphen-Hintergrund für einen Topf-Bewohner (dieselbe Preview-Farbe wie die Karten). */
-function plantPreviewGlyph(id: string, meta: MetaSave): string {
-  const v = meta.savedVariants.find(s => s.id === id);
-  return v ? preview(v) : '#ddd';
+/** Variant-ID → Wesen: Grundpflanzen zuerst, dann die eigene Bibliothek (eine Suche, zwei Nutzer). */
+function findVariant(id: string, meta: MetaSave): PlantVariant | undefined {
+  return BASES.find(v => v.id === id) ?? meta.savedVariants.find(v => v.id === id);
 }
 
 const styles: Record<string, React.CSSProperties> = {
@@ -351,7 +359,6 @@ const styles: Record<string, React.CSSProperties> = {
   resultCard: { padding: 16, background: '#fff', border: '2.5px solid var(--ink)', borderRadius: 8, boxShadow: '3px 3px 0 var(--ink)', marginBottom: 14 },
   resultTitle: { fontSize: 12, textTransform: 'uppercase' as const, letterSpacing: 1, color: '#6b6250', marginBottom: 6, fontWeight: 800 },
   childRow: { display: 'flex', gap: 12, alignItems: 'center' },
-  preview: { width: 44, height: 44, borderRadius: 10, border: '2px solid var(--ink)' },
   childInfo: { flex: 1 },
   childName: { fontSize: 17, color: 'var(--ink)' },
   traitRow: { display: 'flex', gap: 4, flexWrap: 'wrap' as const, marginTop: 4 },
@@ -364,7 +371,6 @@ const styles: Record<string, React.CSSProperties> = {
   pendingRow: { display: 'flex', flexDirection: 'column' as const, gap: 6 },
   potsRow: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 },
   pot: { display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 6, padding: 14, background: '#fff', borderWidth: '2.5px', borderStyle: 'dashed', borderColor: 'var(--ink)', borderRadius: 10, cursor: 'pointer', minHeight: 84, boxShadow: '2px 2px 0 var(--ink)' },
-  potPlant: { width: 34, height: 34, borderRadius: 8, border: '2px solid var(--ink)', display: 'block' },
   potName: { fontSize: 11, fontWeight: 800, color: 'var(--ink)', textAlign: 'center' as const },
   potEmpty: { fontSize: 11, color: '#8a8065', fontWeight: 700, textAlign: 'center' as const },
   seedlingRow: { display: 'flex', gap: 8, flexWrap: 'wrap' as const, alignItems: 'center', marginBottom: 12 },

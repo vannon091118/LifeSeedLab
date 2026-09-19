@@ -219,7 +219,9 @@ describe('B14 — Reife-Gate (fail-closed)', () => {
 describe('B16.8 — Identität ist unverletzlich (keine Kappung)', () => {
   beforeEach(() => { clearTestStorage(); });
 
-  it('100 Register-Operationen: kein Eintrag verlässt die Bibliothek', () => {
+  // QA-Lane: 100 Register-Operationen × Storage-Schreiben messen unter paralleler Last >5 s.
+  // Der Timeout wird angehoben, die Zusicherung NICHT abgeschwächt (kein Test wird billiger).
+  it('100 Register-Operationen: kein Eintrag verlässt die Bibliothek', { timeout: 30000 }, () => {
     for (let i = 0; i < 100; i++) {
       registerVariant({ ...BASES[0], id: `cross_cap_${i}`, name: `P${i}` });
     }
@@ -229,7 +231,7 @@ describe('B16.8 — Identität ist unverletzlich (keine Kappung)', () => {
     expect(meta.savedVariants.every(v => meta.bredStats?.[v.id] !== undefined)).toBe(true);
   });
 
-  it('Invariante: jede ID im Loadout existiert in der Bibliothek (auch nach 60+)', () => {
+  it('Invariante: jede ID im Loadout existiert in der Bibliothek (auch nach 60+)', { timeout: 30000 }, () => {
     updateMeta({ loadout: ['cross_loadout'] });
     for (let i = 0; i < 70; i++) {
       registerVariant({ ...BASES[1], id: `cross_${i}`, name: `V${i}` });
@@ -253,12 +255,12 @@ describe('B16.8 — Identität ist unverletzlich (keine Kappung)', () => {
     }
   });
 
-  it('Invariante: beetleDeployed verweist nie auf eine entfernte Specimen-ID', () => {
+  it('Invariante: beetleDeployed verweist nie auf eine entfernte Specimen-ID', { timeout: 30000 }, () => {
     // 45 Bruten durchlaufen lassen (mehr als das alte 40er-Cap). Specimen-IDs aus
     // BEETLES_SOURCE (swarmborn/taunt/phoenix/broodhost/carapace) — der erste
     // Versuch dieses Tests nutzte erfundene IDs; fail-closed hat sie korrekt
     // abgewiesen und der Test zeigte 0 statt 45. Das ist das Gate, nicht der Bug.
-    updateMeta({ totalWavesSurvived: 1000 });
+    updateMeta({ totalWavesSurvived: 1000, nektar: 5000 });   // B39: 45 Bruten müssen bezahlbar sein
     for (let i = 0; i < 45; i++) {
       // Eltern rotieren durch die echten Basen (leafhopper/shellbeetle/bumble) —
       // auch Hybride landen im Lager, die Identität bleibt vollständig.

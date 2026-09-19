@@ -14,7 +14,7 @@ import { ensureLocalStorage } from '../persistence/testDom';
 import { fnv1a } from '../core/hash';
 import { deriveSeed, makeRng, GAMEPLAY_NAMESPACES, VISUAL_NAMESPACES } from '../core/rng';
 import { GAME_SEED } from '../config';
-import { BROOD_SEED_NAMESPACE } from '../config/beetles.source';
+import { BROOD_SEED_NAMESPACE, BEETLE_BREED } from '../config/beetles.source';
 import { deriveBroodSeed, rollBrood, broodGenomeHash, toDeploySpec } from '../genome/beetle';
 import { loadMeta, updateMeta, resetMeta, META_KEY, META_VERSION } from './store';
 import { enqueueBrood, claimBrood } from './run';
@@ -31,7 +31,12 @@ const STORED_BROOD_INDEXES = [0, 1, 2, 7, 42];
 // reihenfolge-unabhängig, aber nicht STABIL — Identität gehört in einen monotonen Zähler.
 
 describe('B14 — Brut-Identität', () => {
-  beforeEach(() => { resetTestState(); });
+  beforeEach(() => {
+    resetTestState();
+    // B39 (QA v0.0.53 #2): die Brut kostet Nektar — diese Tests prüfen Identität/Monotonie,
+    // nicht Wirtschaft, deshalb steht der Kontostand hier bewusst hoch.
+    updateMeta({ nektar: 5000 });
+  });
 
   it('vergibt einen verbrauchten broodIndex nicht erneut', () => {
     enqueueBrood(A, B, 1);                 // broodIndex 0
@@ -125,7 +130,12 @@ describe('B14 — Brut-Identität', () => {
 // den Schnitt überhaupt vertretbar macht: jede persistierte Brut bleibt abholbar.
 
 describe('B30 — Brut-Domäne', () => {
-  beforeEach(() => { resetTestState(); });
+  beforeEach(() => {
+    resetTestState();
+    // B39 (QA v0.0.53 #2): die Brut kostet Nektar — diese Tests prüfen Identität/Monotonie,
+    // nicht Wirtschaft, deshalb steht der Kontostand hier bewusst hoch.
+    updateMeta({ nektar: 5000 });
+  });
 
   it('führt eine eigene Spiel-Domäne (FX ON/OFF darf sie nie stören)', () => {
     expect(BROOD_SEED_NAMESPACE).toBe('brood');
@@ -146,10 +156,15 @@ describe('B30 — Brut-Domäne', () => {
     expect(deriveBroodSeed(A, B, 1)).toBe(905729497);
     expect(deriveBroodSeed('bumble', B, 3)).toBe(1523112797);
 
+    // R3-MIGRATION (bewusst, nicht beiläufig): die Kandidaten-Genome laufen jetzt durch den
+    // GEMEINSAMEN Zuchtkern (genome/breeding.ts, Neuheitsdruck + Dominanz-Regeln) statt durch
+    // den früheren `mergeGenomes`-Sonderweg. Die IDs (Seed-abhängig) bleiben, die Genome ändern
+    // sich EINMALIG. Der Seed-Pin oben (905729497) ist unverändert — die Ableitung selbst hat
+    // sich nicht bewegt, nur die Auswertung der Gene.
     expect(rollBrood(A, B, 1).map(c => `${c.id}|${broodGenomeHash(c)}`)).toEqual([
-      'brood_ez8xcp_0|hyb-4614c77f',
-      'brood_ez8xcp_1|hyb-14754f06',
-      'brood_ez8xcp_2|hyb-16fe1d7a',
+      'brood_ez8xcp_0|hyb-81c71438',
+      'brood_ez8xcp_1|hyb-802592e0',
+      'brood_ez8xcp_2|hyb-4a6b2eec',
     ]);
 
     // Gegner-Domäne: unverändert (der Schnitt durfte hier nichts bewegen).
@@ -172,14 +187,21 @@ describe('B30 — Brut-Domäne', () => {
   });
 
   it('Migrations-Entscheidung: die Brut speichert keine Ableitung (kein Schema-Bump)', () => {
-    // Der gespeicherte Eintrag trägt ausschließlich Eingaben. Wer hier ein Seed-/Namespace-Feld
-    // ergänzt, baut eine zweite Identitäts-Quelle ein — dann muss diese Sperre bewusst geändert
-    // werden, und die Migrationsfrage ist neu zu beantworten (B30).
+    // Der gespeicherte Eintrag trägt ausschließlich EINGABEN — keine Seeds, keine Namespaces,
+    // keine abgeleiteten Genome der Kinder. R3 ergänzt zwei Eingaben: die VORFAHREN (Genom +
+    // Generation je Elternteil). Ohne sie wäre ein gezüchtetes Tier nur eine ID, und die Kette
+    // fiele beim nächsten Brüten auf die Gründer zurück — genau der Befund, der behoben wurde.
     enqueueBrood(A, B, 1);
     const stored = loadMeta().pendingBroods[0];
     expect(Object.keys(stored).sort()).toEqual(
-      ['broodIndex', 'chosenIndex', 'neededWaves', 'specimenAId', 'specimenBId', 'startedWave'],
+      ['broodIndex', 'chosenIndex', 'neededWaves', 'parentAAncestor', 'parentBAncestor',
+        'specimenAId', 'specimenBId', 'startedWave'],
     );
+    // Und die Vorfahren sind wirklich die Genome der übergebenen Gründer (keine Ableitung):
+    // `leafhopper` bringt genau sein Source-Genom mit, Generation 1.
+    expect(stored.parentAAncestor!.specimenId).toBe(A);
+    expect(stored.parentAAncestor!.genome.map(g => g.id)).toEqual(['sprinter']);
+    expect(stored.parentAAncestor!.generation).toBe(1);
   });
 
   describe('Abholung nach dem Schnitt (echte Meta-Operationen)', () => {
@@ -213,7 +235,12 @@ describe('B30 — Brut-Domäne', () => {
 // ══ B14.2 — Migration v4 → v5 ohne Identitätsverlust ══
 
 describe('B14 — Migration v4 → v5', () => {
-  beforeEach(() => { resetTestState(); });
+  beforeEach(() => {
+    resetTestState();
+    // B39 (QA v0.0.53 #2): die Brut kostet Nektar — diese Tests prüfen Identität/Monotonie,
+    // nicht Wirtschaft, deshalb steht der Kontostand hier bewusst hoch.
+    updateMeta({ nektar: 5000 });
+  });
 
   it('leitet broodGeneration aus bereits vergebenen Kennungen ab', () => {
     writeLegacyEnvelope(META_KEY, {
@@ -234,7 +261,7 @@ describe('B14 — Migration v4 → v5', () => {
 
   it('vergibt nach der Migration keine bestehende Kennung erneut', () => {
     writeLegacyEnvelope(META_KEY, {
-      version: 4, nektar: 5, pendingBroods: [{ broodIndex: 4, specimenAId: A, specimenBId: B, neededWaves: 1, startedWave: 0, chosenIndex: -1 }],
+      version: 4, nektar: 500, pendingBroods: [{ broodIndex: 4, specimenAId: A, specimenBId: B, neededWaves: 1, startedWave: 0, chosenIndex: -1 }],
       beetles: [],
     }, 4);
 
@@ -256,8 +283,36 @@ describe('B14 — Migration v4 → v5', () => {
   });
 });
 
+/**
+ * B39 — DER eigentliche QA-Befund (v0.0.53 #2, „free beetle breeding", 3/3 reproduziert):
+ * `BeetleLab` prüfte den Kontostand, aber die Abbuchung existierte nirgends — Brut war gratis.
+ * Der Vertrag gehört hierhin (Meta-Writer), nicht in den Screen.
+ */
+describe('B39 — Brut kostet Nektar', () => {
+  beforeEach(() => { resetTestState(); });
+
+  it('bucht die Brutkosten ab (Brut ist keine Gratis-Aktion)', () => {
+    updateMeta({ nektar: 100 });
+    const before = loadMeta().nektar;
+    const after = enqueueBrood(A, B, 1);
+    expect(after.pendingBroods).toHaveLength(1);
+    expect(after.nektar).toBe(before - BEETLE_BREED.nektarCost);
+    expect(loadMeta().nektar).toBe(before - BEETLE_BREED.nektarCost);
+  });
+
+  it('fail-closed: zu wenig Nektar ⇒ keine Brut, kein Zähler, kein Nektar weg', () => {
+    updateMeta({ nektar: BEETLE_BREED.nektarCost - 1 });
+    const before = loadMeta();
+    const after = enqueueBrood(A, B, 1);
+    expect(after.pendingBroods).toHaveLength(0);
+    expect(after.broodGeneration).toBe(before.broodGeneration);
+    expect(after.nektar).toBe(before.nektar);
+  });
+});
+
 describe('B14 — Reset-Hygiene der Brut-Identität (voller Testkit-Reset)', () => {
   it('nach resetFullTestState() startet die Brut-Wirtschaft bei null (kein Zähler-Drift)', () => {
+    updateMeta({ nektar: 5000 });   // B39: zwei Bruten müssen bezahlbar sein
     enqueueBrood(A, B, 1);
     enqueueBrood(A, B, 1);
     updateMeta({ totalWavesSurvived: 99 });
@@ -272,6 +327,7 @@ describe('B14 — Reset-Hygiene der Brut-Identität (voller Testkit-Reset)', () 
   });
 
   it('resetMeta allein genügt für einen frischen Meta-Speicher (kein Storage-Rest)', () => {
+    updateMeta({ nektar: 5000 });   // B39: die Brut kostet Nektar
     enqueueBrood(A, B, 1);
     resetMeta();
     expect(loadMeta().broodGeneration).toBe(0);

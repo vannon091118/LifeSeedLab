@@ -10,8 +10,8 @@ import { rollBrood } from '../genome/beetle';
 import { genomeToVisualInput, genomeEffectIds } from '../genome/visualMap';
 import { resolveVisual, resolveBredVisuals, previewColor } from '../visual/generator';
 import { deriveBredEntry } from '../meta/store';
-import { GENE_PAIRS } from '../config/genes.source';
-import { EXTRAS_SOURCE } from '../config/extras.source';
+import { GENE_EFFECTS } from '../config/genes.source';
+import { PLANT_AXES_BY_GENE } from '../config/phenotype.source';
 import { EFFECTS_SOURCE } from '../config/effects.source';
 import { deriveSeed } from '../core/rng';
 import { GAME_SEED } from '../config';
@@ -125,18 +125,22 @@ const fireVariant: PlantVariant = {
 };
 
 describe('B26 — fire als Paar: eine Zeile, drei Kanäle', () => {
-  it('1) Ornament und Effekt-Ziel stammen aus derselben Paar-Zeile', () => {
+  it('1) Wirkung und Erscheinung stammen aus derselben Gen-ID', () => {
     const input = genomeToVisualInput(fireVariant, SEED);
-    expect(GENE_PAIRS['fire']).toEqual({ extra: 'EXTRA_SPIKE', effect: 'EFFECT_BURN' });
-    expect(input.extraIds).toContain('EXTRA_SPIKE');
-    expect(input.effectIds).toEqual(['EFFECT_BURN']);
+    expect(GENE_EFFECTS['fire']).toBe('EFFECT_BURN');
+    expect(input.effectIds).toContain('EFFECT_BURN');
+    // Dieselbe Gen-ID verschiebt sichtbare Achsen — der Effekt ist nie die einzige Folge.
+    expect(Object.keys(PLANT_AXES_BY_GENE['fire']!).length).toBeGreaterThanOrEqual(3);
   });
 
-  it('1b) der Effect-Tint der Pflanze ist die Brand-Palette der Source', () => {
-    const resolved = resolveVisual(genomeToVisualInput(fireVariant, SEED));
-    const tint = resolved.layers.find(l => l.key === 'effect_tint');
-    expect(tint, 'kein effect_tint-Layer — der Effekt erreicht die Silhouette nicht').toBeDefined();
-    expect(tint!.color).toBe(EFFECTS_SOURCE.EFFECT_BURN.paletteModifier);
+  it('1b) der Effekt erreicht die Silhouette: das Brand-Gen verändert den Grundton', () => {
+    const burning = resolveVisual(genomeToVisualInput(fireVariant, SEED));
+    const plainGenome: Genome = [{ id: 'rapid', power: 0.95, dominant: true }];
+    const plain = resolveVisual(genomeToVisualInput({ ...fireVariant, genome: plainGenome }, SEED));
+    expect(burning.effectIds).toContain('EFFECT_BURN');
+    expect(plain.effectIds).not.toContain('EFFECT_BURN');
+    expect(EFFECTS_SOURCE.EFFECT_BURN).toBeDefined();
+    expect(burning.palette.base).not.toBe(plain.palette.base);
   });
 
   it('2) Vorschau (Zucht/Hub) und Feld rufen dieselbe Pipeline auf', () => {
@@ -149,14 +153,13 @@ describe('B26 — fire als Paar: eine Zeile, drei Kanäle', () => {
   // Basis, Ornament und Effect stehen allein aus dem Genom. Der Farb-/Scale-Jitter kommt aus dem
   // Seeded-RNG (`resolvePalette`-Mutation ±20/Kanal, Rarity-Zweig, Scale ±0.05) und darf sich
   // zwischen Menü und Feld unterscheiden. Bei Bedarf bindet die Vorschau an den künftigen Run-Seed.
-  it('2b) Komposition ist seed-unabhängig: Menü-Seed und Run-Seed zeigen dieselbe Pflanze', () => {
+  it('2b) Anatomie ist seed-unabhängig: Menü und Feld zeigen dasselbe Wesen', () => {
     const runSeed = deriveSeed(GAME_SEED, 'world', 'run', 1, 1);
     const shown = resolveVisual(genomeToVisualInput(fireVariant, GAME_SEED));
     const field = resolveVisual(genomeToVisualInput(fireVariant, runSeed));
-    expect(shown.baseId).toBe(field.baseId);
-    expect(shown.extraIds).toEqual(field.extraIds);
+    expect(shown.variantKey).toBe(field.variantKey);
+    expect(shown.phenotype.descriptor).toEqual(field.phenotype.descriptor);
     expect(shown.effectIds).toEqual(field.effectIds);
-    expect(shown.layers.map(l => l.key)).toEqual(field.layers.map(l => l.key));
   });
 
   it('3) das Riding-Tag des Runs kommt aus dem Genom, nicht aus einer zweiten Tabelle', () => {
@@ -199,24 +202,18 @@ describe('B26 — fire als Paar: eine Zeile, drei Kanäle', () => {
     expect(burning, 'kein Gegner brennt — effectId erreicht die Status-Anwendung nicht').toBeGreaterThan(0);
   });
 
-  // Ist-Zustands-Pin des Prototyp-Befunds: die Kompatibilitätsliste der Basis kann das
-  // Paar-Ornament stillschweigend entfernen. Gemessen über 12 Feuerschützen (nur die
-  // Gen-Power variiert → der Genom-Hash wählt unterschiedliche Basen).
-  it('Befund: je nach gezogener Basis verschwindet der Dorn — gemessen, nicht behauptet', () => {
-    let withSpike = 0;
-    const total = 12;
-    for (let i = 0; i < total; i++) {
-      const genome: Genome = [
-        { id: 'fire', power: 0.5 + i * 0.03, dominant: true },
-        { id: 'rapid', power: 0.3, dominant: true },
-      ];
-      const variant: PlantVariant = { ...fireVariant, id: `cross_fire_${i}`, genome };
-      const resolved = resolveVisual(genomeToVisualInput(variant, SEED));
-      if (resolved.layers.some(l => l.key === EXTRAS_SOURCE.EXTRA_SPIKE.asset)) withSpike++;
-    }
-    // EXTRA_SPIKE verträgt nur BASE_CACTUS/THORN/ROOT; Schützen ziehen THORN/FROND/FLOWER.
-    expect(withSpike).toBeGreaterThan(0);
-    expect(withSpike).toBeLessThan(total);
+  // Der alte Befund („die Kompatibilitätsliste der Basis kann das Ornament stillschweigend
+  // entfernen") ist mit dem Baukasten GESTORBEN: es gibt keine Filterliste mehr, die eine
+  // Gen-Folge wegwerfen könnte. Gepinnt wird jetzt die Gegenrichtung — die Gen-Stärke ist
+  // monoton am Bild ablesbar.
+  it('die Gen-Stärke ist monoton am Bild ablesbar — kein Filter wirft sie mehr weg', () => {
+    const thorns = (power: number) => resolveVisual(genomeToVisualInput({
+      ...fireVariant, id: `cross_thorns_${power}`,
+      genome: [{ id: 'thorns', power, dominant: true }] as Genome,
+    }, SEED)).phenotype.protection.thorns;
+    // 0,2 ist die Wahrnehmungsschwelle — darunter ist die Anlage TRÄGER, nicht Ausprägung.
+    expect(thorns(0.95)).toBeGreaterThan(thorns(0.3));
+    expect(thorns(0.3)).toBeGreaterThan(0);
   });
 });
 

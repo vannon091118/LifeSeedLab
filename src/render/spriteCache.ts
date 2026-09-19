@@ -1,29 +1,23 @@
 // Owner: RenderSystem (SpriteCache). LOC ≤ 200.
-// B28 — Performance-Fundament für B26: Jede Pflanze (ResolvedVisual) wird EINMAL pro
-// (variantKey, Zellgröße, DPR) auf ein OffscreenCanvas gerendert; pro Frame bleibt nur
-// ein drawImage statt 3–6 Pfad-+Gradient-Operationen pro Layer. Der Cache-Schlüssel ist
-// der `variantKey` (stabile Identität aus dem Generator, test-locked) — nicht die
-// variantId: dieselbe Genome-Form in zwei Runs teilt sich das Sprite nur bei gleichem
-// Key, verschiedene Formen kollidieren nie. Reine Präsentation: lesen aus dem
-// ResolvedVisual, keine Zustandsmutation, kein RNG.
+// B28 — Performance-Fundament: Jede Pflanze (Phänotyp) wird EINMAL pro (variantKey, Zellgröße,
+// DPR) auf ein Canvas gebacken; pro Frame bleibt nur ein drawImage statt Dutzenden Bézier-Pfaden.
+// Der Cache-Schlüssel ist der `variantKey` (stabile Phänotyp-Identität aus dem Generator) —
+// nicht die variantId: zwei Individuen teilen sich das Sprite nur bei identischer Anatomie.
 //
-// Determinismus-Konto: Das Sprite wird aus denselben drawLayerPrimitive-Aufrufen
-// gebaut wie vorher der Direktpfad — das Bild ist pixel-identisch (gleicher
-// Koordinatenraum ±1, gleiche Skalen). Idle-Animation (sway/bob) und Punch/Squash
-// bleiben Transform-Eigenschaften des Renderers, NICHT Teil des Sprites — deshalb
-// bleibt die Animation live, nur die Form wird gebacken.
+// Reine Präsentation: liest den Phänotyp, keine Zustandsmutation, kein RNG, keine Uhr.
+// Animation (Wiegen/Bob/Punch/Squash) bleibt Transform des Renderers — deshalb lebt sie live,
+// nur die FORM wird gebacken.
 
 import type { ResolvedVisual } from '../visual/generator';
-import { drawLayerPrimitive } from './layers/primitives';
+import { drawPlantAnatomy } from './plants';
 
 interface CacheEntry {
   canvas: HTMLCanvasElement;
-  /** Kantenlänge in CSS-Pixeln, für die gebacken wurde (Spritemaß = cell * SPRITE_SPAN). */
+  /** Kantenlänge in CSS-Pixeln, für die gebacken wurde. */
   spanPx: number;
 }
 
-/** Sprite-Fenster in Zellen: Platz für Layer, die über die Zelle hinausragen
- *  (Petals ±1.18, Glow 1.25, Antennen bis -1.02) plus Rand für die 0.12-Kontur. */
+/** Sprite-Fenster in Zellen: Platz für Blätter, Blüten und Dornen, die über die Zelle hinausragen. */
 const SPRITE_SPAN = 3;
 
 const cache = new Map<string, CacheEntry>();
@@ -45,22 +39,10 @@ export function spriteFor(
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('SpriteCache: 2D context unavailable');
 
-  // Same coordinate space as the direct path: layers are drawn at unit scale
-  // (±1) times cell*0.3, centered. We bake at device resolution so the sprite
-  // stays crisp on retina (drawImage downscales cleanly, upscale never happens
-  // — spanPx is derived from the DPR-scaled cell).
-  const unit = (cell * dpr) * 0.3;
+  // Die Anatomie ist normiert (±1) und wird hier auf das Sprite-Fenster gezeichnet; bei
+  // Device-Auflösung gebacken bleibt sie auf Retina scharf (drawImage skaliert nur herunter).
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.translate(spanPx / 2, spanPx / 2);
-  for (const layer of visual.layers) {
-    ctx.save();
-    ctx.translate(layer.anchor.x * cell * dpr, layer.anchor.y * cell * dpr);
-    ctx.rotate(layer.rotation);
-    const s = layer.scale * unit;
-    ctx.scale(s, s);
-    drawLayerPrimitive(ctx, layer.key, layer.color, layer.outline);
-    ctx.restore();
-  }
+  drawPlantAnatomy(ctx, visual.phenotype, spanPx);
 
   const entry: CacheEntry = { canvas, spanPx };
   cache.set(key, entry);
@@ -72,14 +54,14 @@ export function spriteCacheSize(): number {
   return cache.size;
 }
 
-/** Cache leeren — nur für Tests oder einen bewussten „Neu zeichnen“-Fall gedacht. */
+/** Cache leeren — nur für Tests oder einen bewussten „Neu zeichnen"-Fall gedacht. */
 export function clearSpriteCache(): void {
   cache.clear();
 }
 
 /**
- * drawImage-Helfer: zeichnet das Sprite zentriert auf (x, y) mit der Gesamt-Skala
- * `scale` (Genom-Skala × Punch × Squash). Kein Speicherverhalten — reine Ausgabe.
+ * drawImage-Helfer: zeichnet das Sprite zentriert auf (x, y) mit der Transform-Skala
+ * (Punch/Squash) — die Größe des Wesens steckt bereits in seiner Anatomie.
  */
 export function drawSprite(
   ctx: CanvasRenderingContext2D,

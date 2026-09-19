@@ -27,9 +27,9 @@ function inRun(): TutorialController {
 }
 
 describe('B21 — Schrittmodell', () => {
-  it('hat zehn Schritte mit eindeutigen IDs', () => {
-    expect(TUTORIAL_STEPS).toHaveLength(10);
-    expect(new Set(TUTORIAL_STEPS.map(s => s.id)).size).toBe(10);
+  it('hat elf Schritte mit eindeutigen IDs', () => {
+    expect(TUTORIAL_STEPS).toHaveLength(11);
+    expect(new Set(TUTORIAL_STEPS.map(s => s.id)).size).toBe(11);
   });
 
   it('beginnt am Titel-Screen und endet im Feld', () => {
@@ -44,7 +44,7 @@ describe('B21 — Schrittmodell', () => {
     const ids = (screen: string) => TUTORIAL_STEPS.filter(s => s.screen === screen).map(s => s.id);
     expect(ids('start')).toEqual(['ankunft', 'startknopf']);
     expect(ids('menu')).toEqual(['labor']);
-    expect(ids('run')).toEqual(['karte', 'pflanzen', 'welle', 'pause', 'weiter', 'chips', 'abschluss']);
+    expect(ids('run')).toEqual(['karte', 'pflanzen', 'bau', 'welle', 'pause', 'weiter', 'chips', 'abschluss']);
   });
 
   it('ordnet die Screens monoton (start < menu < run, Unterseiten = menu)', () => {
@@ -70,7 +70,7 @@ describe('B21 — Schrittmodell', () => {
       if (step.cue === 'none') expect(cueSelector(step.cue)).toBeNull();
       else expect(cueSelector(step.cue)).toBe(CUE_SELECTORS[step.cue]);
     }
-    expect(Object.keys(CUE_SELECTORS)).toHaveLength(8);
+    expect(Object.keys(CUE_SELECTORS)).toHaveLength(9);
   });
 
   it('hält die Sim nur beim Lesen IM FELD — nie auf Titel oder Hub', () => {
@@ -88,6 +88,7 @@ describe('B21 — Schrittmodell', () => {
     expect(signalOf('labor')).toBe('screenLeft');
     expect(signalOf('karte')).toBe('cardSelected');
     expect(signalOf('pflanzen')).toBe('placed');
+    expect(signalOf('bau')).toBe('layoutDone');       // R1: die Bauphase ist ein eigener Schritt
     expect(signalOf('welle')).toBe('waveStarted');
     expect(signalOf('pause')).toBe('paused');
     expect(signalOf('weiter')).toBe('running');
@@ -157,13 +158,15 @@ describe('B21 — TutorialController', () => {
 
   it('verlangt für „pflanzen" eine NEUE Platzierung (Basis beim Schritt-Eintritt)', () => {
     const c = inRun();
-    c.update(snap({ screen: 'run', selectedVariant: 'sprout', placements: 4 }));
+    // phase 'layout' = die Bauphase läuft: dort wartet der Bau-Schritt, der Test bleibt eindeutig.
+    c.update(snap({ screen: 'run', selectedVariant: 'sprout', placements: 4, phase: 'layout' }));
     expect(c.view.step?.id).toBe('pflanzen');
 
-    c.update(snap({ screen: 'run', selectedVariant: 'sprout', placements: 4 }));
+    c.update(snap({ screen: 'run', selectedVariant: 'sprout', placements: 4, phase: 'layout' }));
     expect(c.view.step?.id).toBe('pflanzen');      // gleicher Zähler ist keine neue Platzierung
-    c.update(snap({ screen: 'run', selectedVariant: 'sprout', placements: 5 }));
-    expect(c.view.step?.id).toBe('welle');
+    c.update(snap({ screen: 'run', selectedVariant: 'sprout', placements: 5, phase: 'layout' }));
+    // Die Platzierung erfüllt „pflanzen"; danach kommt die Bauphase (der neue Schritt).
+    expect(c.view.step?.id).toBe('bau');
   });
 
   it('nimmt die Welle, die Pause und das Fortsetzen als Handlung an', () => {
@@ -194,6 +197,24 @@ describe('B21 — TutorialController', () => {
     c.update(snap({ screen: 'run', selectedVariant: 'sprout', placements: 1, phase: 'wave' }));
     // Der Welle-Schritt erfüllt sich sofort (Welle läuft schon), der Pause-Schritt wartet.
     expect(c.view.step?.id).toBe('pause');
+  });
+
+  it('(Regression) der Wellen-Schritt erfüllt sich NICHT in der Bauphase', () => {
+    // Befund: Der Run beginnt in `layout`. Das Kriterium war `phase !== 'prep'` — damit war der
+    // Wellen-Schritt in der Bauphase SOFORT erfüllt, bevor der Spieler gebaut oder gedrückt hatte.
+    const c = inRun();
+    const at = (patch: Partial<TutorialSnapshot>) => snap({ screen: 'run', selectedVariant: 'sprout', ...patch });
+    c.update(at({ phase: 'layout' }));      // Eintritt „pflanzen" (Basis 0) — Bauphase läuft
+    c.update(at({ placements: 1, phase: 'layout' }));   // ⇒ Bau-Schritt
+    expect(c.view.step?.id).toBe('bau');
+    c.update(at({ placements: 1, phase: 'layout' }));
+    expect(c.view.step?.id).toBe('bau');    // baut noch: der Schritt bleibt
+    c.update(at({ placements: 1, phase: 'prep' }));
+    expect(c.view.step?.id).toBe('welle');  // Bau beendet ⇒ Welle-Schritt fordert die Welle
+    c.update(at({ placements: 1, phase: 'prep' }));
+    expect(c.view.step?.id).toBe('welle');  // Vorbereitung ist KEINE Welle
+    c.update(at({ placements: 1, phase: 'wave' }));
+    expect(c.view.step?.id).toBe('pause');  // erst jetzt ist die Handlung getan
   });
 
   it('liefert dieselbe View-Identität, solange sich nichts ändert', () => {

@@ -320,13 +320,13 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `7b5c592` — refactor(redundanz): toten code geschnitten, loc- und test-regeln |
-| Arbeitsbaum | 0 gestaged, 50 geändert, 0 neu |
-| Letztes Gate | 🛑 geschlossen (preflight, 1 Fehler, 0 Warnungen) |
+| HEAD | `e293255` — feat(wirtschaft): material-pool ersetzt das energiesystem |
+| Arbeitsbaum | 42 gestaged, 0 geändert, 2 neu |
+| Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `7b5c592` refactor(redundanz): toten code geschnitten, loc- und test-regeln |
+| Letzter Shinon-Commit | `e293255` feat(wirtschaft): material-pool ersetzt das energiesystem |
 | Letzter Push | ✅ origin/main |
-| LOC-Hotspots | `src/simulation/root.ts` 300/300 (100 %)<br>`src/simulation/enemySystem.ts` 299/300 (100 %)<br>`src/render/gameRuntime.ts` 395/400 (99 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/components/Greenhouse.tsx` 376/400 (94 %) |
+| LOC-Hotspots | `src/config/phenotype.source.ts` 228/200 (114 %)<br>`src/render/gameRuntime.ts` 401/400 (100 %)<br>`src/simulation/root.ts` 300/300 (100 %)<br>`src/simulation/enemySystem.ts` 299/300 (100 %)<br>`src/components/Greenhouse.tsx` 382/400 (96 %) |
 <!-- SHINON:STATUS:END -->
 
 

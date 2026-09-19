@@ -27,7 +27,7 @@ export interface TutorialSnapshot {
   selectedVariant: string | null;
   /** Zähler ANGENOMMENER Platzierungen. UI-Signal: greift auch bei stehender Sim. */
   placements: number;
-  /** RunPhase der Sim (`prep` | `wave` | `gameover`). */
+  /** RunPhase der Sim (`layout` | `prep` | `wave` | `gameover`). */
   phase: string;
   paused: boolean;
 }
@@ -137,7 +137,12 @@ export class TutorialController {
       case 'langChosen': return s.langChosen;
       case 'cardSelected': return s.selectedVariant !== null;
       case 'placed': return s.placements > this.baselinePlacements;
-      case 'waveStarted': return s.phase !== 'prep';
+      // Die Bauphase ist ein eigener Zustand (`layout`), nicht „noch keine Welle": beide Wege
+      // hinaus zählen („Welle starten" direkt / „Bauen beenden ✓" in die Vorbereitung).
+      case 'layoutDone': return s.phase !== 'layout';
+      // Nur eine WIRKLICH laufende Welle erfüllt den Wellen-Schritt (Befund: `!== 'prep'` war im
+      // Layout sofort wahr — der Schritt lief durch, ohne dass der Spieler gedrückt hatte).
+      case 'waveStarted': return s.phase === 'wave';
       case 'paused': return s.paused;
       case 'running': return !s.paused;
     }

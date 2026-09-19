@@ -7,9 +7,13 @@ import type { ParticlePool } from '../observers/particles';
 import type { FeedbackLayer } from './layers/feedback';
 import { WEAKENED_THRESHOLD } from '../config/economy.source';
 import { resolveVisual, type ResolvedVisual } from '../visual/generator';
+import { basePlantVisualInput } from '../genome/visualMap';
 import { getPlantStats } from '../simulation/plantSystem';
 import { strHash } from '../core/rng';
 import { drawSprite } from './spriteCache';
+import { drawBeetleSprite } from './beetleSprites';
+import { beetleBob } from './beetles';
+import type { ResolvedBeetleVisual } from '../visual/beetleGenerator';
 import { drawMapTile } from './layers/mapTiles';
 import { drawEnemyBody } from './layers/enemies';
 import { drawParticle } from './layers/particlesDraw';
@@ -40,11 +44,15 @@ export class Renderer {
   private terrainKey = '';
   private nightAlpha = 0; private nightTarget = 0;
   private bredVisuals = new Map<string, ResolvedVisual>();
+  /** P6: eingesetzte Käfer werden als IHR Individuum gezeichnet (nicht als Farbpunkt, nicht gar nicht). */
+  private beetleVisuals = new Map<string, ResolvedBeetleVisual>();
   /** R2: dynamische Weltgröße — wird pro Frame aus dem State gespiegelt (Beobachter, kein Besitz). */
   private worldCols = 12;
   private worldRows = 12;
 
   setBredVisuals(map: Map<string, ResolvedVisual>): void { this.bredVisuals = map; }
+
+  setBeetleVisuals(map: Map<string, ResolvedBeetleVisual>): void { this.beetleVisuals = map; }
 
   private plantVisual(plant: PlantEntity, runSeed: number): ResolvedVisual {
     const cacheKey = `${runSeed}|${plant.variantId}`;
@@ -53,9 +61,11 @@ export class Renderer {
       const bred = this.bredVisuals.get(plant.variantId);
       if (bred) v = bred;
       else {
-        const baseId = plant.variantId === 'rootwall' ? 'BASE_ROOT'
-          : plant.variantId === 'mycelia' ? 'BASE_MUSHROOM' : 'BASE_THORN';
-        v = resolveVisual({ baseId, extraIds: [], effectIds: [], visualSeed: strHash(`plant:${runSeed}:${plant.variantId}`) });
+        // Grundpflanzen laufen durch DIESELBE Ableitung wie gezüchtete (Genom aus PLANTS_SOURCE).
+        // Der alte Zweig mit festen BASE-IDs ist gestorben: eine Grundpflanze ist keine andere
+        // Sorte Wesen, sie hat nur ein kleineres Genom.
+        const input = basePlantVisualInput(plant.variantId, runSeed) ?? basePlantVisualInput('sprout', runSeed)!;
+        v = resolveVisual(input);
       }
       visualCache.set(cacheKey, v);
     }
@@ -178,6 +188,11 @@ export class Renderer {
       }
     }
 
+    // P6/R3: der eingesetzte Käfer ist ein WESEN mit eigener Anatomie — vorher wurde er im Run
+    // überhaupt nicht gezeichnet (weder Körper noch Brutlinge). Er liegt über den Gegnern,
+    // damit der Verbündete sichtbar bleibt, wenn die Wellen an ihm hängen.
+    this.drawDeployedBeetle(ctx, state, toPx, toPy, cell);
+
     if (particles) particles.forEachActive(p => drawParticle(ctx, p, toPx, toPy, cell));
     feedback?.drawTexts(ctx, toPx, toPy, cell);
 
@@ -227,6 +242,38 @@ export class Renderer {
     ctx.globalAlpha = 0.6;
     drawSprite(ctx, ghost.visual, cell, this.dpr, cx, cy, 1);
     ctx.restore();
+  }
+
+  /**
+   * Der eingesetzte Brutling + seine Mit-Brutlinge. Identität kommt aus dem aufgelösten Visual
+   * (beetleVisuals), Position aus der Sim. Fehlt ein Visual (Specimen nicht im Lager), wird
+   * NICHTS gezeichnet statt eines Platzhalter-Punkts — ein falsches Wesen wäre schlimmer.
+   */
+  private drawDeployedBeetle(
+    ctx: CanvasRenderingContext2D, state: SimState,
+    toPx: (x: number) => number, toPy: (y: number) => number, cell: number,
+  ): void {
+    const b = state.deployedBeetle;
+    if (!b) return;
+    const visual = this.beetleVisuals.get(b.specimenId) ?? this.beetleVisuals.get(b.id);
+    if (!visual) return;
+    const t = state.clock.tick;
+    const bob = beetleBob(visual.phenotype, t * 16);
+    const cx = toPx(b.px), cy = toPy(b.py) - bob * cell;
+
+    // Mit-Brutlinge: kleinere Ausgaben DESSELBEN Wesens (kein zweiter Zeichenpfad).
+    for (const brood of b.broodlings) {
+      drawBeetleSprite(ctx, visual, cell, this.dpr, toPx(brood.px), toPy(brood.py), 0.55 * visual.scale);
+    }
+    drawBeetleSprite(ctx, visual, cell, this.dpr, cx, cy, visual.scale);
+
+    // Lebensbalken des Anführers (nur wenn verletzt) — dieselbe Sprache wie Pflanze/Gegner.
+    if (b.hp < b.maxHp) {
+      const r = cell * 0.24;
+      ctx.fillStyle = INK; ctx.fillRect(cx - r, cy - r - 8, r * 2, 4);
+      ctx.fillStyle = '#d9a441';
+      ctx.fillRect(cx - r + 1, cy - r - 7, (r * 2 - 2) * Math.max(0, b.hp / b.maxHp), 2);
+    }
   }
 
   private drawPlant(

@@ -1,96 +1,93 @@
 import { describe, it, expect } from 'vitest';
-import { resolveVisual, resolveBredVisuals, type VisualInput } from './generator';
+import { resolveVisual, resolveBredVisuals } from './generator';
 import { createBaseVariants } from '../genome';
-import { BASE_IDS } from '../config/bases.source';
-import { EXTRA_IDS } from '../config/extras.source';
+import { genomeToVisualInput, basePlantVisualInput } from '../genome/visualMap';
+import { PLANT_IDS } from '../config/plants.source';
+import type { Genome, PlantVariant } from '../types';
 
-// Test-Helper (vorher generateVisualForBase in generator.ts — nur hier genutzt,
-// deshalb als lokaler Helper statt toter Produktionsexport).
-function generateVisualForBase(baseId: Parameters<typeof resolveVisual>[0]['baseId'], visualSeed: number) {
-  return resolveVisual({ baseId, extraIds: [], effectIds: [], visualSeed });
+// R3: der Generator RESOLVED nur noch — die Anatomie kommt als Phänotyp herein
+// (genome/plantPhenotype.ts), gezeichnet wird sie von render/plants.ts. Gepinnt wird hier
+// deshalb: Determinismus der Auflösung, stabile variantKey-Identität und die Zusage, dass
+// zwei verschiedene gültige Genome ZWEI verschiedene Individuen ergeben (kein Farb-Offset).
+
+const SEED = 583921;
+
+function variantOf(genome: Genome, id = 'cross_a', type: PlantVariant['type'] = 'shooter'): PlantVariant {
+  return {
+    id, name: id, type, genome, traits: [], cost: 40,
+    stats: { hp: 100, damage: 10, range: 3, cooldown: 30, special: null },
+    color: '#4ade80', discovered: true,
+  };
 }
 
-const input: VisualInput = {
-  baseId: 'BASE_FLOWER',
-  extraIds: ['EXTRA_HAT', 'EXTRA_EYE'],
-  effectIds: ['EFFECT_BURN'],
-  visualSeed: 583921,
-};
+const A = variantOf([{ id: 'fire', power: 0.8, dominant: true }, { id: 'rapid', power: 0.5, dominant: true }], 'cross_fire');
+const B = variantOf([{ id: 'ice', power: 0.7, dominant: false }, { id: 'heavy', power: 0.6, dominant: false }], 'cross_ice');
 
-describe('Phase 6 gate: visual determinism', () => {
-  it('same input = identical ResolvedVisual (Test B, run 1 vs run 2)', () => {
-    const a = resolveVisual(input);
-    const b = resolveVisual(input);
-    expect(a).toEqual(b);
+describe('R3 gate: ResolvedVisual ist eine reine Phänotyp-Auflösung', () => {
+  it('gleiches Input ⇒ identisches ResolvedVisual (byte-gleich)', () => {
+    const input = genomeToVisualInput(A, SEED);
+    expect(resolveVisual(input)).toEqual(resolveVisual(input));
   });
 
-  it('visualSeed changes the resolution', () => {
-    const a = resolveVisual(input);
-    const b = resolveVisual({ ...input, visualSeed: 583922 });
-    expect(a).not.toEqual(b);
-  });
-
-  it('every base resolves without error and has layers', () => {
-    for (const baseId of BASE_IDS) {
-      const v = generateVisualForBase(baseId, 42);
-      expect(v.layers.length).toBeGreaterThan(0);
-      expect(v.variantKey).toContain(baseId);
+  it('jede Grundpflanze löst über DENSELBEN Pfad auf (kein BASE-Zweig mehr)', () => {
+    for (const id of PLANT_IDS) {
+      const input = basePlantVisualInput(id, SEED);
+      expect(input, `${id} hat keine Quelle`).not.toBeNull();
+      const v = resolveVisual(input!);
+      expect(v.variantKey.startsWith('plant|')).toBe(true);
+      expect(v.phenotype.stalk.height).toBeGreaterThan(0);
     }
   });
 
-  it('variantKey is stable and distinct per seed', () => {
-    const v1 = generateVisualForBase('BASE_BUSH', 7);
-    const v2 = generateVisualForBase('BASE_BUSH', 8);
-    const v1Again = generateVisualForBase('BASE_BUSH', 7);
-    expect(v1.variantKey).toBe(v1Again.variantKey);
-    expect(v1.variantKey).not.toBe(v2.variantKey);
+  it('kein Baukasten-Rest im Ergebnis (keine Layer-, Base- oder Extra-Liste)', () => {
+    const v = resolveVisual(genomeToVisualInput(A, SEED)) as unknown as Record<string, unknown>;
+    expect(v['layers']).toBeUndefined();
+    expect(v['baseId']).toBeUndefined();
+    expect(v['extraIds']).toBeUndefined();
+    expect(v['visualVersion']).toBeUndefined();
   });
 
-  it('incompatible extras are filtered deterministically', () => {
-    // EXTRA_SPIKE is not compatible with BASE_FLOWER
-    const v = resolveVisual({ ...input, extraIds: [...EXTRA_IDS] });
-    expect(v.extraIds).not.toContain('EXTRA_SPIKE');
+  it('variantKey ist stabil und folgt der Anatomie, nicht der Variant-ID', () => {
+    const one = resolveVisual(genomeToVisualInput(A, SEED));
+    expect(one.variantKey).toBe(resolveVisual(genomeToVisualInput(A, SEED)).variantKey);
+    // Gleiches Genom, andere ID ⇒ gleiche Anatomie ⇒ dasselbe Sprite (der Key folgt der Form).
+    const sameForm = resolveVisual(genomeToVisualInput({ ...A, id: 'cross_other_id' }, SEED));
+    expect(sameForm.variantKey).toBe(one.variantKey);
+    expect(sameForm.phenotype.descriptor).toEqual(one.phenotype.descriptor);
   });
 
-  it('gespeicherte Bred-Variante erhält deterministisches ResolvedVisual', () => {
-    const variant = { ...createBaseVariants()[0], id: 'cross_seedling' };
-    const first = resolveBredVisuals([variant], 583921);
-    const second = resolveBredVisuals([variant], 583921);
+  it('verschiedene gültige Genome ergeben phänotypisch unterscheidbare Wesen', () => {
+    const fire = resolveVisual(genomeToVisualInput(A, SEED));
+    const ice = resolveVisual(genomeToVisualInput(B, SEED));
+    expect(fire.variantKey).not.toBe(ice.variantKey);
+    // Nicht nur die Farbe: die Anatomie selbst weicht messbar ab.
+    const stamm = Math.abs(fire.phenotype.stalk.thickness - ice.phenotype.stalk.thickness);
+    const blatt = Math.abs(fire.phenotype.leaves.count - ice.phenotype.leaves.count);
+    const dorn = Math.abs(fire.phenotype.protection.thorns - ice.phenotype.protection.thorns);
+    expect(stamm + blatt / 10 + dorn).toBeGreaterThan(0.05);
+  });
+
+  it('Effekt bleibt am Bild ablesbar (Tint aus derselben Gen-Zeile)', () => {
+    const plain = resolveVisual(genomeToVisualInput(variantOf([{ id: 'rapid', power: 0.8, dominant: true }], 'cross_plain'), SEED));
+    const burning = resolveVisual(genomeToVisualInput(A, SEED));
+    // Die zwei stärksten Gene fahren auf dem Projektil (fire + rapid) — fire ist darunter.
+    expect(burning.effectIds).toContain('EFFECT_BURN');
+    expect(plain.effectIds).not.toContain('EFFECT_BURN');
+    expect(burning.palette.base).not.toBe(plain.palette.base);
+  });
+
+  it('gespeicherte Bred-Varianten erhalten deterministisch dasselbe ResolvedVisual', () => {
+    const variant = { ...createBaseVariants()[0]!, id: 'cross_seedling' };
+    const first = resolveBredVisuals([variant], SEED);
+    const second = resolveBredVisuals([variant], SEED);
     expect(first.get('cross_seedling')).toBeDefined();
     expect(first.get('cross_seedling')).toEqual(second.get('cross_seedling'));
-    expect(first.get('cross_seedling')!.variantKey).not.toContain('base_shooter');
-  });
-});
-
-describe('Kästchenblock-CGI: genomgetriebene Skala (0.85–1.25)', () => {
-  it('jede Skala liegt in den Bounds (alle Basen, mehrere Seeds)', () => {
-    for (const baseId of BASE_IDS) {
-      for (const seed of [1, 42, 999, 583921]) {
-        const v = generateVisualForBase(baseId, seed);
-        expect(v.scale).toBeGreaterThanOrEqual(0.85);
-        expect(v.scale).toBeLessThanOrEqual(1.25);
-      }
-    }
   });
 
-  it('stärkeres Genom ⇒ größere Skala (gleiches Seed)', () => {
-    const weak = resolveVisual({ ...input, strength: 0.0, visualSeed: 777 });
-    const strong = resolveVisual({ ...input, strength: 1.0, visualSeed: 777 });
-    expect(strong.scale).toBeGreaterThan(weak.scale);
-    // Jitter-Klemme: selbst Extreme bleiben in den Bounds
-    expect(weak.scale).toBeGreaterThanOrEqual(0.85);
-    expect(strong.scale).toBeLessThanOrEqual(1.25);
-  });
-
-  it('Skala ist deterministisch: gleiches Input ⇒ identische Skala', () => {
-    const a = resolveVisual({ ...input, strength: 0.6 });
-    const b = resolveVisual({ ...input, strength: 0.6 });
-    expect(a.scale).toBe(b.scale);
-  });
-
-  it('fehlende strength fällt auf seeded-Mittelwert zurück (in Bounds)', () => {
-    const v = resolveVisual({ ...input });
-    expect(v.scale).toBeGreaterThanOrEqual(0.85);
-    expect(v.scale).toBeLessThanOrEqual(1.25);
+  it('die Grundpflanze ist keine Sonder-Silhouette: ihr Bild kommt aus ihrem Genom', () => {
+    const sprout = resolveVisual(basePlantVisualInput('sprout', SEED)!);
+    const rootwall = resolveVisual(basePlantVisualInput('rootwall', SEED)!);
+    expect(sprout.variantKey).not.toBe(rootwall.variantKey);
+    expect(rootwall.phenotype.protection.thorns).toBeGreaterThan(sprout.phenotype.protection.thorns);
   });
 });

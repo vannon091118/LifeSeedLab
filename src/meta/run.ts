@@ -1,7 +1,8 @@
 import type { MetaSave, PendingBrood, PlantVariant } from '../types';
 import { loadMeta, updateMeta, persistMeta, deriveBredEntry } from './store';
 import { isCrossReady, isMatured } from './economy';
-import { rollBrood } from '../genome/beetle';
+import { rollBrood, resolveAncestor, type BeetleParentRef } from '../genome/beetle';
+import { BEETLE_BREED } from '../config/beetles.source';
 import { deriveLoanPlant, LOAN_PLANT_ID } from './loan';
 
 // Owner: PersistenceSystem (meta run/variant ops). LOC ≤ 200.
@@ -171,18 +172,31 @@ export function toggleLoadout(variantId: string): MetaSave {
 // ── P6: Käferzucht (Brüten) — eigene Meta-Operations, gleiche Persistenz-Owner ──
 
 /** Reift: 3 Brutkandidaten wurden deterministisch gewürfelt, Spieler wählt einen. */
-export function enqueueBrood(specimenAId: string, specimenBId: string, neededWaves: number): MetaSave {
+export function enqueueBrood(parentA: BeetleParentRef, parentB: BeetleParentRef, neededWaves: number): MetaSave {
   const meta = loadMeta();
+  // QA-Befund v0.0.53 #2 („free beetle breeding", 3/3 reproduziert): die Brutstätte PRÜFTE den
+  // Kontostand (`BeetleLab`), aber die Buchung fehlte hier — Brut war gratis, während der
+  // Samen-Shop korrekt abbucht. Die Abbuchung gehört in den Meta-Writer, nicht in den Screen:
+  // fail-closed wie `buySeed` (zu wenig Nektar ⇒ unveränderter Save, keine Queue, kein Zähler).
+  if (meta.nektar < BEETLE_BREED.nektarCost) return meta;
+  // R3: die Eltern werden als VORFAHREN (Genom + Generation) festgeschrieben. Ein übergebenes
+  // Specimen bringt sein eigenes Genom mit — die Brut ist damit echte Nachzucht und keine
+  // Neukombination der drei Gründer.
+  const ancestorA = resolveAncestor(parentA);
+  const ancestorB = resolveAncestor(parentB);
+  if (!ancestorA || !ancestorB) return meta;
   // A13.1/B14.1: Die Brut-Generation kommt aus dem MONOTONEN Zähler — niemals aus
   // max(pendingBroods). Das Fenster schrumpft beim Claim; ein `max`-Wert würde den Index
   // recyceln, `rollBrood` bekäme denselben Seed und es entstünden doppelte Specimen-IDs.
   // Zähler und Eintrag werden im SELBEN Persistenzschritt geschrieben.
   const broodIndex = meta.broodGeneration;
   return updateMeta({
+    nektar: meta.nektar - BEETLE_BREED.nektarCost,
     broodGeneration: broodIndex + 1,
     pendingBroods: [...meta.pendingBroods, {
-      broodIndex, specimenAId, specimenBId,
+      broodIndex, specimenAId: ancestorA.id, specimenBId: ancestorB.id,
       neededWaves, startedWave: meta.totalWavesSurvived, chosenIndex: -1,
+      parentAAncestor: ancestorA, parentBAncestor: ancestorB,
     }],
   });
 }
@@ -195,7 +209,12 @@ export function claimBrood(broodIndex: number, chosenIndex: number): MetaSave {
   // A18.1: Reife ist eine Meta-Entscheidung, keine UI-Frage — unreife Bruten werden
   // nicht ausgegeben, auch wenn eine Komponente es versucht (Verbotspunkt 3).
   if (!isMatured(pending.startedWave, pending.neededWaves, meta.totalWavesSurvived)) return meta;
-  const rolled = rollBrood(pending.specimenAId, pending.specimenBId, pending.broodIndex);
+  // R3: die festgeschriebenen Vorfahren sind die Wahrheit (Altsave: Auflösung über die IDs).
+  const rolled = rollBrood(
+    pending.parentAAncestor ?? pending.specimenAId,
+    pending.parentBAncestor ?? pending.specimenBId,
+    pending.broodIndex,
+  );
   // A18.1: fail-closed — ein ungültiger Kandidaten-Index wählt NICHT stillschweigend 0.
   const chosen = rolled[chosenIndex];
   if (!chosen) return meta;

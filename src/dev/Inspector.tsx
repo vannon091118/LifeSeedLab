@@ -1,5 +1,7 @@
 // Owner: DevGate (observer/read-only). LOC ≤ 200.
-// Visual Inspector: Entity ID / Base / Extra / Effect / Visual Seed / Palette / Scale / Rotation / variantKey
+// Visual Inspector (?dev=1): zeigt die EINE sichtbare Identität eines Wesens — Phänotyp,
+// Palette, Effekte, variantKey. Der alte Baukasten-Report (Base/Extras/Layer) ist GESTORBEN:
+// es gibt keine Layer-Liste mehr, aus der man Extras ablesen könnte (R3).
 
 import type { ResolvedVisual } from '../visual/generator';
 
@@ -10,22 +12,25 @@ interface Props {
 
 export function Inspector({ visual, entityLabel }: Props) {
   if (!visual) return null;
-  const first = visual.layers[0];
+  const p = visual.phenotype;
   return (
     <div style={styles.wrap} role="complementary" aria-label="Visual Inspector">
       <div style={styles.head}>🔍 {entityLabel} — Visual Inspector</div>
       <div style={styles.grid}>
-        <KV k="Base" v={visual.baseId} />
-        <KV k="Extras" v={visual.extraIds.join(', ') || '—'} />
-        <KV k="Effects" v={visual.effectIds.join(', ') || '—'} />
+        <KV k="Wuchs" v={p.habit} />
+        <KV k="Höhe/Stamm" v={`${p.stalk.height.toFixed(2)} · ${p.stalk.thickness.toFixed(2)}`} />
+        <KV k="Blätter" v={`${p.leaves.count}× ${p.leaves.shape}`} />
+        <KV k="Blüten" v={p.flowers.form === 'none' ? '—' : `${p.flowers.count}× ${p.flowers.form}`} />
+        <KV k="Oberfläche" v={p.surface.relief} />
+        <KV k="Muster" v={p.pigment.pattern} />
+        <KV k="Bewegung" v={`${p.motion.style} · ${visual.animation}`} />
+        <KV k="Effekte" v={visual.effectIds.join(', ') || '—'} />
         <KV k="Visual Seed" v={String(visual.visualSeed)} />
-        <KV k="Version" v={String(visual.visualVersion)} />
         <KV k="Palette base" v={visual.palette.base} swatch={visual.palette.base} />
         <KV k="Accent" v={visual.palette.accent} swatch={visual.palette.accent} />
         <KV k="Dark" v={visual.palette.dark} swatch={visual.palette.dark} />
-        <KV k="Scale" v={String(first?.scale.toFixed(3) ?? '—')} />
-        <KV k="Rotation" v={String(first ? (first.rotation * 57.2958).toFixed(1) + '°' : '—')} />
-        <KV k="Layers" v={String(visual.layers.length)} />
+        <KV k="Scale" v={visual.scale.toFixed(3)} />
+        <KV k="Achsen" v={String(p.descriptor.length)} />
         <KV k="variantKey" v={visual.variantKey} full />
       </div>
     </div>

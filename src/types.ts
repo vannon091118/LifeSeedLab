@@ -108,6 +108,20 @@ export type PendingCross = {
   parentBId?: string;
 };
 
+/**
+ * P6/R3: Ein Elternteil der Käferkette — Identität, Genom, Generation. Ein Basis-Tier ist
+ * ebenso ein Vorfahre wie ein selbst gezüchtetes Specimen: GENAU deshalb darf die Kette nicht
+ * auf die drei Gründer zurückfallen.
+ */
+export type BeetleAncestor = {
+  /** Eindeutige Identität (Bibliotheks-ID des Tiers oder Basis-ID eines Gründers). */
+  id: string;
+  /** Balance-Anker (BEETLES_SOURCE) für die Stats — ausdrücklich NICHT die Erscheinung. */
+  specimenId: string;
+  genome: Genome;
+  generation: number;
+};
+
 /** P6: Ein Brutvorgang wartet auf Reifung nach Kinderstärke (beetleWavesToUnlock). */
 export type PendingBrood = {
   broodIndex: number;
@@ -116,6 +130,13 @@ export type PendingBrood = {
   neededWaves: number;
   startedWave: number;
   chosenIndex: number; // welcher der 3 Brutkandidaten deterministisch „gewonnen" hat
+  /**
+   * R3: die GENOME der Eltern. Nur so ist ein gezüchtetes Tier wirklich Elternteil — und der
+   * Claim reproduziert exakt dieselben drei Kandidaten, auch wenn sich das Lager inzwischen
+   * verändert hat. Altsaves ohne diese Felder lösen über die (Gründer-)IDs auf.
+   */
+  parentAAncestor?: BeetleAncestor;
+  parentBAncestor?: BeetleAncestor;
 };
 
 // ── Game modes ───────────────────────────────────────────────

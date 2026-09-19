@@ -37,8 +37,35 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
   anzeigte). Für dich ändert sich nichts — außer dass das Spiel an genau diesen Stellen
   nicht mehr mit Altlasten zu tun hat.
 
+- **Krix erklärt jetzt auch das Bauen.** Zwischen „Pflanze steht" und „Welle läuft" lag für
+  die Tour ein Loch: sie verlangte „Welle starten", während der Run in der Bauphase beginnt.
+  Jetzt sagt Krix ausdrücklich, dass die Karte dir gehört und dass „Welle starten" und
+  „Bauen beenden ✓" zwei verschiedene Wege sind — einer sofort, einer mit Countdown.
+- **Gezüchtete Pflanzen haben wieder Namen im Feld.** Im Lauf stand auf der Karte `seed_0 ×1`,
+  im Gewächshaus hieß dieselbe Pflanze „Spross (Keim 1)". Jetzt steht überall der Name.
+- **Kreuzungen und Bruten kosten wirklich Nektar.** Die Brutstätte zeigte „🍯 35", zog aber nie
+  etwas ab — züchten war gratis, während der Samen-Shop korrekt abbuchte. Jetzt wird gebucht,
+  und wenn der Nektar nicht reicht, passiert schlicht nichts (kein stiller Kredit).
+
 ### Intern (Technik, Verträge & Tests)
 
+- [B39 Brutkosten] Der QA-Befund „free beetle breeding" (v0.0.53 #2, 3/3 reproduziert) war
+  echt: `BeetleLab` prüfte `meta.nektar >= BEETLE_BREED.nektarCost`, aber `enqueueBrood`
+  (`meta/run.ts`) buchte nie ab — die ganze Brutzucht war kostenlos. Die Abbuchung sitzt jetzt
+  im Meta-Writer (ein Owner), fail-closed wie `buySeed`: zu wenig Nektar ⇒ unveränderter Save,
+  keine Queue, kein `broodGeneration`-Schritt. Zwei neue Tests pinnen Abbuchung + Fail-closed;
+  die Identitäts-/Migrations-Tests der Brut setzen ihren Kontostand explizit (sie prüfen
+  Identität, nicht Wirtschaft).
+- [B21 Tutorial-Bauphase] Das Schrittmodell hatte ein Loch, seit der Run in `layout` beginnt:
+  `waveStarted` war als `phase !== 'prep'` definiert und damit in der Bauphase SOFORT erfüllt —
+  der Wellen-Schritt lief durch, bevor der Spieler gebaut oder gedrückt hatte. Neuer Schritt
+  `bau` (`cue: 'build'` → `data-tut="layout-done"`, Signal `layoutDone: phase !== 'layout'`),
+  `waveStarted` heißt jetzt `phase === 'wave'`; Schritt-/Cue-/i18n-Tests (DE+EN) auf 11 Schritte
+  nachgezogen, inkl. Regressionstest für genau diesen Bug.
+- [QA #3 Tray-Label] `plantLabelFallback` fiel für gezüchtete Varianten auf die Roh-ID zurück
+  (`PLANTS_SOURCE` kennt sie nicht) — die Tray zeigte `seed_0`, während das Gewächshaus
+  „Spross (Keim 1)" zeigte (zwei Screens, zwei Wahrheiten). Die Tray bekommt jetzt `names`
+  aus der Besitz-Bibliothek (Meta) und löst vor der Roh-ID auf.
 - [Redundanz] Harter Schnitt am toten Code- [#4 Energie-Schnitt] Das Energie-System ist vollständig aus dem Spielcode entfernt (State,
   Bus, Persistenz, Hash, Sim, UI): `SimState.resources` trägt nur noch Loot-Münzen
   (`{ coins }`), `REWARD_GRANTED` liefert `reward` statt `energy`, der Wave-Bonus ist reine

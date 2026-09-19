@@ -232,6 +232,11 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
 
   // Nur bei Loadout-Änderung neu — vorher bei jedem Render/devTick re-alloziert.
   const plantIds = useMemo(() => Array.from(new Set([...Object.keys(PLANTS_SOURCE), ...loadout])), [loadout]);
+  /** QA #3: Anzeigenamen der eigenen Pflanzen — Quelle ist die Besitz-Bibliothek (Meta). */
+  const plantNames = useMemo(
+    () => Object.fromEntries(savedVariants.map(v => [v.id, v.name])),
+    [savedVariants],
+  );
   const inspectorVisual = placement.ghost?.visual ?? null;
   const inspectorLabel = placement.ghost ? `ghost ${placement.ghost.gx},${placement.ghost.gy}` : (placement.variantId ?? '—');
 
@@ -310,6 +315,7 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
             onSelectSell={selectSell}
             trayPlantsLabel={t('game.trayPlants')}
             trayFieldLabel={t('game.trayField')}
+            names={plantNames}
           />
           <GameOverlays
             gameOver={showGameOver}

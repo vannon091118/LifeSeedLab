@@ -19,13 +19,18 @@ export type StickmanPose = 'arrive' | 'point' | 'cheer' | 'think' | 'thumbsUp' |
 export type TutorialScreen = 'start' | 'menu' | 'run';
 
 /** Ziel der blinkenden Handlungsanweisung. `none` ⇒ nur der Knopf an der Sprechblase. */
-export type TutorialCue = 'none' | 'language' | 'begin' | 'endless' | 'card' | 'board' | 'wave' | 'pause' | 'hud';
+export type TutorialCue = 'none' | 'language' | 'begin' | 'endless' | 'card' | 'board' | 'build' | 'wave' | 'pause' | 'hud';
 
 /** Wodurch ein Schritt weitergeht. `press` = nur der Knopf an der Blase.
  *  `screenLeft` = der Spieler zieht weiter (Sprungregel im Controller — der Schritt wird nie
- *  durch Warten erfüllt, sondern durch den Screen-Wechsel). */
+ *  durch Warten erfüllt, sondern durch den Screen-Wechsel).
+ *  `layoutDone` = der Spieler hat die BAU-PHASE verlassen (R1: „Welle starten" startet direkt,
+ *  „Bauen beenden ✓" geht in die Vorbereitung) — beide Wege zählen als Handlung.
+ *  `waveStarted` = es läuft WIRKLICH eine Welle (`phase === 'wave'`). Vorher hieß es
+ *  `phase !== 'prep'`: seit der Run in `layout` beginnt, war das SOFORT wahr — der Wellen-Schritt
+ *  erfüllte sich, bevor der Spieler irgendetwas getan hatte. */
 export type TutorialSignal =
-  | 'press' | 'langChosen' | 'screenLeft' | 'cardSelected' | 'placed' | 'waveStarted' | 'paused' | 'running';
+  | 'press' | 'langChosen' | 'screenLeft' | 'cardSelected' | 'placed' | 'layoutDone' | 'waveStarted' | 'paused' | 'running';
 
 export type BubbleAnchor = 'top' | 'center' | 'bottom';
 export type StickAnchor = 'bottomLeft' | 'bottomRight';
@@ -46,7 +51,7 @@ export interface TutorialStep {
 
 export type TutorialStepId =
   | 'ankunft' | 'startknopf' | 'labor'
-  | 'karte' | 'pflanzen' | 'welle' | 'pause' | 'weiter' | 'chips' | 'abschluss';
+  | 'karte' | 'pflanzen' | 'bau' | 'welle' | 'pause' | 'weiter' | 'chips' | 'abschluss';
 
 export const SCREEN_RANK: Record<TutorialScreen, number> = { start: 0, menu: 1, run: 2 };
 
@@ -71,6 +76,10 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
   // ── Feld: die Handgriffe ──
   { id: 'karte',      screen: 'run',   pose: 'point',  cue: 'card',     advanceOn: 'cardSelected', hold: true,  bubble: 'center', stick: 'bottomRight' },
   { id: 'pflanzen',   screen: 'run',   pose: 'point',  cue: 'board',    advanceOn: 'placed',       hold: true,  bubble: 'bottom', stick: 'bottomRight' },
+  // R1: Zwischen „etwas gebaut" und „Welle läuft" liegt die Bauphase. Sie fehlte in der Tour —
+  // der Spieler stand im Layout und die Blase verlangte „Welle starten", während der Hauptknopf
+  // von selbst auf die erste Pflanze wartete.
+  { id: 'bau',        screen: 'run',   pose: 'think',  cue: 'build',    advanceOn: 'layoutDone',   hold: false, bubble: 'top',    stick: 'bottomLeft' },
   { id: 'welle',      screen: 'run',   pose: 'cheer',  cue: 'wave',     advanceOn: 'waveStarted',  hold: false, bubble: 'top',    stick: 'bottomLeft' },
   { id: 'pause',      screen: 'run',   pose: 'think',  cue: 'pause',    advanceOn: 'paused',       hold: false, bubble: 'center', stick: 'bottomLeft' },
   { id: 'weiter',     screen: 'run',   pose: 'point',  cue: 'pause',    advanceOn: 'running',      hold: false, bubble: 'center', stick: 'bottomLeft' },
@@ -85,6 +94,7 @@ export const CUE_SELECTORS: Record<Exclude<TutorialCue, 'none'>, string> = {
   endless: '[data-tut="endless"]',
   card: '[data-tut="card"]',
   board: '[data-tut="board"]',
+  build: '[data-tut="layout-done"]',
   wave: '[data-tut="wave"]',
   pause: '[data-tut="pause"]',
   hud: '[data-tut="hud"]',
