@@ -118,7 +118,10 @@ export interface SimState {
      *  Default aus der Source (economy.source), Owner: WaveSystem (über Root-Command). */
     autoWaves: boolean;
   };
-  resources: { energy: number; coins: number };
+  /** #4: ENERGIE existiert nicht mehr. In-Run bleibt nur Muenz-Loot (ohne Senke, B29) —
+   *  Platziert wird aus dem POOL (`inventory`: gekaufte Pflanzen + Material). Nektar wird
+   *  ausschliesslich AUSSERHALB des Runs ausgegeben. */
+  resources: { coins: number };
   /** R2: Run-Kopie der freigeschalteten Weltfläche (Welt-Snapshot beim Run-Start). */
   cols: number;
   rows: number;

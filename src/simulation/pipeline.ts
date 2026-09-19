@@ -8,6 +8,7 @@
 import type { SimState } from './state';
 import { ownedInventory } from './state';
 import { STARTING_INVENTORY, PLANT_IDS } from '../config/plants.source';
+import { STARTING_TILE_POOL, PLOT_POOL_KEY } from '../config/map.source';
 import { AUTO_WAVES_DEFAULT } from '../config/economy.source';
 import { applyResume, type ResumeSnapshot } from './resume';
 import type { GameClock } from '../core/clock';
@@ -26,12 +27,20 @@ export function freshState(
   }
   const world = init.worldSnapshot;
   const loadout = init.loadout ?? [];
-  let inventory: Record<string, number> = { ...STARTING_INVENTORY };
-  // B37: Besitz-Wahrheit statt Pauschal-2 — mit ownedCounts spiegelt das Inventar GENAU den
+  // #4: Der Run startet mit dem MATERIAL-POOL (Tiles/Felder) — die Source sagt, wie viel
+  // (STARTING_TILE_POOL): Bau-Material ist Startbestand JEDES Runs, denn der freie Mapbuilder
+  // ist der Kern des Spiels und darf nie leer starten. Der Shop baut den Vorrat später auf.
+  const material: Record<string, number> = { ...STARTING_TILE_POOL, [PLOT_POOL_KEY]: 1 };
+  for (const [key, extra] of Object.entries(init.materialStock ?? {})) {
+    material[key] = (material[key] ?? 0) + extra;
+  }
+  const inventory: Record<string, number> = { ...material };
+  // B37: PFLANZEN bleiben Besitz-Wahrheit — mit ownedCounts spiegelt das Inventar GENAU den
   // Besitz (Loadout ohne Besitz ⇒ 0 ⇒ no_inventory); ohne: B1-Fallback loadoutStock.
   if (init.ownedCounts) {
-    inventory = ownedInventory(inventory, init.ownedCounts, loadout);
+    Object.assign(inventory, ownedInventory(STARTING_INVENTORY, init.ownedCounts, loadout));
   } else {
+    Object.assign(inventory, STARTING_INVENTORY);
     for (const id of loadout) { inventory[id] = init.loadoutStock ?? 2; } // B1-Fallback (Altsave/Tests)
   }
   const discovered = [...PLANT_IDS, ...loadout];
@@ -41,7 +50,7 @@ export function freshState(
     // bevor die erste Vorbereitung tickt. Resume bleibt 'prep' (applyResume setzt es).
     phase: "layout",
     wave: { number: 0, schedule: null, spawnQueue: [], lastSpawnTick: 0, prepStartTick: clock.get().tick, autoWaves: AUTO_WAVES_DEFAULT },
-    resources: { energy: 150, coins: 0 },
+    resources: { coins: 0 },
     // R2: Run-Kopie der Welt — Größe UND Tiles aus dem Welt-Snapshot (keine neue Map).
     cols: world.cols, rows: world.rows,
     mapTiles: { ...world.tiles },

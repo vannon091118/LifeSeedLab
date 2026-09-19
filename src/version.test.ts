@@ -41,14 +41,14 @@ describe('Version-Ausweis — sichtbare wie unsichtbare Orte', () => {
     // wird deshalb wie im Resume-Gate über die Typ-Pflicht + Laufzeit-Schreiber bewiesen:
     // saveRun trägt appVersion: APP_VERSION (Pflichtfeld), ein RunSave ohne kompiliert nicht.
     const state = {
-      phase: 'prep', runId: 1, seed: 42, wave: { number: 1 }, resources: { energy: 100 },
+      phase: 'prep', runId: 1, seed: 42, wave: { number: 1 }, resources: { coins: 0 },
       lives: 20, score: 0, combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
       plants: [], inventory: {}, discoveredVariants: [], bredStats: {}, nektarEarned: 0,
     } as unknown as SimState;
     expect(() => saveRun(state)).not.toThrow(); // gameover-Run: kein Save, aber auch kein Crash
     const probe: RunSave = {
       version: 3, appVersion: APP_VERSION, runId: 1, seed: 42, tick: 0, waveNumber: 1,
-      energy: 100, lives: 20, score: 0,
+      lives: 20, score: 0,
       combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
       plants: [], inventory: {}, discoveredVariants: [], bredStats: {}, nektarEarned: 0,
       cols: 12, rows: 12,

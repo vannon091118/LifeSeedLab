@@ -56,8 +56,7 @@ function env(inventory: Record<string, number> = { sprout: 2 }): PlacementEnviro
   return {
     visualFor: () => VISUAL,
     statsFor: id => (id === 'sprout' ? { cost: 10, range: 4 } : { cost: 10, range: 0 }),
-    board: () => ({ plants: [], inventory, energy: 100, mapTiles: {} }),
-    tileCost: () => 5,
+    board: () => ({ plants: [], inventory, mapTiles: {} }),
     tick: () => 42,
   };
 }

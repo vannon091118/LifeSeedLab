@@ -8,7 +8,6 @@ import { routeQuality } from '../simulation/mapSystem';
 
 export interface HudSnapshot {
   wave: number;
-  energy: number;
   lives: number;
   combo: number;
   inventory: Record<string, number>;
@@ -27,7 +26,6 @@ export interface HudSnapshot {
 export function hudOf(state: SimState, paused: boolean): HudSnapshot {
   return {
     wave: state.wave.number,
-    energy: state.resources.energy,
     lives: state.lives,
     combo: state.combo.count,
     inventory: { ...state.inventory },

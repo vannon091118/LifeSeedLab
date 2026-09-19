@@ -14,7 +14,6 @@ import type { MapSystem } from './mapSystem';
 import type { WaveSystem } from './waveSystem';
 import { toDeploySpec } from '../genome/beetle';
 import type { MapTileType } from '../config/map.source';
-import { INGAME_RESTOCK_MARKUP } from '../config/economy.source';
 import { getPlantStats } from './plantSystem';
 
 /** Die System-Facets, die der Root dem Command-Interpreter gibt (kein State-Zugriff). */
@@ -89,7 +88,7 @@ export function executeCommand(ctx: CommandContext, state: SimState, cmd: Comman
           type: 'TILE_REJECTED',
           sourceId: 'system:map',
           version: 1,
-          payload: { gx: cmd.payload.gx, gy: cmd.payload.gy, tile: cmd.payload.tile, reason: r.reason as import('../bus/events').TileRejectReason },
+          payload: { gx: cmd.payload.gx, gy: cmd.payload.gy, tile: cmd.payload.tile, reason: r.reason },
         });
       } else {
         // D1: Tiles BIEGEN den Weg ebenfalls sofort — vorher sah der Spieler nur beim
@@ -166,46 +165,6 @@ export function executeCommand(ctx: CommandContext, state: SimState, cmd: Comman
       // B32: Run-Einstellung, kein Spielzug — der Wellen-Kontext ist der eine Schreibort.
       state.wave.autoWaves = cmd.payload.enabled;
       break;
-    case 'BUY_PLANT': {
-      // B36: Nachschub im Lauf — Energie → 1× Pflanze ins Inventar. Preis = Pflanzenkosten ×
-      // INGAME_RESTOCK_MARKUP (eine Quelle: economy.source). Unbekannte Variante ⇒ Event,
-      // kein stiller Abbruch (B29-Muster).
-      const stats = getPlantStats(cmd.payload.variantId, state.bredStats);
-      if (!stats) {
-        ctx.publish({
-          eventId: `${state.clock.tick}:system:plant:BUY_REJECTED:${ctx.nextSeq()}`,
-          tick: state.clock.tick,
-          type: 'BUY_REJECTED',
-          sourceId: 'system:plant',
-          version: 1,
-          payload: { variantId: cmd.payload.variantId, reason: 'unknown_variant' },
-        });
-        break;
-      }
-      const price = stats.cost * INGAME_RESTOCK_MARKUP;
-      if (state.resources.energy < price) {
-        ctx.publish({
-          eventId: `${state.clock.tick}:system:plant:BUY_REJECTED:${ctx.nextSeq()}`,
-          tick: state.clock.tick,
-          type: 'BUY_REJECTED',
-          sourceId: 'system:plant',
-          version: 1,
-          payload: { variantId: cmd.payload.variantId, reason: 'no_energy' },
-        });
-        break;
-      }
-      state.resources.energy -= price;
-      state.inventory[cmd.payload.variantId] = (state.inventory[cmd.payload.variantId] ?? 0) + 1;
-      ctx.publish({
-        eventId: `${state.clock.tick}:system:plant:PLANT_BOUGHT:${ctx.nextSeq()}`,
-        tick: state.clock.tick,
-        type: 'PLANT_BOUGHT',
-        sourceId: 'system:plant',
-        version: 1,
-        payload: { variantId: cmd.payload.variantId, price },
-      });
-      break;
-    }
     case 'EXPAND_MAP': {
       // R2: vergrößert die Run-Kopie der Weltfläche; die Persistenz spiegelt das
       // MAP_EXPANDED-Event in die Welt (worldAutor) — die Erweiterung überlebt den Run.
@@ -217,7 +176,7 @@ export function executeCommand(ctx: CommandContext, state: SimState, cmd: Comman
           type: 'TILE_REJECTED',
           sourceId: 'system:map',
           version: 1,
-          payload: { gx: state.cols, gy: state.rows, tile: 'boulder', reason: (r.reason ?? 'not_expandable') as import('../bus/events').TileRejectReason },
+          payload: { gx: state.cols, gy: state.rows, tile: 'boulder', reason: r.reason === 'no_fields' ? 'no_material' : (r.reason ?? 'not_expandable') },
         });
       }
       break;

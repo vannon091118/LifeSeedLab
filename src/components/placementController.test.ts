@@ -10,7 +10,6 @@ const VISUAL = { layers: [], scale: 1, animation: 'none' } as unknown as Resolve
 interface Board {
   plants: { gx: number; gy: number }[];
   inventory: Record<string, number>;
-  energy: number;
   mapTiles: Record<string, string>;
 }
 
@@ -22,14 +21,14 @@ function makeEnv(): PlacementEnvironment {
     visualFor: () => VISUAL,
     statsFor: id => (id === 'sprout' ? { cost: 10, range: 4 } : { cost: 10, range: 0 }),
     board: () => board,
-    tileCost: () => 5,
     tick: () => 42,
   };
 }
 
 describe('PlacementController (B3)', () => {
   beforeEach(() => {
-    board = { plants: [], inventory: { sprout: 2 }, energy: 100, mapTiles: {} };
+    // #4: EIN Pool für Pflanzen UND Feld-Material (`inventory`) — Energie existiert nicht mehr.
+    board = { plants: [], inventory: { sprout: 2, path: 3, pot: 1 }, mapTiles: {} };
     controller = new PlacementController(makeEnv());
   });
 
@@ -96,26 +95,25 @@ describe('PlacementController (B3)', () => {
     expect(state.ghost?.reason).toBe('no_inventory');
   });
 
-  it('ohne Energie lehnt die Vorschau mit no_energy ab', () => {
-    board.energy = 5;
-    controller.selectFromTray('sprout', 2);
-    expect(controller.hover(FREE).ghost?.reason).toBe('no_energy');
+  it('leerer Feld-Pool: der Tile-Modus lehnt lokal mit no_inventory ab (#4)', () => {
+    board.inventory = { sprout: 2 }; // kein Material für dieses Feld
+    controller.selectTile('path');
+    expect(controller.hover(FREE).ghost?.reason).toBe('no_inventory');
+    expect(controller.drop(FREE)).toEqual({ kind: 'reject', reason: 'no_inventory', gx: 11, gy: 10 });
   });
 
-  it('Tile-Modus: Auswahl, Energie-Vorprüfung und PLACE_TILE-Auftrag', () => {
+  it('Tile-Modus: Auswahl, Pool-Vorprüfung und PLACE_TILE-Auftrag', () => {
     const state = controller.selectTile('path');
     expect(state.mode).toBe('path');
     expect(state.variantId).toBeNull();
+    expect(controller.hover(FREE).ghost?.valid).toBe(true);
     expect(controller.drop(FREE)).toEqual({ kind: 'tile', tile: 'path', gx: 11, gy: 10 });
   });
 
-  it('Tile ohne Energie wird lokal abgelehnt', () => {
-    board.energy = 1;
+  it('gleiches Tile an gleicher Stelle: kein zweiter Bau (Map-System ist idempotent)', () => {
     controller.selectTile('pot');
-    const decision = controller.drop(FREE);
-    // B29: die Vorprüfung spricht die Sim-Sprache (`no_energy`) — der Grund war vorher ein
-    // eigener UI-Wert mit eigenem Text, obwohl nur der Modus den Unterschied machte.
-    expect(decision).toEqual({ kind: 'reject', reason: 'no_energy', gx: 11, gy: 10 });
+    board.mapTiles['11,10'] = 'pot';
+    expect(controller.drop(FREE)).toEqual({ kind: 'tile', tile: 'pot', gx: 11, gy: 10 });
   });
 
   it('cancel setzt alles auf idle zurück', () => {

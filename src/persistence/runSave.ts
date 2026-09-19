@@ -24,7 +24,6 @@ export interface RunSave {
   seed: number;
   tick: number;
   waveNumber: number;
-  energy: number;
   lives: number;
   score: number;
   combo: SimState['combo'];
@@ -46,7 +45,6 @@ export function saveRun(state: SimState): void {
     seed: state.seed,
     tick: 0, // resume starts prep at tick 0 of the prep window — honest contract
     waveNumber: state.wave.number,
-    energy: state.resources.energy,
     lives: state.lives,
     score: state.score,
     combo: state.combo,

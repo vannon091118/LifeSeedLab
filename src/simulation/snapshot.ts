@@ -19,7 +19,7 @@ export function toHashable(state: SimState): HashableState {
     seed: state.seed,
     clock: state.clock,
     wave: { number: state.wave.number },
-    resources: { energy: state.resources.energy },
+    resources: { coins: state.resources.coins },
     plants: state.plants.map(p => ({ id: p.id, gx: p.gx, gy: p.gy, hp: p.hp, variantId: p.variantId, lastShot: p.lastShot })),
     enemies: state.enemies.map(e => ({ id: e.id, hp: e.hp, px: e.px, py: e.py, pathIndex: e.pathIndex })),
     projectiles: state.projectiles.map(p => ({ id: p.id, px: p.px, py: p.py, dx: p.dx, dy: p.dy })),

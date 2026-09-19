@@ -18,7 +18,7 @@ function toHashable(root: SimulationRoot): HashableState {
     seed: s.seed,
     clock: s.clock,
     wave: { number: s.wave.number },
-    resources: { energy: s.resources.energy },
+    resources: { coins: s.resources.coins },
     plants: s.plants.map(p => ({ id: p.id, gx: p.gx, gy: p.gy, hp: p.hp, variantId: p.variantId, lastShot: p.lastShot })),
     enemies: s.enemies.map(e => ({ id: e.id, hp: e.hp, px: e.px, py: e.py, pathIndex: e.pathIndex })),
     projectiles: s.projectiles.map(p => ({ id: p.id, px: p.px, py: p.py, dx: p.dx, dy: p.dy })),
@@ -94,7 +94,7 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
     expect(delta2).toBe(Math.round(reward * mult2));
   });
 
-  it('WaveReward erhöht Energy, aber nicht Score', () => {
+  it('WaveReward ist nur noch Anzeige: weder Score noch Pool ändern sich (#4)', () => {
     const root = makeRoot({ seed: SEED });
     root.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
     root.stepOnce();
@@ -102,18 +102,20 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
     s.enemies.length = 0;
     s.wave.spawnQueue = [];
     const beforeScore = s.score;
-    const beforeEnergy = s.resources.energy;
+    const beforeCoins = s.resources.coins;
+    const beforePool = { ...s.inventory };
     const reward = (root as unknown as { waves: { checkCompletion: (s: unknown) => number | null } }).waves.checkCompletion(s);
     if (reward !== null) (root as unknown as { score: { grantWaveReward: (s: unknown, w: number, r: number) => void } }).score.grantWaveReward(s, s.wave.number, reward);
     expect(s.score).toBe(beforeScore);
-    expect(s.resources.energy).toBeGreaterThanOrEqual(beforeEnergy);
+    expect(s.resources.coins).toBe(beforeCoins);
+    expect(s.inventory).toEqual(beforePool);
   });
 
   it('Tag/Nacht-Wechsel emittiert NIGHT_STARTED / DAY_STARTED (Producer in Root)', () => {
     // Resume-Fixture: hohe Lives sind Teil des Resume-Vertrags (snapshotOf-Pfad),
     // kein Live-State-Zugriff. Run bleibt am Leben über beide 2400-Tick-Zyklen.
     const resume = {
-      waveNumber: 1, energy: 200, lives: 1_000_000_000, score: 0,
+      waveNumber: 1, lives: 1_000_000_000, score: 0,
       combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
       plants: [], inventory: {}, discoveredVariants: [], nektarEarned: 0,
     };
@@ -133,7 +135,7 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
     // friert by-design ein (B23.1 wartet auf die erste Pflanze). High-Wave-Resume mit
     // 1 Leben: Welle 21 spawnt ~60 Gegner, der Durchbruch ist garantiert.
     const resume: import('./resume').ResumeSnapshot = {
-      waveNumber: 20, energy: 500, lives: 1, score: 0,
+      waveNumber: 20, lives: 1, score: 0,
       combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
       plants: [], inventory: {}, discoveredVariants: [], nektarEarned: 0,
     };

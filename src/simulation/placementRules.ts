@@ -12,7 +12,7 @@
 
 import { isInsideWorld } from '../config/world.source';
 
-export type PlacementRejectReason = 'occupied' | 'on_path' | 'no_inventory' | 'no_energy';
+export type PlacementRejectReason = 'occupied' | 'on_path' | 'no_inventory';
 
 /** Read-only Sicht auf das Brett — genügt für die Geometrie (kein SimState-Zugriff nötig). */
 export interface PlacementBoard {
@@ -36,14 +36,11 @@ export function cellRejectReason(board: PlacementBoard): 'occupied' | 'on_path' 
   return null;
 }
 
-/** Gesamtregel in der Prüf-Reihenfolge der Sim: Inventar → Energie → Geometrie. */
+/** Gesamtregel in der Prüf-Reihenfolge der Sim: Pool (Inventar) → Geometrie. #4: keine Energie. */
 export function placementRejectReason(input: {
   board: PlacementBoard;
   inventoryCount: number;
-  energy: number;
-  cost: number;
 }): PlacementRejectReason | null {
   if (input.inventoryCount <= 0) return 'no_inventory';
-  if (input.energy < input.cost) return 'no_energy';
   return cellRejectReason(input.board);
 }

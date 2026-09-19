@@ -1,4 +1,4 @@
-// Owner: ScoreSystem (score/energy slice). LOC ≤ 300.
+// Owner: ScoreSystem (score slice). LOC ≤ 300.
 // Score is computed ONLY here (contract Phase 4.4). Reads events, writes its slice.
 
 import type { SimState } from './state';
@@ -14,7 +14,6 @@ export class ScoreSystem {
   /** Called by SimulationRoot when ENEMY_DIED fires. scoreValue arrives combo-multiplied (B6). */
   onEnemyDied(state: SimState, enemyId: string, reward: number, scoreValue: number, px: number, py: number): void {
     state.score += scoreValue;
-    state.resources.energy += reward;
     state.nektarEarned += Math.max(1, Math.floor(reward / 5));
     // 1–5 Shop-Münzen deterministisch via loot-RNG (pro Kill, kein Stream-State)
     const coins = makeRng('loot', (state.seed ^ Math.imul(state.clock.tick, 0x51ED) ^ Math.imul(enemyId.length, 0x9E37) ^ enemyId.charCodeAt(0)) >>> 0).nextInt(COINS_PER_KILL_MIN, COINS_PER_KILL_MAX);
@@ -24,7 +23,7 @@ export class ScoreSystem {
       score: state.score, delta: scoreValue,
     }));
     this.emit(makeEvent(state.clock.tick, 'REWARD_GRANTED', 'system:score', ++this.seq, {
-      energy: reward, sourceId: enemyId,
+      reward, sourceId: enemyId,
     }));
     // B29: kein COINS_GRANTED mehr. `resources.coins` bleibt State (deterministisch, testbar),
     // aber das Event war ein Contract ohne Consumer UND ohne Senke: kein Positionsfeld (also kein
@@ -34,12 +33,12 @@ export class ScoreSystem {
     void px; void py;
   }
 
-  /** Wave completion bonus (called by WaveSystem via root wiring). Energy only —
-   *  score is combat result, so NO SCORE_CHANGED here (Defect A4-3: HUD delta must not lie). */
+  /** Wellen-Abschluss (via Root-Wiring). #4: KEINE Ressource mehr — der Wellenbonus war eine
+   *  reine Energie-Gutschrift und ist mit dem Energiesystem gestorben. Score bleibt Kampfergebnis
+   *  (Defect A4-3: kein SCORE_CHANGED). Der Fakt bleibt als Event erhalten (FX/Beobachter). */
   grantWaveReward(state: SimState, wave: number, reward: number): void {
-    state.resources.energy += reward;
     this.emit(makeEvent(state.clock.tick, 'REWARD_GRANTED', `system:wave:${wave}`, ++this.seq, {
-      energy: reward, sourceId: `wave-${wave}`,
+      reward, sourceId: `wave-${wave}`,
     }));
   }
 

@@ -20,7 +20,7 @@ describe('HudSnapshot — Bestand ab dem ersten Bild', () => {
     // Tray im ersten Bild zeigen, nicht 0.
     expect(hud.inventory.cross_seedling).toBe(2);
     expect(hud.inventory.sprout).toBeGreaterThan(0);
-    expect(hud.energy).toBeGreaterThan(0);
+    expect('energy' in hud).toBe(false); // #4: kein Energie-Kanal mehr im HUD
     expect(hud.lives).toBeGreaterThan(0);
     expect(hud.wave).toBe(0);
     expect(hud.phase).toBe('layout'); // R1: der Run beginnt mit der Build-Sequenz

@@ -15,7 +15,6 @@ function snapshotOf(root: SimulationRoot): ResumeSnapshot {
   const s = root.getSnapshot();
   return {
     waveNumber: s.wave.number,
-    energy: s.resources.energy,
     lives: s.lives,
     score: s.score,
     combo: { ...s.combo },
@@ -43,7 +42,7 @@ describe('Gate B — Resume-Vertrag der Sim', () => {
     expect(after.phase).toBe('prep');
     expect(after.wave.number).toBe(snapshot.waveNumber);
     expect(after.plants).toEqual(snapshot.plants);
-    expect(after.resources.energy).toBe(snapshot.energy);
+    expect(after.resources.coins).toBe(0); // #4: Loot-Muenzen sind Run-Zustand, kein Resume-Bestandteil
     expect(after.lives).toBe(snapshot.lives);
     expect(after.inventory).toEqual(snapshot.inventory);
     expect(after.discoveredVariants).toEqual(snapshot.discoveredVariants);
@@ -85,13 +84,13 @@ describe('Gate B — Resume-Vertrag der Sim', () => {
     expect(a.getSnapshot().wave.number).toBe(b.getSnapshot().wave.number);
     expect(a.getSnapshot().enemies.length).toBeGreaterThan(0);
     expect(shape(a)).toEqual(shape(b));
-    expect(a.getSnapshot().resources.energy).toBe(b.getSnapshot().resources.energy);
+    expect(a.getSnapshot().resources.coins).toBe(b.getSnapshot().resources.coins);
     expect(a.getSnapshot().lives).toBe(b.getSnapshot().lives);
   });
 
   it('RunSave erfüllt strukturell den ResumeSnapshot (Adapter-Brücke)', () => {
     const save: RunSave = {
-      version: 3, appVersion: '0.0.0-test', runId: 1, seed: 1, tick: 0, waveNumber: 2, energy: 90, lives: 18, score: 40,
+      version: 3, appVersion: '0.0.0-test', runId: 1, seed: 1, tick: 0, waveNumber: 2, lives: 18, score: 40,
       combo: { count: 0, timer: 0, multiplier: 1, highest: 3 },
       plants: [], inventory: { sprout: 1 }, discoveredVariants: ['sprout'], bredStats: {},
       nektarEarned: 12, cols: 12, rows: 12,

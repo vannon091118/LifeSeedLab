@@ -86,7 +86,6 @@ export const BEETLE_BREED = {
   /** Gleichzeitige eingesetzte Käfer pro Run. */
   deploySlots: 1,
   /** Nektar-Kosten je Einsatz im Run (Energie). */
-  deployEnergyCost: 20,
   /** Freeze nach Einsatz, bevor der Brutling losläuft (Ticks). */
   deployFreezeTicks: 600,
   /** Brutlinge: Werte-Faktor gegen den Specimen (halbe Werte — P6-Spec). */

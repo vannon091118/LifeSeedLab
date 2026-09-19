@@ -60,8 +60,8 @@ describe('AP4 — Observation-Serializer (Phase 2)', () => {
     // tick ← clock (GameClock) · phase ← root · wave ← waveSystem-Slice
     expect(obs.tick).toBe(state.clock.tick);
     expect(obs.phase).toBe(state.phase);
-    // inventory ← root/pipeline (Besitz-Wahrheit) · energy/score ← scoreSystem/root
-    expect(obs.inventory.energy).toBe(state.resources.energy);
+    // inventory ← root/pipeline (Besitz-Wahrheit) · score ← scoreSystem/root
+    // #4: Energie ist kein Wahrnehmungsfeld mehr — der Pool steht in `availableVariants`.
     expect(obs.inventory.score).toBe(state.score);
     expect(obs.inventory.availableVariants.every(v => v.count > 0)).toBe(true);
   });

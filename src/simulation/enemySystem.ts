@@ -196,10 +196,8 @@ export class EnemySystem {
   // applyDamage/damage-Pfade. Owner: EnemySystem (ein Writer).
 
   /** Deploy: setzt den gezüchteten Brutling (Spawn 1×–5×). */
-  deployBeetle(state: SimState, spec: BeetleDeploySpec): { ok: boolean; reason?: 'already_deployed' | 'no_energy' } {
+  deployBeetle(state: SimState, spec: BeetleDeploySpec): { ok: boolean; reason?: 'already_deployed' } {
     if (state.deployedBeetle) return { ok: false, reason: 'already_deployed' };
-    if (state.resources.energy < spec.cost) return { ok: false, reason: 'no_energy' };
-    state.resources.energy -= spec.cost;
     const start = this.activePath(state)[0];
     state.deployedBeetle = {
       id: `beetle_${spec.id}`,

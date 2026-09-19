@@ -72,7 +72,7 @@ describe('processDecision — valide Commands', () => {
   it('PLACE_PLANT aus Besitz-Inventar erzeugt Command mit variantId/gx/gy', () => {
     const root = freshRoot();
     const state = root.getSnapshot();
-    const variantId = Object.keys(state.inventory)[0];
+    const variantId = Object.keys(state.inventory).find(id => state.discoveredVariants.includes(id))!;
     expect(variantId).toBeDefined();
     // freie Zelle suchen: buildable, kein pot-Block, keine Pflanze, außerhalb Pfad-Marge
     const target = findFreeCell(root);
@@ -99,7 +99,7 @@ describe('processDecision — valide Commands', () => {
     const root = freshRoot();
     const state = root.getSnapshot();
     // erst eine echte Pflanze platzieren
-    const variantId = Object.keys(state.inventory)[0];
+    const variantId = Object.keys(state.inventory).find(id => state.discoveredVariants.includes(id))!;
     const target = findFreeCell(root)!;
     pushCommand(root, 'PLACE_PLANT', { variantId, gx: target.gx, gy: target.gy });
     root.stepOnce();
@@ -128,7 +128,7 @@ describe('processDecision — valide Commands', () => {
   it('Command-Log: LLM-Commands sind Spieler-Input gleichgestellt (Replay-Vertrag)', () => {
     const root = freshRoot();
     const state = root.getSnapshot();
-    const variantId = Object.keys(state.inventory)[0];
+    const variantId = Object.keys(state.inventory).find(id => state.discoveredVariants.includes(id))!;
     const target = findFreeCell(root)!;
     const r = processDecision(state, validPlaceJson(variantId, target.gx, target.gy), 10, () => 1);
     expect(r.ok).toBe(true);
@@ -148,10 +148,12 @@ describe('AGENT_SYSTEM_PROMPT', () => {
   });
 });
 
-/** Freie buildable-Zelle suchen (Pflicht für deterministische Test-Platzierung). */
+/** Freie buildable-Zelle suchen (Pflicht für deterministische Test-Platzierung).
+ *  PFLANZE explizit aus dem Inventar wählen: seit #4 liegt Bau-Material im selben Pool,
+ *  und die erste Kennung ist deshalb ein Tile — nicht die erste Pflanze. */
 function findFreeCell(root: SimulationRoot): { gx: number; gy: number } | null {
   const state = root.getSnapshot();
-  const variantId = Object.keys(state.inventory)[0];
+  const variantId = Object.keys(state.inventory).find(id => state.discoveredVariants.includes(id))!;
   for (let gy = 2; gy <= 9; gy++) {
     for (let gx = 2; gx <= 9; gx++) {
       const r = processDecision(state, validPlaceJson(variantId, gx, gy), 10, () => 1);

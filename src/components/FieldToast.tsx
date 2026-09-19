@@ -25,16 +25,15 @@ const TOAST_RIGHT = 10;
  * Grund — etwa ein achtes TILE_REJECTED — ohne Text ist ein Compile-Fehler, kein stiller Fallback
  * auf „Hier lässt sich gerade nichts setzen." (B29).
  *
- * `no_energy` gibt es einmal für Pflanze UND Feld: „Zu wenig Energie." stimmt in beiden Fällen, und
- * der rote Puls an der Zelle sagt ohnehin, wo es klemmt — eine zweite Formulierung war doppelte
- * Pflege ohne Unterschied.
+ * `no_material` (Feld) und `no_inventory` (Pflanze) sind EIGENE Texte: das Feld hat einen Pool
+ * (der im Shop nachgekauft wird), die Pflanze kommt aus dem Loadout — der Unterschied ist spielbar.
  */
 const REASON_KEY: Record<NoticeReason, TranslationKey> = {
   // Platzierung
   occupied: 'field.reject.occupied',
   on_path: 'field.reject.on_path', // EIN Text für Pflanze UND blockierendes Tile (B33)
   no_inventory: 'field.reject.no_inventory',
-  no_energy: 'field.reject.no_energy',
+  no_material: 'field.reject.no_material',
   // Vegetation
   not_growing: 'field.reject.not_growing',
   max_reached: 'field.reject.max_reached',

@@ -23,12 +23,12 @@ import { TutorialLayer } from './tutorial/TutorialLayer';
 import { FieldToast } from './FieldToast';
 import type { FieldNotice } from './fieldNotice';
 import { countsAsPlacement } from './placementSignal';
-import { DropChipIcon, LivesChipIcon, WaveChipIcon } from './GameIcons';
+import { LivesChipIcon, WaveChipIcon } from './GameIcons';
 import { gameViewStyles as styles } from './gameViewStyles';
 import type { HudSnapshot } from './hudSnapshot';
 import { hudOf } from './hudSnapshot';
 import { SPEED_STEPS } from '../core/clock';
-import { AUTO_WAVES_DEFAULT, INGAME_RESTOCK_MARKUP, HINT_FADE_AFTER_TICKS } from '../config/economy.source';
+import { AUTO_WAVES_DEFAULT, HINT_FADE_AFTER_TICKS } from '../config/economy.source';
 import { isDevActive } from '../dev/gate';
 
 interface Props {
@@ -215,16 +215,6 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
     setSpeedUi(next);
   }, []);
 
-  /** B36: Nachkauf — Preis aus der Source (Pflanzenkosten × Aufschlag, eine Quelle). */
-  const restockPrice = useCallback((variantId: string): number => {
-    const base = PLANTS_SOURCE[variantId as keyof typeof PLANTS_SOURCE];
-    return (base?.cost ?? 50) * INGAME_RESTOCK_MARKUP;
-  }, []);
-
-  const handleBuyPlant = useCallback((variantId: string) => {
-    runtimeRef.current?.buyPlant(variantId);
-  }, []);
-
   /** B32: Auto-Wellen pro Run umschalten — Command in die Sim, Anzeige folgt dem Snapshot. */
   const handleToggleAutoWaves = useCallback(() => {
     const rt = runtimeRef.current; if (!rt) return;
@@ -277,7 +267,6 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
           />
           {hud && (
             <div style={styles.hud} aria-label={t('game.status')} data-tut="hud">
-              <span style={styles.hudChip}><DropChipIcon/> {hud.energy}</span>
               <span style={styles.hudChip}><LivesChipIcon/> {hud.lives}</span>
               <span style={styles.hudChip}><WaveChipIcon/> {t('game.wave')} {hud.wave}</span>
               {hud.combo > 1 && <span style={{ ...styles.hudChip, ...styles.hudChipCombo }}>×{hud.combo}</span>}
@@ -314,14 +303,11 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
           <PlacementTray
             plantIds={plantIds}
             inventory={hud?.inventory ?? {}}
-            energy={hud?.energy ?? 0}
             mode={placement.mode}
             variantId={placement.variantId}
             onSelectPlant={selectPlant}
             onSelectTile={selectTile}
             onSelectSell={selectSell}
-            onBuyPlant={handleBuyPlant}
-            restockPrice={restockPrice}
             trayPlantsLabel={t('game.trayPlants')}
             trayFieldLabel={t('game.trayField')}
           />

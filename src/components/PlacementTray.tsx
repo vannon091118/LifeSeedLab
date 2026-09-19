@@ -20,23 +20,18 @@ type TrayTab = 'plants' | 'build';
 export interface PlacementTrayProps {
   plantIds: string[];
   inventory: Record<string, number>;
-  energy: number;
   mode: PlaceMode;
   variantId: string | null;
   onSelectPlant: (variantId: string, count: number) => void;
   onSelectTile: (tile: MapTileType) => void;
   /** Juggling: Verkaufsmodus — Tap auf ein gebautes Tile kassiert 50% Refund. */
   onSelectSell: () => void;
-  /** B36: Nachkauf im Lauf — Energie → 1× Pflanze ins Inventar (Playtest R2 #2). */
-  onBuyPlant: (variantId: string) => void;
-  /** Preis pro Nachkauf-Kauf (Pflanzenkosten × Aufschlag, aus der Source abgeleitet). */
-  restockPrice: (variantId: string) => number;
   /** D3: i18n-Sektions-Labels — die Tray trennt KAMPF (Pflanzen) von FELD (Tiles). */
   trayPlantsLabel: string;
   trayFieldLabel: string;
 }
 
-export function PlacementTray({ plantIds, inventory, energy, mode, variantId, onSelectPlant, onSelectTile, onSelectSell, onBuyPlant, restockPrice, trayPlantsLabel, trayFieldLabel }: PlacementTrayProps) {
+export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPlant, onSelectTile, onSelectSell, trayPlantsLabel, trayFieldLabel }: PlacementTrayProps) {
   const { t } = useI18n();
   // Tab-Regie: 'sell' gehört zum BAU-Kasten, ein MapTileType ebenfalls; 'plant' zum
   // PFLANZEN-Kasten. Der sichtbare Tab leitet sich aus dem Modus AB (kein zweiter
@@ -104,28 +99,29 @@ export function PlacementTray({ plantIds, inventory, energy, mode, variantId, on
               <span style={styles.trayName}>{label}</span>
               <span style={styles.trayCount}>×{count}</span>
             </button>
-            {/* B36: Bei leerem Vorrat ein Kauf-Knopf — der Lauf endet nie am leeren Inventar,
-                solange Energie da ist (Playtest R2: „ich kann nur noch zusehen“).
-                Lauf-3-Bericht: Karte zeigt Name + Preis, nicht nur „+ 80“ — der Kauf soll
-                lesbar sein, ohne den Tooltip zu bemühen. */}
-            {count <= 0 && (
-              <button
-                key={`${id}-buy`}
-                onPointerDown={(e) => { e.stopPropagation(); (e.target as HTMLElement).releasePointerCapture?.(e.pointerId); onBuyPlant(id); }}
-                data-restock={id}
-                style={{ ...styles.trayItem, ...(energy < restockPrice(id) ? styles.trayItemDisabled : {}) }}
-                aria-label={`${label} nachkaufen (${restockPrice(id)})`}
-                title={`+1 ${label} — ${restockPrice(id)} Energie`}
-              >
-                <span style={styles.trayName}>{label}</span>
-                <span style={styles.trayCount}>+{restockPrice(id)}⚡</span>
-              </button>
-            )}
             </Fragment>
           );
           })}
           </div>
         </div>
+      )}
+
+      {/* VERKAUF: ein EIGENER Knopf OBERHALB des Werkzeugkastens (Playtest R2-Befund:
+          „Verkaufen ist kein Unterpunkt" — vorher hing es als vierte Karte im Tile-Row und
+          wurde als Tile missverstanden). Er wählt den Verkaufsmodus direkt aus; `aria-pressed`
+          ist der Auswahlzustand, den E2E liest. */}
+      {active === 'build' && (
+        <button
+          onPointerDown={(e) => { (e.target as HTMLElement).releasePointerCapture?.(e.pointerId); onSelectSell(); }}
+          aria-pressed={mode === 'sell'}
+          data-tool="sell"
+          style={{ ...styles.sellButton, ...(mode === 'sell' ? styles.sellButtonActive : {}) }}
+          title={t('game.sellHint')}
+        >
+          <span style={styles.sellDot} aria-hidden/>
+          <span>{t('game.sellTool')}</span>
+          <span style={styles.sellNote}>{t('game.sellRefund')}</span>
+        </button>
       )}
 
       {/* BAU-Kasten (Mapbuilder) — Tiles + Verkauf, nur im Bau-Tab sichtbar.
@@ -135,34 +131,22 @@ export function PlacementTray({ plantIds, inventory, energy, mode, variantId, on
           <div style={styles.sectionRow}>
           {(Object.keys(MAP_TILES_SOURCE) as MapTileType[]).map(tile => {
           const isSelected = mode === tile;
-          const affordable = energy >= MAP_TILES_SOURCE[tile].cost;
+          // #4: bezahlbar = im POOL vorhanden (kein Energie-Guthaben mehr).
+          const affordable = (inventory[tile] ?? 0) > 0;
           return (
             <button
               key={tile}
               onPointerDown={(e) => { (e.target as HTMLElement).releasePointerCapture?.(e.pointerId); onSelectTile(tile); }}
               style={{ ...styles.trayItem, ...(isSelected ? styles.trayItemSelected : {}), ...(affordable ? {} : styles.trayItemDisabled) }}
               aria-pressed={isSelected} aria-disabled={!affordable}
-              title={`${tileLabel(tile)} (${MAP_TILES_SOURCE[tile].cost} Energie)`}
+              title={`${tileLabel(tile)} — im Pool: ${inventory[tile] ?? 0}`}
             >
               <span style={{ ...styles.trayDot, background: tileSwatch(tile) }} aria-hidden/>
               <span style={styles.trayName}>{tileLabel(tile)}</span>
-              <span style={styles.trayCount}>{MAP_TILES_SOURCE[tile].cost}⚡</span>
+              <span style={styles.trayCount}>×{inventory[tile] ?? 0}</span>
             </button>
           );
           })}
-          {/* Juggling-Werkzeug: Verkauf — ein gebautes Tile wieder abreißen (50% Refund).
-              Die Königsdisziplin des Mazing: mid-Welle verkaufen und die Gegner laufen
-              das Labyrinth rückwärts. Die Sim entscheidet über empty_cell (leere Zelle). */}
-          <button
-            onPointerDown={(e) => { (e.target as HTMLElement).releasePointerCapture?.(e.pointerId); onSelectSell(); }}
-            style={{ ...styles.trayItem, ...(mode === 'sell' ? styles.trayItemSelected : {}) }}
-            aria-pressed={mode === 'sell'}
-            title={t('game.sellTool')}
-          >
-            <span style={{ ...styles.trayDot, background: 'linear-gradient(135deg, #c96f3b 50%, #d9c9a3 50%)' }} aria-hidden/>
-            <span style={styles.trayName}>{t('game.sellTool')}</span>
-            <span style={styles.trayCount}>+50%</span>
-          </button>
           </div>
         </div>
       )}
@@ -198,4 +182,9 @@ const styles: Record<string, CSSProperties> = {
   // D3: Sektionen — vertikale Stapel pro Funktionsgruppe
   traySection: { display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' },
   sectionRow: { display: 'flex', gap: 8, overflowX: 'auto', maxWidth: '100%' },
+  // Verkauf: eigener, voll breiter Werkzeug-Knopf ÜBER dem Tile-Kasten
+  sellButton: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '8px 14px', background: '#fff', border: '2px solid var(--ink)', borderRadius: 10, cursor: 'pointer', color: 'var(--ink)', fontSize: 12, fontWeight: 800, letterSpacing: 0.6, boxShadow: '2px 2px 0 var(--ink)', minHeight: 40, touchAction: 'none' as const },
+  sellButtonActive: { background: '#fde8d8', borderColor: '#c96f3b', boxShadow: '2px 2px 0 #c96f3b' },
+  sellDot: { width: 10, height: 10, borderRadius: '50%', background: 'linear-gradient(135deg, #c96f3b 50%, #d9c9a3 50%)', border: '1.5px solid var(--ink)', flexShrink: 0 },
+  sellNote: { fontSize: 10, color: '#6b6250', fontWeight: 700 },
 };

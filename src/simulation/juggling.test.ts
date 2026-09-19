@@ -1,11 +1,16 @@
-// Juggling (Mazing-Königsdisziplin): REMOVE_TILE verkauft ein Tile mid-Welle — Refund 50%,
-// Route kippt SOFORT, Gegner werden an die neue Route angeknotet (remapToRoute) und drehen
-// dadurch real um (mehr Time-on-Target). Persistenz: TILE_REMOVED spiegelt die Welt
-// (worldAutor) — der Verkauf überlebt Reload (simulatorische Reproduzierbarkeit).
+// Juggling (Mazing-Königsdisziplin): REMOVE_TILE verkauft ein Tile mid-Welle, die Route kippt
+// SOFORT, Gegner werden an die neue Route angeknotet (remapAllToRoute) und drehen dadurch real
+// um (mehr Time-on-Target). Persistenz: TILE_REMOVED spiegelt die Welt (worldAutor) — der
+// Verkauf überlebt Reload (simulatorische Reproduzierbarkeit).
+//
+// #4-Neufassung (Pool statt Energie): Der Verkauf zahlt KEINE Energie zurück, sondern legt das
+// Material in den POOL (`inventory`, der gekaufte Bauvorrat) — genau ein Stück pro Tile. Der
+// Test topft den Vorrat über `ownedCounts` (Besitz-Wahrheit, B37) auf, statt einen State-Wert
+// zu verbiegen: die 9-Topf-Mauer braucht 9 Material.
 //
 // Bewiesene Geometrie (Sonde 2026-09-19): Pot-Mauer gx=6 (gy 0..8, Lücke unten bei gy=9)
-// zwingt die Route auf die untere Umgehung (23 Knoten über Reihe 9). Verkauf eines Topfs
-// bei gy=1 öffnet die OBEN-Abkürzung — die Route kippt komplett auf Reihe 1.
+// zwingt die Route auf die untere Umgehung (Kreuzung bei (6,9)). Verkauf eines Topfs bei gy=1
+// öffnet die OBEN-Abkürzung — die Route kippt komplett auf Reihe 1.
 import { describe, it, expect, beforeEach } from 'vitest';
 import { makeRoot } from '../testing/testkit';
 import { resetIds } from '../core/ids';
@@ -13,13 +18,16 @@ import { makeCommand } from '../bus/commands';
 
 const SEED = 2447771834;
 
+/** Zusatz-Vorrat für die Mauer-Szenen (#4): 9 Töpfe für die Wand + Puffer für Proben. */
+const POT_POOL = { pot: 12 };
+
 function routeKey(route: readonly { x: number; y: number }[] | null): string {
   return (route ?? []).map(p => `${Math.round(p.x - 0.5)},${Math.round(p.y - 0.5)}`).join('>');
 }
 
 function snapshotOf(root: ReturnType<typeof makeRoot>): {
   mapTiles: Record<string, string>;
-  resources: { energy: number };
+  inventory: Record<string, number>;
   currentRoute: readonly { x: number; y: number }[] | null;
   phase: string;
   enemies: ReadonlyArray<{ px: number; py: number; pathIndex: number }>;
@@ -36,12 +44,16 @@ function layWall(root: ReturnType<typeof makeRoot>): void {
   }
 }
 
+/** Mauer-Szene: Pool mitgeliefert, damit MATERIAL nie die Grenze ist (nur die Weg-Regel). */
+function wallRoot(): ReturnType<typeof makeRoot> {
+  return makeRoot({ seed: SEED, runId: 1, materialStock: POT_POOL });
+}
+
 describe('Juggling — REMOVE_TILE (Verkauf, Route-Kipp, Gegner-Umkehr)', () => {
   beforeEach(() => resetIds());
 
   it('Verkauf öffnet die Abkürzung: die Route kippt auf den neuen Kanal', () => {
-    const root = makeRoot({ seed: SEED, runId: 1 });
-    (snapshotOf(root).resources as { energy: number }).energy = 9999;
+    const root = wallRoot();
     layWall(root);
     root.stepOnce();
 
@@ -57,34 +69,34 @@ describe('Juggling — REMOVE_TILE (Verkauf, Route-Kipp, Gegner-Umkehr)', () => 
     expect(open).not.toContain('6,9'); // die alte untere Lücke ist überflüssig
   });
 
-  it('Verkauf zahlt 50% Refund und entfernt das Tile', () => {
+  it('Verkauf legt das Material in den POOL zurück und entfernt das Tile (#4)', () => {
     const root = makeRoot({ seed: SEED, runId: 1 });
-    (snapshotOf(root).resources as { energy: number }).energy = 9999;
-    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 3, gy: 3, tile: 'pot' })); // 15
+    const before = snapshotOf(root).inventory.pot;
+    expect(before).toBeGreaterThan(0); // Source-Startbestand (#4)
+    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 3, gy: 3, tile: 'pot' }));
     root.stepOnce();
     const s = snapshotOf(root);
-    const afterBuild = s.resources.energy;
     expect(s.mapTiles['3,3']).toBe('pot');
+    expect(s.inventory.pot).toBe(before - 1); // Bau kostet genau 1 Material
 
     root.commands.push(makeCommand(0, 'REMOVE_TILE', 2, { gx: 3, gy: 3 }));
     root.stepOnce();
 
     const after = snapshotOf(root);
     expect(after.mapTiles['3,3']).toBeUndefined();
-    expect(after.resources.energy).toBe(afterBuild + 7); // floor(15/2)
+    expect(after.inventory.pot).toBe(before); // vollständig zurück im Pool
   });
 
-  it('Verkauf einer leeren Zelle zahlt NICHTS (kein Energie-Druck)', () => {
+  it('Verkauf einer leeren Zelle ändert den Pool NICHT', () => {
     const root = makeRoot({ seed: SEED, runId: 1 });
-    const energyBefore = snapshotOf(root).resources.energy;
+    const before = snapshotOf(root).inventory.pot;
     root.commands.push(makeCommand(0, 'REMOVE_TILE', 3, { gx: 3, gy: 3 }));
     root.stepOnce();
-    expect(snapshotOf(root).resources.energy).toBe(energyBefore);
+    expect(snapshotOf(root).inventory.pot).toBe(before);
   });
 
   it('Gegner drehen um: nach dem Verkauf läuft er durch die NEU geöffnete Lücke', () => {
-    const root = makeRoot({ seed: SEED, runId: 1 });
-    (snapshotOf(root).resources as { energy: number }).energy = 9999;
+    const root = wallRoot();
     layWall(root);
     root.commands.push(makeCommand(0, 'BEGIN_WAVE_PREP', 60, {}));
     root.commands.push(makeCommand(0, 'START_WAVE', 61, {}));
@@ -98,6 +110,7 @@ describe('Juggling — REMOVE_TILE (Verkauf, Route-Kipp, Gegner-Umkehr)', () => 
     const enemies = st.enemies as { px: number; py: number; pathIndex: number }[];
     if (enemies.length === 0) return; // Welle ausgelaufen: der Remap-Vertrag ist unten gepinnt
     const enemy = enemies[0];
+    void enemy;
 
     // Juggling: Abkürzung oben öffnen — Route kippt, Gegner wird REMAPPT und läuft
     // ab jetzt die neue Route (durch die geöffnete Zelle (6,1)).
@@ -120,8 +133,7 @@ describe('Juggling — REMOVE_TILE (Verkauf, Route-Kipp, Gegner-Umkehr)', () => 
     // Pinned mit gemessener Szene (Sonde 2026-09-19): Gegner bei (7.50, 1.32), idx 4;
     // nach dem Verkauf bei gx=6/gy=1: idx 5 auf der neuen Route, x sinkt Richtung Lücke —
     // die Route-Kipp hat ihn real umgeleitet.
-    const root = makeRoot({ seed: SEED, runId: 1 });
-    (snapshotOf(root).resources as { energy: number }).energy = 9999;
+    const root = wallRoot();
     layWall(root);
     root.commands.push(makeCommand(0, 'BEGIN_WAVE_PREP', 60, {}));
     root.commands.push(makeCommand(0, 'START_WAVE', 61, {}));
@@ -144,8 +156,7 @@ describe('Juggling — REMOVE_TILE (Verkauf, Route-Kipp, Gegner-Umkehr)', () => 
   });
 
   it('Phase layout: Verkauf erlaubt — die Welt bleibt konsistent über die Bauphase', () => {
-    const root = makeRoot({ seed: SEED, runId: 1 });
-    (snapshotOf(root).resources as { energy: number }).energy = 9999;
+    const root = wallRoot();
     layWall(root);
     root.stepOnce();
     expect(snapshotOf(root).phase).toBe('layout');
@@ -154,4 +165,3 @@ describe('Juggling — REMOVE_TILE (Verkauf, Route-Kipp, Gegner-Umkehr)', () => 
     expect(snapshotOf(root).mapTiles['6,4']).toBeUndefined();
   });
 });
- 

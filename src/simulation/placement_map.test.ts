@@ -20,14 +20,14 @@ function routeOf(root: SimulationRoot) {
 describe('Map-System (P5) — Laufweg reagiert REAL auf Platzierungen', () => {
   beforeEach(() => resetIds());
 
-  it('PLACE_TILE zieht Energie ab und schreibt das Tile in den State', () => {
+  it('PLACE_TILE nimmt Material aus dem POOL und schreibt das Tile in den State (#4)', () => {
     const root = makeRoot({ seed: SEED });
-    const energyBefore = root.getSnapshot().resources.energy;
+    const materialBefore = root.getSnapshot().inventory.path ?? 0;
     root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 6, gy: 3, tile: 'path' }));
     root.stepOnce();
     const s = root.getSnapshot();
     expect(s.mapTiles['6,3']).toBe('path');
-    expect(s.resources.energy).toBeLessThan(energyBefore);
+    expect(s.inventory.path).toBe(materialBefore - 1); // jedes Tile kostet genau 1 Material
   });
 
   it('R2: ohne Spieler-Tiles ist die Route DAS PATHFINDING-ERGEBNIS (Diagonale Spawn→Ausgang)', () => {
@@ -43,7 +43,9 @@ describe('Map-System (P5) — Laufweg reagiert REAL auf Platzierungen', () => {
 
   it('Weg-Tiles verlängern die Route (Gegner laufen REAL länger — Umweg wird begehbar)', () => {
     // Findlings-Mauer im Baubereich (gx 4, gy 2-7 = 6 Zellen, maxCount 6)
-    const root = makeRoot({ seed: SEED });
+    // #4: 6 Findlinge kosten 6 Material — der Vorrat kommt aus der Source plus Zukauf
+    // (`materialStock`), nicht aus einem Budget.
+    const root = makeRoot({ seed: SEED, materialStock: { boulder: 6 } });
     const walls: [number, number][] = [
       [4, 2], [4, 3], [4, 4], [4, 5], [4, 6], [4, 7],
     ];
@@ -88,11 +90,12 @@ describe('Map-System (P5) — Laufweg reagiert REAL auf Platzierungen', () => {
   });
 
   it('TILE_REJECTED bei max_count (Boulder-Limit 6 schützt vor Weg-Mauern)', () => {
-    const root = makeRoot({ seed: SEED });
+    const root = makeRoot({ seed: SEED, materialStock: { boulder: 10 } });
     let rejected = 0;
     let lastReason = '';
     root.bus.subscribe('TILE_REJECTED', (e) => { rejected++; lastReason = (e as unknown as { payload: { reason: string } }).payload.reason; });
-    // 7 unterscheidliche Zellen im Baubereich (gy 8: komplett frei vom Pfad-Korridor, B33)
+    // 7 unterscheidliche Zellen im Baubereich (Reihe gy 8 trägt keine Pflanze und liegt
+    // abseits der Diagonal-Bahn) — der Vorrat (10) macht MAX_COUNT zur Grenze, nicht Material.
     let seq = 1;
     for (let i = 0; i < 7; i++) {
       root.commands.push(makeCommand(0, 'PLACE_TILE', seq++, { gx: 2 + i, gy: 8, tile: 'boulder' }));
@@ -115,34 +118,31 @@ describe('Map-System (P5) — Laufweg reagiert REAL auf Platzierungen', () => {
 });
 // B33 → R2: Der alte Pfad-Korridor-Verbot ist GELÖSCHT — die EINZIGE Schranke ist die
 // Integritätsregel: der Zug, der den LETZTEN freien Weg schließt, wird abgelehnt
-// (`route_blocked`, ohne Energie-Abzug). Diese Sektion pinnt die neue Regel.
+// (`route_blocked`, ohne Material-Abzug). Diese Sektion pinnt die neue Regel.
 describe('B33 → R2 — Integritätsregel statt Korridor-Verbot', () => {
   beforeEach(() => resetIds());
 
-  it('lehnt den Zug ab, der den LETZTEN freien Weg schließt — ohne Energie-Abzug', () => {
-    const root = makeRoot({ seed: SEED });
-    const energyBefore = root.getSnapshot().resources.energy;
+  it('lehnt den Zug ab, der den LETZTEN freien Weg schließt — ohne Material-Abzug', () => {
+    // Genug Töpfe im Vorrat: die Grenze ist die WEG-Regel, nicht das Material (#4).
+    const root = makeRoot({ seed: SEED, materialStock: { pot: 12 } });
+    const poolBefore = root.getSnapshot().inventory.pot ?? 0;
     let rejectedReason = '';
     root.bus.subscribe('TILE_REJECTED', (e) => { rejectedReason = (e as unknown as { payload: { reason: string } }).payload.reason; });
     // Voll-Mauer über alle 12 Reihen in Spalte gx=5 — `pot` (walkable: false, maxCount 24):
-    // 12 Töpfe würden die GANZE Spalte blockieren. Der schließende Zug (12. Topf) stoßt an
-    // das Energie-Budget, bevor die Mauer steht — also wird die Probe über DEKO-Kosten
-    // entlastet: die Energie reicht exakt für 11 Töpfe + Ablehnung des 12. Zugs mit
-    // route_blocked, NICHT mit no_energy (Start 150 < 12×15 = 180 ⇒ der Test senkt die
-    // Kosten-Basis über den Besitz). Stattdessen: Energie über den State-Adapter aufstocken.
-    (root as unknown as { state: { resources: { energy: number } } }).state.resources.energy = 300;
+    // 12 Töpfe würden die GANZE Spalte blockieren. Die Integritätsregel lässt genau 11 zu;
+    // der 12. Zug wird mit `route_blocked` abgelehnt. Der Pool wird über den State-Adapter
     for (let gy = 0; gy < 12; gy++) {
       root.commands.push(makeCommand(0, 'PLACE_TILE', gy + 1, { gx: 5, gy, tile: 'pot' }));
     }
     root.stepOnce();
     const s = root.getSnapshot();
     expect(s.mapTiles['5,11']).toBeUndefined(); // der schließende Zug ist NICHT geschrieben
-    expect(s.resources.energy).toBeGreaterThan(energyBefore - 12 * 15); // abgelehnter Zug kostete nichts
+    expect(s.inventory.pot).toBe(poolBefore - 11); // 11 Töpfe gesetzt — der abgelehnte Zug kostete nichts
     expect(rejectedReason).toBe('route_blocked');
   });
 
   it('erlaubt eine fast vollständige Blockade, solange ein freier Weg übrig bleibt', () => {
-    const root = makeRoot({ seed: SEED });
+    const root = makeRoot({ seed: SEED, materialStock: { pot: 12 } });
     // 11 Töpfe in Spalte 5 — Reihe gy=6 bleibt frei: der Weg läuft dort durch.
     for (let gy = 0; gy < 12; gy++) {
       if (gy === 6) continue;
@@ -210,12 +210,11 @@ describe('B37 — Besitz-Wahrheit: Run-Inventar spiegelt genau den Besitz', () =
     expect(rejects).toEqual(['no_inventory']);
   });
 
-  it('Besitz von 5 ⇒ 5 Platzierungen möglich, die 6. lehnt ab (Energie über Startbudget hinaus)', () => {
+  it('Besitz von 5 ⇒ 5 Platzierungen möglich, die 6. lehnt ab (Pool-Grenze)', () => {
     const root = makeRoot({ seed: 42, loadout: ['sprout'], ownedCounts: { sprout: 5 } });
-    // Energie auf 500 anheben — der Test prüft die BESITZ-Grenze, nicht das Budget.
+    // #4: der Test prüft die BESITZ-Grenze — es gibt kein Budget mehr, nur den Pool.
     const state = root.getSnapshot();
     expect(state.inventory.sprout).toBe(5);
-    (root as unknown as { state: { resources: { energy: number } } }).state.resources.energy = 500;
     const rejects: string[] = [];
     root.bus.subscribe('PLACEMENT_REJECTED', (e) => rejects.push((e as unknown as { payload: { reason: string } }).payload.reason));
     let seq = 1;
@@ -230,33 +229,35 @@ describe('B37 — Besitz-Wahrheit: Run-Inventar spiegelt genau den Besitz', () =
   });
 });
 
-describe('Platzierungsregeln — Ökonomie vor Geometrie', () => {
+describe('Platzierungsregeln — Pool vor Geometrie (#4)', () => {
   it('meldet no_inventory, bevor Geometrie geprüft wird', () => {
     const reason = placementRejectReason({
       board: { ...ON_PATH, plants: [] },
       inventoryCount: 0,
-      energy: 999,
-      cost: 10,
     });
     expect(reason).toBe('no_inventory');
   });
 
-  it('meldet no_energy vor der Zellprüfung', () => {
+  it('meldet no_inventory auch bei BELEGTER Zelle zuerst — der Pool entscheidet vor dem Feld', () => {
+    const reason = placementRejectReason({
+      board: { ...FREE, plants: [{ gx: 11, gy: 10 }] },
+      inventoryCount: 0,
+    });
+    expect(reason).toBe('no_inventory');
+  });
+
+  it('meldet occupied, sobald der Pool reicht (Geometrie danach)', () => {
     const reason = placementRejectReason({
       board: { ...FREE, plants: [{ gx: 11, gy: 10 }] },
       inventoryCount: 1,
-      energy: 5,
-      cost: 10,
     });
-    expect(reason).toBe('no_energy');
+    expect(reason).toBe('occupied');
   });
 
   it('gibt null zurück, wenn alles passt', () => {
     const reason = placementRejectReason({
       board: { ...FREE, plants: [] },
       inventoryCount: 1,
-      energy: 10,
-      cost: 10,
     });
     expect(reason).toBeNull();
   });

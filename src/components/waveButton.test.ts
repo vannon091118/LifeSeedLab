@@ -47,7 +47,7 @@ describe('B23.2 — Wellen-Knopf folgt der Phase', () => {
 
 describe('B23.3 — Ablehnungsgrund wird sichtbar', () => {
   it('übersetzt jeden Grund der Sim in einen eigenen Text', () => {
-    const reasons: UiRejectReason[] = ['occupied', 'on_path', 'no_inventory', 'no_energy', 'unknown'];
+    const reasons: UiRejectReason[] = ['occupied', 'on_path', 'no_inventory', 'unknown'];
     const keys = reasons.map(rejectTextKey);
     expect(new Set(keys).size).toBe(reasons.length);        // kein Grund fällt auf denselben Text
     for (const key of keys) {

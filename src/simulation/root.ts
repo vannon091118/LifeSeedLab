@@ -33,6 +33,10 @@ export interface RootInit {
   ownedCounts?: Record<string, number>;
   /** B1-Fallback-Stückzahl je Loadout-Eintrag, wenn kein Besitz übergeben wird (Default 2). */
   loadoutStock?: number;
+  /** #4: gekaufter Bau-Vorrat (Shop) — wird dem Source-Startbestand ZUGESCHLAGEN. Der freie
+   *  Mapbuilder ist der Kern des Spiels: der Run startet nie ohne Material, und der Shop
+   *  erweitert den Vorrat außerhalb des Runs. */
+  materialStock?: Record<string, number>;
   /** Stats for carried bred variants (genome-derived at breeding time). */
   bredStats?: NonNullable<SimState['bredStats']>;
   /** P6: gezüchtete Specimen für den Brutling-Einsatz im Run. */

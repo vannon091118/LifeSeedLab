@@ -12,8 +12,9 @@ export interface MapTileSource {
   label: string;
   /** F4: i18n-Key der Übersetzung (translations.ts) — Content-Truth verweist, UI liest i18n. */
   i18nKey: string;
-  /** Energie-Kosten pro Platzierung (In-Run-Währung, wie Pflanzen). */
-  cost: number;
+  /** NEKTAR-Preis im Shop (AUSSERHALB des Runs) — im Run gibt es keine Kosten mehr:
+   *  der Spieler kauft sich einen Pool und verbaut ihn, so viel er will (#4). */
+  price: number;
   /** Pathfinding-Beteiligung: walkable = Gegner laufen darüber, block = Wand. */
   walkable: boolean;
   /** Pfad-Gewicht: 1 = normal, <1 = Gegner bevorzugen („gelegter Weg"), >1 = miedsen. */
@@ -24,17 +25,17 @@ export interface MapTileSource {
 
 export const MAP_TILES_SOURCE: Record<MapTileType, MapTileSource> = {
   // Blumentopf: PLATZIERFLÄCHE für Pflanzen (Pflanzen brauchen jetzt einen Topf!)
-  pot:     { id: 'pot',     label: 'Blumentopf', i18nKey: 'map.pot', cost: 15, walkable: false, weight: 999, maxCount: 24 },
+  pot:     { id: 'pot',     label: 'Blumentopf', i18nKey: 'map.pot', price: 15, walkable: false, weight: 999, maxCount: 24 },
   // Weg-Tile: Gegner BEVORZUGEN es (weight < 1) — der Spieler lenkt den Laufweg.
   // M4 (Sprint AP2): 0.6 statt 0.45 — der Vorsprung zur Wiese (1) ist kleiner, damit die
   // Pflanzen-Kosten (PLANT_ROUTE_COST) auf Weg-Zellen nicht decode und das Zucht-Layout
   // als Maze-Bauwerk spürbar bleibt. Nur Source (Regel 6).
-  path:    { id: 'path',    label: 'Weg', i18nKey: 'map.path',        cost: 5,  walkable: true,  weight: 0.6, maxCount: 30 },
+  path:    { id: 'path',    label: 'Weg', i18nKey: 'map.path',        price: 5,  walkable: true,  weight: 0.6, maxCount: 30 },
   // Findling: BLOCKIERT den Weg — Gegner müssen umlaufen. maxCount 6 < 8 Zeilen:
   // eine komplette Spalten-Mauer ist UNMÖGLICH (Softlock-Schutz an der Quelle).
-  boulder: { id: 'boulder', label: 'Findling', i18nKey: 'map.boulder',   cost: 20, walkable: false, weight: 999, maxCount: 6 },
+  boulder: { id: 'boulder', label: 'Findling', i18nKey: 'map.boulder',   price: 20, walkable: false, weight: 999, maxCount: 6 },
   // Deko: rein kosmetisch, begehbar, keine Path-Bedeutung
-  decor:   { id: 'decor',   label: 'Deko', i18nKey: 'map.decor',       cost: 3,  walkable: true,  weight: 1, maxCount: 20 },
+  decor:   { id: 'decor',   label: 'Deko', i18nKey: 'map.decor',       price: 3,  walkable: true,  weight: 1, maxCount: 20 },
 };
 
 export const MAP_TILE_IDS = Object.keys(MAP_TILES_SOURCE) as MapTileType[];
@@ -125,3 +126,23 @@ export function resolvePathConnection(
 // und keinen 8×8-Baubereich-Hardcode (die Fläche ist die freigeschaltete Welt).
 // EXPAND_MAP vergrößert die ganze Fläche (mapSystem.expandMap, EXPAND_STEP Zellen je
 // Richtung) — die Persistenz spiegelt das in die Welt (worldAutor), sie überlebt den Run.
+
+/**
+ * Startmaterial eines frischen Profils (#4): der Run beginnt mit einem kleinen Pool —
+ * bemessen am alten Startbudget (150 Energie/5 pro Weg usw.), nur ohne Energierechnung.
+ * Alles Weitere wird im Shop mit Nektar gekauft und dem Besitz zugeschlagen.
+ */
+export const STARTING_TILE_POOL: Record<MapTileType, number> = {
+  path: 20,
+  pot: 6,
+  boulder: 3,
+  decor: 6,
+};
+
+/**
+ * FELD (Feld-Erweiterung, #3/#4): kein Map-Tile, sondern ein POOL-Gegenstand. Ein Feld
+ * vergrößert die freigeschaltete Weltfläche (EXPAND_STEP je Richtung) — bezahlt wird es
+ * mit Nektar im Shop, verbraucht im Run. Preis = alte Erweiterungs-Basis (EXPAND_BASE_COST).
+ */
+export const PLOT_POOL_KEY = 'plot';
+export const PLOT_PRICE = 30;

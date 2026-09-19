@@ -67,9 +67,8 @@ export const EVENT_AUDIENCE: Record<EventType, AudienceEntry> = {
   PLANT_PROPAGATED: { audiences: ['fx'], why: 'Sanfter Papierring am Setzling + Hum-Ton.' },
   PLANT_REMOVED: {
     audiences: ['snapshot'],
-    why: 'Die Pflanze fällt im nächsten Frame aus dem State, der Rückerstattungsbetrag steht im '
-      + 'Energie-Chip. Offen: der Betrag selbst ist nirgends ablesbar und `refund` hat keine '
-      + 'Position im Payload — Kandidat für eine Zahl über der Zelle, sobald das Entfernen eine '
+    why: 'Die Pflanze fällt im nächsten Frame aus dem State; ihr Material liegt danach wieder im '
+      + 'Pool (Tray-Zähler). Kandidat für eine Zahl über der Zelle, sobald das Entfernen eine '
       + 'eigene Politur bekommt.',
   },
   PLANT_ATTACKED: {
@@ -146,10 +145,6 @@ export const EVENT_AUDIENCE: Record<EventType, AudienceEntry> = {
   BEETLE_DEPLOYED: { audiences: ['fx'], why: 'Bernstein-Ring am Pfadkopf, Namensbanner, Zap-Ton.' },
   BEETLE_DOWN: { audiences: ['fx'], why: 'Tusche-Fleck zerfällt — bedrohlich, nicht pflanzlich.' },
 
-  // ── Economy (B36: Nachkauf im Lauf) ─────────────────────────────────────
-  BUY_REJECTED: { audiences: ['notice'], why: 'Nachkauf-Knopf im Tray: ohne Text wäre ein verweigerter Kauf ein '
-      + 'stiller Energie-Verlust oder ein toter Knopf — der Grund muss ankommen.' },
-  PLANT_BOUGHT: { audiences: ['snapshot'], why: 'Inventar zählt über den State; ein Frame-FX würde vom Platzieren verdeckt.' },
 };
 
 const typesWith = (a: EventAudience): EventType[] =>

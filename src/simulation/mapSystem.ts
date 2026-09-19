@@ -13,7 +13,7 @@
 
 import type { SimState, MapTiles, Route } from './state';
 import { makeEvent, type GameEvent } from '../bus/events';
-import { MAP_TILES_SOURCE, MAP_TILE_IDS, MAP_DEFAULT_WEIGHT, PLANT_ROUTE_COST, type MapTileType } from '../config/map.source';
+import { MAP_TILES_SOURCE, MAP_TILE_IDS, MAP_DEFAULT_WEIGHT, PLANT_ROUTE_COST, PLOT_POOL_KEY, type MapTileType } from '../config/map.source';
 import { routeQuality } from './routeQuality';
 // R2: Re-Export — die Route-Qualität ist Sim-Wahrheit, die Verbraucher (root, hudSnapshot,
 // Serializer, Tests) importieren sie über den Map-Owner (eine Import-Quelle).
@@ -21,11 +21,11 @@ export { routeQuality };
 
 export type PlaceTileResult =
   | { ok: true }
-  | { ok: false; reason: 'unknown_tile' | 'no_energy' | 'max_count' | 'occupied_plant' | 'out_of_world' | 'route_blocked' };
+  | { ok: false; reason: 'unknown_tile' | 'no_material' | 'max_count' | 'occupied_plant' | 'out_of_world' | 'route_blocked' };
 
 /** REMOVE_TILE (Juggling): Verkauf eines Tiles — Ergebnis mit Refund oder Ablehnung. */
 export type RemoveTileResult =
-  | { ok: true; tile: MapTileType; refund: number }
+  | { ok: true; tile: MapTileType }
   | { ok: false; reason: 'empty_cell' | 'occupied_plant' };
 
 /**
@@ -74,14 +74,13 @@ export class MapSystem {
   constructor(private emit: (e: GameEvent) => void) {}
 
   /**
-   * PLACE_TILE command handler: Energie abziehen, Integritätsregel prüfen, Tile schreiben,
-   * Event emit. Kein Korridor-Verbot, kein Baubereich-Hardcode — die Fläche ist die Welt.
+   * PLACE_TILE command handler: Material aus dem POOL nehmen (#4 — keine Energie),
+   * Integritätsregel prüfen, Tile schreiben, Event emit.
    */
   placeTile(state: SimState, gx: number, gy: number, tile: MapTileType): PlaceTileResult {
     const src = MAP_TILES_SOURCE[tile];
     if (!src) return { ok: false, reason: 'unknown_tile' };
     if (!inWorldBounds(state, gx, gy)) return { ok: false, reason: 'out_of_world' };
-    if (state.resources.energy < src.cost) return { ok: false, reason: 'no_energy' };
     const key = tileKey(gx, gy);
     // Pflanzen stehen nur auf Töpfen — Zelle mit Pflanze ist tabu
     if (state.plants.some(p => p.gx === gx && p.gy === gy)) return { ok: false, reason: 'occupied_plant' };
@@ -93,24 +92,26 @@ export class MapSystem {
     }
     const current = state.mapTiles[key];
     if (current === tile) {
-      // idempotent: gleicher Tile an gleicher Stelle — nichts zu tun, kein Energie-Abzug
+      // idempotent: gleicher Tile an gleicher Stelle — nichts zu tun, kein Material-Verbrauch
       return { ok: true };
     }
+    // #4: gelegt wird aus dem gekauften Pool; jedes Tile kostet genau 1 Material.
+    if ((state.inventory[tile] ?? 0) <= 0) return { ok: false, reason: 'no_material' };
     if ((counts[tile] ?? 0) >= src.maxCount) return { ok: false, reason: 'max_count' };
 
     // ── R2-Integritätsregel (die EINE Schranke) ──────────────────────────────
     // Der Zug wird PROBIERT: bleibt danach noch ein freier Weg existieren, ist er erlaubt —
     // egal wo und egal wie lang. Schließt er den LETZTEN Weg, wird er abgelehnt,
-    // OHNE Energie abzuziehen. Das ersetzt Korridor-Verbote und Baubereich-Margen.
+    // OHNE Material zu verbrauchen. Das ersetzt Korridor-Verbote und Baubereich-Margen.
     if (this.computeRoute(state, { gx, gy, tile }) === null) {
       return { ok: false, reason: 'route_blocked' };
     }
 
-    state.resources.energy -= src.cost;
+    state.inventory[tile] = (state.inventory[tile] ?? 0) - 1;
     state.mapTiles[key] = tile;
 
     this.emit(makeEvent(state.clock.tick, 'TILE_PLACED', 'system:map', ++this.seq, {
-      gx, gy, tile, cost: src.cost,
+      gx, gy, tile,
     }));
     return { ok: true };
   }
@@ -118,7 +119,7 @@ export class MapSystem {
   /**
    * Juggling (Mazing-Königsdisziplin): Tile VERKAUFEN — die Zelle wird frei, das
    * Pathfinding berechnet neu, Gegner auf der Route KIPPEN mid-Welle um (Routen-Wechsel
-   * = Gegner laufen zum neuen Routen-Start zurück). Refund: halbe Baukosten (wie Pflanzen).
+   * = Gegner laufen zum neuen Routen-Start zurück). Das Material wandert ZURÜCK in den Pool (#4).
    * KEINE Integritäts-Probe nötig: Entfernen öffnet Wege, schließt nie welche.
    */
   removeTile(state: SimState, gx: number, gy: number): RemoveTileResult {
@@ -129,13 +130,12 @@ export class MapSystem {
     if (!tile) return { ok: false, reason: 'empty_cell' };
 
     delete state.mapTiles[key];
-    const refund = Math.floor((MAP_TILES_SOURCE[tile as MapTileType]?.cost ?? 0) * 0.5);
-    state.resources.energy += refund;
+    state.inventory[tile] = (state.inventory[tile] ?? 0) + 1;
 
     this.emit(makeEvent(state.clock.tick, 'TILE_REMOVED', 'system:map', ++this.seq, {
-      gx, gy, tile, refund,
+      gx, gy, tile,
     }));
-    return { ok: true, tile, refund };
+    return { ok: true, tile };
   }
 
   /**
@@ -225,23 +225,23 @@ export class MapSystem {
    * Richtung, Source). Die PERSISTENZ spiegelt das MAP_EXPANDED-Event in die Welt
    * (worldAutor) — die Erweiterung überlebt den Run.
    */
-  expandMap(state: SimState): { ok: boolean; reason?: 'no_energy' | 'max_size' } {
+  expandMap(state: SimState): { ok: boolean; reason?: 'no_fields' | 'max_size' } {
     if (state.cols >= MAX_WORLD_COLS || state.rows >= MAX_WORLD_ROWS) return { ok: false, reason: 'max_size' };
-    const cost = EXPAND_BASE_COST + state.cols + state.rows; // größere Welt ⇒ teurer (Source-Regel)
-    if (state.resources.energy < cost) return { ok: false, reason: 'no_energy' };
-    state.resources.energy -= cost;
+    // #3/#4: die Fläche wächst über ein gekauftes FELD (Pool-Gegenstand) — nicht über Energie.
+    if ((state.inventory[PLOT_POOL_KEY] ?? 0) <= 0) return { ok: false, reason: 'no_fields' };
+    state.inventory[PLOT_POOL_KEY] = (state.inventory[PLOT_POOL_KEY] ?? 0) - 1;
     state.cols += EXPAND_STEP;
     state.rows += EXPAND_STEP;
     this.emit(makeEvent(state.clock.tick, 'MAP_EXPANDED', 'system:map', ++this.seq, {
-      gx: state.cols, gy: state.rows, cost,
+      gx: state.cols, gy: state.rows,
     }));
     return { ok: true };
   }
 }
 
-/** Wachstumsgrenze der Welt (Source-Wert, bewusst hier neben der Wachstumsregel). */
+/** Wachstumsgrenze der Welt (Source-Wert, bewusst hier neben der Wachstumsregel).
+ *  Der PREIS eines Feldes liegt in map.source (PLOT_PRICE) — hier nur die Wachstumsregel. */
 export const EXPAND_STEP = 2;
-export const EXPAND_BASE_COST = 30;
 export const MAX_WORLD_COLS = 64;
 export const MAX_WORLD_ROWS = 64;
 

@@ -21,7 +21,7 @@ function advance(root: SimulationRoot, ticks: number): void {
  * Liefert einen NEUEN Root im gameover-Zustand (der Caller-Root bleibt unangetastet). */
 function forceGameOver(): SimulationRoot {
   const resume: import('./resume').ResumeSnapshot = {
-    waveNumber: 20, energy: 500, lives: 1, score: 0,
+    waveNumber: 20, lives: 1, score: 0,
     combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
     plants: [], inventory: {}, discoveredVariants: [], nektarEarned: 0,
   };
@@ -39,10 +39,10 @@ import type { GameEvent } from '../bus/events';
 describe('Game Over friert am Owner (P1)', () => {
   beforeEach(() => resetIds());
 
-  it('nach GAME_OVER führen Commands zu nichts (keine Pflanzen, kein Energieverbrauch)', () => {
+  it('nach GAME_OVER führen Commands zu nichts (keine Pflanzen, kein Materialverbrauch)', () => {
     let root: SimulationRoot = forceGameOver();
     const snap = root.getSnapshot();
-    const energy = snap.resources.energy;
+    const material = { ...snap.inventory };
     const plants = snap.plants.length;
 
     root.commands.push(makeCommand(snap.clock.tick, 'PLACE_PLANT', 2, { variantId: 'sprout', gx: 1, gy: 2 }));
@@ -53,7 +53,7 @@ describe('Game Over friert am Owner (P1)', () => {
     root.stepOnce();
 
     expect(root.getSnapshot().plants.length).toBe(plants);
-    expect(root.getSnapshot().resources.energy).toBe(energy);
+    expect(root.getSnapshot().inventory).toEqual(material); // auch der Pool bleibt unangetastet
     expect(root.getSnapshot().phase).toBe('gameover');
   });
 
@@ -76,13 +76,13 @@ describe('Game Over friert am Owner (P1)', () => {
     let root: SimulationRoot = forceGameOver();
     const s = root.getSnapshot();
     const before = JSON.stringify({
-      tick: s.clock.tick, lives: s.lives, plants: s.plants, wave: s.wave.number, energy: s.resources.energy,
+      tick: s.clock.tick, lives: s.lives, plants: s.plants, wave: s.wave.number, material: s.inventory,
     });
     root.commands.push(makeCommand(s.clock.tick, 'PLACE_PLANT', 9, { variantId: 'sprout', gx: 3, gy: 3 }));
     for (let i = 0; i < 120; i++) root.stepOnce();
     const s2 = root.getSnapshot();
     const after = JSON.stringify({
-      tick: s2.clock.tick, lives: s2.lives, plants: s2.plants, wave: s2.wave.number, energy: s2.resources.energy,
+      tick: s2.clock.tick, lives: s2.lives, plants: s2.plants, wave: s2.wave.number, material: s2.inventory,
     });
     expect(after).toBe(before);
   });
@@ -113,7 +113,7 @@ function collector(root: SimulationRoot, type: GameEvent['type']) {
 
 describe('B29 — Ablehnungen erreichen den Spieler (echter Run)', () => {
   it('TILE_REJECTED: out_of_world und max_count kommen mit Text an', () => {
-    const root = makeRoot({ seed: 4242 });
+    const root = makeRoot({ seed: 4242, materialStock: { boulder: 10 } });
     const read = collector(root, 'TILE_REJECTED');
 
     // Außerhalb der Weltfläche — die UI prüft das nicht vor, die Sim entscheidet.
@@ -122,6 +122,7 @@ describe('B29 — Ablehnungen erreichen den Spieler (echter Run)', () => {
     expect(read().reason).toBe('out_of_world');
 
     // Findlinge: 6 erlaubt, der siebte wird abgewiesen (schützt vor Weg-Mauern).
+    // #4: der Vorrat (10) macht das maxCount-Limit zur Grenze, nicht das Material.
     let seq = 2;
     for (let i = 0; i < 7; i++) {
       root.commands.push(makeCommand(1, 'PLACE_TILE', seq++, { gx: 2 + i, gy: 8, tile: 'boulder' }));
@@ -156,40 +157,26 @@ describe('B29 — Ablehnungen erreichen den Spieler (echter Run)', () => {
     expect(prop().text).toBe('Diese Pflanze ist noch nicht reif.');
   });
 
-  it('BEETLE_REJECTED: zu wenig Energie kommt mit Text an (der einzige Fall, der den Knopf passiert)', () => {
-    const brood = rollBrood('leafhopper', 'shellbeetle', 5);
-    const root = makeRoot({ seed: 4242, loadout: ['sprout'], beetles: brood });
+  it('BEETLE_REJECTED: leerer Brutling-Vorrat kommt mit Text an (#4: kein Energie-Grund mehr)', () => {
+    // Ohne `beetles` ist das Lager leer — der Deploy scheitert am Besitz, nicht an Energie.
+    const root = makeRoot({ seed: 4242, loadout: ['sprout'] });
     const read = collector(root, 'BEETLE_REJECTED');
 
-    // Pflanzen kosten kein Harz mehr (B37) und es gibt kein passives Einkommen (kein Tropf):
-    // Die Energie sinkt nur noch durch Käufe — 6 Findlinge (maxCount aus der Source, Reihe gy=8
-    // ist pfadfrei, also nie on_path) + 10 Deko-Tiles drücken sie deterministisch auf 0.
-    let seq = 1;
-    for (let i = 0; i < 6; i++) {
-      root.commands.push(makeCommand(1, 'PLACE_TILE', seq++, { gx: 2 + i, gy: 8, tile: 'boulder' }));
-    }
-    for (let i = 0; i < 10; i++) {
-      root.commands.push(makeCommand(1, 'PLACE_TILE', seq++, { gx: 2 + (i % 8), gy: 2 + Math.floor(i / 8), tile: 'decor' }));
-    }
+    root.commands.push(makeCommand(1, 'DEPLOY_BEETLE', 1, { beetleId: 'beetle-0001' }));
     root.stepOnce();
-    expect(root.getSnapshot().resources.energy).toBe(0);
-
-    root.commands.push(makeCommand(2, 'DEPLOY_BEETLE', seq++, { beetleId: brood[0].id }));
-    root.stepOnce();
-    expect(read().reason).toBe('no_energy');
-    expect(read().text).toBe('Zu wenig Energie.');
+    expect(read().reason).toBe('none_available');
+    expect(read().text).toBe('Kein Brutling im Lager.');
   });
 
   it('jede Ablehnung ist auch ein FX-Ereignis, keine stille Zeile im Bus', () => {
-    const root = makeRoot({ seed: 4242 });
+    const root = makeRoot({ seed: 4242, materialStock: { pot: 12 } });
     const seen: string[] = [];
     for (const type of ['TILE_REJECTED', 'PLACEMENT_REJECTED', 'FERTILIZE_REJECTED', 'PROPAGATE_REJECTED', 'BEETLE_REJECTED'] as const) {
       root.bus.subscribe(type, () => seen.push(type));
     }
     // R2: die Ablehnung der Sim ist route_blocked — der letzte freie Weg bleibt immer offen.
-    // Nur EIN ablehnender Zug (der Energie vor der Mauer ausgeht): die letzten Töpfe lehnen
-    // bereits mit no_energy ab — der Test zählt nur die TILE_REJECTED-Zeile, also genügt
-    // der erste Widerspruch gegen die Integritätsregel.
+    // Der Test zählt nur, DASS eine TILE_REJECTED-Zeile entsteht — der schließende Zug der
+    // Voll-Mauer genügt. Der Vorrat (12) macht die WEG-Regel zur Grenze, nicht Material (#4).
     for (let gy = 0; gy < 12; gy++) {
       root.commands.push(makeCommand(0, 'PLACE_TILE', gy + 1, { gx: 5, gy, tile: 'pot' }));
     }

@@ -24,7 +24,7 @@ BINDING:
 2. variantId MUSS in observation.inventory.availableVariants sein.
 3. (gx,gy) MUSS in observation.grid.tiles buildable & unoccupied sein.
 4. FERTILIZE_PLANT braucht plantId, KEINE Koordinaten, KEIN variantId.
-5. Verbotene Typen: on_path, occupied, no_energy, beetle (Enemy-Typ existiert nicht).
+5. Verbotene Typen: on_path, occupied, no_material, beetle (Enemy-Typ existiert nicht).
 6. Max 3 Actions.
 
 STRATEGY: defend_route | expand_corridor | stabilize

@@ -41,10 +41,7 @@ export type EventType =
   // beetles (P6: Käferzucht — Brutling als alliierter Kämpfer)
   | 'BEETLE_DEPLOYED'
   | 'BEETLE_DOWN'
-  | 'BEETLE_REJECTED'
-  // economy (B36: Nachkauf im Lauf)
-  | 'BUY_REJECTED'
-  | 'PLANT_BOUGHT';
+  | 'BEETLE_REJECTED';
 
 // ── Ablehnungs-Vokabular (v1) ────────────────────────────────
 // Die Gründe sind hier EINMAL typisiert, weil drei Stellen sie teilen: die Sim (Emittent),
@@ -53,15 +50,17 @@ export type EventType =
 // Text ist deshalb ein Compile-Fehler, kein stiller `field.reject.unknown` (B29).
 
 /** Sim-Ablehnung einer Pflanzen-Platzierung (`PLACEMENT_REJECTED`). */
-export type PlacementRejectReason = 'occupied' | 'on_path' | 'no_inventory' | 'no_energy';
+export type PlacementRejectReason = 'occupied' | 'on_path' | 'no_inventory';
 /** Pflanzen-Aktionen: Düngen/Vermehrung (`FERTILIZE_REJECTED`/`PROPAGATE_REJECTED`). */
 export type PlantRejectReason = 'not_growing' | 'max_reached' | 'not_found' | 'not_mature' | 'on_path' | 'occupied';
 /** Karten-Bau (`TILE_REJECTED`) — alle Gründe kommen aus `simulation/mapSystem.ts`.
  *  R2-Neubau: `spawn_corridor` ist gestorben (kein geschützter Korridor mehr); neu sind
- *  `out_of_world` (außerhalb der freigeschalteten Fläche) und `max_size` (Wachstumsgrenze). */
-export type TileRejectReason = 'unknown_tile' | 'no_energy' | 'max_count' | 'occupied_plant' | 'not_expandable' | 'already_buildable' | 'on_path' | 'out_of_world' | 'max_size';
+ *  `out_of_world` (außerhalb der freigeschalteten Fläche) und `max_size` (Wachstumsgrenze).
+ *  #4: `no_energy` ist mit dem Energiesystem gestorben — der POOL entscheidet (`no_material`),
+ *  und die Integritätsregel meldet `route_blocked`: der letzte freie Weg bleibt immer offen. */
+export type TileRejectReason = 'unknown_tile' | 'no_material' | 'max_count' | 'occupied_plant' | 'not_expandable' | 'already_buildable' | 'on_path' | 'out_of_world' | 'max_size' | 'route_blocked';
 /** Brutling-Einsatz (`BEETLE_REJECTED`). */
-export type BeetleRejectReason = 'already_deployed' | 'no_energy' | 'none_available';
+export type BeetleRejectReason = 'already_deployed' | 'none_available';
 /** M5 (Sprint AP2): zugebauter Laufweg — der Default-Pfad greift, und das muss sichtbar sein. */
 export type RouteRejectReason = 'route_blocked';
 /** Alles, was dem Spieler als Ablehnungsgrund gezeigt werden kann. */
@@ -79,10 +78,8 @@ export interface EventPayloads {
   /** B36: Ursache im Payload — der Spieler soll sehen, WARUM der Lauf endete (Playtest R2 #1). */
   GAME_OVER: { wave: number; score: number; reason: 'lives_depleted' };
   /** B36: Nachkauf im Lauf (Playtest R2 #2) — Erfolg und Ablehnung kommen als Events. */
-  BUY_REJECTED: { variantId: string; reason: 'unknown_variant' | 'no_energy' };
-  PLANT_BOUGHT: { variantId: string; price: number };
   PLANT_PLACED: { plantId: string; variantId: string; gx: number; gy: number };
-  PLANT_REMOVED: { plantId: string; refund: number };
+  PLANT_REMOVED: { plantId: string };
   PLANT_ATTACKED: { plantId: string; targetId: string | null };
   PLANT_GROWN: { plantId: string; variantId: string; gx: number; gy: number };
   PLANT_FERTILIZED: { plantId: string; variantId: string; count: number };
@@ -97,15 +94,15 @@ export interface EventPayloads {
   ENEMY_DIED: { enemyId: string; px: number; py: number; reward: number; killerPlantId: string | null };
   SCORE_CHANGED: { score: number; delta: number };
   COMBO_CHANGED: { count: number; multiplier: number };
-  REWARD_GRANTED: { energy: number; sourceId: string };
+  REWARD_GRANTED: { reward: number; sourceId: string };
   PLACEMENT_REJECTED: { reason: PlacementRejectReason; gx: number; gy: number };
   FERTILIZE_REJECTED: { plantId: string; reason: Exclude<PlantRejectReason, 'not_mature'> };
   PROPAGATE_REJECTED: { plantId: string; reason: Exclude<PlantRejectReason, 'not_growing' | 'max_reached'> };
-  TILE_PLACED: { gx: number; gy: number; tile: string; cost: number };
-  TILE_REMOVED: { gx: number; gy: number; tile: string; refund: number };
+  TILE_PLACED: { gx: number; gy: number; tile: string };
+  TILE_REMOVED: { gx: number; gy: number; tile: string };
   TILE_REJECTED: { gx: number; gy: number; tile: string; reason: TileRejectReason };
   ROUTE_CHANGED: { waypoints: number; /** M1/AP2: 1 = gerade Route, kleiner = Maze erzwingt Umwege. */ quality: number | null; /** M5: gesetzt = der Spieler hat den Weg zugebaut — Fallback läuft unsichtbar? Nein: als Grund gemeldet. */ blocked: boolean };
-  MAP_EXPANDED: { gx: number; gy: number; cost: number };
+  MAP_EXPANDED: { gx: number; gy: number };
   BEETLE_DEPLOYED: { beetleId: string; name: string; px: number; py: number; spawnCount: number };
   BEETLE_DOWN: { beetleId: string; px: number; py: number };
   BEETLE_REJECTED: { reason: BeetleRejectReason };

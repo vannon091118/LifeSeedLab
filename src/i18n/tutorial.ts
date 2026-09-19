@@ -45,7 +45,7 @@ export const tutorialTexts = {
     'tut.pflanzen.text': [
       'Ausgewählt! Über dem Feld schwebt jetzt ein durchsichtiger Umriss — deine Pflanze in der Vorhersehung, kurz bevor sie Papier wird.',
       'Ziel ist eine freie Zelle: nicht auf den Weg, nicht in einen Findling, nicht auf die Kollegin. Umriss grün heißt ja, Umriss rot heißt nein — und ich mache das enttäuschte Gesicht.',
-      'Tippe aufs Blattgitter. Die Energie zahlt die Station, nicht du, nicht ich. Niemand fragt nach Belegen.',
+      'Tippe aufs Blattgitter. Gebaut wird aus DEINEM Material, nicht aus Stationsgeld. Niemand fragt nach Belegen.',
     ].join('\n'),
     'tut.welle.title': 'Welle starten',
     'tut.welle.text': [
@@ -66,7 +66,7 @@ export const tutorialTexts = {
     'tut.chips.title': 'Drei Kästchen, drei Sorgen',
     'tut.chips.text': [
       'Oben links stehen deine drei Wahrheiten:',
-      'Tropfen = Energie. Neue Pflanzen kosten Energie. Kein Tropfen, kein Spross, kein Ruhm.',
+      'Material zählt, nicht Energie: Pflanzen und Tiles kommen aus deinem Pool. Kein Pool, kein Spross, kein Ruhm.',
       'Blatt = Leben. Bei null Leben endet der Lauf und der Kompost gewinnt.',
       'Welle = Fortschritt. Jede angefangene und überlebte Welle bringt dir Nektar fürs Gewächshaus. Nektar ist der gute Stoff — ich bekomme weiterhin nur Lob.',
     ].join('\n'),
@@ -120,7 +120,7 @@ export const tutorialTexts = {
     'tut.pflanzen.text': [
       'Selected! A translucent outline hovers over the field now — that is your plant in foresight, right before it turns to paper.',
       'Aim for a free cell: not the path, not a boulder, not your colleague. Green outline means yes, red outline means no — and I make the disappointed face.',
-      'Tap the leaf grid. The station pays the energy, not you, not me. Nobody asks for receipts.',
+      'Tap the leaf grid. You build from your own material, not from station credit. Nobody asks for receipts.',
     ].join('\n'),
     'tut.welle.title': 'Start the wave',
     'tut.welle.text': [
@@ -141,7 +141,7 @@ export const tutorialTexts = {
     'tut.chips.title': 'Three boxes, three worries',
     'tut.chips.text': [
       'Top left, your three truths:',
-      'Drop = energy. New plants cost energy. No drop, no sprout, no glory.',
+      'Material counts, not energy: plants and tiles come from your pool. No pool, no sprout, no glory.',
       'Leaf = lives. At zero the run ends and the compost wins.',
       'Wave = progress. Every wave you start and survive earns nectar for the greenhouse. Nectar is the good stuff — I still only get praise.',
     ].join('\n'),

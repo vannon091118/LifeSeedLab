@@ -155,12 +155,10 @@ export class RunRuntime {
         return {
           plants: snap.plants.map(p => ({ gx: p.gx, gy: p.gy })),
           inventory: snap.inventory,
-          energy: snap.resources.energy,
           mapTiles: snap.mapTiles,
           route: snap.currentRoute, // R1: die Vorschau misst dieselbe Route wie die Sim
         };
       },
-      tileCost: (tile) => MAP_TILES_SOURCE[tile].cost,
       tick: () => root.getSnapshot().clock.tick,
     });
     this.controller = controller;
@@ -340,10 +338,6 @@ export class RunRuntime {
     this.root.commands.push(makeCommand(this.root.clock.get().tick, 'SET_AUTO_WAVES', ++this.cmdSeq, { enabled: on }));
   }
 
-  /** B36: Nachschub im Lauf — Energie → 1× Pflanze ins Inventar (Playtest R2 #2). */
-  buyPlant(variantId: string): void {
-    this.root.commands.push(makeCommand(this.root.clock.get().tick, 'BUY_PLANT', ++this.cmdSeq, { variantId }));
-  }
   get autoWaves(): boolean { return this.root.getSnapshot().wave.autoWaves; }
 
   startWave(): void {

@@ -17,9 +17,8 @@ import { placementRejectReason, type PlacementRejectReason } from '../simulation
 
 export type PlaceMode = 'plant' | 'sell' | MapTileType;
 
-/** Ablehnungsgrund in der UI. Die Energie-Vorprüfung spricht dieselbe Sprache wie die Sim
- *  (`no_energy`) — vorher gab es dafür einen eigenen Grund mit eigenem Text, obwohl der
- *  Unterschied „für Pflanze" / „für Feld" nur aus dem Modus kam. */
+/** Ablehnungsgrund in der UI. Die Pool-Vorprüfung spricht dieselbe Sprache wie die Sim
+ *  (`no_inventory`): Pflanze UND Feld kommen aus demselben Pool (`inventory`, #4). */
 export type UiRejectReason = PlacementRejectReason | 'unknown';
 
 export interface Cell {
@@ -64,10 +63,8 @@ export interface PlacementEnvironment {
   board(): {
     plants: ReadonlyArray<Cell>;
     inventory: Record<string, number>;
-    energy: number;
     mapTiles: Record<string, string>;
   };
-  tileCost(tile: MapTileType): number;
   /** Sim-Tick als deterministische Zeitbasis für Shake/FX. */
   tick(): number;
 }
@@ -197,7 +194,7 @@ export class PlacementController {
     if (this.mode === 'sell') return null; // Verkauf: die Sim entscheidet (empty_cell/occupied)
     if (this.mode !== 'plant') {
       if (board.mapTiles[`${cell.gx},${cell.gy}`] === this.mode) return null;
-      return board.energy < this.env.tileCost(this.mode) ? 'no_energy' : null;
+      return (board.inventory[this.mode] ?? 0) <= 0 ? 'no_inventory' : null;
     }
     if (this.variantId === null) return 'unknown';
 
@@ -206,8 +203,6 @@ export class PlacementController {
     return placementRejectReason({
       board: { gx: cell.gx, gy: cell.gy, plants: board.plants },
       inventoryCount: board.inventory[this.variantId] ?? 0,
-      energy: board.energy,
-      cost: stats.cost,
     });
   }
 }

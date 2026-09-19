@@ -9,7 +9,6 @@ import { AUTO_WAVES_DEFAULT } from '../config/economy.source';
 
 export interface ResumeSnapshot {
   waveNumber: number;
-  energy: number;
   lives: number;
   score: number;
   combo: SimState['combo'];
@@ -30,7 +29,7 @@ export function applyResume(state: SimState, snapshot: ResumeSnapshot): void {
     prepStartTick: state.clock.tick,
     autoWaves: AUTO_WAVES_DEFAULT, // Spieler-Entscheid ist Run-Sitzung, kein Save-Bestandteil (B32)
   };
-  state.resources = { ...state.resources, energy: snapshot.energy };
+  state.resources = { ...state.resources };
   state.lives = snapshot.lives;
   state.score = snapshot.score;
   state.combo = { ...snapshot.combo };

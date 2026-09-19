@@ -320,13 +320,13 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `4547aa1` — feat(world): eigene karte, diagonale route und mazing-verkauf |
-| Arbeitsbaum | 3 gestaged, 20 geändert, 0 neu |
+| HEAD | `7b5c592` — refactor(redundanz): toten code geschnitten, loc- und test-regeln |
+| Arbeitsbaum | 0 gestaged, 50 geändert, 0 neu |
 | Letztes Gate | 🛑 geschlossen (preflight, 1 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `4547aa1` feat(world): eigene karte, diagonale route und mazing-verkauf |
+| Letzter Shinon-Commit | `7b5c592` refactor(redundanz): toten code geschnitten, loc- und test-regeln |
 | Letzter Push | ✅ origin/main |
-| LOC-Hotspots | `src/simulation/enemySystem.ts` 301/300 (100 %)<br>`src/render/gameRuntime.ts` 401/400 (100 %)<br>`src/simulation/root.ts` 296/300 (99 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/components/Greenhouse.tsx` 376/400 (94 %) |
+| LOC-Hotspots | `src/simulation/root.ts` 300/300 (100 %)<br>`src/simulation/enemySystem.ts` 299/300 (100 %)<br>`src/render/gameRuntime.ts` 395/400 (99 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/components/Greenhouse.tsx` 376/400 (94 %) |
 <!-- SHINON:STATUS:END -->
 
 

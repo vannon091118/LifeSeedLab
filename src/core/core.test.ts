@@ -145,7 +145,7 @@ describe('Phase 2.6 State hash', () => {
     seed: 583921,
     clock: { tick: 100, elapsed: 100 * 33.333, phase: 'night', phaseProgress: 0.5, waveTime: 20, paused: false, speed: 1 },
     wave: { number: 2 },
-    resources: { energy: 150 },
+    resources: { coins: 150 },
     plants: [
       { id: 'plant-0001', gx: 2, gy: 3, hp: 90, variantId: 'base_shooter', lastShot: 90 },
       { id: 'plant-0002', gx: 5, gy: 1, hp: 300, variantId: 'base_wall', lastShot: 0 },

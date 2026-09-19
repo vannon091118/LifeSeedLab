@@ -18,6 +18,13 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 - **Verkaufen ist da.** Im Bau-Kasten kannst du eigene Tiles wieder abreißen (50 % zurück).
   Verkaufst du mitten in einer Welle, sucht sich die Welle sofort einen neuen Weg — bis hin
   zum Rückweg durchs halbe Labyrinth.
+- **Kein Energie-System mehr.** Bauen kostet keine Energie mehr: Du hast einen **Bau-Vorrat**
+  (Töpfe, Wege, Findlinge, Deko, Felder), der jedem Lauf von Anfang an mitgegeben wird — der
+  Vorrat steht als ×Zahl auf jeder Karte. Du baust damit so viel, wie dein Vorrat hergibt, und
+  ein abgelehnter Bau kostet nie Material. Nektar gibst du weiterhin nur außerhalb eines Laufs aus.
+- **Verkaufen ist ein eigener Knopf.** Statt als vierte Karte im Tile-Streifen sitzt „Verkauf"
+  jetzt als breiter Knopf **über** dem Bau-Kasten — was du antippst, verkaufst du (das Material
+  wandert zurück in deinen Vorrat).
 - **Zwei Werkzeugkästen statt einem Teller.** „Pflanzen" und „Feld" sind getrennt umschaltbar:
   Pflanzenkarten bzw. Tiles und Verkauf erscheinen nie gemischt.
 - **Nur noch ein Bau-Knopf.** Vorher standen zwei fast gleich beschriftete Knöpfe
@@ -32,6 +39,27 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ### Intern (Technik, Verträge & Tests)
 
+- [Redundanz] Harter Schnitt am toten Code- [#4 Energie-Schnitt] Das Energie-System ist vollständig aus dem Spielcode entfernt (State,
+  Bus, Persistenz, Hash, Sim, UI): `SimState.resources` trägt nur noch Loot-Münzen
+  (`{ coins }`), `REWARD_GRANTED` liefert `reward` statt `energy`, der Wave-Bonus ist reine
+  Anzeige (kein Ressourcen-Zuwachs — vorher war er eine Energie-Gutschrift ohne Score), und
+  `TileRejectReason`/`BUY_*`-Vokabular wurde um `no_material`/`route_blocked` bereinigt statt
+  in totes `no_energy` zu laufen (der `BUY_REJECTED`-Event-Kanal ist samt Agent-Observation
+  gestrichen). Statt Guthaben gilt der **Material-Pool**: `mapSystem.placeTile` bucht ein
+  Stück ab, `removeTile` legt es zurück (`TILE_REMOVED` trägt keinen Refund mehr),
+  `EXPAND_MAP` wächst über ein gekauftes FELD (`PLOT_POOL_KEY`, `no_fields → no_material`),
+  und `placementRules.placementRejectReason` prüft nur noch Pool → Geometrie. RootInit hat
+  dafür `materialStock` (Shop-Zukauf), die Source liefert den Startbestand
+  (`STARTING_TILE_POOL` + 1 Feld) — der freie Mapbuilder ist der Kern des Spiels und startet
+  nie mit leerer Hand, während PFLANZEN weiterhin Besitz-Wahrheit bleiben (B37).
+  `ResumeSnapshot`/`RunSave`/`HudSnapshot` sind entsprechend geschrumpft (kein `energy`).
+  Tests auf den neuen Vertrag umgestellt (Pool statt Budget: `placement_map`, `juggling`
+  prüft den Material-Rückfluss, `gateB` die Anzeige-Only-Welle, `gameover_notice` den
+  leer gehandelten Brutling-Grund, `llmBridge` wählt die Pflanze explizit aus dem Inventar,
+  weil die erste Pool-Kennung jetzt Material ist). Suite 430/430, tsc clean.
+- [Tray] `Verkauf` ist ein eigener, voll breiter Werkzeug-Knopf **über** dem Bau-Kasten
+  (`data-tool="sell"`, `aria-pressed`), nicht mehr die vierte Karte im Tile-Streifen —
+  inkl. der neuen i18n-Schlüssel `game.sellHint`/`game.sellRefund` (DE/EN).
 - [Redundanz] Harter Schnitt am toten Code (Nachweis: Import-Graph + Export-Scan über den
   ganzen Baum, jeder Treffer vor dem Löschen geprüft): `src/config/mapLayout.source.ts` und
   `src/components/MenuScene.tsx` waren nirgends importiert und sind gelöscht. Dazu tote

@@ -8,7 +8,7 @@ export interface HashableState {
   seed: number;
   clock: ClockState;
   wave: { number: number };
-  resources: { energy: number };
+  resources: { coins: number };
   plants: { id: string; gx: number; gy: number; hp: number; variantId: string; lastShot: number }[];
   enemies: { id: string; hp: number; px: number; py: number; pathIndex: number }[];
   projectiles: { id: string; px: number; py: number; dx: number; dy: number }[];
@@ -43,7 +43,7 @@ const NUM = (n: number) => {
 export function hashState(s: HashableState): string {
   let h = fnv1a(0x811c9dc5, `v1|seed:${s.seed}`);
   h = fnv1a(h, `tick:${NUM(s.clock.tick)}|phase:${s.clock.phase}|prog:${NUM(s.clock.phaseProgress)}|waveTime:${NUM(s.clock.waveTime)}`);
-  h = fnv1a(h, `wave:${NUM(s.wave.number)}|energy:${NUM(s.resources.energy)}|score:${NUM(s.score)}`);
+  h = fnv1a(h, `wave:${NUM(s.wave.number)}|score:${NUM(s.score)}`);
   h = fnv1a(h, `combo:${s.combo.count}|${NUM(s.combo.multiplier)}|${NUM(s.combo.timer)}|${NUM(s.combo.highest)}`);
 
   // canonical ordering: sort by id so insertion order never affects the hash

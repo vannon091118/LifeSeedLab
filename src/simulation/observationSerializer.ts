@@ -31,7 +31,7 @@ export interface Observation {
   wave: { number: number; enemiesRemaining: number };
   grid: { w: number; h: number; tiles: ObservationTile[] };
   route: { waypointCount: number; quality: number | null };
-  inventory: { availableVariants: { variantId: string; count: number }[]; energy: number; score: number };
+  inventory: { availableVariants: { variantId: string; count: number }[]; score: number };
   combat: {
     combo: { count: number; multiplier: number };
     enemies: { enemyId: string; typeId: string; gx: number; gy: number }[];
@@ -42,12 +42,12 @@ export interface Observation {
 /** Events, die der Agent als Lern-Kanal bekommt (Ablehnungen + Meilensteine). */
 export type EventTypeForAgent =
   | 'PLACEMENT_REJECTED' | 'TILE_REJECTED' | 'FERTILIZE_REJECTED' | 'PROPAGATE_REJECTED'
-  | 'BEETLE_REJECTED' | 'BUY_REJECTED' | 'ROUTE_CHANGED' | 'WAVE_STARTED' | 'WAVE_COMPLETED'
+  | 'BEETLE_REJECTED' | 'ROUTE_CHANGED' | 'WAVE_STARTED' | 'WAVE_COMPLETED'
   | 'GAME_OVER';
 
 const AGENT_EVENT_TYPES: readonly EventTypeForAgent[] = [
   'PLACEMENT_REJECTED', 'TILE_REJECTED', 'FERTILIZE_REJECTED', 'PROPAGATE_REJECTED',
-  'BEETLE_REJECTED', 'BUY_REJECTED', 'ROUTE_CHANGED', 'WAVE_STARTED', 'WAVE_COMPLETED',
+  'BEETLE_REJECTED', 'ROUTE_CHANGED', 'WAVE_STARTED', 'WAVE_COMPLETED',
   'GAME_OVER',
 ];
 
@@ -97,8 +97,7 @@ export function serializeObservation(state: SimState, recentEvents: Observation[
       availableVariants: Object.entries(state.inventory)
         .filter(([, count]) => count > 0)
         .map(([variantId, count]) => ({ variantId, count })),
-      energy: state.resources.energy,
-      score: state.score,
+        score: state.score,
     },
     combat: {
       combo: { count: state.combo.count, multiplier: state.combo.multiplier },

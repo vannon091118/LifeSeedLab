@@ -28,7 +28,7 @@ export interface PlantStats {
 
 export type PlaceResult =
   | { ok: true; plant: PlantEntity }
-  | { ok: false; reason: 'occupied' | 'on_path' | 'no_inventory' | 'no_energy' };
+  | { ok: false; reason: 'occupied' | 'on_path' | 'no_inventory' };
 
 export function resolvePlantStats(state: SimState, variantId: string): PlantStats | null {
   return getPlantStats(variantId, state.bredStats);
@@ -56,8 +56,6 @@ export class PlantSystem {
     const reject = placementRejectReason({
       board: { gx, gy, plants: state.plants, cols: state.cols, rows: state.rows },
       inventoryCount: inv,
-      energy: Infinity,
-      cost: 0,
     });
     if (reject) return { ok: false, reason: reject };
 
@@ -97,13 +95,10 @@ export class PlantSystem {
     const idx = state.plants.findIndex(p => p.id === plantId);
     if (idx < 0) return false;
     const plant = state.plants[idx];
-    const stats = resolvePlantStats(state, plant.variantId);
-    const refund = Math.floor((stats?.cost ?? 0) * 0.5);
-    state.resources.energy += refund;
     state.inventory[plant.variantId] = (state.inventory[plant.variantId] || 0) + 1;
     state.plants.splice(idx, 1);
     this.emit(makeEvent(state.clock.tick, 'PLANT_REMOVED', plant.id, state.plants.length, {
-      plantId, refund,
+      plantId,
     }));
     return true;
   }

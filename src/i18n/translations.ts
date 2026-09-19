@@ -98,6 +98,10 @@ export const translations = {
     'map.decor': 'Deko',
     'game.trayField': 'FELD',
     'game.sellTool': 'Verkauf',
+    // #6: Der Verkauf ist ein EIGENER Werkzeug-Knopf über dem Bau-Kasten — Titel und Beisatz
+    // erklären, was der Modus tut und was zurückkommt (Material, nicht Energie).
+    'game.sellHint': 'Verkaufsmodus: ein gebautes Feld antippen — das Material wandert zurück in den Pool.',
+    'game.sellRefund': 'Material zurück',
     // Trait-Tags (Gen-IDs sind sprachneutral, die Anzeige übersetzt — Trait-Tags waren
     // vorher fest englisch („rapid fire") und schlugen in der deutschen UI durch.
     'trait.fire': 'Feuer',
@@ -152,7 +156,8 @@ export const translations = {
     'field.reject.on_path': 'Da läuft jemand drüber — hier ist kein Platz.',
     
     'field.reject.no_inventory': 'Von dieser Pflanze ist keine mehr übrig.',
-    'field.reject.no_energy': 'Zu wenig Energie.',
+    // #4: Feld-Pool leer (im Shop nachkaufen) — eigener Text, eigener Grund (`no_material`).
+    'field.reject.no_material': 'Kein Material mehr — kauf im Shop nach.',
     'field.reject.unknown': 'Hier lässt sich gerade nichts setzen.',
     // B29: Karten-Bau — die UI prüft Tiles bewusst nicht vor, der Grund kommt aus der Sim.
     'field.reject.unknown_tile': 'Dieses Feld gibt es hier nicht.',
@@ -290,6 +295,8 @@ export const translations = {
     'map.decor': 'Decor',
     'game.trayField': 'FIELD',
     'game.sellTool': 'Sell',
+    'game.sellHint': 'Sell mode: tap a built plot — the material returns to your pool.',
+    'game.sellRefund': 'material back',
     'trait.fire': 'Fire',
     'trait.ice': 'Frost',
     'trait.rapid': 'Rapid fire',
@@ -332,7 +339,7 @@ export const translations = {
     'field.reject.on_path': 'Someone walks here — no room.',
     
     'field.reject.no_inventory': 'No plant of this kind left.',
-    'field.reject.no_energy': 'Not enough energy.',
+    'field.reject.no_material': 'No material left — buy more in the shop.',
     'field.reject.unknown': 'Nothing can be placed here right now.',
     // B29: plot building — the UI does not pre-check tiles, so the reason comes from the sim.
     'field.reject.unknown_tile': 'That plot does not exist.',
