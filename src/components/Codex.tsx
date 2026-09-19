@@ -9,13 +9,13 @@ import type { DiscoveryEntry } from '../discovery/chain';
 
 type Props = { onClose: () => void };
 
-function formatDate(ts: number): string {
-  try {
-    const d = new Date(ts * 1000);
-    return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
-  } catch {
-    return String(ts);
-  }
+/**
+ * Anzeige des EREIGNIS-Zeitstempels, nicht einer Uhrzeit: der Eintrag trägt einen logischen
+ * Zeitstempel (deterministisch aus Seed+Generation — siehe `discovery/codex.ts`), kein
+ * Kalenderdatum. „1970-01-01“ zu zeigen wäre eine zweite, falsche Wahrheit über denselben Wert.
+ */
+function formatOrigin(e: DiscoveryEntry): string {
+  return `Gen ${e.generation} · Seed ${e.seed}`;
 }
 
 export function Codex({ onClose }: Props) {
@@ -83,7 +83,7 @@ export function Codex({ onClose }: Props) {
                   <span style={styles.genBadge}>Gen {e.generation}</span>
                 </div>
                 <div style={styles.cardMeta}>
-                  <span style={styles.metaLine}>{t('codex.firstBy')}: <strong style={styles.player}>{e.player_id}</strong> · {formatDate(e.timestamp)}</span>
+                  <span style={styles.metaLine}>{t('codex.firstBy')}: <strong style={styles.player}>{e.player_id}</strong> · {formatOrigin(e)}</span>
                   <span style={styles.metaLine}>{t('codex.parents')}: {e.parents[0]} × {e.parents[1]} · Seed {e.seed}</span>
                   <span style={styles.metaLineSmall} title={e.entry_hash}>⛓ {e.entry_hash.slice(0, 8)}… ← {e.prev_hash ? e.prev_hash.slice(0, 6) : 'GENESIS'}</span>
                 </div>

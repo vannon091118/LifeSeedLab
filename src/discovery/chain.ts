@@ -31,7 +31,9 @@ export interface DiscoveryEntry {
   generation: number;
   /** Spieler-Identität — organisch sichtbar, kein Prestige-System. */
   player_id: string;
-  /** Unix-Sekunden (Erstsichtung). */
+  /** Logischer Zeitstempel (deterministisch aus Seed+Generation abgeleitet, KEINE Uhr) —
+   *  derselbe Wert wie in `DiscoveryInput.timestamp`; er identifiziert das Zucht-EREIGNIS,
+   *  nicht einen Kalendertag. */
   timestamp: number;
   /** Hash des Vorgängers — null beim Genesis-Eintrag. */
   prev_hash: string | null;
@@ -44,7 +46,8 @@ export interface DiscoveryInput {
   seed: number;
   generation: number;
   player_id: string;
-  timestamp?: number; // default: now (Sekunden)
+  /** Logischer Zeitstempel (deterministisch, KEIN Date.now()). Caller muss liefern. */
+  timestamp: number;
 }
 
 /** Stabile Serialisierung für den Entry-Hash (Feldreihenfolge fix). */
@@ -67,7 +70,7 @@ export function hashEntry(entry: Omit<DiscoveryEntry, 'entry_hash'>): string {
 /** Erzeugt einen neuen Chain-Eintrag verkettet an `prev`. */
 export function createEntry(input: DiscoveryInput, prev: DiscoveryEntry | null): DiscoveryEntry {
   const genome_hash = hashGenome(input.genome);
-  const timestamp = input.timestamp ?? Math.floor(Date.now() / 1000);
+  const timestamp = input.timestamp; // required, deterministic — no Date.now()
   const parents: [string, string] = [...input.parents].sort() as [string, string];
   const base: Omit<DiscoveryEntry, 'entry_hash'> = {
     genome_hash,

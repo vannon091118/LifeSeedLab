@@ -114,6 +114,12 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ### Intern (Technik, Verträge & Tests)
 
+- [Codex] **Der Codex zeigt Ereignis statt erfundener Daten.** Die Anzeige formatierte den
+  logischen Zeitstempel als Kalenderdatum (`new Date(ts * 1000)`) — mit deterministischen
+  Zeitstempeln hieß das: 1970. Jeder Eintrag zeigt jetzt „Gen n · Seed x“ (das ist der Wert,
+  den der Feldkommentar beschreibt), und der Feldkommentar in der Kette sagt dasselbe:
+  logischer Zeitstempel, keine Uhr.
+
 - [Tooling/CI] **Das Gate gehört jetzt zum Repo.** Shinon (Prüfklassen, Hooks, Konfiguration) zog
   von `git-noir/` (in `.gitignore`, nur auf einer Maschine) nach `tools/` — getrackt, mit CI
   (`.github/workflows/ci.yml`: frischer Klon besteht Typecheck, Voll-Suite und die
