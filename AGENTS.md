@@ -31,6 +31,9 @@ Neue Berichte unter `qa/` lesen (Input für Task), Status der Befunde auf `in-ar
   - **Déjà-vu-Fragen:** Wenn eine Frage bekannt vorkommt, die schon gestellt/beantwortet wurde → **Abbruch, Bescheid geben**, nicht wiederholen.
   - **Kleine Tasks:** Lieber in **kleineren, verifizierbaren Schritten** arbeiten als große Blöcke, die scheitern.
   - **Keine Halluzinationen:** Niemals Annahmen als Wahrheit behaupten – erst prüfen (Read/Grep/tsc), dann handeln.
+  - **Eigener Kritiker:** Jede eigene Behauptung vor der Ausgabe gegenprüfen und aktiv den Gegenbeweis suchen („was würde mich widerlegen?"). Ein gefundener eigener Fehler wird **benannt**, nicht verdeckt.
+  - **Keine Sollbruchstellen:** Kein Bau auf „kommt später" — keine Platzhalter als Endlösung, keine Naht, die beim nächsten Feature bricht. Was nicht trägt, wird jetzt richtig gebaut oder gar nicht.
+  - **Fertig heißt bewiesen:** „Erledigt" erst, wenn das Verhalten belegt ist (Test, Preview, Beleg-Zeile). Plan, Kommentar und Doku sind **kein** Fertig-Beweis.
   - **Dokumentation aktiv pflegen:** Änderungen an Regeln/Architektur werden **in die Source-Dokumente eingepflegt**, nicht nur angehängt.
 
 ---
@@ -107,7 +110,7 @@ node node_modules/vite/bin/vite.js build           # Nur bei Build-Relevanz
 
 ---
 
-## Die 10 absoluten Verbote
+## Absolute Verbote
 
 1. Zweiter RNG, zweiter EventBus, zweiter State-Owner, Modul-Duplikate.
 2. `localStorage` / IndexedDB-Zugriff außerhalb von `persistence/`.
@@ -123,6 +126,9 @@ node node_modules/vite/bin/vite.js build           # Nur bei Build-Relevanz
 12. **Kontextverlust verschweigen** — Statt zu raten: sofort melden („Hab den Faden verloren“).
 13. **Déjà-vu-Fragen wiederholen** — Bekannte Frage → Abbruch, Flag setzen, nicht neu beantworten.
 14. **Große Blöcke ohne Verifikation** — Nur kleine, testbare Schritte (Read → Prüf → Edit → Test).
+15. **Sollbruchstellen bauen** — Kein „kommt später"-Seam, kein Platzhalter als Endlösung.
+16. **Fertig behaupten, ohne Beleg** — Erledigt gilt nur mit Test, Preview oder Beleg-Zeile.
+17. **Den eigenen Fehler verdecken** — Gefundene eigene Fehler gehören in die Antwort, nicht unter den Teppich.
 
 ---
 

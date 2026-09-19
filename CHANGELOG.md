@@ -114,6 +114,14 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ### Intern (Technik, Verträge & Tests)
 
+- [Vertrag] `AGENTS.md` verankert drei Grundsätze, die bisher nur im Gespräch galten und nirgends
+  belegt waren (0 Treffer per Grep): **eigener Kritiker** (jede eigene Behauptung vor der Ausgabe
+  gegenprüfen, aktiv den Gegenbeweis suchen, gefundene eigene Fehler benennen), **keine
+  Sollbruchstellen** (kein „kommt später"-Seam, keine Platzhalter als Endlösung) und **„fertig"
+  heißt bewiesen** (erledigt nur mit Test, Preview oder Beleg-Zeile — Plan, Kommentar und Doku
+  zählen nicht). Dazu ein Header-Drift: die Liste hieß „Die 10 absoluten Verbote", enthielt aber
+  14 Einträge (jetzt 17, Zahl aus dem Header entfernt). Bestehende Regeln blieben unverändert.
+
 - [Plan/Discovery] Der vorgelegte Ticket-Chain-Plan ist gegen den echten Code geprüft und als
   `docs/process/plan-discovery-chain.md` festgehalten (20 Behauptungen, jede mit Datei/Zeile
   belegt). Ergebnis: Vorrechenbarkeit und fehlende Gesamtordnung bestätigt, „kein versionierter
