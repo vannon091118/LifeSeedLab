@@ -6,7 +6,7 @@ import type { CheckContext, Finding, ShinonCheck } from './check.ts';
 /**
  * DocLinkCheck: Doku-Referenzen gegen den GIT-TRACK prüfen, nicht gegen den Worktree.
  *
- * A13.12 (quality-spec): Datei verschoben, Referenz nicht mitgezogen — die Defekt-Klasse trat
+ * A13.14 (quality-spec): Datei verschoben, Referenz nicht mitgezogen — die Defekt-Klasse trat
  * ZWEIMAL auf (32 tote Links, dann Root-ROADMAP-Phantom ×4), weil „Existiert auf der Platte"
  * nicht „Existiert für einen frischen Klon" bedeutet. Gitignorierte Datei-Reste machen tote
  * Referenzen für Worktree-Prüfungen unsichtbar. Diese Prüfung extrahiert relative Pfad- und
@@ -63,14 +63,14 @@ function extractRefs(markdown: string, fromFile: string): Ref[] {
 
 export class DocLinkCheck implements ShinonCheck {
   readonly id = 'doc-links';
-  readonly title = 'Doku-Referenzen gegen den Git-Track (A13.12)';
+  readonly title = 'Doku-Referenzen gegen den Git-Track (A13.14)';
 
   run(ctx: CheckContext): Finding[] {
     const findings: Finding[] = [];
 
     // Wahrheit ist der TRACK: git ls-files '*.md'. Dateien, die nur auf der Platte liegen
     // (gitignored/untracked), zählen weder als Quelle noch als Ziel.
-    // A13.12-Fix: Voller Track (alle Dateien), nicht nur '*.md' — sonst wuerde jede
+    // A13.14-Fix: Voller Track (alle Dateien), nicht nur '*.md' — sonst wuerde jede
     // getrackte Code-Datei (src/…, tests/…) als 'nur lokal' gelten und DLK001 streuoen.
     const tracked = ctx.git.git(['ls-files'], { allowFailure: true });
     if (tracked.status !== 0) {

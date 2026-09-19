@@ -9,7 +9,16 @@ name: CI
 # Bewusst NICHT hier: Shinons Gate selbst. Es braucht die lokale Hook-Verdrahtung
 # (core.hooksPath) und schreibt README/State — ein zweiter Gate-Lauf in CI wäre eine
 # zweite Wahrheit desselben Vertrags, nicht ein Beweis.
-
+#
+# LOCKFREI, mit Absicht: `package-lock.json` und `bun.lock` sind im Repo bewusst
+# untracked (`.gitignore`, Commit 49ff364 „untrack lockfile conflict"). `npm ci` und
+# `setup-node` mit `cache: npm` setzen eine getrackte Lockdatei VORAUS und ließen den
+# Job vor der ersten Prüfung abbrechen („Dependencies lock file is not found").
+# Deshalb `npm install` ohne Cache. Preis, ehrlich benannt: ohne Lockdatei ist der
+# aufgelöste Abhängigkeitsbaum nicht eingefroren — CI und Plattform-Build können
+# geringfügig auseinanderlaufen. Wer das abdrehen will, trackt eine Lockdatei und
+# stellt diesen Schritt wieder auf `npm ci` + `cache: npm` zurück. Beides zusammen
+# ist der Fehler, nicht die einzelne Zeile.
 on:
   push:
     branches: [main]
@@ -19,15 +28,15 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      # Node 24 spiegelt die Plattform (der Deploy-Lauf meldete nodejs@24.18.0).
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
-          cache: npm
+          node-version: 24
 
       - name: Dependencies installieren
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Typecheck (tsc -b --noEmit)
         run: node node_modules/typescript/bin/tsc -b --noEmit
@@ -38,3 +47,7 @@ jobs:
       # Tooling-eigene Tests: das Gate prüft sich selbst (Fixtures unter tools/.tmp).
       - name: Shinon-Tooling-Suite
         run: node node_modules/vitest/vitest.mjs run --config tools/vitest.config.ts
+
+      # Das Qualitäts-Register muss auf dem Stand seiner Domänen-Contracts sein.
+      - name: Qualitäts-Register gegen Contracts prüfen
+        run: node scripts/quality-register.mjs --check

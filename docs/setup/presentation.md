@@ -82,7 +82,7 @@ LifeSeedLab verbindet **Plants vs. Zombies**-Gameplay mit **Binding of Isaac**-E
 | 6 | **Source = Content Truth** | `config/*.source.ts` — **keine** Gameplay-Constants im Code |
 | 7 | **Resume-Vertrag (ehrlich)** | `persistence/` — Enemies/Projectiles absichtlich NICHT gespeichert, Wave-Neustart |
 | 8 | **Discovery-Chain** | `discovery/chain.ts` — FNV-1a Hash-Chain, `lifeseed:` Sharing, Supabase-Spiegel |
-| 9 | **Paper + Pop Art Direction** | `../quality/quality-spec.md` B0, B9, B10 — verbindlich, testbar (Grayscale-Test) |
+| 9 | **Paper + Pop Art Direction** | `../quality/contracts/visual.md` B0, B10 (Art Direction & Render) · B9 in `../quality/contracts/ui.md` — verbindlich, testbar (Grayscale-Test) |
 | 10 | **Mobile-First (390×844)** | Alle Touch-Targets ≥44px, kein Hover-Pflicht, Portrait-Layout |
 
 ---
@@ -210,7 +210,7 @@ Observer: Event → VisualCommand (color/palette IN Payload)
 | **Repository** | `github.com/<user>/lifeseedlab` |
 | **Architecture Contract** | [`architecture-contract.md`](../architecture/architecture-contract.md) |
 | **Technical Architecture** | [`architecture.md`](../architecture/architecture.md) |
-| **Quality Spec (Arbeitsliste)** | [`quality-spec.md`](../quality/quality-spec.md) |
+| **Quality-Register & Domänen-Contracts** | [`quality-spec.md`](../quality/quality-spec.md) → `docs/quality/contracts/` |
 | **Agent Rules** | [`AGENTS.md`](../../AGENTS.md) |
 | **Roadmap** | [`ROADMAP.md`](../process/ROADMAP.md) |
 | **Banner SVG** | [`banner.svg`](../banner.svg) |

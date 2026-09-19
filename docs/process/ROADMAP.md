@@ -2,7 +2,7 @@
 
 > Verbindliche Aufgaben- und Meilenstein-Planung.
 > Rechtsverbindliche Systemregeln: [`docs/architecture/architecture-contract.md`](../architecture/architecture-contract.md).
-> Qualitäts- & Asset-Spezifikation: [`docs/quality/quality-spec.md`](../quality/quality-spec.md).
+> Qualitäts-Register: [`docs/quality/quality-spec.md`](../quality/quality-spec.md) · Arbeitsliste je Domäne: `docs/quality/contracts/`.
 > Agenten-Arbeitsvertrag: [`AGENTS.md`](../../AGENTS.md).
 
 ---
@@ -27,7 +27,7 @@
 
 ## 2. Konsolidiertes Findings- & Befunde-Inventar
 
-Alle historischen und aktuellen Befunde aus Code-Audits (`quality-spec.md` Part A) und QA-Test-Sessions (`qa-reports`) sind hier konsolidiert:
+Alle historischen und aktuellen Befunde aus Code-Audits (jetzt domänenweise in `docs/quality/contracts/`) und QA-Test-Sessions (`qa-reports`) sind hier konsolidiert:
 
 ### 2.1 Gelöste Befunde (Status: ERLEDIGT)
 - **A13 / B14 (Identitäts- & Lifecycle-Lücken):** Monotoner Brut-Zähler `MetaSave.broodGeneration` (v5), zentrales Reife-Gate `isCrossReady`, atomares `keepCross`, kanonische FNV-1a Prüfsumme.
@@ -130,7 +130,7 @@ Fokus: Asynchrones Teilen und Community-Features (bewusst nachgelagert).
 | **Verbindliche Regeln & Gate** | [`AGENTS.md`](../../AGENTS.md) |
 | **Rechtsverbindlicher Vertrag** | [`docs/architecture/architecture-contract.md`](../architecture/architecture-contract.md) |
 | **Systemarchitektur & Contracts** | [`docs/architecture/architecture.md`](../architecture/architecture.md) |
-| **Qualitätsspezifikation & Specs** | [`docs/quality/quality-spec.md`](../quality/quality-spec.md) |
+| **Qualitäts-Register & Domänen-Contracts** | [`docs/quality/quality-spec.md`](../quality/quality-spec.md) → `docs/quality/contracts/` |
 | **Roadmap, Findings & Meilensteine**| [`docs/process/ROADMAP.md`](ROADMAP.md) |
 | **Art Direction & Assets** | [`docs/architecture/papier-trifft-cgi.md`](../architecture/papier-trifft-cgi.md) |
 | **Tooling & Shinon-CLI** | [`docs/setup/script-readme.md`](../setup/script-readme.md) |

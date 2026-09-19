@@ -3,7 +3,7 @@
 > Sprache: Deutsch (Regel 1). Beschreibt das technische „Wie“ und vertieft den rechtsverbindlichen [`architecture-contract.md`](architecture-contract.md).
 > Arbeitsvertrag für Entwickler & Agenten: [`AGENTS.md`](../../AGENTS.md).
 > Meilensteine, Todos & Findings: [`ROADMAP.md`](../process/ROADMAP.md).
-> Asset- & Render-Spezifikation: [`../quality/quality-spec.md`](../quality/quality-spec.md).
+> Qualitäts-Register: [`../quality/quality-spec.md`](../quality/quality-spec.md) · Domänen-Contracts (Arbeitsliste je Domäne): `docs/quality/contracts/`.
 
 ---
 

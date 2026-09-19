@@ -1,7 +1,7 @@
 # AGENTS.md — Arbeitsvertrag für Agenten
 
 > **Pflichtlektüre vor Code-Entstehung.**
-> Vertiefung: [`architecture-contract.md`](docs/architecture/architecture-contract.md) (bindend) · [`architecture.md`](docs/architecture/architecture.md) (Technik) · [`quality-spec.md`](docs/quality/quality-spec.md) (Arbeitsliste).
+> Vertiefung: [`architecture-contract.md`](docs/architecture/architecture-contract.md) (bindend) · [`architecture.md`](docs/architecture/architecture.md) (Technik) · [`quality-spec.md`](docs/quality/quality-spec.md) (Register) + Arbeitsliste je Domäne in `docs/quality/contracts/`.
 
 ## QA-Abholung vor Task-Start (PFLICHT)
 ```bash
@@ -136,8 +136,13 @@ node node_modules/vite/bin/vite.js build           # Nur bei Build-Relevanz
 
 | Frage | Fundstelle |
 |---|---|
-| Defekte, Lücken, Befunde | `docs/quality/quality-spec.md` Part A |
-| Art Direction, Asset-Specs (Pflanzen, Welt, Manga) | `docs/quality/quality-spec.md` Part B (B0, B4, B9, B10, B11) |
+| Defekte, Lücken, Befunde | Register `docs/quality/quality-spec.md` → Domänen-Contract |
+| Art Direction, Asset-Specs (Pflanzen, Welt, Manga) | `docs/quality/contracts/visual.md` (B0, B4, B5, B10, B11) |
+| Screens, UI-Kit, Onboarding (Krix), Loadout | `docs/quality/contracts/ui.md` (B3, B7, B9, B18, B21–B23, B31) |
+| Zucht, Gene, Phänotyp, Brut-Domäne | `docs/quality/contracts/genome.md` (A2, A15, B16, B26, B30) |
+| Run-Identität, Meta-Queue, Ökonomie | `docs/quality/contracts/meta.md` (A13, A18, A19, B14, B15, B17) |
+| Persistenz, Save-Verträge | `docs/quality/contracts/persistence.md` (A8, B2) |
+| Tests, Gate, Doku-Disziplin | `docs/quality/contracts/process.md` (A11, B13, B24, B32) |
 | Events, Commands, Payloads | `src/bus/events.ts`, `src/bus/commands.ts` |
 | Partikel-Profile & Effekte | `src/observers/particles.ts`, `src/config/effects.source.ts` |
 | Save- / Resume-Vertrag | `docs/architecture/architecture.md` §4 |

@@ -173,7 +173,7 @@ src/
 - [`docs/architecture/architecture-contract.md`](docs/architecture/architecture-contract.md) — Rechtsverbindliche System- und Ownership-Regeln.
 - [`docs/architecture/architecture.md`](docs/architecture/architecture.md) — Ausführliche technische Dokumentation & Domänen-Verträge.
 - [`docs/process/ROADMAP.md`](docs/process/ROADMAP.md) — Meilensteine, QA-Findings und Aufgabenliste in logischer Reihenfolge.
-- [`docs/quality/quality-spec.md`](docs/quality/quality-spec.md) — Asset-Spezifikationen und DoD-Kriterien.
+- [`docs/quality/quality-spec.md`](docs/quality/quality-spec.md) — Register der Qualitäts- & Spezifikations-IDs; die Arbeitsliste je Domäne liegt in `docs/quality/contracts/` (Owner, Befunde, Specs, DoD).
 
 ---
 
@@ -195,11 +195,11 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `aaf597f` — docs(vertrag): drei Grundsätze verankert, Verbotsliste entdriftet |
-| Arbeitsbaum | 0 gestaged, 7 geändert, 0 neu |
+| HEAD | `baf0043` — feat(discovery): Fund-Beleg statt Klartext-Seed im Eintrag |
+| Arbeitsbaum | 21 gestaged, 4 geändert, 0 neu |
 | Letztes Gate | ✅ offen (preflight, 0 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `aaf597f` docs(vertrag): drei Grundsätze verankert, Verbotsliste entdriftet |
+| Letzter Shinon-Commit | `baf0043` feat(discovery): Fund-Beleg statt Klartext-Seed im Eintrag |
 | Letzter Push | ✅ origin/main |
-| LOC-Hotspots | `src/components/Greenhouse.tsx` 392/400 (98 %)<br>`src/meta/store.ts` 186/200 (93 %)<br>`src/i18n/tutorial.ts` 172/200 (86 %)<br>`src/simulation/enemySystem.ts` 249/300 (83 %)<br>`src/meta/run.ts` 154/200 (77 %) |
+| LOC-Hotspots | `src/components/Greenhouse.tsx` 394/400 (99 %)<br>`src/meta/store.ts` 186/200 (93 %)<br>`src/i18n/tutorial.ts` 172/200 (86 %)<br>`src/simulation/enemySystem.ts` 249/300 (83 %)<br>`src/meta/run.ts` 154/200 (77 %) |
 <!-- SHINON:STATUS:END -->

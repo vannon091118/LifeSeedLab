@@ -40,7 +40,7 @@ export interface GateChecks {
   e2e: boolean;
   build: boolean;
   commitMessage: boolean;
-  /** Doku-Referenzen gegen git ls-files statt Worktree (A13.12-Regel automatisiert). */
+  /** Doku-Referenzen gegen git ls-files statt Worktree (A13.14-Regel automatisiert). */
   docLinks: boolean;
 }
 

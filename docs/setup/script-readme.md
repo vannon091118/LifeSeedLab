@@ -109,6 +109,21 @@ Ausnahme mit Begründung: Die Architektur-Regel „Persistenz nur über `persist
 außerhalb der App und kann den Owner nicht importieren); Schreiben bleibt verboten, und die Ausnahme ist
 in `checks.test.ts` als exakte Liste gelockt, damit sie nicht still wächst.
 
+## Doku-Pflege (außerhalb von Shinon)
+
+```bash
+node scripts/quality-register.mjs           # ID-Tabelle des Registers aus den Contracts schreiben
+node scripts/quality-register.mjs --check   # nur prüfen (Exit 1 bei Abweichung) — läuft in CI
+node scripts/test-lane.mjs                  # Commit-Lane: nur berührte Tests (Ziel ≤ 10 s)
+node scripts/test-lane.mjs --full           # Sprintende: komplette Suite
+```
+
+`quality-register.mjs` hält `docs/quality/quality-spec.md` mit den Contracts deckungsgleich: es
+liest die Domänen-Reihenfolge aus der Domänen-Tabelle des Registers (keine eigene Liste), die
+ID→Contract-Zuordnung aus den Überschriften der Contracts, und bricht ab bei doppelter ID, Waise,
+vergessenem Contract oder rohem `|` in einer Zelle. Die Prüfung gehört in CI, weil ein Register,
+das nur auf dieser Maschine stimmt, für einen frischen Klon keine Aussage hat.
+
 ## Tests des Toolings
 
 ```bash
