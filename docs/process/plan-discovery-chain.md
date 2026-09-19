@@ -1,9 +1,12 @@
 # Plan-Prüfung: Discovery-Chain & Ticket-Wurzel
 
-**Stand:** 19.09.2026 · **geprüft gegen:** `9824b54` · **Status:** Bewertung + Plan; **P1+P2 sind umgesetzt** (siehe §7).
+**Stand:** 19.09.2026 · **geprüft gegen:** `9824b54` · **Status:** Bewertung + Plan; **P1, P2 und P2' (`plant_hmac`) sind umgesetzt** (siehe §7).
 
-> **Umsetzungsstand:** P1 (Wurzel als Kontext) und P2 (versionierte Einträge + Migration) sind
-> implementiert und gepinnt (`src/discovery/epoch.test.ts`). Alles andere in §3 ist geplant, nicht gebaut.
+> **Umsetzungsstand:** P1 (Wurzel als Kontext), P2 (versionierte Einträge + Migration) und
+> P2' (`plant_hmac` statt Klartext-Seed) sind implementiert und gepinnt (`src/discovery/epoch.test.ts`,
+> `src/discovery/chain.test.ts`). Alles andere in §3 ist geplant, nicht gebaut — insbesondere
+> existiert KEIN Server: `plant_hmac` trennt die zwei Wahrheiten, schützt aber noch nicht
+> gegen Offline-Vorausberechnung (erst P3/P4).
 
 ---
 
@@ -149,6 +152,32 @@ Felder gebildet, verifyChain rechnet mit ihnen nach. Die Umsetzung (`codex_migra
 NEUVERKETTET deshalb eine Kette mit v1-Gliedern als Ganzes im v2-Schema; gepinnt in
 `src/discovery/epoch.test.ts` (8 Tests, darunter gemischte Ketten und Idempotenz).
 
+**P2' — `plant_hmac` statt Klartext-Seed (nachgetragen):** Einträge NEUER Bauart tragen den
+öffentlichen Beleg `plant_hmac` und keinen Seed; Gründer-Einträge behalten ihren historischen
+`seed` (Epoche-0-Wurzel ist öffentlich — dokumentierte Herkunft, kein Leck). `entryPayload`
+bleibt additiv-konditional und schreibt GENAU EINE Seed-Form je Eintrag; `verifyChain` lehnt
+Einträge mit beiden oder keinem ab. Die Ableitung lebt in `src/discovery/plantHmac.ts`
+(`plantHmacOf`) — ein READER der bestehenden Ableitung, kein zweiter Seed-Writer: `gacha.ts`
+bleibt der einzige. Share-Format und Codex-Anzeige nennen den Beleg statt des Seeds.
+
+**Bewusst NICHT gebaut (Doppelungs-Verbot):** ein zweites `seedVault.ts` mit eigener
+`crossPair`-Kopie wurde verworfen — es hätte `src/genome/gacha.ts:crossPair` dupliziert
+(Verbot 1) und einen Dev-Account-Modus ohne Aufrufer eingeschleppt. Die P3-Rolle „Account-Root
+hält den geheimen Teil" braucht einen SERVER; bis dahin wäre sie eine Attrappe. Der Platz
+bleibt der Austauschpunkt `plantHmacOf` (eine Funktion, keine Parallelstruktur).
+
+**Schutzgrenze, ehrlich benannt:** auf Epoche 0 ist `EPOCH_ROOT` öffentlich, damit auch
+`deriveSeed(EPOCH_ROOT, 'plant', a, b, gen)`. `plant_hmac` TRENNT heute die zwei Wahrheiten
+(privater Seed vs. öffentlicher Identifier) und macht Entry, Share-Format und SQL-Spiegel
+serverfertig; Schutz gegen Offline-Vorausberechnung gibt erst der geheime Account-Root (P3).
+Gemessen: ~81.967 volle Kreuzungen/s, Angreiferpfad ~46.512/s (warm, diese Maschine) —
+„noch nicht fertig" ist kein Schutz.
+
+**Migration 001 (Supabase) nachgezogen:** `plant_hmac` als nullable Spalte, `seed` nullable,
+Constraint `discoveries_identity_singular` erzwingt genau eine der beiden Formen, plus
+`plant_hmac`-Formprüfung. Die Migration ist weiterhin NICHT angewandt — vor Aktivierung muss
+sie zu P3/P4 passen (Server-Verifikation gegen den Account-Root).
+
 **Nicht umgesetzt (bewusst):** P3 Sweep-Test, P4 Worker, P5 START-Flow, P6 Fund-Feed,
-P7 Replay-Log, P8 SHA-256-Identitäten. Die Migration 001 (Supabase) kennt die neuen Felder
-noch nicht — sie wird erst bei P4 erweitert, vorher ändert sie nichts an dem Stub-Status.
+P7 Replay-Log, P8 SHA-256-Identitäten. P5 (Ghost Map) wurde NICHT begonnen: sie braucht den
+Server-Endpunkt aus P4, ein lokaler Attrappen-Snapshot wäre eine Sollbruchstelle.

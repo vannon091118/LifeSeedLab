@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { hashGenome, createEntry, verifyChain, tryAppend, hashEntry } from './chain';
+import { hashGenome, createEntry, verifyChain, tryAppend, hashEntry, type DiscoveryEntry } from './chain';
 import type { Genome } from '../types';
 
 function g(id: string, power: number, dominant = true): Genome[0] { return { id, power, dominant }; }
@@ -88,16 +88,42 @@ describe('Discovery-Chain — Hash-Chain & Verifikation', () => {
 describe('Discovery-Chain — deterministische Reproduktion', () => {
   beforeEach(() => {});
 
-  it('seeds sind teilbar: gleicher lifeseed-String verifiziert dasselbe Genom', () => {
-    const genome: Genome = [g('fire', 0.8), g('crit', 0.94)];
-    const seed = 424242;
-    const generation = 7;
-    // lifeseed-Format aus Spec: lifeseed:seed:gen:hash
-    const h = hashGenome(genome);
-    const share = `lifeseed:${seed}:${generation}:${h}`;
-    expect(share).toBe(`lifeseed:${seed}:${generation}:${hashGenome(genome)}`);
-    // Wer denselben Seed behauptet ohne passenden genome_hash lügt — Verifikation schlägt fehl
-    const fakeHash = `hyb-${'0'.repeat(8)}`;
-    expect(fakeHash).not.toBe(h);
+  it('der Share-Beleg trägt den öffentlichen Identifier, nicht den Klartext-Seed (P2\')', () => {
+    // lifeseed-Format: lifeseed:<plant_hmac>:<gen>:<hash> — der Empfänger findet die
+    // Pflanze im Codex, kann aber die Zuchtableitung nicht nachrechnen (Plan §1.2).
+    const genome = [g('fire', 0.7)];
+    const generation = 4;
+    const e = createEntry({ genome, parents: ['a', 'b'], seed: 424242, generation, player_id: 'x', timestamp: 1 }, null);
+    const share = `lifeseed:${e.plant_hmac}:${generation}:${hashGenome(genome)}`;
+    expect(share).toBe(`lifeseed:${e.plant_hmac}:${generation}:${hashGenome(genome)}`);
+    expect(e.plant_hmac).toMatch(/^ph-[0-9a-f]{8}$/);
+    // Der Klartext-Seed des Vorgangs ist NICHT im Beleg (auch nicht als Teilstring).
+    expect(share).not.toContain('424242');
+    expect(e.seed).toBeUndefined();
+  });
+
+  it('Gründer-Eintrag (vor P2\'): Klartext-Seed bleibt als dokumentierte Herkunft', () => {
+    // Der additiv-konditionale Payload: ein Entry, das NUR seed trägt, hash unverändert
+    // weiter — der alte Gründer-Bestand bricht nicht.
+    const e = createEntry({ genome: [g('ice', 0.6)], parents: ['a', 'b'], seed: 424242, generation: 0, player_id: 'x', timestamp: 1 }, null);
+    // Neu gebaute Entries haben KEINEN seed mehr — die Gründer-Form muss also künstlich
+    // entstehen und hat beide Wechselwirkungen bewiesen (Payload ohne HMAC, ohne seed-Anreicherung).
+    const founder = { ...e } as Record<string, unknown>;
+    delete founder.plant_hmac;
+    founder.seed = 424242;
+    const { entry_hash: _drop, ...rest } = founder as unknown as DiscoveryEntry;
+    const rehashed = hashEntry(rest as Omit<DiscoveryEntry, 'entry_hash'>);
+    expect(rehashed).toBeTruthy();
+    expect((rest as DiscoveryEntry).seed).toBe(424242);
+    expect((rest as DiscoveryEntry).plant_hmac).toBeUndefined();
+  });
+
+  it('derselbe Zucht-Vorgang erzeugt denselben HMAC, ein anderer einen anderen (reproduzierbar, nicht ratbar)', () => {
+    const e1 = createEntry({ genome: [g('fire', 0.5)], parents: ['base_shooter', 'base_wall'], seed: 1, generation: 0, player_id: 'x', timestamp: 1 }, null);
+    const e2 = createEntry({ genome: [g('fire', 0.5)], parents: ['base_shooter', 'base_wall'], seed: 1, generation: 0, player_id: 'y', timestamp: 2 }, null);
+    // gleicher Zucht-Kontext ⇒ gleicher öffentlicher Beleg (Codex-Wiederfindbarkeit)
+    expect(e1.plant_hmac).toBe(e2.plant_hmac);
+    const e3 = createEntry({ genome: [g('fire', 0.5)], parents: ['base_shooter', 'base_support'], seed: 1, generation: 0, player_id: 'x', timestamp: 1 }, null);
+    expect(e3.plant_hmac).not.toBe(e1.plant_hmac);
   });
 });

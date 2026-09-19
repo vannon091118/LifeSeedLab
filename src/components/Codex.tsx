@@ -4,7 +4,7 @@
 
 import { useMemo, useState } from 'react';
 import { useI18n } from '../i18n';
-import { loadCodex, verifyLocalChain, getPlayerId, seedShareText } from '../discovery/codex';
+import { loadCodex, verifyLocalChain, getPlayerId } from '../discovery/codex';
 import type { DiscoveryEntry } from '../discovery/chain';
 
 type Props = { onClose: () => void };
@@ -13,9 +13,11 @@ type Props = { onClose: () => void };
  * Anzeige des EREIGNIS-Zeitstempels, nicht einer Uhrzeit: der Eintrag trägt einen logischen
  * Zeitstempel (deterministisch aus Seed+Generation — siehe `discovery/codex.ts`), kein
  * Kalenderdatum. „1970-01-01“ zu zeigen wäre eine zweite, falsche Wahrheit über denselben Wert.
+ * P2': der öffentliche Teil des Entries ist der plant_hmac — Gründer zeigen weiterhin
+ * ihren historischen Seed (dokumentierte Herkunft), neue Einträge den HMAC.
  */
 function formatOrigin(e: DiscoveryEntry): string {
-  return `Gen ${e.generation} · Seed ${e.seed}`;
+  return e.plant_hmac ?? `Seed ${e.seed ?? '?'}`;
 }
 
 export function Codex({ onClose }: Props) {
@@ -28,7 +30,11 @@ export function Codex({ onClose }: Props) {
   const display = useMemo(() => [...chain].reverse(), [chain]);
 
   const handleCopy = async (entry: DiscoveryEntry) => {
-    const text = `lifeseed:${entry.seed}:${entry.generation}:${entry.genome_hash}`;
+    // P2': Share-Zeile mit dem ÖFFENTLICHEN Identifier (plant_hmac). Gründer-Einträge
+    // (vor P2') behalten ihren historischen Seed — ihre Epoche-0-Wurzel ist öffentlich.
+    const identifier = entry.plant_hmac ?? `seed-${entry.seed ?? '?'}`;
+    const text = `lifeseed:${identifier}:${entry.generation}:${entry.genome_hash}`;
+
     try {
       await navigator.clipboard.writeText(text);
       setCopied(entry.entry_hash);
@@ -38,20 +44,6 @@ export function Codex({ onClose }: Props) {
       setCopied(entry.entry_hash);
     }
   };
-
-  const handleCopySeed = async (seed: number, generation: number, genome_hash: string) => {
-    const text = seedShareText(seed, generation, { length: 0 } as unknown as never);
-    // seedShareText builds from genome; if no genome, fallback to parts
-    const payload = genome_hash ? `lifeseed:${seed}:${generation}:${genome_hash}` : text;
-    try {
-      await navigator.clipboard.writeText(payload);
-      setCopied(payload);
-      setTimeout(() => setCopied(null), 1500);
-    } catch {
-      setCopied(payload);
-    }
-  };
-  void handleCopySeed;
 
   return (
     <div style={styles.overlay}>
@@ -84,7 +76,7 @@ export function Codex({ onClose }: Props) {
                 </div>
                 <div style={styles.cardMeta}>
                   <span style={styles.metaLine}>{t('codex.firstBy')}: <strong style={styles.player}>{e.player_id}</strong> · {formatOrigin(e)}</span>
-                  <span style={styles.metaLine}>{t('codex.parents')}: {e.parents[0]} × {e.parents[1]} · Seed {e.seed}</span>
+                  <span style={styles.metaLine}>{t('codex.parents')}: {e.parents[0]} × {e.parents[1]} · {e.plant_hmac ?? `Seed ${e.seed ?? '?'}`}</span>
                   <span style={styles.metaLineSmall} title={e.entry_hash}>⛓ {e.entry_hash.slice(0, 8)}… ← {e.prev_hash ? e.prev_hash.slice(0, 6) : 'GENESIS'}</span>
                 </div>
                 <div style={styles.cardActions}>
@@ -98,7 +90,7 @@ export function Codex({ onClose }: Props) {
         )}
 
         <div style={styles.footerNote}>
-          <strong>{t('codex.noteTitle')}</strong> {t('codex.noteSeed')} <code style={styles.code}>lifeseed:seed:gen:hash</code> {t('codex.noteSeedLoad')} {t('codex.noteVerify')}
+          <strong>{t('codex.noteTitle')}</strong> {t('codex.noteSeed')} <code style={styles.code}>lifeseed:beleg:gen:hash</code> {t('codex.noteSeedLoad')} {t('codex.noteVerify')}
         </div>
       </div>
     </div>

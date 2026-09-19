@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { MetaSave, PlantVariant, PendingCross } from '../types';
 import type { TranslationKey } from '../i18n';
 import { useI18n } from '../i18n';
-import { rollGachaCross, crossPair, deriveBreedSeed, deriveGachaSeed, createBaseVariants, type GachaRoll } from '../genome';
+import { rollGachaCross, crossPair, deriveBreedSeed, createBaseVariants, type GachaRoll } from '../genome';
 import { consumeSeedAndEnqueueCross, keepCross, isCrossReady, plantSeedlingIntoPot, buyRearingSlot } from '../meta';
 import { wavesToUnlockFor, rearingSlotGate, REARING_SLOTS_MAX } from '../config/economy.source';
 import { helpText } from '../i18n/help';
@@ -120,10 +120,12 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
     try {
       const { appendDiscovery } = await import('../discovery/codex');
       const { hashGenome } = await import('../discovery/chain');
+      // P2': der Breed-Seed bleibt intern (HMAC-Ableitung + Zeitstempel) — im Entry und
+      // im Share-Text steht nur der öffentliche plant_hmac, nie der Klartext-Seed.
       const res = appendDiscovery({
         genome: roll.child.genome,
         parents: [roll.parentA.id, roll.parentB.id],
-        seed: deriveGachaSeed(roll.crossIndex),
+        seed: deriveBreedSeed(roll.parentA.id, roll.parentB.id, roll.crossIndex),
         generation: roll.crossIndex,
       });
       if (res.appended) setShareNote(`${t('discovery.appended')}: ${hashGenome(roll.child.genome)}`);
@@ -140,10 +142,13 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
     appendDiscovery({
       genome: roll.child.genome,
       parents: [roll.parentA.id, roll.parentB.id],
-      seed: deriveGachaSeed(roll.crossIndex),
+      seed: deriveBreedSeed(roll.parentA.id, roll.parentB.id, roll.crossIndex),
       generation: roll.crossIndex,
     });
-    const text = seedShareText(deriveGachaSeed(roll.crossIndex), roll.crossIndex, roll.child.genome);
+    // P2': geteilt wird der ÖFFENTLICHE Identifier (plant_hmac), nie der private Seed.
+    const { plantHmacOf } = await import('../discovery/plantHmac');
+    const shareSeed = deriveBreedSeed(roll.parentA.id, roll.parentB.id, roll.crossIndex);
+    const text = seedShareText(plantHmacOf(shareSeed, roll.parentA.id, roll.parentB.id, roll.crossIndex), roll.crossIndex, roll.child.genome);
     try {
       await navigator.clipboard.writeText(text);
       setShareNote(t('codex.copied'));

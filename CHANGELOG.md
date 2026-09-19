@@ -114,6 +114,19 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ### Intern (Technik, Verträge & Tests)
 
+- [Discovery/P2'] **Der geteilte Beleg ist der Fund, nicht der Seed.** Neue Discovery-Einträge
+  trugen bisher den rohen Zucht-Seed im Klartext — und im Share-Text gleich mit. Jetzt trägt
+  jeder neue Eintrag `plant_hmac` (öffentlicher Identifier, `src/discovery/plantHmac.ts`) und
+  keinen Seed; Gründer-Einträge der Epoche 0 behalten ihren historischen Seed, weil ihre Wurzel
+  ohnehin öffentlich ist. Der Entry-Payload bleibt additiv-konditional und schreibt GENAU EINE
+  Seed-Form; `verifyChain` weist Einträge mit beiden oder keinem ab. Share-Format
+  (`lifeseed:ph-…:gen:hash`) und Codex-Anzeige nennen den Beleg. Die Migration 001 spiegelt das
+  (nullable `plant_hmac`/`seed`, Constraint „genau eine Form"). **Bewusst NICHT gebaut:** ein
+  zweites `seedVault.ts` mit eigener `crossPair`-Kopie — das wäre Verbot 1 (Modul-Duplikat)
+  gewesen; die Server-Rolle aus P3 braucht einen Server und bleibt der Austauschpunkt
+  `plantHmacOf`. Wirkung, ehrlich benannt: der Beleg TRENNT die zwei Wahrheiten, schützt aber
+  auf der öffentlichen Epoche-0-Wurzel noch nicht gegen Offline-Vorausberechnung.
+
 - [Discovery/P1+P2] **Die Wurzel ist ein Kontext, der Eintrag trägt seine Herkunft.** Statt der
   Konstante `GAME_SEED` leiten alle zehn Ableitungsstellen über `EPOCH_ROOT` (Epoche 0 = 1337,
   beweisbar bitgleich: Suite unverändert grün) — ein späterer Ticket-Worker tauscht die Wurzel,

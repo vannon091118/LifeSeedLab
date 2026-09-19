@@ -24,7 +24,7 @@ export const codexTexts = {
     'codex.subtitle': 'Dein Laborbuch: jede Kreuzung bleibt hier auf diesem Gerät — die erste Zucht einer Sorte trägt deinen Namen.',
     'codex.empty': 'Noch keine Entdeckungen. Züchte die erste!',
     'codex.firstBy': 'Erst gezüchtet von',
-    'codex.share': 'Seed teilen',
+    'codex.share': 'Fund teilen',
     'codex.copied': 'Kopiert!',
     'codex.valid': 'Alle Einträge in Ordnung',
     'codex.invalid': 'Einträge verändert',
@@ -61,8 +61,9 @@ export const codexTexts = {
     'codex.discoveryOf': 'Zucht von',
     'codex.parents': 'Eltern',
     'codex.noteTitle': 'Deine Entdeckungen bleiben auf diesem Gerät.',
-    'codex.noteSeed': 'Seeds sind Zahlen — jede geteilte Zeile',
-    'codex.noteSeedLoad': 'lädt exakt dieselbe Pflanze. Nichts verlässt dieses Gerät.',
+    // P2': geteilt wird der öffentliche Fund-Beleg (plant_hmac), nie der private Zucht-Seed.
+    'codex.noteSeed': 'Funde tragen einen öffentlichen Beleg — jede geteilte Zeile',
+    'codex.noteSeedLoad': 'findet dieselbe Pflanze im Codex. Der Zuchtweg bleibt dein.',
     'codex.noteVerify': 'Die Prüfung rechnet alles lokal nach — kein Online-Abgleich.',
   },
   en: {
@@ -84,7 +85,7 @@ export const codexTexts = {
     'codex.subtitle': 'Your lab notebook: every crossing stays on this device — the first breeder of a strain is named on it.',
     'codex.empty': 'No discoveries yet. Breed the first one!',
     'codex.firstBy': 'First bred by',
-    'codex.share': 'Share seed',
+    'codex.share': 'Share discovery',
     'codex.copied': 'Copied!',
     'codex.valid': 'All entries in order',
     'codex.invalid': 'Entries were changed',
@@ -117,8 +118,9 @@ export const codexTexts = {
     'codex.discoveryOf': 'Breeding of',
     'codex.parents': 'Parents',
     'codex.noteTitle': 'Your discoveries stay on this device.',
-    'codex.noteSeed': 'Seeds are numbers — every shared line',
-    'codex.noteSeedLoad': 'loads exactly the same plant. Nothing leaves this device.',
+    // P2': sharing carries the public proof (plant_hmac), never the private breed seed.
+    'codex.noteSeed': 'Discoveries carry a public proof — every shared line',
+    'codex.noteSeedLoad': 'finds the same plant in the Codex. Your breeding path stays yours.',
     'codex.noteVerify': 'Verification is computed locally — no online check.',
   },
 };

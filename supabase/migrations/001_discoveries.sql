@@ -8,7 +8,12 @@
 --     zwar unter dem Namen „authenticated insert", aber OHNE `to authenticated`: damit durfte
 --     jede Rolle mit dem Anon-Key einfügen.
 --   · Format-Constraints prüfen die Feldform (entry_hash/prev_hash als 8-Hex, player_id-Muster,
---     genau zwei Eltern, nicht-negative Zahlen) — der Hash wird damit nicht NEU GERECHNET.
+--     genau zwei Eltern, nicht-negative Zahlen, plant_hmac-Muster) — der Hash wird damit nicht
+--     NEU GERECHNET. ACHTUNG (offene Lücke, bewusst nicht weggeredet): `plant_hmac` ist heute
+--     eine CLIENT-seitige FNV-Mischung, die nur eine öffentliche Epoche-0-Wurzel kennt. Er
+--     trennt die zwei Wahrheiten, ist aber KEIN Server-Beweis — die Server-Verifikation gegen
+--     einen geheimen Account-Root gehört zu P3/P4 (plan-discovery-chain.md), VOR dem
+--     Aktivieren dieses Spiegels.
 --   · RESTRISIKO (bewusst dokumentiert, nicht weggeredet): UNIQUE(genome_hash) plus
 --     „erste Entdeckung gewinnt" erlaubt Hash-Squatting — wer zuerst einen fremden
 --     genome_hash schreibt, blockiert die echte Entdeckung. Solange kein Server die Kette
@@ -21,7 +26,12 @@ create table if not exists public.discoveries (
   player_id text not null,
   genome_hash text not null unique,          -- erste Entdeckung gewinnt (siehe Squatting-Hinweis)
   parents jsonb not null,
-  seed bigint not null,
+  -- P2' (plan-discovery-chain.md §1.2): NEUE Einträge tragen den ÖFFENTLICHEN Beleg
+  -- `plant_hmac` und KEINEN Klartext-Seed — der private Zucht-Seed bleibt beim Client.
+  -- `seed` bleibt für Gründer-Einträge der Epoche 0 (deren Wurzel ist ohnehin öffentlich).
+  -- Beide Spalten sind deshalb nullable; genau EINE muss gesetzt sein (Constraint unten).
+  plant_hmac text,
+  seed bigint,
   generation integer not null,
   prev_hash text,
   entry_hash text not null,
@@ -30,7 +40,10 @@ create table if not exists public.discoveries (
   constraint discoveries_prev_hash_shape check (prev_hash is null or prev_hash ~ '^[0-9a-f]{8}$'),
   constraint discoveries_player_shape check (player_id ~ '^player_[0-9a-f]{8}$'),
   constraint discoveries_parents_arity check (jsonb_typeof(parents) = 'array' and jsonb_array_length(parents) = 2),
-  constraint discoveries_numbers_nonneg check (seed >= 0 and generation >= 0)
+  -- Eine Wahrheit über die Herkunft: HMAC (neue Einträge) ODER Klartext-Seed (Gründer).
+  constraint discoveries_identity_singular check ((plant_hmac is null) <> (seed is null)),
+  constraint discoveries_plant_hmac_shape check (plant_hmac is null or plant_hmac ~ '^ph-[0-9a-f]{8}$'),
+  constraint discoveries_numbers_nonneg check ((seed is null or seed >= 0) and generation >= 0)
 );
 
 create index if not exists discoveries_created_at_idx on public.discoveries (created_at desc);

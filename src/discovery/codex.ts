@@ -109,6 +109,8 @@ export interface AppendResult {
 export interface AppendDiscoveryInput {
   genome: Genome;
   parents: [string, string];
+  /** Der PRIVATE Zucht-Seed — fließt nur in den logischen Zeitstempel und die
+   *  HMAC-Ableitung ein, taucht NIE im Entry/Share-Format auf (P2'). */
   seed: number;
   generation: number;
   player_id?: string;
@@ -117,6 +119,8 @@ export interface AppendDiscoveryInput {
 /**
  * Deterministischer Zeitstempel für Discovery-Einträge.
  * Nutzt (generation * 1_000_000) + (seed % 1_000_000) — reproduzierbar ohne Uhr.
+ * Der Seed bleibt intern: er identifiziert das Ereignis, wird aber NICHT im Entry
+ * geteilt (P2' — dort steht der öffentliche plant_hmac).
  */
 function logicalTimestamp(seed: number, generation: number): number {
   return generation * 1_000_000 + (seed % 1_000_000);
@@ -158,9 +162,11 @@ export function verifyLocalChain(chain?: DiscoveryEntry[]): ReturnType<typeof ve
   return verifyChain(chain ?? loadCodex());
 }
 
-/** Seed-Teilstring für Sharing: `lifeseed:<seed>:<gen>:<genome_hash>` */
-export function seedShareText(seed: number, generation: number, genome: Genome): string {
-  return `lifeseed:${seed}:${generation}:${hashGenome(genome)}`;
+/** Share-Format (P2'): `lifeseed:<plant_hmac>:<gen>:<genome_hash>` — der öffentliche
+ *  Beleg statt des Klartext-Seeds. Der Empfänger kann die Pflanze IM CODEX wiederfinden,
+ *  aber die Zuchtableitung nicht nachrechnen (Plan §1.2). */
+export function seedShareText(plantHmac: string, generation: number, genome: Genome): string {
+  return `lifeseed:${plantHmac}:${generation}:${hashGenome(genome)}`;
 }
 
 export type { DiscoveryEntry, Genome };
