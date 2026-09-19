@@ -40,7 +40,6 @@ commit_msg.txt
 !.agents/skills/lifeseedlab-onboarding/**
 .claude/
 .freebuff/
-git-noir/
 memory/
 repo_structure_summary.md
 playwright-report/
@@ -51,6 +50,10 @@ docs/art/
 /scripts/*
 !/scripts/check-changelog.sh
 !/scripts/test-lane.mjs
+# Shinon-Werkzeug: der Code liegt getrackt unter tools/, Laufzeit-Artefakte bleiben lokal.
+tools/.tmp/
+tools/.shinon-state.json
+commit_msg.txt
 CLAUDE.md
 
 # PROPSA-History (lokal, nie committen)

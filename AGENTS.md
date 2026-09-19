@@ -102,7 +102,7 @@ node node_modules/vite/bin/vite.js build           # Nur bei Build-Relevanz
 3. **Voll-Suite:** `node scripts/test-lane.mjs --full` (429+ Tests grün).
 4. **Shinon Commit & Push:**
    ```bash
-   node git-noir/shinon/cli.ts finish --all   # Vorbereitung → Gate → Commit → Push
+   node tools/shinon/cli.ts finish --all   # Vorbereitung → Gate → Commit → Push
    ```
    - Gate-Modus: `enforcement=strict` (0 Fehler, 0 Warnungen). Manuelles `git commit`/`git push` ist **verboten**.
    - Commit-Format: `type(scope): Betreff` (Conventional Commits).

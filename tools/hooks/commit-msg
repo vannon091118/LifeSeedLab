@@ -1,0 +1,5 @@
+#!/bin/sh
+# Shinon — erzeugt von `shinon install-hooks`. Nicht manuell pflegen.
+SHINON_ROOT="$(git rev-parse --show-toplevel)"
+# Nachrichtenregel: genau diese Nachricht wird der Komponist commiten
+exec node "$SHINON_ROOT/tools/shinon/cli.ts" message --file="$1" --quiet

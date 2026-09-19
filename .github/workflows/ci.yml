@@ -1,0 +1,40 @@
+name: CI
+
+# Die lokale Wahrheit bleibt Shinon (tools/shinon/cli.ts): sein Gate umfasst Typecheck,
+# Tests, LOC-Caps, Architektur-Constraints, Changelog-Pflicht und Doku-Links, und er
+# entscheidet über Commit und Push. Diese Action beweist nur, dass ein FRISCHER Klon
+# dieselben Kernprüfungen besteht — das war vor dem Versionieren des Tooling nicht
+# maschinell beweisbar (Befund: der Beweis galt nur auf einer Maschine).
+#
+# Bewusst NICHT hier: Shinons Gate selbst. Es braucht die lokale Hook-Verdrahtung
+# (core.hooksPath) und schreibt README/State — ein zweiter Gate-Lauf in CI wäre eine
+# zweite Wahrheit desselben Vertrags, nicht ein Beweis.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Dependencies installieren
+        run: npm ci
+
+      - name: Typecheck (tsc -b --noEmit)
+        run: node node_modules/typescript/bin/tsc -b --noEmit
+
+      - name: Test-Suite
+        run: node scripts/test-lane.mjs --full
+
+      # Tooling-eigene Tests: das Gate prüft sich selbst (Fixtures unter tools/.tmp).
+      - name: Shinon-Tooling-Suite
+        run: node node_modules/vitest/vitest.mjs run --config tools/vitest.config.ts

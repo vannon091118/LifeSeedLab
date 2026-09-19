@@ -18,7 +18,7 @@
 - **Qualitäts-Gate (Shinon):**
   - Gate-Modus: `enforcement=strict` (0 Fehler, 0 Warnungen)
   - Test-Lane: Ausführung relevanter Tests (`vitest related`) im Commit-Pfad ≤ 10 s
-  - Git-Abschluss: Ausschließliche Ausführung über `node git-noir/shinon/cli.ts finish --all`
+  - Git-Abschluss: Ausschließliche Ausführung über `node tools/shinon/cli.ts finish --all`
 - **Spielerlebnis & Onboarding:**
   - **Krix-Tutorial (B21):** Vollständiges Strichmännchen-Onboarding über 3 Screens (Start → Hub → Feld)
   - **Spieler-Feedback (B22–B25):** Aufbauphase vor erster Welle, optische Ablehnungsgründe (`FieldToast`), Haltbarkeitsanzeige am Feld, einheitlicher Loadout-Zähler, honest Codex.

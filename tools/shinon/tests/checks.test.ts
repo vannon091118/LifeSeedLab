@@ -1,0 +1,94 @@
+import { describe, expect, it } from 'vitest';
+import { runMessageSelfTest, validateMessage } from '../checks/commit-message-check.ts';
+import { ForbiddenPatternCheck } from '../checks/forbidden-pattern-check.ts';
+import { LocCapCheck } from '../checks/loc-cap-check.ts';
+import { defaultConfig } from '../config.ts';
+import { ShinonGitHelfer } from '../git-helfer.ts';
+import { makeLines, tempDir, write } from './helpers.ts';
+import type { CheckContext } from '../checks/check.ts';
+
+function contextIn(dir: string, changedFiles: string[]): CheckContext {
+  const config = defaultConfig(dir);
+  return {
+    root: dir,
+    git: new ShinonGitHelfer(dir),
+    config,
+    phase: 'preflight',
+    stagedFiles: [],
+    changedFiles,
+    quiet: true,
+  };
+}
+
+describe('Commit-Nachrichtenregel', () => {
+  const config = defaultConfig('/tmp/shinon');
+
+  it('akzeptiert Conventional Commits und Projekt-Präfixe', () => {
+    expect(validateMessage('feat(paper): neue Textur', config)).toHaveLength(0);
+    expect(validateMessage('[FOLD] Struktur konsolidiert', config)).toHaveLength(0);
+  });
+
+  it('lehnt fremde Formen und leere Nachrichten ab', () => {
+    expect(validateMessage('irgendwas ohne Typ', config).some((item) => item.code === 'MSG002')).toBe(true);
+    expect(validateMessage('', config).some((item) => item.code === 'MSG001')).toBe(true);
+    expect(validateMessage('[UNKNOWN] nope', config).some((item) => item.severity === 'error')).toBe(true);
+  });
+
+  it('besteht den eingebauten Selbsttest', () => {
+    expect(runMessageSelfTest(config).failed).toEqual([]);
+  });
+
+  it('erlaubt bei freeForm freie Betreffzeilen, warnt aber vor Kommentarresten', () => {
+    const loose = defaultConfig('/tmp/shinon');
+    loose.commit.freeForm = true;
+    expect(validateMessage('einfach nur ein Satz', loose)).toHaveLength(0);
+    expect(validateMessage('feat(x): ok\n# Template-Rest', loose).some((item) => item.code === 'MSG004')).toBe(true);
+  });
+});
+
+describe('LOC-Cap-Prüfung', () => {
+  it('meldet Überschreitungen als Fehler und Einhaltung als Info', () => {
+    const dir = tempDir('loc-caps');
+    write(dir, 'src/simulation/gross.ts', makeLines(5));
+    write(dir, 'src/config/small.ts', makeLines(2));
+
+    const oversized = contextIn(dir, ['src/simulation/gross.ts']);
+    oversized.config.gate.locCaps = [{ path: 'src/simulation/', cap: 3, label: 'Simulationssystem' }];
+    const findings = new LocCapCheck().run(oversized);
+    expect(findings.some((item) => item.severity === 'error' && item.file === 'src/simulation/gross.ts')).toBe(true);
+
+    const fine = contextIn(dir, ['src/config/small.ts']);
+    fine.config.gate.locCaps = [{ path: 'src/config/', cap: 10, label: 'Source/Config' }];
+    expect(new LocCapCheck().run(fine).every((item) => item.severity === 'info')).toBe(true);
+  });
+});
+
+describe('Architektur-Constraints', () => {
+  it('findet verbotene Patterns mit Zeilennummer und respektiert Ausschlüsse', () => {
+    const dir = tempDir('forbidden');
+    write(dir, 'src/simulation/bad.ts', 'const x = Math.random();\n');
+    write(dir, 'src/core/rng.ts', 'const x = Math.random();\n');
+
+    const ctx = contextIn(dir, ['src/simulation/bad.ts', 'src/core/rng.ts']);
+    const findings = new ForbiddenPatternCheck().run(ctx);
+    expect(findings.some((item) => item.file === 'src/simulation/bad.ts' && item.line === 1)).toBe(true);
+    expect(findings.some((item) => item.file === 'src/core/rng.ts')).toBe(false);
+  });
+
+  it('hält die Persistenz-Regel für Spielcode scharf und nimmt nur E2E-Harness + Werkzeug aus', () => {
+    const dir = tempDir('forbidden-scope');
+    const read = 'const raw = localStorage.getItem("lifegamelab_meta");';
+    write(dir, 'src/simulation/touch.ts', read);
+    write(dir, 'tests/run.spec.ts', read);
+
+    // Die Ausnahmen sind genau eine Zeile weit — kein Muster, das später still wächst.
+    // `tools/` ist Werkzeug: seine Tests prüfen VERBOTENES absichtlich (Fixtures), das ist
+    // Verifikation der Regel, nicht ihre Verletzung.
+    const rule = defaultConfig(dir).gate.forbiddenPatterns.find((entry) => entry.pattern.includes('localStorage'));
+    expect(rule?.exclude).toEqual(['src/persistence/', 'tests/', 'tools/']);
+
+    const findings = new ForbiddenPatternCheck().run(contextIn(dir, ['src/simulation/touch.ts', 'tests/run.spec.ts']));
+    expect(findings.some((item) => item.file === 'src/simulation/touch.ts')).toBe(true);
+    expect(findings.some((item) => item.file === 'tests/run.spec.ts')).toBe(false);
+  });
+});

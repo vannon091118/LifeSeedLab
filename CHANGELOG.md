@@ -114,6 +114,18 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ### Intern (Technik, Verträge & Tests)
 
+- [Tooling/CI] **Das Gate gehört jetzt zum Repo.** Shinon (Prüfklassen, Hooks, Konfiguration) zog
+  von `git-noir/` (in `.gitignore`, nur auf einer Maschine) nach `tools/` — getrackt, mit CI
+  (`.github/workflows/ci.yml`: frischer Klon besteht Typecheck, Voll-Suite und die
+  Shinon-eigene Testsuite). Verdrahtet wurden umgestellt: `core.hooksPath = tools/hooks`, die
+  drei Hook-Skripte, `HOOKS_RELATIVE_DIR`, `STATE_RELATIVE_PATH` (`tools/.shinon-state.json`,
+  weiter ignoriert), die Fixture-Wurzel der Tooling-Tests (`tools/.tmp`, weiter ignoriert) und
+  die Aufruf-Pfade in AGENTS.md, ROADMAP und Doku. Alte zweifelhafte Kopien
+  (`config.ts.bak`, `checks/index.ts.bak`) sind gelöscht — zwei Wahrheiten weniger. Beweise:
+  Gate-Lauf aus `tools/` grün, Shinon-Suite 34/34 (echte Git-Fixtures), Projekt-Suite 529/529.
+  Bewusst NICHT in CI: das Gate selbst — es ist die lokale Entscheidungsinstanz, ein zweiter
+  Lauf wäre eine zweite Wahrheit desselben Vertrags.
+
 - [Tooling] **README-Block und Gate behaupten nicht mehr zwei verschiedene Caps.** Der Shinon-Starter
   zählte für den LOC-Hotspot-Block ROH-Zeilen (`split('\n').length`) und meldete damit z. B.
   `src/meta/store.ts` mit 142 % ÜBER Cap, während das bindende Gate (Code-Zeilen ohne Kommentare und

@@ -7,7 +7,7 @@
 
 ## Sprint-Rahmen
 
-- **Verifikationsverträgnis:** Typecheck + Suite genau EINMAL am Aufgabenende (`node node_modules/typescript/bin/tsc -b --noEmit`, `node node_modules/vitest/vitest.mjs run`), E2E einmal am Sprint-Ende, Abschluss nur über `node git-noir/shinon/cli.ts finish --all`.
+- **Verifikationsverträgnis:** Typecheck + Suite genau EINMAL am Aufgabenende (`node node_modules/typescript/bin/tsc -b --noEmit`, `node node_modules/vitest/vitest.mjs run`), E2E einmal am Sprint-Ende, Abschluss nur über `node tools/shinon/cli.ts finish --all`.
 - **LOC-Caps hart:** pro Datei 300 (Simulation) / 400 (Renderer/UI). `root.ts` steht bei 300/300 — jede Phase-3-Änderung an der Pipeline braucht zuerst den Root-Split (E3).
 - **Determinismus:** LLM-Commands sind Spieler-Input gleichgestellt — validiert, geloggt, replay-fähig. `SOURCE + SEED + COMMANDS (inkl. geloggter LLM-Commands) = STATE`.
 - **Single-Writer unangetastet:** Phase 1 erweitert `mapSystem.ts` (bereits Writer von `mapTiles` + `currentRoute`). Phase 3 ist ein reiner Command-Produzent — kein zweiter State-Writer.
@@ -83,7 +83,7 @@ Owner neu: `src/simulation/llmBridge.ts` (neu, ≤ 200).
 2. **Einmalige Verifizierung:** `node node_modules/typescript/bin/tsc -b --noEmit` + `node node_modules/vitest/vitest.mjs run` — 0 Fehler, komplett grün.
 3. **Preview prüfen:** Run-Screen mit neuer Maze-Regel (path-Tile + Pflanze auf Zelle), Toast bei zugebautem Pfad; 390×844 + Desktop.
 4. **E2E:** `node node_modules/@playwright/test/cli.js test` — 27/27 (Preview-Server vorher stoppen, damit Playwright seinen eigenen verwaltet — Lektion vom letzten Sprint).
-5. **Shinon:** `node git-noir/shinon/cli.ts finish --all` — Message VORHER in `commit_msg.txt` frisch schreiben (AP 0.1 schließt die Loophole, die sonst die alte Nachricht wiederverwendet).
+5. **Shinon:** `node tools/shinon/cli.ts finish --all` — Message VORHER in `commit_msg.txt` frisch schreiben (AP 0.1 schließt die Loophole, die sonst die alte Nachricht wiederverwendet).
 6. Push-Wahrheit: `git ls-remote origin main` == `git rev-parse HEAD`.
 
 ---
