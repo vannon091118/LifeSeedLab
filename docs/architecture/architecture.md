@@ -1,152 +1,220 @@
-# architecture.md — LifeSeedLab
+# architecture.md — LifeSeedLab Technische Systemarchitektur
 
-> Sprache: Deutsch (Regel 1). Dieser Text beschreibt die **technische Architektur** (das „Wie").
-> Der rechtsverbindliche Vertrag steht in [`architecture-contract.md`](architecture-contract.md),
-> die forensische Bestandsaufnahme + Asset-/Render-Spezifikation in [`../quality/quality-spec.md`](../quality/quality-spec.md).
-> Agenten-Regeln und Arbeitsmodus: [`AGENTS.md`](../../AGENTS.md).
-> Projektstatus und nächste Meilensteine: [`ROADMAP.md`](../process/ROADMAP.md).
+> Sprache: Deutsch (Regel 1). Beschreibt das technische „Wie“ und vertieft den rechtsverbindlichen [`architecture-contract.md`](architecture-contract.md).
+> Arbeitsvertrag für Entwickler & Agenten: [`AGENTS.md`](../../AGENTS.md).
+> Meilensteine, Todos & Findings: [`ROADMAP.md`](../process/ROADMAP.md).
+> Asset- & Render-Spezifikation: [`../quality/quality-spec.md`](../quality/quality-spec.md).
 
 ---
 
-## 1. Technology-Stack (festgezurrt)
+## 1. Technologie-Entscheidungen (Technology Stack)
 
-| Ebene | Technologie | Entscheidung | Begründung |
+| Ebene | Technologie | Status | Begründung |
 |---|---|---|---|
-| UI / Build | React 19 + Vite + TypeScript (strict) | **behalten** | vorhanden, stabil, kein Migrationsgewinn |
-| Simulation | eigene deterministische Core-Runtime (Clock/RNG/Bus) | **behalten** | Gate-getestet, beweisbar deterministisch |
-| Rendering | **Canvas 2D, handgeschrieben — keine Engine** | **fest** | Die Lücke ist Art-Code, nicht Engine-Fähigkeit. Eine Engine (PixiJS/Phaser) kämpft gegen drei bezahlte Eigenschaften: LOC-Caps pro Modul, Renderer-Purity (zeichnet nur `ResolvedVisual`) und deterministische Visual-Seeds. Ink/Paper entsteht als reine Zeichenroutinen: `Path2D` mit Quadratik-Kurven für unregelmäßige Konturen + **vorgebackene Offscreen-Textur-Tiles** (Papierkorn, Pfad-Abnutzung, Gras) — einmal pro Seed aus dem `visual`-Namespace generiert und gecacht. Texturvielfalt ohne Kosten pro Frame. Bei < few hundred Drawables ist Mobile-Performance kein Canvas-2D-Problem. |
-| Persistenz | **eigenes `persistence/storage.ts`, beide Backends, 0 Deps** | **fest** | Kein Katalog-Angebot; Dexie/idb-keyval wäre eine Dependency für ~200 LOC eigenen Code. Spec unten (§4). |
-| Audio | **Web Audio API als zweiter Observer** (`observers/audioObserver`, Cap 250 LOC) | **fest** | Tone.js/Howler sind Overkill oder gameplay-gekoppelt. Lazy `AudioContext` beim ersten User-Gesture (iOS-Unlock-Pflicht). SFX **synthetisiert** aus Oszillator + Noise-Buffer, verschlüsselt über `soundProfile` (burn = gefiltertes Noise-Crackle, heal = Sinus-Arpeggio, crit = geschichteter Thump …). Keine Audio-Assets, keine Ladezeit. Der Observer subskribiert den Bus, emittiert nichts, erzeugt kein RNG — die FX-ON/OFF-Determinismus-Garantie gilt damit automatisch auch für Sound. |
-| Tests | Vitest | **behalten** | läuft, 52+ Tests |
-| Async-PvP-Backend | **Convex — aufgeschoben** | **Schema jetzt, Einbau später** | Vercel-as-Backend abgelehnt (Deploys laufen bereits auf managed Freebuff-Hosting; eine zweite Plattform kauft nichts). Convex passt zu Build-Sharing: kleine JSON-Dokumente, kein Server-Betrieb, TS-SDK, Free Tier, Auth slotting später sauber ein. **Was jetzt passiert, ist nur der Schema-Vertrag:** Das Export-Format eines geteilten Builds ist fix als `{ genomePair, rootSeed, commandLogHash, variantKey, createdAt, version }`. Dasselbe JSON, das heute in den Run-Save geht, POSTet später unverändert an Convex — Gameplay-Code erfährt nie, dass ein Backend existiert; es kommt hinter genau einem `bus/remote`-Adapter an. |
-| Discovery-Chain | **Supabase + SHA256-lite, lokal-first** | **Schema jetzt, Sync später** | Kein Token/Blockchain: `genome_hash` aus RNG ist der Beweis, `prev_hash`-Kette ist die Verkettung. Lokal `UNIQUE(genome_hash)`, public read, `supabase/migrations/001_discoveries.sql`. |
-| Abgelehnt | Game Engines (LOC-Caps + Purity-Vertrag), neue State-Manager (React-State + Refs genügen), **jede Änderung an `vite.config.ts`** | — | |
+| **UI & Build** | React 19 + Vite + TypeScript (strict) | Fest | Moderner reaktiver DOM-Shell, instant HMR, null Overhead. |
+| **Simulation** | Eigene deterministische Core-Runtime | Fest | Single-Thread/Worker-fähig, Fixed-Timestep (30 TPS), FNV-1a Hash-Kette. |
+| **Rendering** | **HTML5 Canvas 2D (handgeschrieben)** | Fest | **Keine externe Engine** (Pixi/Phaser abgelehnt). Pure Zeichenroutinen (`Path2D`, Bezier-Konturen) + vorgebackene Offscreen-Papercraft-Texturen aus dem `visual`-Namespace. Maximale FPS bei minimalem Speicherfootprint auf Mobile (390×844). |
+| **Audio** | Web Audio API (`observers/audioObserver.ts`) | Fest | SFX synthetisiert via Oszillatoren + Noise-Buffer, gesteuert durch `soundProfile`. 0 Audio-Assets, 0 Byte Ladezeit. Read-only Bus-Abonnent (FX ON/OFF ändert keinen einzigen RNG-Tick). |
+| **Persistenz** | Eigenes `persistence/storage.ts` (0 Deps) | Fest | Einziger Storage-Owner. Checksummen (FNV-1a), Quarantäne bei Korruption (`.corrupt`), atomare Saves, synchrone Meta-Hydration vor erstem Paint. |
+| **Discovery** | Lokale Append-Only Hash-Chain + Supabase | Fest | Kryptografischer Genom-Beweis (`genome_hash`) via FNV-1a. Teilen per Link/String ohne Blockchain-Token. |
+| **Tests** | Vitest + Playwright (E2E) | Fest | Vitest im Shared-Worker-Modus (`isolate: false`, ~5s Voll-Suite), Playwright für 390×844 Portrait & Progression. |
 
 ---
 
-## 2. Modulkarte (IST + geplante Neuzugänge)
+## 2. Mathematische Endgleichungen & Determinismus
+
+Das gesamte Spielsystem basiert auf zwei unumstößlichen Gleichungen:
 
 ```
-src/
-├── core/        Clock (Fixed-Step 30tps) · RNG (8 Namespaces) · IDs · State-Hash
-├── bus/         EventBus · Event-Contract v1 · CommandQueue · Ownership-Tabelle
-├── simulation/  SimState · SimulationRoot · 6 Owningsysteme
-│                (Plant/Enemy/Projectile/Score/Combo/Wave)
-├── config/      SOURCE = CONTENT TRUTH: world, plants, enemies, effects, extras, bases
-├── visual/      Generator: visualSeed + Source = ResolvedVisual (nur visual-Namespace)
-├── render/      Camera (Observer-owned, seeded Shake) · Renderer (Layer 0–8)
-│   └── layers/  [geplant] Terrain/EntityDraw/Feedback/Manga — Split bei > 400 LOC
-├── observers/   visualObserver (Events→7 Visual-Commands) · ParticlePool (Budget)
-│                audioObserver [geplant] · FeedbackLayer-Ausführung [geplant]
-├── persistence/ storage.ts (§4) · meta.ts · runSave.ts · codex (discovery chain, §4.1)
-├── discovery/   chain.ts (genome_hash, hash-chain) · codex.ts (local-first) + Supabase-Spiegel
-├── components/  Screens (Start/Menu/GameView/Breeding/ErrorBoundary)
-├── i18n.tsx     DE/EN, Context-Provider, persisted in Meta
-└── types.ts     Meta-/Breeding-Typen (Legacy-Entity-Typen werden gelöscht — quality-spec.md A1)
+SOURCE + SEED + CLOCK + PLAYER COMMANDS        = DETERMINISTIC GAME STATE
+STATE  + EVENTS + VISUAL SOURCE + VISUAL SEED  = DETERMINISTIC PRESENTATION
 ```
 
-**Layer-Reihenfolge Renderer (fix):** 0 Background · 1 Terrain · 2 Shadows · 3 Plants · 4 Enemies · 5 Projectiles · 6 Particles · 7 Feedback · 8 Manga. Licht-Grade (Tag/Nacht) liegt **unter** 7/8.
+### 2.1 Fixed-Step Clock (30 TPS)
+- Der Simulations-Tick ist starr: $\Delta t = \frac{1}{30}\,\text{s} \approx 33{,}33\,\text{ms}$.
+- Die Simulation schreitet ausschließlich über diskrete Ticks voran (`SimulationRoot.stepOnce()`).
+- Frame-Drops oder variable Bildwiederholraten des Bildschirms (60Hz, 120Hz) beeinflussen niemals die Spielgeschwindigkeit oder Physik; der Renderer interpoliert Positionen rein optisch.
+
+### 2.2 RNG-Isolation & Namespaces
+Alle Zufallsentscheidungen müssen über `core/rng.ts` laufen:
+$$\text{deriveSeed}(\text{rootSeed}, \text{namespace}, \text{entityId}, \text{eventId}, \text{version})$$
+
+Es existieren exakt **8 isolierte Namespaces**:
+- **Gameplay-Namespaces (nur Simulation):**
+  - `world`: Welt- & Karten-Initialisierung, Spawn-Punkte.
+  - `wave`: Gegner-Zusammenstellung, Schedule, Boss-Generierung.
+  - `enemy`: Pfad-Auswahl, Verhalten, individuelle Schwellenwerte.
+  - `plant`: Angriffs-Jitter, kritische Treffer, Projektil-Streuung.
+  - `brood`: Käfer-Zucht, Vererbung, Genom-Mutationen, Phänotypen.
+  - `loot`: Nektar-Tropfen, Belohnungswürfe.
+- **Präsentations-Namespaces (nur Rendering/Observer):**
+  - `visual`: Silhouetten, Farbtöne, Blattkrümmungen, Papierkorngröße.
+  - `particle`: Partikel-Streuung, Lebensdauer, Rauchschwaden.
+  - `cosmetic`: Screen-Shake-Offset, Audio-Frequenz-Jitter.
+
+*Garantie:* Eine Aktion in einem Präsentations-Namespace verbraucht **keinen** Tick im Gameplay-RNG. Das Deaktivieren von FX liefert bit-identische Spielstände (`State Hash`).
 
 ---
 
-## 3. Endgleichungen & Determinismus
+## 3. Datenfluss & Pipeline
 
 ```
-SOURCE + SEED + CLOCK + PLAYER COMMANDS = DETERMINISTIC GAME STATE
-STATE  + EVENTS + VISUAL SOURCE + VISUAL SEED = DETERMINISTIC PRESENTATION
+[Spieler-Eingabe (Touch / Pointer)]
+               │
+               ▼
+   [CommandQueue.makeCommand()]  (Contract v1)
+               │
+               ▼  (Drain an diskreter Tick-Grenze)
+    ┌──────────────────────────────────────────────────────────┐
+    │                    SimulationRoot                        │
+    │  1. Clock.step()                                         │
+    │  2. Drain Commands (Place, Remove, StartWave)            │
+    │  3. WaveSystem (Spawns, Schedule)                        │
+    │  4. EnemySystem (Bewegung, Routing, Zielauswahl)         │
+    │  5. PlantSystem (Cooldowns, Reichweiten, Schuss)         │
+    │  6. ProjectileSystem (Flug, Kollision, Flächenschaden)   │
+    │  7. ScoreSystem & ComboSystem (Nektar, Multiplikatoren)  │
+    │  8. State Hash Berechnung (FNV-1a)                       │
+    └──────────────────────────────────────────────────────────┘
+               │
+               ▼  (Publish)
+          [EventBus] (Contract v1: eventId, tick, type, sourceId, payload)
+         /          \
+        ▼            ▼
+ [VisualObserver]  [AudioObserver]  ──> (Synthesizer, read-only)
+        │
+        ▼  (VisualCommands)
+┌───────────────────────────────────────────────────────────────┐
+│                    Canvas 2D Renderer                         │
+│  Layer 0: Background (Kraftpapier-Textur, vorgebacken)        │
+│  Layer 1: Terrain & Map (Raster, Wege, Wände)                 │
+│  Layer 2: Shadows (Dynamische Weichzeichner-Schatten)         │
+│  Layer 3: Plants & Beetles (Tuschekontur, Specular Highlight) │
+│  Layer 4: Enemies (Nintendo-Pop Kontrast)                     │
+│  Layer 5: Projectiles (Sporen, Stacheln, Laser)               │
+│  Layer 6: Particles (Partikel-Pool mit striktem Budget)       │
+│  Layer 7: Feedback (Schadenszahlen, Trefferblitze)            │
+│  Layer 8: Manga & Overlays (Geschwindigkeitslinien, Vignetten)│
+└───────────────────────────────────────────────────────────────┘
 ```
-
-- Gameplay Namespaces: `world, wave, enemy, plant, loot` — nur Simulation.
-- Presentation Namespaces: `visual, particle, cosmetic` — nur Observer/Renderer.
-- `deriveSeed(rootSeed, namespace, entityId, eventId, version)` ist der einzige Ableitungsweg.
-- Kein `Math.random`, kein `Date.now` in Spiellogik; `performance.now` nur im Frame-Timing.
-- Beweis im Test: gleicher Seed + gleiche Commands = gleicher Hash, gleiche Entity-ID-Sequenz; FX ON/OFF = bit-identischer Gameplay-State.
-
-## 3.1 Visuelle Pipeline — keine zweite Wahrheit (verbindlich)
-
-Grafik besitzt **keine eigene Wahrheit**. Jede sichtbare Pflanze ist eine abgeleitete Darstellung derselben Ursache:
-
-```
-SOURCE → GENOME → TRAITS → GAMEPLAY PHENOTYPE → VISUAL PHENOTYPE → SIMULATION → EVENT → OBSERVER → RENDER
-```
-
-- `SOURCE` (`config/*.source.ts`) liefert Basen, Extras, Effects.
-- `GENOME` (`genome.ts`) + `SEED` ergeben `PlantVariant` (deterministisch über `deriveSeed`).
-- `genomeToVisualInput(variant, rootSeed)` → `VisualInput` (einzige Genome→Visual-Eingabe).
-- `visualSeed + Source = ResolvedVisual` (`visual/generator.ts`, nur `visual`-Namespace).
-- `ResolvedVisual` wird über `bredStats`/`loadout` in `SimulationRoot` geführt und vom Renderer **nur gezeichnet**, nie erfunden (`Renderer.setBredVisuals`, `plantVisual`).
-- `EVENT → OBSERVER` trägt Farbe/Intensität bereits im Payload; UI/Renderer entscheiden keine Farben.
-- Ein Screenshot darf deshalb nie „hübsch erfunden" sein — jede Silhouette, Palette und Tint ist aus dem Genom ableitbar und per `variantKey` test-locked.
-
-## 3.2 Art Direction — LifeSeedLab = Forschungsbuch + Papercraft-Welt (verbindlich)
-
-- **Welt = Papierfläche.** Hintergrund: Kraftpapier (`--paper`) mit Korn/Noise (einmalig gebacken, `visual`-Namespace). Wege: aufgeklebte, leicht gewölbte Papierstreifen mit Drop-Shadow, ausgefranste Kanten, Fineliner-Rasterpunkte statt Grid-Linien.
-- **UI = Notizen.** Menükarten, Panels, HUD-Chips wirken wie Post-its/Pappschilder mit Büroklammern — `#f5efdc` Fill, `#2b2b26` Ink-Border 2 px, 3 px Offset-Hard-Shadow, keine Blur-Glass-Ästhetik.
-- **Kontrast = Nintendo-Pop.** Auf matter Papierwelt stehen satte, plastische Pflanzen/Gegner (kräftige Fills, feine Verläufe, Specular-Highlights, Ink-Contour 2+ px). Sie wirken wie aufgeklebte, lebendig gewordene Figuren — sofort unterscheidbar, auch in Graustufen.
-- **Animation = Papier-Juice.** Squash & Stretch bei Schuss/Treffer, Konfetti aus Papierschnipseln/Blättern, Idle-Atmen/Schwanken — alles über `FeedbackLayer`/`MangaLayer`/`ParticlePool`, nie über Gameplay-State.
-- **Skala:** 390×844 Portrait-first; alle Touch-Targets ≥ 44 px; kein Hover als Pflicht.
 
 ---
 
-## 4. Persistenz-Vertrag (Zielbild, umsetzt quality-spec.md B2)
+## 4. Persistenz- & Resume-Architektur
 
-Ein Owner: `persistence/storage.ts` (≤ 250 LOC). API:
+### 4.1 Single-Owner-Prinzip (`persistence/storage.ts`)
+Keine Komponente außerhalb von `persistence/` darf direkt auf `localStorage` oder `IndexedDB` zugreifen.
+- `load<T>(key, { version, migrate, fallback }): T`: Validiert Schema-Version und FNV-1a Checksumme.
+- `save(key, value): void`: Schreibt Daten atomar mit serialisierter Prüfsumme.
+- **Quarantäne-Schutz:** Bei Prüfsummen-Fehler wird der fehlerhafte Stand nach `${key}.corrupt` verschoben. Der Spieler erhält saubere Fallback-Defaults; das Spiel crasht niemals stillschweigend.
 
-```ts
-load<T>(key, { version, migrate, fallback }): T   // prüft Version + Checksumme
-save(key, value): void                            // schreibt mit Checksumme
-// Checksumme: FNV-1a (aus core/hash-Familie) über das serialisierte Payload.
-// Checksummen-Mismatch → Blob wird nach `${key}.corrupt` verquarantänt,
-// fallback() liefert Defaults. Nie crashen, nie still Daten verlieren.
-```
-
-| Store | Backend | Inhalt | Warum |
-|---|---|---|---|
-| `meta` | localStorage (sync) | Sprache, Nektar, Stats, Sammlung, Loadout, `runId`, `breedGeneration` | muss **synchron vor erstem Render** liegen (Sprachwahl) |
-| `run` | localStorage (MVP) → IndexedDB (Ziel) | Run-Snapshot v2 | größer, asynchron ok |
-
-**Resume-Vertrag (fix):** Run-Save enthält `{version, runId, seed, tick, waveNumber, phase:'prep', energy, lives, score, combo, plants[], inventory, nektarEarned}` — **keine** enemies/projectiles/schedule. Resume baut den State in `prep` wieder auf; der nächste Wave-Start regeneriert das Schedule deterministisch aus `(seed, waveNumber+1)`. Begründung: fortlaufende Gegner exakt wiederherstellen hieße Event-Log-Replay — out of scope; ein Wellen-Neustart ist der ehrliche, testbare Vertrag.
-
-`meta.ts` und `runSave.ts` werden zu dünnen Schema-Adaptern über `storage.ts` — kein direktes `localStorage` mehr außerhalb des Owners.
-
-### 4.1 Discovery-Chain — Blockchain-lite ohne Blockchain (neu)
-
-- **Prinzip:** append-only, hash-linked, lokal-first. Gleiche Eltern + gleicher Seed ⇒ gleicher `genome_hash` ⇒ deterministische Verifikation ohne externen Konsens.
-- **Hash:** FNV-1a über kanonisches Genom (`id:power:4f:dominant` sortiert). `entry_hash` über stabil serialisierte Felder; `prev_hash` verkettet.
-- **Eintrag:** `{ player_id, genome_hash, parents[2], seed, generation, timestamp, prev_hash, entry_hash }` — vgl. `src/discovery/chain.ts`.
-- **UNIQUE(genome_hash)** lokal in `tryAppend` und remote in Supabase (`discoveries.genome_hash UNIQUE`) — erste Entdeckung gewinnt dauerhaft.
-- **Teilen:** `lifeseed:<seed>:<gen>:<genome_hash>` — jeder kann die Zeile laden und exakt dieselbe Pflanze sehen (Seed ist die Zahl).
-- **Supabase-Spiegel:** `supabase/migrations/001_discoveries.sql` — public read, insert via `syncEntryStub` (heute Stub, morgen echter INSERT). Kein Wallet, kein Token, keine Energie.
+### 4.2 Die zwei Speicherbereiche
+1. **`meta` (localStorage, synchron):**
+   - Wird vor dem ersten React-Paint synchron geladen.
+   - Enthält: Sprache (`lang`), Nektar-Guthaben, Zucht-Generation (`broodGeneration`), Sammlungs-Inventar, Loadout (max. 4), Run-Counter (`runId`), Tutorial-Status (`tutorialDone`).
+2. **`run` (IndexedDB / localStorage, asynchron):**
+   - Hält den Schnappschuss eines laufenden Runs für nahtloses Fortsetzen.
+   - **Resume-Vertrag:** Gespeichert werden ausschließlich:
+     $$\{ \text{version, runId, seed, tick, waveNumber, phase:'prep', energy, score, combo, plants[], inventory, nektarEarned} \}$$
+   - *Explizit nicht gespeichert:* Laufende Gegner, fliegende Projektile, temporäre Partikel.
+   - *Resume-Verhalten:* Das Spiel startet deterministisch in der Vorbereitungsphase (`phase: 'prep'`) vor der nächsten Welle. Das Spawnschedule wird aus `(seed, waveNumber + 1)` frisch generiert.
 
 ---
 
-## 5. Datenfluss (unveränderlich)
+## 5. OWNERSHIP CONTRACTS je Domäne (Verbindlich)
+
+Jede Domäne im Verzeichnis `src/` unterliegt einem strikten Vertrag hinsichtlich Autorschaft, Lesezugriffen, Schnittstellen und LOC-Caps.
 
 ```
-Input (Pointer/Touch)
-   ↓  makeCommand (Contract v1)
-CommandQueue
-   ↓  drain an Tick-Grenze
-SimulationRoot.stepOnce()   →   Clock.step → Systeme in fester Reihenfolge
-   ↓  publish
-EventBus (Contract v1: eventId, tick, type, sourceId, version, payload)
-   ↓ subscribe (read-only)
-Observer: visualObserver → VisualCommands → Feedback/Manga-Layer + ParticlePool + Camera
-          audioObserver → SFX (synth, gated by FX-Flag)
-UI liest State via 10Hz-HUD-Snapshot, entscheidet nichts.
-Canvas/React modifizieren Gameplay nie.
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                             DOMÄNEN-ÜBERSICHT                                    │
+│                                                                                  │
+│  [config] (Source) ──▶ [genome] ──▶ [visual]                                     │
+│         │                  │           │                                         │
+│         ▼                  ▼           ▼                                         │
+│      [core] ───────▶ [simulation] ──▶ [bus] ──▶ [observers] ──▶ [render]        │
+│                             │                                        ▲           │
+│                             ▼                                        │           │
+│                       [persistence] ──────────────────────────▶ [ui/components] │
+│                             │                                                    │
+│                             ▼                                                    │
+│                        [discovery]                                               │
+└──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Verbotene Verbindungen (Gate 3): `Canvas → Simulation`, `React-Visual → Simulation`, `Particle → Gameplay`.
+### 5.1 Domäne `core` (`src/core/`)
+- **Verantwortung:** Mathematisches und zeitliches Fundament (Clock, Determinismus-RNG, ID-Generierung, Hashing, Farbwerte).
+- **Autoritativer Writer:** `GameClock` (schreibt Zeit-Ticks); mathematische Module sind zustandslos/pure.
+- **Erlaubte Reader:** Alle Domänen.
+- **LOC-Cap:** 300 Code-Zeilen je Datei.
+- **Garantien:** Absoluter Determinismus, 0% `Math.random()`, 0% `Date.now()`.
 
----
+### 5.2 Domäne `config` (`src/config/`)
+- **Verantwortung:** **Content Truth (SOURCE)** aller Spielelemente (Pflanzen, Käfer, Gegner, Effekte, Gene, Namen, Map-Templates, Shop).
+- **Autoritativer Writer:** Statische Konfigurationsdateien (`*.source.ts`). Keine dynamischen Laufzeitschreiber.
+- **Erlaubte Reader:** `simulation`, `genome`, `visual`, `ui`.
+- **LOC-Cap:** 200 Code-Zeilen je Datei.
+- **Garantien:** Keine einzige spielmechanische Konstante (Schaden, Tempo, Kosten) existiert hartcodiert im TypeScript-Code außerhalb dieser Domäne.
 
-## 6. DevGate & Release-Fläche
+### 5.3 Domäne `simulation` (`src/simulation/`)
+- **Verantwortung:** Vollständige Gameplay-Logik, Zustandstransformationen, Regelprüfung, Kampf- und Wellenabwicklung.
+- **Autoritativer Writer:** `SimulationRoot` steuert die Untersysteme; jedes Untersystem (`PlantSystem`, `EnemySystem`, `ProjectileSystem`, `ScoreSystem`, `ComboSystem`, `WaveSystem`, `MapSystem`) schreibt exakt sein eigenes State-Slice.
+- **Erlaubte Reader:** Main-Thread via periodischem Snapshot (`hudSnapshot.ts`), Bus-Events.
+- **LOC-Cap:** 300 Code-Zeilen je Datei.
+- **Garantien:** Kein System ruft ein anderes System direkt auf. Kommunikation nach außen erfolgt ausschließlich über den `EventBus`. Niemals UI-/Canvas-Abhängigkeiten.
 
-Alle Entwicklerwerkzeuge (State-Hash, Tick, Event-Log, Partikelzähler, Seed/RunId, FX-Toggle, Entity-Inspector) leben hinter `?dev=1` / `#dev`. Die Release-Fläche zeigt **keine** technischen IDs, keine Seed-Badges, keine Phase-Labels, keine Zähler — Specs in quality-spec.md B7.4/B7.6.
+### 5.4 Domäne `bus` (`src/bus/`)
+- **Verantwortung:** Entkoppelte Nachrichtenvermittlung über versionierte Verträge (Commands rein, Events raus).
+- **Autoritativer Writer:** `EventBus` (puffert und verteilt Events), `CommandQueue` (puffert Spielerbefehle).
+- **Erlaubte Reader:** Alle Domänen dürfen subskribieren (read-only) bzw. Commands einreichen.
+- **LOC-Cap:** 300 Code-Zeilen je Datei.
+- **Garantien:** Unidirektionaler Datenfluss. Schema-Versionierung (`version: 1`). Keine State-Mutation bei Event-Dispatch.
 
----
+### 5.5 Domäne `genome` (`src/genome/`)
+- **Verantwortung:** Mendel-Genetik, Kreuzungsalgorithmen, Phänotyp-Berechnung für Pflanzen und Käfer, Gacha-Ziehungen.
+- **Autoritativer Writer:** Zustandslos; reine Berechnungsfunktionen (`crossGenomes`, `resolvePhenotype`).
+- **Erlaubte Reader:** `simulation`, `persistence`, `ui`, `visual`.
+- **LOC-Cap:** 300 Code-Zeilen je Datei.
+- **Garantien:** Reiner Determinismus. Bei gleichen Eltern-Genomen und identischem Seed entsteht immer das exakt gleiche Kind-Genom.
 
-## 7. Offene Baustellen = Arbeitsliste
+### 5.6 Domäne `visual` (`src/visual/`)
+- **Verantwortung:** Übersetzung von Genom + Quellwerten in deterministische Render-Instruktionen (`ResolvedVisual`).
+- **Autoritativer Writer:** `generator.ts` (reine Funktionen).
+- **Erlaubte Reader:** `render`, `ui/components`.
+- **LOC-Cap:** 400 Code-Zeilen je Datei.
+- **Garantien:** Nutzt ausschließlich den `visual`-Namespace des RNGs. Erfindet keine eigenen Gameplay-Stats.
 
-Verbindliche Klassifikation und Spezifikation: **`../quality/quality-spec.md`** (Part A Befunde, Part B Specs B0–B13). Ausführungsreihenfolge: B1→B2→B3 (Korrektheit) → B4–B6 (Identität + Feedback) → B7/B9/B10 (Screens + Art) → B12/B13 (Mobile + DoD). Jede Änderung an einer dieser Dateien muss die DoD-Checkliste des Specs erfüllen.
+### 5.7 Domäne `render` (`src/render/`)
+- **Verantwortung:** Zeichnen der Spielwelt auf das HTML5 Canvas über 9 Schichten, Kamera-Projektion und Screen-Shake.
+- **Autoritativer Writer:** `Renderer` und spezialisierte Layer-Dateien (Terrain, Enemies, Beetles, ParticlesDraw etc.).
+- **Erlaubte Reader:** Reiner Grafikausgeber (keine Reader-Rückkopplung ins Gameplay).
+- **LOC-Cap:** 400 Code-Zeilen je Datei.
+- **Garantien:** **Absolutes Schreibverbot auf Gameplay-Zustände.** Wenn der Renderer ausfällt oder übersprungen wird (Headless-Modus), läuft die Simulation bit-identisch weiter.
+
+### 5.8 Domäne `observers` (`src/observers/`)
+- **Verantwortung:** Horcht auf Gameplay-Events und erzeugt visuelle Effekte (Partikel), Kamera-Impulse und SFX-Töne.
+- **Autoritativer Writer:** `visualObserver.ts`, `audioObserver.ts`, `particles.ts`.
+- **Erlaubte Reader:** Werden vom `render`-Modul visualisiert bzw. von Web Audio ausgegeben.
+- **LOC-Cap:** 400 Code-Zeilen je Datei (AudioObserver: 250 LOC).
+- **Garantien:** Read-Only Beobachter. Partikel und Sounds dürfen unter keinen Umständen Gameplay-Zustände modifizieren oder Zufallszahlen für Gameplay verbrauchen.
+
+### 5.9 Domäne `persistence` (`src/persistence/`)
+- **Verantwortung:** Dauerhafte Speicherung, Lade-Integrität, Migrationen alter Save-Versionen und Quarantäne.
+- **Autoritativer Writer:** `storage.ts` (Einziger autorisierter Zugriff auf Web Storage APIs).
+- **Erlaubte Reader:** `meta/`, `simulation/resume.ts`.
+- **LOC-Cap:** 200 Code-Zeilen je Datei.
+- **Garantien:** FNV-1a Validierung; kein stiller Datenverlust bei Schema-Änderungen.
+
+### 5.10 Domäne `discovery` (`src/discovery/`)
+- **Verantwortung:** Hash-Kette gefundener Mutationen, lokales Labor-Notizbuch (Codex), Remote-Spiegelung nach Supabase.
+- **Autoritativer Writer:** `chain.ts` (hängt deterministische Entdeckungs-Blöcke an).
+- **Erlaubte Reader:** `Codex.tsx`, Meta-Store.
+- **LOC-Cap:** 300 Code-Zeilen je Datei.
+- **Garantien:** Append-Only. `UNIQUE(genome_hash)` — der Erstentdecker besitzt die Spezies permanent.
+
+### 5.11 Domäne `ui` (`src/components/`, `src/dev/`)
+- **Verantwortung:** React-Benutzeroberfläche, Screen-Routing, Krix-Tutorial-Overlays, DevGate-Entwicklerwerkzeuge.
+- **Autoritativer Writer:** React-Komponenten für ihren eigenen lokalen View-State.
+- **Erlaubte Reader:** Liest Zustand über `hudSnapshot` und `loadMeta()`.
+- **LOC-Cap:** 400 Code-Zeilen je Komponente.
+- **Garantien:** Gameplay-Aktionen werden ausschließlich als `Command` über die `CommandQueue` an den Bus geschickt, niemals durch direkte Methodenaufrufe an Simulations-Objekte.

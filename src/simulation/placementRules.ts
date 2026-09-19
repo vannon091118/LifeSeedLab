@@ -20,16 +20,19 @@ export interface PlacementBoard {
   gy: number;
   /** Zellkoordinaten aller stehenden Pflanzen. */
   plants: ReadonlyArray<{ gx: number; gy: number }>;
-  /** R2: freigeschaltete Weltfläche (Run-Kopie der Weltgröße). */
-  cols?: number;
-  rows?: number;
+  /** R2: die ECHTE Weltfläche des Runs (Run-Kopie der Weltgröße) — PFLICHTFELD.
+   *  Vorher optional mit Default 12: die UI ließ die Größe weg und lehnte damit jede Zelle
+   *  einer per FELD gewachsenen Welt als „on_path" (= außerhalb) ab, während die Sim dieselbe
+   *  Zelle mit der echten Größe annahm (Befund: „hier ist kein Platz, obwohl oben Platz ist").
+   *  Ohne Default kann der Fehler nicht mehr stillschweigend zurückkommen: er ist ein
+   *  Compile-Fehler, kein roter Geist. */
+  cols: number;
+  rows: number;
 }
 
 /** Geometrie: Grid-Grenzen → Belegung (Reihenfolge wie in der Sim). */
 export function cellRejectReason(board: PlacementBoard): 'occupied' | 'on_path' | null {
-  const { gx, gy, plants } = board;
-  const cols = board.cols ?? 12;
-  const rows = board.rows ?? 12;
+  const { gx, gy, plants, cols, rows } = board;
   // R2: Bounds über die dynamische Weltfläche — außerhalb ist NICHTS (auch kein Rand-Verbot).
   if (!isInsideWorld(cols, rows, gx, gy)) return 'on_path';
   if (plants.some(p => p.gx === gx && p.gy === gy)) return 'occupied';

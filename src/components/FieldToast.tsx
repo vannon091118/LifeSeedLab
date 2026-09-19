@@ -31,7 +31,9 @@ const TOAST_RIGHT = 10;
 const REASON_KEY: Record<NoticeReason, TranslationKey> = {
   // Platzierung
   occupied: 'field.reject.occupied',
-  on_path: 'field.reject.on_path', // EIN Text für Pflanze UND blockierendes Tile (B33)
+  // on_path heißt seit dem R2-Neubau NUR NOCH „außerhalb der Weltfläche" (der Korridor ist weg);
+  // der alte Text („Da läuft jemand drüber") beschrieb ein System, das es nicht mehr gibt.
+  on_path: 'field.reject.on_path',
   no_inventory: 'field.reject.no_inventory',
   no_material: 'field.reject.no_material',
   // Vegetation

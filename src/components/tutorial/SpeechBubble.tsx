@@ -120,6 +120,9 @@ export function SpeechBubble({
       )}
       <div style={styles.footer}>
         {pressLabel && (
+          // Der Weiter-Knopf existiert NUR bei `advanceOn: 'press'` — genau dort ist cueMode
+          // false (cueMode = advanceOn !== 'press' && cue !== 'none'), der Rahmen nimmt Zeiger
+          // an. Es gab hier nie eine Sackgasse: kein Fix, kein Sonderfall.
           <button type="button" onClick={onPress} style={{ ...styles.btn, ...styles.btnPrimary }} className="tut-cta">
             {pressLabel}
           </button>

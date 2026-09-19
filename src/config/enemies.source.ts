@@ -4,12 +4,17 @@
 
 import { makeRng } from '../core/rng';
 
+/** DIE Gegner-Typ-Wahrheit. Vorher stand dieselbe Union an drei Stellen (hier, `state.ts#typeId`,
+ *  `config/enemyGenome.source.ts`); ein neuer Archetyp hätte an zwei davon vergessen werden können.
+ *  Jede Datei, die Gegner-Typen nennt, importiert diesen Typ. */
+export type EnemyTypeId = 'grunt' | 'fast' | 'tank' | 'swarm' | 'boss';
+
 export interface EnemySource {
-  id: 'grunt' | 'fast' | 'tank' | 'swarm' | 'boss';
+  id: EnemyTypeId;
   hp: number;
   speed: number;      // cells per tick
   damage: number;     // lives lost when reaching the end
-  reward: number;     // energy granted on death
+  reward: number;     // Nektar-/Score-Wert bei Tod (nektarEarned += floor(reward/5), Score += reward×Combo) — es gibt KEIN Energie-System
   scoreValue: number;
 }
 

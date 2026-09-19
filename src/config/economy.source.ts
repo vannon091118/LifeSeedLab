@@ -5,16 +5,22 @@
 /** Genau 2 Pflanzen beim ersten Start (Anforderung: „genau 2 Pflanzen zu Beginn"). */
 export const STARTER_PLANT_COUNT = 2;
 
-/** Nektar-Kosten pro Seed im Shop (Preis skaliert mit Stärkeindex). */
-export const SEED_SHOP_BASE_PRICE = 40;
-export const SEED_SHOP_PRICE_STEP = 15;
+/**
+ * SAMEN-POOL (19.09.2026): EIN Gegenstand, EIN Preis. Der Kauf keimt einen Keimling,
+ * determiniert aus dem Kaufzähler (`germinateVariant`) — also gibt es keine Preis-Staffel:
+ * vorher standen drei Karten mit DREI Preisen und „Seltenheiten" für ein und denselben Keim
+ * (Preis und Tier wurden im Screen erfunden — genau der zweite Vertrag, den Regel 6 verbietet).
+ * Der Schlüssel ist zugleich der Gegenstand des Pools in `SHOP_POOLS_SOURCE`.
+ */
+export const SEED_POOL_ITEM = 'seed';
+export const SEED_PRICE = 40;
 
 /**
  * Start-Nektar: GENAU EIN günstiger Samen. Der neue Spieler kann sich sofort EINE eigene
  * Pflanze leisten — aber nur eine. Der Loop (Leih-Run → Nektar erwirtschaften → mehr Samen)
  * bleibt der Antrieb; mehr als der erste Kauf ist aus Startkapital nie möglich.
  */
-export const STARTING_NEKTAR = SEED_SHOP_BASE_PRICE;
+export const STARTING_NEKTAR = SEED_PRICE;
 
 /**
  * Gewächshaus: Töpfe sind PHYSISCHE Platzierungsplätze. Genau drei zu Beginn — eigene
@@ -23,9 +29,6 @@ export const STARTING_NEKTAR = SEED_SHOP_BASE_PRICE;
  * ist darauf vorbereitet: nur diese Zahl wächst dann.
  */
 export const GREENHOUSE_POT_SLOTS = 3;
-
-/** Anzahl gleichzeitig angebotener Seeds im Shop (deterministisch rotierend). */
-export const SEED_SHOP_OFFERS = 3;
 
 /** Reifung: Kreuzung i wird nach `wavesToUnlockFor(i)` überlebten Wellen verfügbar.
  *
@@ -88,9 +91,16 @@ export function resumeCostFor(wave: number): number {
 }
 
 // ── Kampfökonomie & Pflanzen-Lebenszyklus (Source = Truth) ──────
-/** 1–5 Münzen pro Kill für den In-Run-Shop (deterministisch via loot-RNG). */
-export const COINS_PER_KILL_MIN = 1;
-export const COINS_PER_KILL_MAX = 5;
+/**
+ * 1–5 ERFAHRUNG pro Kill (deterministisch via loot-RNG).
+ *
+ * Währungs-Klarstellung (19.09.2026): hier standen „Münzen für den In-Run-Shop". Der In-Run-Shop
+ * ist mit dem Energie-System gestorben — übrig blieb ein Kontostand ohne Ausgabepunkt, also eine
+ * ZWEITE Währung neben Nektar. Es gibt genau eine Währung (Nektar, ausschließlich außerhalb von
+ * Runs ausgegeben); dieser Wert ist Lauf-Erfahrung und kein Geld.
+ */
+export const EXPERIENCE_PER_KILL_MIN = 1;
+export const EXPERIENCE_PER_KILL_MAX = 5;
 
 /** Auto-Wellen: Ticks in 'prep' bis die nächste Welle automatisch startet. */
 export const AUTO_WAVE_DELAY_TICKS = 90; // 3s bei 30tps

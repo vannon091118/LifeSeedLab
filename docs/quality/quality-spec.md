@@ -1058,7 +1058,7 @@ eine Entscheidung war. Das ist die eigentliche Reparatur dieses Sprints.
 | `BEETLE_REJECTED` | **bleibt** → Text (kein Welt-FX) | Ursache ist HUD-Wissen (kein Tier/belegt/Energie); ein Puls am Pfadkopf würde eine Weltursache suggerieren, die es nicht gibt |
 | `FERTILIZE_REJECTED` | **bleibt** → FX + Text | Spieler-ausgelöste Aktion an einer Entity; der Command-Pfad existiert in der Sim (Knopf noch offen) |
 | `PROPAGATE_REJECTED` | **bleibt** → FX + Text | wie FERTILIZE (Zustand reif/frei/Nicht-Weg liegt in der Sim) |
-| `COINS_GRANTED` | **gestrichen** | Kein Positionsfeld (kein Welt-FX möglich), Stand ist Snapshot, und `resources.coins` hat **keine Senke und keine Anzeige**. `state.resources.coins` bleibt State (deterministisch, testbar). Kommt mit seiner Senke zurück — dann gemeinsam mit dem Consumer |
+| `COINS_GRANTED` | **gestrichen** | Kein Positionsfeld (kein Welt-FX möglich), Stand ist Snapshot, und der Kontostand hat **keine Senke und keine Anzeige**. Nachtrag 19.09.2026: das Feld heißt jetzt `resources.experience` — nach dem Ende des In-Run-Shops war „Münzen" eine zweite Geld-Wahrheit neben Nektar. Erfahrung ist bewusst keine Währung und wird nie ausgegeben. Ein Event kehrt erst mit einem echten Consumer zurück |
 | `RUN_STARTED` | **gestrichen** | Weder Produzent noch Konsument; die Information ist „React hat GameView gemountet“ plus der Seed im Snapshot |
 
 Ergänzend beschlossen (gleiche Klasse, ausdrücklich statt zufällig): `PLANT_REMOVED`,

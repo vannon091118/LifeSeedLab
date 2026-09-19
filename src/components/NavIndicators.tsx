@@ -53,7 +53,9 @@ export function NavIndicators({ meta, current, onNavigate }: Props) {
 
       <div style={styles.chipRow} aria-hidden>
         <Chip color="var(--nektar)" label={t('menu.nektar')} value={String(meta.nektar)} />
-        <Chip color="var(--leaf)" label={t('shop.stash')} value={String(meta.seedStash)} />
+        {/* Besitz statt Wunschdenken: `seedStash` ist seit B17.3 strukturell immer 0 (ein Kauf
+            keimt direkt). Gezeigt wird, was wirklich wartet — die Keimlinge fürs Gewächshaus. */}
+        <Chip color="var(--leaf)" label={t('shop.seedlings')} value={String(meta.seedlings.length)} />
         <Chip color="var(--bloom)" label={t('menu.collection')} value={`${stats.owned}/${stats.total}`} />
         <Chip color="var(--leaf-dark)" label={t('menu.bestWave')} value={String(meta.bestWave)} />
         {broodsReady > 0 && <Chip color="#8a6fae" label={t('menu.beetleLab')} value={`+${broodsReady}`} />}

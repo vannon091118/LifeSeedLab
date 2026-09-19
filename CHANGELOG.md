@@ -11,6 +11,9 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ### Für Spieler
 
+- [Docs/Architecture] Doku-Konsolidierung: AGENTS.md gestrafft (ohne Verlust), README im Tonfall von Krix neu gefasst, technische Details & Ownership Contracts je Domäne in architecture.md/architecture-contract.md verankert, ROADMAP konsolidiert (Status, Findings, geordnete Todos) und Root bereinigt.
+- [Test-Perf] `gameover_notice.test.ts`: P1-Freeze-Tests teilen jetzt einen gemeinsamen gameover-Root (`beforeAll` statt 3× `forceGameOver`). Möglich weil `stepOnce` nach gameover ein echter no-op ist — kein Sicherheitsbruch, Testzeit -1200 ms (1932 ms → 741 ms). Voll-Suite 491/491 grün in ~4 s.
+
 - **Deine Karte gehört dir.** Die Welt, die du baust, bleibt erhalten — über Runs hinweg
   und nach dem Neuladen. Beim Spielstart baust du sie weiter, statt eine neue Karte zu bekommen.
 - **Start und Ausgang liegen diagonal.** Käfer erscheinen oben rechts und müssen zum Ausgang
@@ -64,6 +67,65 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 - **Abbrechen beendet den Lauf.** Fortsetzen ist kein Freifahrtschein mehr: es kostet
   **25 Nektar je erreichter Welle, ohne Deckel**. Die Karte im Hub nennt den Preis und bleibt
   gesperrt, solange der Nektar nicht reicht.
+
+- **Gegner sind jetzt Wesen mit eigenem Körper.** Vorher zeichnete das Spiel für jeden Gegnertyp
+  immer dasselbe Bild: ein Grunt in Welle 3 und einer in Welle 23 waren identisch, und der
+  „Schwarm" war ein Käfer, obwohl er fliegen sollte. Jetzt entsteht jeder Gegnertyp aus einem
+  eigenen Erbgut — Panzerform, Flügel, Pelz, Stachel, Halschild und Beine kommen daraus. Der
+  Schwarm ist pelzig und geflügelt (er sieht endlich aus wie das Insekt, das er sein soll),
+  der Tank ist ein breiter Schildträger, der schnelle Gegner eine stromlinige Sprungform.
+- **Jeder Boss ist ein Einzelstück.** Bosse sind die einzige Ausnahme von „eine Art, ein
+  Aussehen": jeder Boss zieht sein eigenes Erbgut und unterscheidet sich damit von jedem
+  anderen — derselbe Boss sieht bei jedem Angriff wieder gleich aus.
+- **Gründer-Käfer haben richtiges Erbgut.** Blatthüpfer, Schildkäfer und Hummel trugen je ein
+  einziges Gen. Deshalb sahen alle Nachkommen gleich aus (flache Panzerform, geschupptes Kleid).
+  Jetzt trägt jeder 3–4 Gene, und eine Kreuzung bringt sichtbar verschiedene Körper hervor.
+- **„Münzen" sind Erfahrung geworden.** Der stille Kontostand hieß „Münzen für den In-Run-Shop"
+  — den Shop gibt es nicht mehr, also sammelte sich dort Geld ohne Zweck. Er heißt jetzt
+  Erfahrung und ist ausdrücklich keine Währung: bezahlt wird nur mit Nektar, und nur außerhalb
+  eines Laufs.
+
+### Intern (Technik, Verträge & Tests)
+
+- [Phänotyp global] Die Gegner benutzen jetzt dasselbe Kreaturen-Modell wie Brut und Käfer — der
+  `switch` über fünf von Hand gezeichnete Körper in `render/layers/enemies.ts` ist gelöscht
+  (87 → 16 Code-Zeilen). Kette: `config/enemyGenome.source.ts` (Erbgut-Rezepte) →
+  `genome/enemyPhenotype.ts` (Archetyp + optionales Individuum ⇒ Genom ⇒ Anatomie) →
+  `visual/enemyVisuals.ts` (Auflösung + Memoisation) → `render/beetleSprites.ts` (derselbe
+  Zeichenpfad wie der gezüchtete Käfer). Präsentation bleibt Präsentation: die Ableitung liegt im
+  `visual`-Namespace, HP/Tempo/Schaden stehen unverändert in `enemies.source.ts`, kein Sim-Feld
+  wurde berührt (FX ON/OFF und jeder State-Hash unverändert). Boss-Ausnahme laut
+  Nutzerentscheid: `individual: true` ⇒ Genstärken streuen deterministisch aus der Entity-ID und
+  das Wesen zieht genau ein Zusatz-Gen aus dem Source-Pool — Einzelstück, aber reproduzierbar
+  (gepinnt in `genome/enemy_phenotype.test.ts`, 11 Fälle).
+- [Pool] Gemessene Wurzel der Käfer-Konvergenz: die Gründer trugen je EIN Gen, `carapaceShape`
+  wurde fast nur von `phoenix`/`mandible` bewegt, `segmentation` fast nur von
+  `broodhost`/`swarmborn` — deshalb lag `carapaceForm` bei allen drei Gründern auf `flat` und
+  `dress` auf `scaled` (zwei der vier Formen, drei der vier Kleider waren über Kreuzungen kaum
+  erreichbar). Fix in der Source: fünf neue Organ-Achsen (`wings`, `pelage`, `stinger`,
+  `pronotum`, `jumpLegs`), fünf neue Organ-Gene, Form-/Struktur-Treiber über den ganzen Pool
+  verteilt, lesbare KÖRPERPLÄNE (`beetle|stag|bee|wasp`) aus den Achsen. Gemessen: Gründer-Distanz
+  0,286 / 0,149 / 0,285 (vorher 0,098–0,144); die Hummel ist `bee` mit Flügeln 0,57, Pelz 0,43.
+- [Organe] Die neuen Organ-Funktionen liegen in einem eigenen Modul (`render/beetleOrgans.ts`:
+  Flügel, Pelz, Stachel, Halschild, Sprungbein) samt der geteilten Käfer-Tusche — die
+  Anatomie-Datei ruft sie nur noch auf (Regel 4.4: neue Achse = neue Funktion, kein weiteres `if`
+  im Monolithen).
+- [Währung] `resources.coins` ⇒ `resources.experience`, `COINS_PER_KILL_*` ⇒
+  `EXPERIENCE_PER_KILL_*`. Grund: nach dem Energie-System war der In-Run-Shop tot, der Kontostand
+  hatte keinen Ausgabepunkt und stand als zweite Geld-Wahrheit neben Nektar. Erfahrung ist
+  bewusst keine Währung.
+- [Konsolidierung] Vier Kopien derselben Hash-Projektion (`snapshot.ts`, `testkit.ts`, `gateB`,
+  `DevOverlay.tsx`) sind auf EINE reduziert — `snapshot.ts#toHashable` ist der Owner, der Rest
+  delegiert. Dabei entfernt: das in `HashableState` deklarierte, aber nie gehashte Feld
+  `resources` (eine Falle für jeden, der dort ein Feld ergänzt und sich wundert).
+- [Typ-Wahrheit] `EnemyTypeId` stand dreimal (zwei Unions + ein Literal); jetzt einmal in
+  `config/enemies.source.ts`, importiert von `simulation/state.ts` und der Erbgut-Source.
+- [Entkernt] `AGENT_SYSTEM_PROMPT` bot die Strategie `expand_corridor` an — das Konzept
+  „Spawn-Korridor" ist mit dem R2-Neubau restlos entfernt; der Agent hätte Anweisungen für
+  Geometrie bekommen, die es nicht mehr gibt.
+- [Identitätsbruch, dokumentiert] Die Erbgut-Erweiterung der Gründer ändert die Genom-Hashes
+  ihrer Brut einmalig; der gepinnte Kandidatensatz in `meta/brood_identity.test.ts` wurde
+  nachgezogen (IDs unverändert, kein Schema-Bump, Specimen sind Daten).
 
 ### Intern (Technik, Verträge & Tests)
 

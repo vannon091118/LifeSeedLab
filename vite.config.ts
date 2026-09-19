@@ -6,5 +6,6 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     hmr: false,
+    allowedHosts: ['silly-subscriber-pilot-story.trycloudflare.com'],
   },
 })

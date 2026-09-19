@@ -194,7 +194,7 @@ export class SimulationRoot {
     const killEvents = this.pendingKills;
     this.pendingKills = [];
     for (const e of killEvents) {
-      // combo multiplier applies to score (Defect A4-2) — energy stays flat by design
+      // combo multiplier applies to score (Defect A4-2) — nektar stays flat by design
       this.score.onEnemyDied(state, e.payload.enemyId, e.payload.reward, e.payload.reward * state.combo.multiplier, e.payload.px, e.payload.py);
       this.combo.registerKill(state);
     }

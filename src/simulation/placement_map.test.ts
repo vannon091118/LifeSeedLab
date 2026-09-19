@@ -171,10 +171,14 @@ describe('B33 → R2 — Integritätsregel statt Korridor-Verbot', () => {
   });
 });
 
+// Die Weltgröße ist PFLICHT (`PlacementBoard`): die UI hatte sie früher weggelassen und
+// prüfte damit hart gegen 12×12 — in einer gewachsenen Welt war jede Zelle ab gx/gy ≥ 12
+// „außerhalb". Die Tests tragen die echten Maße deshalb explizit.
+const WORLD = { cols: 12, rows: 12 };
 // Freie Zelle: innerhalb des Rasters und weit weg vom Enemy-Pfad (rechts unten).
-const FREE = { gx: 11, gy: 10 };
+const FREE = { gx: 11, gy: 10, ...WORLD };
 // Zellzentrum (2.5, 3.5) ist exakt ein Pfad-Waypoint.
-const ON_PATH = { gx: 2, gy: 3 };
+const ON_PATH = { gx: 2, gy: 3, ...WORLD };
 
 describe('Platzierungsregeln — Geometrie', () => {
   it('akzeptiert eine freie Zelle', () => {
@@ -182,8 +186,8 @@ describe('Platzierungsregeln — Geometrie', () => {
   });
 
   it('lehnt Zellen außerhalb des Rasters als on_path ab', () => {
-    expect(cellRejectReason({ gx: -1, gy: 0, plants: [] })).toBe('on_path');
-    expect(cellRejectReason({ gx: 0, gy: 12, plants: [] })).toBe('on_path');
+    expect(cellRejectReason({ gx: -1, gy: 0, plants: [], ...WORLD })).toBe('on_path');
+    expect(cellRejectReason({ gx: 0, gy: 12, plants: [], ...WORLD })).toBe('on_path');
   });
 
   it('R2: die alte Korridor-Zelle ist eine NORMALE Zelle (kein Verbot mehr)', () => {
@@ -194,6 +198,12 @@ describe('Platzierungsregeln — Geometrie', () => {
 
   it('lehnt belegte Zellen als occupied ab', () => {
     expect(cellRejectReason({ ...FREE, plants: [{ gx: 11, gy: 10 }] })).toBe('occupied');
+  });
+
+  it('eine GEWACHSENE Welt bleibt bebaubar (Zelle 13,13 ist innen, nicht „kein Platz“)', () => {
+    const grown = { cols: 14, rows: 14 };
+    expect(cellRejectReason({ gx: 13, gy: 13, plants: [], ...grown })).toBeNull();
+    expect(cellRejectReason({ gx: 13, gy: 13, plants: [], ...WORLD })).toBe('on_path');
   });
 });
 

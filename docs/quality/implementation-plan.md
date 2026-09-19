@@ -55,6 +55,8 @@ Aus dem technisch tragfähigen Singleplayer-Prototyp wird schrittweise ein deter
 - [x] Grundlegende Crit-/Status-/Chain-Pipeline im Simulationskern verdrahten.
 - [x] Auto-Wellen: `WaveSystem.maybeAutoStart()` nach `AUTO_WAVE_DELAY_TICKS` in `prep` (kein manueller Welle-Trigger mehr nötig).
 - [x] 1–5 Shop-Münzen je Kill (`ScoreSystem` via `loot`-Namespace, `COINS_GRANTED`-Event).
+  *Nachtrag 19.09.2026:* Shop und Event sind gestorben, das Feld heißt `resources.experience`
+  (`EXPERIENCE_PER_KILL_MIN/MAX`) und ist keine Währung — Nektar ist der einzige Zahlungsposten.
 - [x] Pflanzen-Lebenszyklus: Wachstum → Reife (`PLANT_GROWN`), Düngen nur `growing` (fix danach), Seltenheits-Threshold → geschwächt (`PLANT_WEAKENED` + Score-Halbierung/Wachstums-Malus), Verwelken (`PLANT_WITHERED`), Setzling-Halbzeit (`PROPAGATE_PLANT`).
 - [x] Integrationstests für Effektkette, Combo × Score, Reward, Day/Night und Game Over ergänzen → `src/simulation/gateB.test.ts` (10 Tests).
 - [x] Resume-Shape und Meta-Migration test-locken → `src/persistence/persistence_resume.test.ts` (5 Tests: RunSave v2 strip, prep-Resume, v1→v3 Migration, Quarantäne, Checksumme).
@@ -124,7 +126,7 @@ Erst nach Gate F und stabiler Mobile-Version: Convex-Schema, Match-/Actor-Identi
 ## 0.2 Kampfökonomie & Pflanzen-Lebenszyklus (Phase B/C — verbindlich)
 
 - **Wellen laufen automatisch weiter.** Nach jeder `WAVE_COMPLETED` startet `WaveSystem.maybeAutoStart()` in `prep` nach `AUTO_WAVE_DELAY_TICKS` (3s) automatisch die nächste Welle. Spieler-`START_WAVE` bleibt manuell auslösbar.
-- **Jeder Kill gibt 1–5 Münzen** (`resources.coins`, `ScoreSystem`), deterministisch via `loot`-Namespace-RNG pro `(seed, tick, enemyId)` → `COINS_GRANTED`-Event. Keine `Math.random`-Nutzung. Münzen sind In-Run-Shop-Währung; `energy` bleibt davon unberührt.
+- **Jeder Kill gibt 1–5 Erfahrung** (`resources.experience`, `ScoreSystem`), deterministisch via `loot`-Namespace-RNG pro `(seed, tick, enemyId)`, **kein Event** (kein Consumer, kein Positionsfeld). Keine `Math.random`-Nutzung. Erfahrung ist Lauf-Erfahrung und keine Währung; bezahlt wird ausschließlich mit Nektar außerhalb von Runs. *Nachtrag 19.09.2026: hier standen „Shop-Münzen" — der In-Run-Shop ist mit dem Energie-System entfallen, das Feld wurde zu `experience` (eine Währung, nicht zwei).*
 - **Platzierte Pflanzen haben je nach Seltenheit einen Threshold und verschleißen:** Wachstum `growing → mature` (`GROWTH_TICKS_BY_RARITY`), danach `lifeTicksLeft`-Countdown bis Verwelken. Unter `WEAKENED_THRESHOLD` (30%) → geschwächt (halber Schaden) + `PLANT_WEAKENED`; bei 0 → `PLANT_WITHERED` (Entfernung). Seltenheit aus `rarityForCost(cost)`.
 - **System Lebenserwartung erhöhen + Status boosten, aber Nutzbarkeit verringern:** `FERTILIZE_PLANT` nur während `growing` — pro `FERTILIZE_BONUS`-Anwendung +HP/+Schaden/+Haltbarkeit, aber +Cooldown (`extraCooldown`). Max `FERTILIZE_BONUS.maxApplications`. Nach Reife fix.
 - **Setzlinge ziehen:** `PROPAGATE_PLANT` nur bei `mature`; erzeugt Nachkommen gleicher `variantId` auf freier Nachbarzelle mit `SEEDLING_GROWTH_FACTOR` (0.5× Wachstumszeit). `PLANT_PROPAGATED`-Event.

@@ -25,7 +25,7 @@ describe('Zucht-Sprint — MetaSave v8 (`rearingSlots`)', () => {
   it('Altsave ohne das Feld bekommt die 3 Startplätze (Invariante, kein undefined)', () => {
     writeLegacyEnvelope(META_KEY, { version: 7, nektar: 50, pendingCrosses: [] }, 7);
     const meta = loadMeta();
-    expect(meta.version).toBe(8);
+    expect(meta.version).toBe(META_VERSION);
     expect(meta.rearingSlots).toBe(3);
   });
 
@@ -43,7 +43,6 @@ describe('B21 — Tour-Fassung (MetaSave v7)', () => {
   it('startet mit einer ungesehenen Tour', () => {
     const meta = loadMeta();
     expect(meta.version).toBe(META_VERSION);
-    expect(meta.version).toBe(8);
     expect(meta.tutorialVersion).toBe(0);
   });
 
@@ -66,7 +65,7 @@ describe('B21 — Tour-Fassung (MetaSave v7)', () => {
 
     const meta = loadMeta();
 
-    expect(meta.version).toBe(8);
+    expect(meta.version).toBe(META_VERSION);
     expect(meta.nektar).toBe(321);
     expect(meta.bestWave).toBe(9);
     expect(meta.runId).toBe(5);

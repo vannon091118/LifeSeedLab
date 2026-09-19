@@ -107,7 +107,7 @@ describe('processDecision — valide Commands', () => {
     const plant = after.plants.find(p => p.gx === target.gx && p.gy === target.gy);
     expect(plant).toBeDefined();
 
-    const raw = JSON.stringify({ version: 1, strategy: 'expand_corridor', actions: [{ type: 'FERTILIZE_PLANT', plantId: plant!.id, confidence: 0.7 }] });
+    const raw = JSON.stringify({ version: 1, strategy: 'defend_route', actions: [{ type: 'FERTILIZE_PLANT', plantId: plant!.id, confidence: 0.7 }] });
     const r = processDecision(after, raw, 20, () => 1);
     expect(r.ok).toBe(true);
     expect(r.commands[0].type).toBe('FERTILIZE_PLANT');

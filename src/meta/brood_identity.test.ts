@@ -14,7 +14,7 @@ import { ensureLocalStorage } from '../persistence/testDom';
 import { fnv1a } from '../core/hash';
 import { deriveSeed, makeRng, GAMEPLAY_NAMESPACES, VISUAL_NAMESPACES } from '../core/rng';
 import { GAME_SEED } from '../config';
-import { BROOD_SEED_NAMESPACE, BEETLE_BREED } from '../config/beetles.source';
+import { BROOD_SEED_NAMESPACE, BEETLE_BREED, BEETLES_SOURCE } from '../config/beetles.source';
 import { deriveBroodSeed, rollBrood, broodGenomeHash, toDeploySpec } from '../genome/beetle';
 import { loadMeta, updateMeta, resetMeta, META_KEY, META_VERSION } from './store';
 import { enqueueBrood, claimBrood } from './run';
@@ -161,10 +161,15 @@ describe('B30 — Brut-Domäne', () => {
     // den früheren `mergeGenomes`-Sonderweg. Die IDs (Seed-abhängig) bleiben, die Genome ändern
     // sich EINMALIG. Der Seed-Pin oben (905729497) ist unverändert — die Ableitung selbst hat
     // sich nicht bewegt, nur die Auswertung der Gene.
+    // POOL-ERWEITERUNG (19.09.2026, bewusster Identitätsbruch): die Gründer tragen jetzt ein
+    // ERBGUT (3–4 Gene: Blatthüpfer sprinter+jumper+winged, Schildkäfer carapace+hardshell+taunt)
+    // statt eines Einzelgens — sonst blieb `carapaceForm` bei allen auf `flat` und `dress` auf
+    // `scaled`. Die IDs (Seed-abhängig) sind unverändert; die Genome dieser Brut ändern sich
+    // EINMALIG. Keine Meta-Migration nötig: Specimen sind Daten, kein Nektar/Kontostand berührt.
     expect(rollBrood(A, B, 1).map(c => `${c.id}|${broodGenomeHash(c)}`)).toEqual([
-      'brood_ez8xcp_0|hyb-81c71438',
-      'brood_ez8xcp_1|hyb-802592e0',
-      'brood_ez8xcp_2|hyb-4a6b2eec',
+      'brood_ez8xcp_0|hyb-8cd10b61',
+      'brood_ez8xcp_1|hyb-536bbdff',
+      'brood_ez8xcp_2|hyb-9c075925',
     ]);
 
     // Gegner-Domäne: unverändert (der Schnitt durfte hier nichts bewegen).
@@ -198,9 +203,11 @@ describe('B30 — Brut-Domäne', () => {
         'specimenAId', 'specimenBId', 'startedWave'],
     );
     // Und die Vorfahren sind wirklich die Genome der übergebenen Gründer (keine Ableitung):
-    // `leafhopper` bringt genau sein Source-Genom mit, Generation 1.
+    // `leafhopper` bringt genau sein SOURCE-Genom mit, Generation 1. Die Erwartung liest die
+    // Source selbst (statt ein Literal zu pinnen), damit der Test die ABSICHT prüft und nicht
+    // bei jeder Pool-Erweiterung erneut rot wird.
     expect(stored.parentAAncestor!.specimenId).toBe(A);
-    expect(stored.parentAAncestor!.genome.map(g => g.id)).toEqual(['sprinter']);
+    expect(stored.parentAAncestor!.genome.map(g => g.id)).toEqual([...BEETLES_SOURCE[A]!.genes]);
     expect(stored.parentAAncestor!.generation).toBe(1);
   });
 

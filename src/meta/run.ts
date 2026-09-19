@@ -5,6 +5,7 @@ import { rollBrood, resolveAncestor, type BeetleParentRef } from '../genome/beet
 import { BEETLE_BREED } from '../config/beetles.source';
 import { deriveLoanPlant, LOAN_PLANT_ID } from './loan';
 import { resumeCostFor } from '../config/economy.source';
+import { POOL_KEYS } from '../config/map.source';
 
 // Owner: PersistenceSystem (meta run/variant ops). LOC ≤ 200.
 
@@ -77,7 +78,15 @@ export function applyRunEnd(meta: MetaSave, waveReached: number, nektarEarned: n
   delete counts[LOAN_PLANT_ID];
   if (remainingInventory) {
     for (const [id, n] of Object.entries(remainingInventory)) {
-      if (n > 0 && id !== LOAN_PLANT_ID) counts[id] = Math.max(counts[id] ?? 0, n);
+      if (id === LOAN_PLANT_ID) continue;
+      // WERKSTOFF wird VERBRAUCHT (Besitz-Modell, 19.09.2026): der Restbestand des Runs IST der
+      // neue Bestand — exakt, auch wenn er 0 ist. Das positive Max darunter würde jedes verbaute
+      // Tile wieder gutschreiben und Material unendlich machen.
+      // PFLANZEN bleiben beim positiven Max: sie sind keine Verbrauchsware dieser Art (die
+      // 2→1-Regel der Kreuzung ist ihre Ökonomie), ihr Besitz soll durch einen Run nicht
+      // schrumpfen.
+      if (POOL_KEYS.includes(id)) counts[id] = Math.max(0, Math.floor(n));
+      else if (n > 0) counts[id] = Math.max(counts[id] ?? 0, n);
     }
   }
   return {

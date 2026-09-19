@@ -13,10 +13,10 @@ import { makeRng } from '../core/rng';
 import { fnv1a } from '../core/hash';
 import { shiftChannels } from '../core/color';
 import {
-  BEETLE_AXES_BY_GENE, BEETLE_AXIS_RANGE, BEETLE_BASELINE, BEETLE_DESCRIPTOR_AXES,
+  BEETLE_AXES_BY_GENE, BEETLE_AXIS_RANGE, BEETLE_BASELINE, BEETLE_BODY_PLAN, BEETLE_DESCRIPTOR_AXES,
   BEETLE_DESCRIPTOR_WEIGHTS, BEETLE_FORM_THRESHOLDS, BEETLE_PIGMENT_RAMP, BEETLE_PIGMENT_SHIFT,
-  beetleInteractionOf, type BeetleAxis, type BeetleBearing, type BeetleMotion, type CarapaceForm,
-  type CarapaceStructure, type ChitinDress,
+  beetleInteractionOf, type BeetleAxis, type BeetleBearing, type BeetleMotion, type BeetlePlan,
+  type CarapaceForm, type CarapaceStructure, type ChitinDress,
 } from '../config/beetlePhenotype.source';
 import { driftFor, expressed, genomeKey, weightedDistance } from './breeding';
 
@@ -37,7 +37,13 @@ export interface BeetlePhenotype {
   motion: { style: BeetleMotion; attack: number; swarm: number; brood: number };
   /** Interaktions-Achsen: aus der BEZIEHUNG zweier Achsen — dürfen die Eltern überschreiten. */
   interaction: { chitin: number; bearing: number };
+  /**
+   * Organe (Pool-Erweiterung): Flügel, Pelz, Stachel, Halschild, Sprungbeine. Diese fünf Achsen
+   * waren vorher nicht existent — ein Tier konnte weder fliegen noch pelzig sein noch stechen.
+   */
+  organs: { wings: number; pelage: number; stinger: number; pronotum: number; jumpLegs: number };
   /** Benannte Ausprägungen (was der Spieler am Tier benennen kann). */
+  plan: BeetlePlan;
   dress: ChitinDress;
   bearing: BeetleBearing;
   /** Gewichteter Vergleichsvektor für Neuheit/Elternähnlichkeit. */
@@ -76,11 +82,15 @@ function bucket(value: number, thresholds: readonly number[]): number {
   return i;
 }
 
-/** Genom + Generation ⇒ Käfer-Phänotyp (reine Funktion, deterministisch). */
-export function beetlePhenotypeOf(input: { genome: Genome; generation: number }): BeetlePhenotype {
+/** Genom + Generation ⇒ Käfer-Phänotyp (reine Funktion, deterministisch).
+ *
+ *  `jitterNamespace` trennt die STREUUNG nach Herkunft: die Zucht bleibt in ihrer Domäne `brood`,
+ *  Gegner-Ableitungen laufen im `visual`-Namespace (sie sind Präsentation, nicht Zuchtwirtschaft).
+ *  Beide Ströme sind reine Funktionen ihres Seeds — keiner „advanced" den anderen. */
+export function beetlePhenotypeOf(input: { genome: Genome; generation: number; jitterNamespace?: 'brood' | 'visual' }): BeetlePhenotype {
   const base = axesFor(input.genome);
   const drift = driftFor(input.generation);
-  const rng = makeRng('brood', spreadSeed(genomeKey(input.genome), input.generation));
+  const rng = makeRng(input.jitterNamespace ?? 'brood', spreadSeed(genomeKey(input.genome), input.generation));
   const jitter = (axis: BeetleAxis, amount: number): number => {
     const [lo, hi] = BEETLE_AXIS_RANGE[axis];
     return clamp((base[axis] ?? 0) + (rng.next() - 0.5) * amount * (0.35 + drift), lo, hi);
@@ -92,6 +102,11 @@ export function beetlePhenotypeOf(input: { genome: Genome; generation: number })
   const surface = jitter('carapaceSurface', 0.14);
   const mandibles = jitter('mandibles', 0.2);
   const shape = jitter('carapaceShape', 0.18);
+  const wings = jitter('wings', 0.16);
+  const pelage = jitter('pelage', 0.18);
+  const stinger = jitter('stinger', 0.16);
+  const pronotum = jitter('pronotum', 0.16);
+  const jumpLegs = jitter('jumpLegs', 0.18);
 
   const chitin = beetleInteractionOf('chitin', base);
   const bearingAxis = beetleInteractionOf('bearing', base);
@@ -110,7 +125,10 @@ export function beetlePhenotypeOf(input: { genome: Genome; generation: number })
     ...base,
     bodyLength: length, bodyWidth: width, segmentation, carapaceSurface: surface,
     carapaceShape: shape, chitin, bearing: bearingAxis,
+    wings, pelage, stinger, pronotum, jumpLegs,
   };
+  // Der Körperplan ist die LESBARE Konsequenz der Organe (Source = Wahrheit, hier nur Auswertung).
+  const plan = BEETLE_BODY_PLAN.find(rule => rule.test(scaled as Record<BeetleAxis, number>))?.plan ?? 'beetle';
 
   return {
     version: 1,
@@ -153,12 +171,20 @@ export function beetlePhenotypeOf(input: { genome: Genome; generation: number })
     },
     asymmetry: +jitter('asymmetry', 0.36).toFixed(3),
     motion: {
-      style: BEETLE_FORM_THRESHOLDS.motionStyle[bucket(base.legs * 0.6 + base.legLength * 0.4, [0.3, 0.5, 0.72]) % 4] ?? 'march',
+      // Sprungbeine zählen jetzt mit: ein Tier mit langen Hinterbeinen HÜPFT statt zu marschieren.
+      style: BEETLE_FORM_THRESHOLDS.motionStyle[
+        bucket(base.legs * 0.3 + base.legLength * 0.3 + jumpLegs * 0.4, [0.3, 0.45, 0.68]) % 4
+      ] ?? 'march',
       attack: +jitter('attack', 0.2).toFixed(3),
       swarm: +jitter('swarm', 0.18).toFixed(3),
       brood: +jitter('brood', 0.18).toFixed(3),
     },
     interaction: { chitin: +chitin.toFixed(4), bearing: +bearingAxis.toFixed(4) },
+    organs: {
+      wings: +wings.toFixed(3), pelage: +pelage.toFixed(3), stinger: +stinger.toFixed(3),
+      pronotum: +pronotum.toFixed(3), jumpLegs: +jumpLegs.toFixed(3),
+    },
+    plan,
     dress,
     bearing,
     descriptor: BEETLE_DESCRIPTOR_AXES.map(axis => +clamp(scaled[axis] ?? 0, 0, 1).toFixed(4)),
@@ -180,6 +206,8 @@ export function beetlePhenotypeKey(p: BeetlePhenotype): string {
     p.elytra.spread.toFixed(3), p.elytra.split,
     p.carapace.form, p.carapace.structure, p.carapace.sheen.toFixed(3),
     p.pigment.primary, p.pigment.accent, p.pigment.pattern, p.pigment.strength.toFixed(3),
-    p.asymmetry.toFixed(3), p.motion.style, p.dress, p.bearing,
+    p.asymmetry.toFixed(3), p.motion.style, p.dress, p.bearing, p.plan,
+    p.organs.wings.toFixed(3), p.organs.pelage.toFixed(3), p.organs.stinger.toFixed(3),
+    p.organs.pronotum.toFixed(3), p.organs.jumpLegs.toFixed(3),
   ].join('|');
 }

@@ -9,6 +9,11 @@
 //
 // Scope-Grenze (Plan §5, binding): PROPAGATE_PLANT und DEPLOY_BEETLE sind bewusst KEINE
 // Agent-Actions. Wer sie freischaltet, öffnet einen eigenen Slice — nicht hier schmuggeln.
+//
+// ENTKERNT (19.09.2026, Regel 4.3): die Strategie `expand_corridor` ist gestorben. Sie beschrieb
+// das Erweitern des geschützten Spawn-Korridors — ein Konzept, das mit dem R2-Neubau restlos
+// entfernt wurde. Ein Agent, der auf eine nicht mehr existierende Welt reagiert, wäre der reinste
+// Zombie: er bekäme Anweisungen für Geometrie, die es nicht gibt.
 
 import type { SimState } from './state';
 import { makeCommand, type Command, type CommandType, type CommandPayloads } from '../bus/commands';
@@ -27,7 +32,7 @@ BINDING:
 5. Verbotene Typen: on_path, occupied, no_material, beetle (Enemy-Typ existiert nicht).
 6. Max 3 Actions.
 
-STRATEGY: defend_route | expand_corridor | stabilize
+STRATEGY: defend_route | stabilize
 
 FALLBACK: unsicher -> actions=[] , strategy="stabilize"
 
@@ -51,7 +56,7 @@ export interface AgentAction {
 
 export interface AgentDecision {
   version: number;
-  strategy: 'defend_route' | 'expand_corridor' | 'stabilize' | string;
+  strategy: 'defend_route' | 'stabilize' | string;
   actions: AgentAction[];
 }
 

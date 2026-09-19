@@ -2,6 +2,7 @@
 // Canonical gameplay state shape. Systems write ONLY their own slice.
 
 import type { ClockState } from '../core/clock';
+import type { EnemyTypeId } from '../config/enemies.source';
 
 export type PlantGrowthState = 'growing' | 'mature';
 /** LIFESPAN removed: einmal platziert bleibt bis GameOver (user: pflanze verschwindet nicht in der runde). */
@@ -29,7 +30,7 @@ export interface PlantEntity {
 
 export interface EnemyEntity {
   id: string;
-  typeId: 'grunt' | 'fast' | 'tank' | 'swarm' | 'boss';
+  typeId: EnemyTypeId;
   hp: number;
   maxHp: number;
   px: number;
@@ -121,7 +122,9 @@ export interface SimState {
   /** #4: ENERGIE existiert nicht mehr. In-Run bleibt nur Muenz-Loot (ohne Senke, B29) —
    *  Platziert wird aus dem POOL (`inventory`: gekaufte Pflanzen + Material). Nektar wird
    *  ausschliesslich AUSSERHALB des Runs ausgegeben. */
-  resources: { coins: number };
+  /** Lauf-Erfahrung (kein Geld): Nektar ist die einzige Währung und wird außerhalb von Runs
+   *  ausgegeben. Erfahrung sammelt sich deterministisch aus Kills und hat keinen Ausgabepunkt. */
+  resources: { experience: number };
   /** R2: Run-Kopie der freigeschalteten Weltfläche (Welt-Snapshot beim Run-Start). */
   cols: number;
   rows: number;

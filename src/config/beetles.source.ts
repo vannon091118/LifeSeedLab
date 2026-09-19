@@ -31,6 +31,14 @@ export const BEETLE_GENES_SOURCE: Record<string, BeetleGeneSource> = {
   sprinter:  { id: 'sprinter',  hpMult: 0.1, speedAdd: 0.008, attackAdd: 0, costMult: 0.35 },
   mandible:  { id: 'mandible',  hpMult: 0.2, speedAdd: 0, attackAdd: 3, costMult: 0.45 },
   venomous:  { id: 'venomous',  hpMult: 0.2, speedAdd: 0, attackAdd: 1, costMult: 0.4 },
+  // ── Organ-Gene (Pool-Erweiterung 19.09.2026): sie treiben die neuen Anatomie-Achsen
+  //    (Flügel, Pelz, Stachel, Halschild, Sprungbeine). Vorher hatte kein einziges Gen ein
+  //    Organ zur Verfügung, das eine Hummel von einem Käfer unterscheiden könnte.
+  winged:    { id: 'winged',    hpMult: 0.15, speedAdd: 0.004, attackAdd: 0, costMult: 0.40 },
+  furry:     { id: 'furry',     hpMult: 0.25, speedAdd: -0.001, attackAdd: 0, costMult: 0.40 },
+  sting:     { id: 'sting',     hpMult: 0.10, speedAdd: 0, attackAdd: 2, costMult: 0.45 },
+  jumper:    { id: 'jumper',    hpMult: 0.15, speedAdd: 0.003, attackAdd: 1, costMult: 0.40 },
+  hardshell: { id: 'hardshell', hpMult: 0.70, speedAdd: -0.002, attackAdd: 0, costMult: 0.45 },
 };
 
 /** Dominanz + Gacha-Gewicht der Käfer-Gene (Kreuzungslogik liest das, P7). */
@@ -43,6 +51,11 @@ export const BEETLE_GENE_POOL: Record<string, { dominant: boolean; weight: numbe
   sprinter:  { dominant: true,  weight: 0.20 },
   mandible:  { dominant: false, weight: 0.18 },
   venomous:  { dominant: false, weight: 0.15 },
+  winged:    { dominant: true,  weight: 0.16 },
+  furry:     { dominant: false, weight: 0.14 },
+  sting:     { dominant: false, weight: 0.13 },
+  jumper:    { dominant: true,  weight: 0.16 },
+  hardshell: { dominant: true,  weight: 0.17 },
 };
 
 /** Basen-Tiere: der Ausgangsbestand (wie PlantVariant-Basen). */
@@ -57,21 +70,29 @@ export interface BeetleSpecimenSource {
   color: string;
 }
 
+// Gründer-Erbgut (Pool-Erweiterung 19.09.2026): vorher trug JEDER Gründer GENAU EIN Gen — und
+// weil die drei Gene nur Panzerdecken-Achsen bewegten, lag `carapaceForm` bei allen auf `flat`
+// und `dress` bei allen auf `scaled`. Genau das war der Befund „warum sehen alle Käfer fast
+// identisch aus": nicht zu wenig Distanz, sondern ein Eimer für alles. Jetzt trägt jeder Gründer
+// ein ERBGUT (3–4 Gene) und jede Art hat einen lesbaren Körperplan.
+// IDENTITÄTSBRUCH (bewusst, dokumentiert): Gründer-Genome ändern die Genom-Hashes ihrer Brut —
+// der gepinnte Kandidatensatz in `meta/brood_identity.test.ts` wird nachgezogen. Kein Nektar,
+// keine Queue und kein bereits gezüchteter Käfer ist betroffen (Specimen sind Daten).
 export const BEETLES_SOURCE: Record<string, BeetleSpecimenSource> = {
   leafhopper: {
     id: 'leafhopper', label: 'Blatthüpfer',
     hp: 60, speed: 0.030, attack: 4,
-    genes: ['sprinter'], color: '#86b34a',
+    genes: ['sprinter', 'jumper', 'winged'], color: '#86b34a',
   },
   shellbeetle: {
     id: 'shellbeetle', label: 'Schildkäfer',
     hp: 180, speed: 0.016, attack: 2,
-    genes: ['carapace'], color: '#8a7f5e',
+    genes: ['carapace', 'hardshell', 'taunt'], color: '#8a7f5e',
   },
   bumble: {
     id: 'bumble', label: 'Hummel',
     hp: 90, speed: 0.024, attack: 3,
-    genes: ['swarmborn'], color: '#d9a441',
+    genes: ['swarmborn', 'furry', 'winged', 'sting'], color: '#d9a441',
   },
 };
 

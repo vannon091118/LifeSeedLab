@@ -8,7 +8,7 @@
 import type { SimState } from './state';
 import { ownedInventory } from './state';
 import { STARTING_INVENTORY, PLANT_IDS } from '../config/plants.source';
-import { STARTING_TILE_POOL, PLOT_POOL_KEY } from '../config/map.source';
+import { STARTING_MATERIAL, POOL_KEYS } from '../config/map.source';
 import { AUTO_WAVES_DEFAULT } from '../config/economy.source';
 import { applyResume, type ResumeSnapshot } from './resume';
 import type { GameClock } from '../core/clock';
@@ -27,10 +27,19 @@ export function freshState(
   }
   const world = init.worldSnapshot;
   const loadout = init.loadout ?? [];
-  // #4: Der Run startet mit dem MATERIAL-POOL (Tiles/Felder) — die Source sagt, wie viel
-  // (STARTING_TILE_POOL): Bau-Material ist Startbestand JEDES Runs, denn der freie Mapbuilder
-  // ist der Kern des Spiels und darf nie leer starten. Der Shop baut den Vorrat später auf.
-  const material: Record<string, number> = { ...STARTING_TILE_POOL, [PLOT_POOL_KEY]: 1 };
+  // #4 + BESITZ-MODELL (19.09.2026): Bau-Material kommt aus dem BESITZ (Meta.variantCounts) —
+  // genau wie Pflanzen, denn der Shop verkauft es und Bauen verbraucht es. Vorher schenkte
+  // JEDER Run den vollen Source-Pool; damit waren die Shop-Preise wirkungslos.
+  // Ohne `ownedCounts` (Altsave/Tests) gilt das faire Startmaterial der Source als Fallback.
+  const material: Record<string, number> = {};
+  if (init.ownedCounts) {
+    for (const key of POOL_KEYS) {
+      const owned = init.ownedCounts[key] ?? 0;
+      if (owned > 0) material[key] = owned;
+    }
+  } else {
+    Object.assign(material, STARTING_MATERIAL);
+  }
   for (const [key, extra] of Object.entries(init.materialStock ?? {})) {
     material[key] = (material[key] ?? 0) + extra;
   }
@@ -50,7 +59,7 @@ export function freshState(
     // bevor die erste Vorbereitung tickt. Resume bleibt 'prep' (applyResume setzt es).
     phase: "layout",
     wave: { number: 0, schedule: null, spawnQueue: [], lastSpawnTick: 0, prepStartTick: clock.get().tick, autoWaves: AUTO_WAVES_DEFAULT },
-    resources: { coins: 0 },
+    resources: { experience: 0 },
     // R2: Run-Kopie der Welt — Größe UND Tiles aus dem Welt-Snapshot (keine neue Map).
     cols: world.cols, rows: world.rows,
     mapTiles: { ...world.tiles },

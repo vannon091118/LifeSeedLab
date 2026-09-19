@@ -47,8 +47,12 @@ export type PlantVariant = {
 // ── v7 (B21.3): `tutorialVersion` ersetzt das Ja/Nein. Die Tour begann früher erst im Feld;
 //    jetzt startet sie auf dem Titel-Screen. Ein Bool konnte diesen Umbau nicht ausdrücken:
 //    wer die alte Tour gesehen hatte, hätte die neue nie zu sehen bekommen.
+// ── v9 (Besitz-Modell 19.09.2026): `materialGranted` — das faire Startmaterial (Tiles, Deko,
+//    Feld) ist BESITZ, kein Run-Geschenk. Das Flag hält fest, dass JEDES Profil es genau
+//    einmal erhalten hat; ohne es müsste die Heilung raten (und würde verbautes Material
+//    bei jedem Load neu schenken).
 export type MetaSave = {
-  version: 8;
+  version: 9;
   /** Produktversion beim letzten Schreiben (Diagnose: Altsaves zuordnen, Support-Fälle klären). */
   appVersion?: string;
   nektar: number;
@@ -59,6 +63,10 @@ export type MetaSave = {
   /** Persisted breed generation counter — breeding determinism across reloads. */
   breedGeneration: number;
   variantCounts: Record<string, number>;
+  /** Besitz-Modell: das faire Startmaterial (`STARTING_MATERIAL`) wurde diesem Profil bereits
+   *  gutgeschrieben. Ohne das Flag wäre jede Heilung mehrdeutig — ein Profil, das alles verbaut
+   *  hat, sähe aus wie eines, das nie etwas hatte. */
+  materialGranted: boolean;
   savedVariants: PlantVariant[];
   /** Variants the player carried in via loadout (placeable bred plants — B1). */
   loadout: string[];

@@ -4,7 +4,7 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import type { SimState } from '../simulation/state';
-import { hashState } from '../core/hash';
+import { snapshotHash } from '../simulation/snapshot';
 import type { GameEvent } from '../bus/events';
 
 interface Props {
@@ -23,18 +23,10 @@ export function DevOverlay({ revision, getSnapshot, busRecent, particleInfo, fxE
 
   const snap = getSnapshot();
   const hash = useMemo(() => {
+    // EINE Projektion: der Dev-Screen benutzt denselben Snapshot-Hash wie der Contract
+    // (vorher baute er seine eigene Kopie — ein Feld hätte hier unbemerkt fehlen können).
     try {
-      return hashState({
-        seed: snap.seed,
-        clock: snap.clock,
-        wave: { number: snap.wave.number },
-        resources: snap.resources,
-        plants: snap.plants as never,
-        enemies: snap.enemies as never,
-        projectiles: snap.projectiles as never,
-        score: snap.score,
-        combo: snap.combo,
-      });
+      return snapshotHash(snap);
     } catch { return '—'; }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [revision, snap.seed]);

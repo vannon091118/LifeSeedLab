@@ -1,10 +1,12 @@
 import type { MetaSave, PendingCross, PlantVariant } from '../types';
 import { loadMeta, updateMeta } from './store';
 import { registerVariant } from './run';
-import { wavesToUnlockFor, PENDING_CROSSES_MAX, GREENHOUSE_POT_SLOTS, rearingSlotGate } from '../config/economy.source';
+import { wavesToUnlockFor, PENDING_CROSSES_MAX, GREENHOUSE_POT_SLOTS, rearingSlotGate, SEED_PRICE } from '../config/economy.source';
 import { GAME_SEED } from '../config';
 import { deriveSeed } from '../core/rng';
 import { createBaseVariants } from '../genome/bases';
+import { POOL_KEYS } from '../config/map.source';
+import { poolPriceOf } from '../config/shop.source';
 
 // Owner: PersistenceSystem (meta economy). LOC ≤ 200.
 // Atomare Meta-Operationen: consume+enqueue sind EIN Persistenzschritt (kein Zwischenzustand,
@@ -14,6 +16,26 @@ export function buySeed(price: number): MetaSave | null {
   const meta = loadMeta();
   if (meta.nektar < price) return null;
   return updateMeta({ nektar: meta.nektar - price, seedStash: meta.seedStash + 1 });
+}
+
+/**
+ * POOL-KAUF (Besitz-Modell, 19.09.2026): Nektar → DAUERHAFTER Besitz an Bau-Material.
+ *
+ * Tiles, Deko und Samen sind getrennte Pools, aber sie zahlen aus derselben Währung — genau das
+ * ist der Zielkonflikt: mehr Karte ODER mehr Pflanzen. Der Preis kommt AUS DER SOURCE
+ * (`poolPriceOf`), nie aus der UI: eine Shop-Karte kann den Vertrag nicht unterlaufen. Eine
+ * Transaktion, ein Writer, fail-closed wie `buySeed` — zu wenig Nektar oder unbekannter
+ * Gegenstand ⇒ unveränderter Save.
+ */
+export function buyPoolItem(key: string, amount = 1): MetaSave | null {
+  if (amount < 1 || !POOL_KEYS.includes(key)) return null;
+  const meta = loadMeta();
+  const price = poolPriceOf(key) * amount;
+  if (meta.nektar < price) return null;
+  return updateMeta({
+    nektar: meta.nektar - price,
+    variantCounts: { ...meta.variantCounts, [key]: (meta.variantCounts[key] ?? 0) + amount },
+  });
 }
 
 /**
@@ -161,17 +183,19 @@ export function consumeSeed(): MetaSave | null {
  * Einstiegs-Loop: Ein Kauf landet als KEIMLING in der Warteschlange (seedlings), nicht direkt
  * im Besitz. Erst das Einpflanzen in einen Gewächshaus-Topf (plantSeedlingIntoPot) macht
  * daraus eine eigene Pflanze. Der Shop verkauft also Samen — das Gewächshaus macht Pflanzen.
- * Fail-closed: ohne Nektar kein Kauf.
+ *
+ * Der Preis kommt AUS DER SOURCE (`SEED_PRICE`), nicht aus der Karte: die UI kann den Kaufvertrag
+ * nicht unterlaufen (Regel 6). Fail-closed: ohne Nektar kein Kauf.
  */
-export function buySeedling(price: number): MetaSave | null {
+export function buySeedling(): MetaSave | null {
   const meta = loadMeta();
-  if (meta.nektar < price) return null;
+  if (meta.nektar < SEED_PRICE) return null;
   const index = meta.breedGeneration; // deterministischer Keim-Index (B17.3-Vertrag)
   const variant = germinateVariant(index);
   const registered = registerVariant(variant);
   if (!registered) return null;
   return updateMeta({
-    nektar: meta.nektar - price,
+    nektar: meta.nektar - SEED_PRICE,
     breedGeneration: index + 1,
     seedlings: [...meta.seedlings, variant.id],
   });

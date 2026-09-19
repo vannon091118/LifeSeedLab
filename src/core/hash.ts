@@ -8,7 +8,8 @@ export interface HashableState {
   seed: number;
   clock: ClockState;
   wave: { number: number };
-  resources: { coins: number };
+  // KEIN `resources`-Feld: der Hash liest es nicht. Ein deklariertes, aber ignoriertes Feld war
+  // eine Falle („warum ändert sich mein Hash nicht?“) — entfernt am 19.09.2026 (Regel 4.3).
   plants: { id: string; gx: number; gy: number; hp: number; variantId: string; lastShot: number }[];
   enemies: { id: string; hp: number; px: number; py: number; pathIndex: number }[];
   projectiles: { id: string; px: number; py: number; dx: number; dy: number }[];

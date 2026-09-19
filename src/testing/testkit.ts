@@ -9,6 +9,7 @@ import { clearTestStorage, ensureLocalStorage } from '../persistence/testDom';
 import { loadMeta, resetMeta } from '../meta/store';
 import { resetIds } from '../core/ids';
 import { fnv1a, hashState, type HashableState } from '../core/hash';
+import { toHashable } from '../simulation/snapshot';
 import type { SimState } from '../simulation/state';
 import { SimulationRoot, type RootInit } from '../simulation/root';
 import { makeCommand, type CommandPayloads } from '../bus/commands';
@@ -37,20 +38,12 @@ export function writeLegacyEnvelope(key: string, data: unknown, v: number): void
   ensureLocalStorage().setItem(key, JSON.stringify({ v, checksum: fnv1a(0x811c9dc5, raw), data }));
 }
 
-/** Projektion eines SimStates in die hashbare Teilmenge (Identität der Snapshot-Contract).
- *  Eine Quelle statt dreier Kopien (snapshot.ts#toHashable, gateB, sim — P3-Review). */
+/** Projektion eines SimStates in die hashbare Teilmenge — DELEGIERT an den Produktions-Owner
+ *  (simulation/snapshot.ts#toHashable). Vorher lagen in diesem Baum VIER Kopien derselben
+ *  Projektion (snapshot, testkit, gateB, DevOverlay): wer ein Feld ergänzte, hätte drei vergessen
+ *  können. Ein Feld, das der Hash nicht liest (`resources`), liegt dort jetzt nirgends mehr. */
 export function stateToHashable(state: SimState): HashableState {
-  return {
-    seed: state.seed,
-    clock: state.clock,
-    wave: { number: state.wave.number },
-    resources: { coins: state.resources.coins },
-    plants: state.plants.map(p => ({ id: p.id, gx: p.gx, gy: p.gy, hp: p.hp, variantId: p.variantId, lastShot: p.lastShot })),
-    enemies: state.enemies.map(e => ({ id: e.id, hp: e.hp, px: e.px, py: e.py, pathIndex: e.pathIndex })),
-    projectiles: state.projectiles.map(p => ({ id: p.id, px: p.px, py: p.py, dx: p.dx, dy: p.dy })),
-    score: state.score,
-    combo: state.combo,
-  };
+  return toHashable(state);
 }
 
 /** Hash über die hashbare Projektion (Bequemlichkeit für Testdateien). */

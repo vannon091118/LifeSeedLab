@@ -4,7 +4,7 @@
 import type { SimState } from './state';
 import { makeEvent, type GameEvent } from '../bus/events';
 import { makeRng } from '../core/rng';
-import { COINS_PER_KILL_MIN, COINS_PER_KILL_MAX } from '../config/economy.source';
+import { EXPERIENCE_PER_KILL_MIN, EXPERIENCE_PER_KILL_MAX } from '../config/economy.source';
 
 export class ScoreSystem {
   private seq = 0;
@@ -15,9 +15,9 @@ export class ScoreSystem {
   onEnemyDied(state: SimState, enemyId: string, reward: number, scoreValue: number, px: number, py: number): void {
     state.score += scoreValue;
     state.nektarEarned += Math.max(1, Math.floor(reward / 5));
-    // 1–5 Shop-Münzen deterministisch via loot-RNG (pro Kill, kein Stream-State)
-    const coins = makeRng('loot', (state.seed ^ Math.imul(state.clock.tick, 0x51ED) ^ Math.imul(enemyId.length, 0x9E37) ^ enemyId.charCodeAt(0)) >>> 0).nextInt(COINS_PER_KILL_MIN, COINS_PER_KILL_MAX);
-    state.resources.coins += coins;
+    // 1–5 Erfahrung deterministisch via loot-RNG (pro Kill, kein Stream-State)
+    const experience = makeRng('loot', (state.seed ^ Math.imul(state.clock.tick, 0x51ED) ^ Math.imul(enemyId.length, 0x9E37) ^ enemyId.charCodeAt(0)) >>> 0).nextInt(EXPERIENCE_PER_KILL_MIN, EXPERIENCE_PER_KILL_MAX);
+    state.resources.experience += experience;
 
     this.emit(makeEvent(state.clock.tick, 'SCORE_CHANGED', 'system:score', ++this.seq, {
       score: state.score, delta: scoreValue,
@@ -25,11 +25,11 @@ export class ScoreSystem {
     this.emit(makeEvent(state.clock.tick, 'REWARD_GRANTED', 'system:score', ++this.seq, {
       reward, sourceId: enemyId,
     }));
-    // B29: kein COINS_GRANTED mehr. `resources.coins` bleibt State (deterministisch, testbar),
-    // aber das Event war ein Contract ohne Consumer UND ohne Senke: kein Positionsfeld (also kein
-    // Welt-FX möglich), der Stand ist Snapshot (HUD liest ihn selbst), und die Münzen haben
-    // derzeit keinen Ausgabepunkt. Es kommt mit seiner Senke wieder — dann zusammen mit dem
-    // Consumer, nicht davor.
+    // B29: kein COINS_GRANTED mehr. `resources.experience` bleibt State (deterministisch,
+    // testbar), aber das Event war ein Contract ohne Consumer UND ohne Senke: kein Positionsfeld
+    // (also kein Welt-FX möglich), der Stand ist Snapshot, und Erfahrung ist KEINE Währung — sie
+    // wird nie ausgegeben. Genau deshalb heißt sie nicht mehr „coins": ein zweiter Kontostand
+    // neben Nektar war eine zweite Wahrheit über Geld (Befund 19.09.2026).
     void px; void py;
   }
 

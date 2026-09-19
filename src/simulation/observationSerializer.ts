@@ -4,8 +4,9 @@
 // nicht Wahrnehmung — zwei Rollen wären zwei Verantwortungen in einer Datei.
 //
 // Verifizierte Fakten (Ledger): die Observation trägt das GANZE Raster der dynamischen
-// Weltfläche (R2: state.cols/rows), kein Wahrnehmungsfenster. Enemy-TypeIds kommen 1:1 aus dem State-Literal
-// (grunt|fast|tank|swarm|boss — `beetle` ist Spieler-Entität, nie ein Gegner-Typ).
+// Weltfläche (R2: state.cols/rows), kein Wahrnehmungsfenster. Enemy-TypeIds kommen 1:1 aus der
+// EINEN Typ-Wahrheit (`EnemyTypeId` in config/enemies.source.ts — grunt|fast|tank|swarm|boss;
+// `beetle` ist Spieler-Entität, nie ein Gegner-Typ).
 // route.quality ist echt (M1-Writer in mapSystem/root), nicht null-Platzhalter.
 
 import type { SimState } from './state';

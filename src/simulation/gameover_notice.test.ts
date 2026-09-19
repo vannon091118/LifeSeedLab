@@ -1,24 +1,19 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-// Owner: Simulation-Tests — Sub-Domäne „Game Over & Spieler-Meldungen“ (B32.2/3, Phase 4).
+import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
+// Owner: Simulation-Tests — Sub-Domäne „Game Over & Spieler-Meldungen" (B32.2/3, Phase 4).
 // Aus simulation_beetle_fire_pair.test.ts ausgegliedert (LOC-Cap 300):
 // P1-Game-Over-Freeze (aus gameover.test.ts) + B29-Ablehnungs-Meldungen (aus simulation_notice.test.ts).
+// Perf-Note: forceGameOver läuft einmal in beforeAll (~240 ms) — alle P1-Tests teilen den Root,
+// weil stepOnce nach gameover ein echtes no-op ist (Phase friert Clock + Commands). Spart ~480 ms.
 
 import { SimulationRoot, makeCommand } from './root';
 import { makeRoot } from '../testing/testkit';
 import { resetIds } from '../core/ids';
-import { rollBrood } from '../genome/beetle';
 
 const GO_SEED = 424242;
 
-function advance(root: SimulationRoot, ticks: number): void {
-  for (let i = 0; i < ticks; i++) root.stepOnce();
-}
-
 /** Erzwingt Game Over über die echte Sim-Pipeline — Q1-Balance-fest.
- * Der alte Welle-1-Leak brach an grunt damage 4 (3 Grunts = 12 Schaden, 20 Leben):
- * die Prep friert dann by-design ein (B23.1 wartet auf die erste Pflanze). High-Wave-
- * Resume mit 1 Leben: Welle 21 spawnt ~60 Gegner, der Durchbruch ist garantiert.
- * Liefert einen NEUEN Root im gameover-Zustand (der Caller-Root bleibt unangetastet). */
+ * High-Wave-Resume mit 1 Leben: Welle 21 spawnt ~60 Gegner, Durchbruch garantiert.
+ * Liefert einen Root im gameover-Zustand (Phase friert Clock + Commands = no-op). */
 function forceGameOver(): SimulationRoot {
   const resume: import('./resume').ResumeSnapshot = {
     waveNumber: 20, lives: 1, score: 0,
@@ -31,16 +26,22 @@ function forceGameOver(): SimulationRoot {
   for (let i = 0; i < 60000 && root.getSnapshot().phase !== 'gameover'; i++) root.stepOnce();
   return root;
 }
+
 import { noticeFromEvent } from '../components/fieldNotice';
 import { rejectTextKey } from '../components/FieldToast';
 import { translations } from '../i18n/translations';
 import type { GameEvent } from '../bus/events';
 
+// P1-Tests prüfen Freeze-Invarianzen: nach gameover ist stepOnce() ein no-op — Clock, Commands,
+// State-Hash ändern sich nie. Deshalb teilen alle drei Tests denselben Root (ein beforeAll).
+let sharedGoRoot: SimulationRoot;
+
 describe('Game Over friert am Owner (P1)', () => {
+  beforeAll(() => { sharedGoRoot = forceGameOver(); });
   beforeEach(() => resetIds());
 
   it('nach GAME_OVER führen Commands zu nichts (keine Pflanzen, kein Materialverbrauch)', () => {
-    let root: SimulationRoot = forceGameOver();
+    const root = sharedGoRoot;
     const snap = root.getSnapshot();
     const material = { ...snap.inventory };
     const plants = snap.plants.length;
@@ -58,7 +59,7 @@ describe('Game Over friert am Owner (P1)', () => {
   });
 
   it('nach GAME_OVER läuft die Uhr nicht mehr (keine Ticks, keine Tag/Nacht-Events)', () => {
-    let root: SimulationRoot = forceGameOver();
+    const root = sharedGoRoot;
     const tickBefore = root.getSnapshot().clock.tick;
 
     let events = 0;
@@ -73,7 +74,7 @@ describe('Game Over friert am Owner (P1)', () => {
   });
 
   it('Platzierungen nach Game Over verändern den State-Hash nicht', () => {
-    let root: SimulationRoot = forceGameOver();
+    const root = sharedGoRoot;
     const s = root.getSnapshot();
     const before = JSON.stringify({
       tick: s.clock.tick, lives: s.lives, plants: s.plants, wave: s.wave.number, material: s.inventory,
@@ -150,7 +151,7 @@ describe('B29 — Ablehnungen erreichen den Spieler (echter Run)', () => {
     expect(fert().reason).toBe('max_reached');
     expect(fert().text).toBe('Mehr Dünger nimmt sie nicht an.');
 
-    // Noch nicht reif ⇒ Vermehrung abgelehnt (der Zustand liegt in der Sim, nicht im UI).
+    // Noch nicht reif ⇒ Vermehrung abgelehnt (der Zustand liegt in der Sim, nicht im UI)
     root.commands.push(makeCommand(9, 'PROPAGATE_PLANT', seq++, { plantId }));
     root.stepOnce();
     expect(prop().reason).toBe('not_mature');

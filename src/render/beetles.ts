@@ -12,12 +12,13 @@
 
 import type { BeetlePhenotype } from '../genome/beetlePhenotype';
 import { shiftChannels } from '../core/color';
-
-const OUTLINE = '#2b2118';
-const OUTLINE_W = 0.03;
-
-const darken = (hex: string): string => shiftChannels(hex, -66, -60, -52);
-const lighten = (hex: string): string => shiftChannels(hex, 30, 32, 20);
+// Tusche, Farbhelfer und die erweiterten Organe (Flügel, Pelz, Stachel, Halschild, Sprungbeine)
+// kommen aus EINEM Organ-Modul — die Zeichenwahrheit der Käfer liegt dort, nicht doppelt hier.
+import {
+  BEETLE_INK as OUTLINE, BEETLE_INK_W as OUTLINE_W, ORGAN_GATES,
+  beetleDarken as darken, beetleLighten as lighten,
+  drawJumpLeg, drawPelage, drawPronotum, drawStinger, drawWings,
+} from './beetleOrgans';
 
 /** Bein: Hüfte → Schenkel → Schiene als echte Gliederkette (Winkel aus `stance`). */
 function drawLeg(
@@ -208,12 +209,21 @@ export function drawBeetleAnatomy(ctx: CanvasRenderingContext2D, p: BeetlePhenot
 
   // Beine (unter dem Körper): drei Paare, Vorder-, Mittel-, Hinterbeine
   const legRows = [-0.16, 0.02, 0.2];
-  for (const y of legRows) {
+  // Sprungbeine (Organ-Achse): das HINTERBEIN wird zum verdickten Sprungbein, wenn das Genom es
+  // hergibt. Der Körperbau erklärt die Bewegung — nicht umgekehrt.
+  const jump = p.organs.jumpLegs >= ORGAN_GATES.jumpLegs
+    ? (p.organs.jumpLegs - ORGAN_GATES.jumpLegs) / (1 - ORGAN_GATES.jumpLegs)
+    : 0;
+  legRows.forEach((row, index) => {
+    const hind = index === legRows.length - 1;
     for (const side of [-1, 1]) {
       const asym = 1 + (side > 0 ? 1 : -1) * p.asymmetry * 0.25;
-      drawLeg(ctx, y * (0.6 + p.body.length * 0.6), side, p.legs.stance, p.legs.length * 0.5 * asym, darken(primary));
+      const y = row * (0.6 + p.body.length * 0.6);
+      const length = p.legs.length * 0.5 * asym;
+      if (hind && jump > 0) drawJumpLeg(ctx, y, side, p.legs.stance, length, darken(primary), jump);
+      else drawLeg(ctx, y, side, p.legs.stance, length, darken(primary));
     }
-  }
+  });
 
   // Hinterleib-Segmente (unter den Decken sichtbar an den Rändern)
   ctx.fillStyle = darken(primary);
@@ -247,6 +257,12 @@ export function drawBeetleAnatomy(ctx: CanvasRenderingContext2D, p: BeetlePhenot
   ctx.fillStyle = shiftChannels(primary, -8, -6, -4);
   ctx.fill();
   ctx.stroke();
+
+  // Halschild über dem Thorax (Organ-Achse) — bei Hirschkäfer-artigen Tieren der auffälligste Teil.
+  drawPronotum(ctx, p);
+
+  // Flügel UNTER den Decken: die Membranen kommen seitlich hervor, das Tier KANN fliegen.
+  drawWings(ctx, p);
 
   // Flügeldecken (die Hauptsilhouette) + Panzerkleid + Muster
   const elytra = elytraPath(p);
@@ -295,6 +311,13 @@ export function drawBeetleAnatomy(ctx: CanvasRenderingContext2D, p: BeetlePhenot
       ctx.stroke();
     }
   }
+
+  // Stachel am Hinterleibsende (Organ-Achse) — sichtbar, was das Tier wehren kann.
+  drawStinger(ctx, p);
+
+  // Pelz als Saum über der fertigen Silhouette (Organ-Achse) — das Merkmal, das Hummel von
+  // Wespe trennt. Zuletzt, damit der Flaum über Kontur und Muster liegt wie echtes Fell.
+  drawPelage(ctx, p);
 
   // Glanz (Oberfläche): ein Specular auf der Kuppel — Material, keine Deko
   if (p.carapace.sheen > 0.2) {

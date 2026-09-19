@@ -146,3 +146,21 @@ export const STARTING_TILE_POOL: Record<MapTileType, number> = {
  */
 export const PLOT_POOL_KEY = 'plot';
 export const PLOT_PRICE = 30;
+
+/**
+ * FAIRES STARTMATERIAL — EINE Wahrheit für „jedes Profil kann sofort bauen" (19.09.2026).
+ *
+ * Vorher lag dieser Vorrat als Gabe in JEDEM Run (`freshState`), während `defaultMeta` einem
+ * frischen Profil NICHTS gab: Bau-Material war damit kein Besitz, und die Shop-Preise darunter
+ * waren tote Zahlen — Kaufen konnte die ohnehin jede Runde neu geschenkte Menge nur verdoppeln.
+ * Jetzt gilt das Besitz-Modell: dieses Material bekommt JEDES Profil genau EINMAL
+ * (`meta/store.ts#materialGranted`, auch Altsaves), Bauen verbraucht es, der Rest wandert am
+ * Run-Ende zurück, und der Shop erhöht den Besitz.
+ */
+export const STARTING_MATERIAL: Record<string, number> = { ...STARTING_TILE_POOL, [PLOT_POOL_KEY]: 1 };
+
+/** ALLE Material-Schlüssel (Tiles + Feld) — die Menge, die als BESITZ geführt wird und die der
+ *  Shop über `buyPoolItem` erhöht. Welcher Pool sie anbietet, steht in `config/shop.source.ts`. */
+export const POOL_KEYS: readonly string[] = [
+  ...MAP_TILE_IDS, PLOT_POOL_KEY,
+];

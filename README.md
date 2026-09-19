@@ -9,7 +9,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React 19](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=white)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6-646cff?logo=vite&logoColor=white)](https://vite.dev/)
-[![Vitest](https://img.shields.io/badge/tests-311%20passing-6e9f18?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/tests-429%20passing-6e9f18?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![Determinismus](https://img.shields.io/badge/sim-deterministisch-4ade80)](docs/architecture/architecture-contract.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -22,297 +22,172 @@
 
 ---
 
-## 🎮 Was ist LifeSeedLab?
+## 📋 Hallo vom Praktikanten! (Krix übernimmt das Wort)
 
-LifeSeedLab ist ein **Browser-Tower-Defense**, bei dem du **Pflanzen züchtest statt kaufst**. Aus wenigen Grundsorten entstehen durch deterministische Kreuzungen immer neue Varianten mit eigenen Genomen, Traits und Stats — und diese Nachkommen sind deine Türme gegen prozedural generierte Gegnerwellen.
+> *„Hallo! Ich bin Krix — Praktikant, zweiter Stock, Fensterplatz direkt neben dem Kompost. In den offiziellen Institutsunterlagen stehe ich als ‚Strich mit Klemmbrett‘, aber du darfst Krix sagen. Das Klemmbrett habe ich selbst gemalt. Und dieses Labor hier? Das gehört jetzt quasi dir und mir.“*
 
-| Feature | Beschreibung |
-|---|---|
-| 🌱 **Züchten & Entdecken** | Genome kreuzen, Mutationen entdecken, Sammlung aufbauen — 10 Basen × 10 Extras × 10 Effekte |
-| 🌊 **Endless Waves** | Unendliche, seed-basierte Wellen mit Bossen alle 10 Wellen; Tag/Nacht-Zyklus |
-| 🧬 **Emergente Vielfalt** | Visuell generiert, nie hardgecodet — jede Pflanze ist einzigartig und ihrem Genom treu |
-| ⚖️ **Beweisbarer Determinismus** | Gleicher Seed + gleiche Commands = identischer Spielstand (per State-Hash prüfbar) |
-| 🍯 **Nektar-Wirtschaft** | Persistentes Roguelike-Geld über Runs hinweg für Shop & Zucht |
-| 🇩🇪🇬🇧 **Vollständige i18n** | Deutsch/Englisch — alle Texte, auch im Spiel |
+Willkommen im **LifeSeedLab**! Vergiss alles, was du über langweilige Tower-Defense-Spiele weißt, bei denen man Münzen in vorgefertigte Plastik-Kanonen wirft. Hier wird **gezüchtet**. 
+
+Wir nehmen Gene, Basen, dominante Merkmale und eine Prise Mutations-Glück — und erschaffen Verteidiger, die so lebendig sind, dass sie dir fast die Finger abbeißen. Wenn die Schädlinge anrollen, verteidigst du dein Beet nicht mit gekaufter Stangenware, sondern mit deinen eigenen botanischen und entomologischen Zuchterfolgen.
+
+Ich glaube an dich. Schnapp dir eine Pipette, wir legen los!
 
 ---
 
-## 🎯 Kernkonzept in 30 Sekunden
+## 🔬 Wie das Labor funktioniert
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  1. SAMMELN          2. ZÜCHTEN           3. VERTEIDIGEN       │
-│  ┌─────────┐        ┌─────────┐         ┌─────────┐            │
-│  │ Basen   │  ──▶   │ Kreuzung│  ──▶    │ Deine   │            │
-│  │ finden  │        │ Genome  │         │ Türme   │            │
-│  └─────────┘        └─────────┘         └─────────┘            │
-│       │                  │                   │                  │
-│       ▼                  ▼                   ▼                  │
-│  10 Grund-           Dominante/           Einzigartige        │
-│  Pflanzen            Rezessive            Stats, Traits,      │
-│  (Shooter,           Gene, Mutationen     Visuelle Identität  │
-│   Wall, Support)     → neue Varianten     → Endless Defense   │
-└─────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│  1. SAMMELN & SÄEN     2. KREUZEN & BRÜTEN      3. VERTEIDIGEN        │
+│  ┌───────────────┐     ┌─────────────────┐      ┌─────────────────┐   │
+│  │ Grund-Samen   │ ──▶ │ Genetik-Labor   │ ──▶  │ Das Beet        │   │
+│  │ & Käferlarven │     │ & Brutkammer    │      │ (Endless Waves) │   │
+│  └───────────────┘     └─────────────────┘      └─────────────────┘   │
+│         │                       │                        │             │
+│         ▼                       ▼                        ▼             │
+│    Erste Basen             Dominanz, Rezessiv,      Schädlinge stoppen,│
+│    ernten oder von         Mutationen & Traits      Nektar sammeln,    │
+│    Krix leihen             → Echte Nachkommen       neue Gene sichern  │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Der Clou:** Jede Zucht ist deterministisch. Gleiches Elternpaar + gleicher Seed = **exakt dasselbe Kind** — weltweit reproduzierbar, teilbar via `lifeseed:<seed>:<gen>:<hash>`.
+### 🌿 Die Labor-Stationen
+
+1. **Das Zuchtlabor (Breeding Lab):**  
+   Wähle zwei Elternpflanzen aus deiner Sammlung. Ihre Gene ringen um Dominanz: Schussfrequenz, Dornenschaden, Sporen-Auren oder Kettenblitze. Jedes Kind erbt Eigenschaften, überrascht mit Mutationen und erhält einen deterministischen Stammbaum.
+2. **Die Brutstätte (Beetle Hatchery):**  
+   Pflanzen allein reichen dir nicht? Züchte **Käfer (Brood)**! Aus Larven entstehen Begleiter mit Chitin-Panzern, Mandibeln und biochemischen Drüsen, die über das Feld patrouillieren und Schädlinge im Nahkampf zerlegen.
+3. **Das Gewächshaus (Greenhouse):**  
+   Kreuzungen brauchen Zeit! Während du draußen auf dem Feld Wellen überlebst, reifen deine Samen in den Pflanzbeeten heran. Jede überstandene Welle bringt sie der Keimung näher.
+4. **Der Codex (Krix' Forschungsbuch):**  
+   Jede Entdeckung wird in einer kryptografischen Kette (`genome_hash`) verewigt. Lokal, ehrlich, fälschungssicher. Entdeckst du eine seltene Spezies als Erster, gehört sie für immer dir.
+5. **Das Beet (Tower Defense):**  
+   30 Ticks pro Sekunde, unendliche Wellen, Bosse alle 10 Runden und ein gnadenloser Tag/Nacht-Zyklus. Dein Loadout (bis zu 4 gezüchtete Lieblinge) entscheidet über Sieg oder Kompost.
 
 ---
 
-## 🏗️ Architektur — Warum das stabil läuft
+## 🧬 Der Kern: Echte Genetik statt Zufallssalat
 
-Das Projekt folgt einem **bindenden Architekturvertrag** ([`architecture-contract.md`](docs/architecture/architecture-contract.md)) mit harten Regeln:
-
-### Die zwei Endgleichungen
+Bei uns gibt es keine willkürlichen Würfel im Code. Alles basiert auf **Mendel-Genetik und deterministischer Mathematik**:
 
 ```
-SOURCE + SEED + CLOCK + PLAYER COMMANDS = DETERMINISTIC GAME STATE
-STATE  + EVENTS + VISUAL SOURCE + VISUAL SEED = DETERMINISTIC PRESENTATION
+PlantVariant
+├── id: "cross_01a3"          // Stabil & deterministisch
+├── genome: Gene[]            // 10 Gen-Slots (Base / Extra / Effect)
+├── stats: BredStats          // HP, Range, RoF, Damage, Pierce, Crit
+├── traits: Trait[]           // Slow, Burn, Poison, Split-Shot
+├── visual: ResolvedVisual    // Aus dem Genom generiert — treu im Aussehen!
+└── generation: number        // Zucht-Generation im Stammbaum
 ```
 
-### Ownership-Karte (Single Writer pro Slice)
-
-| Slice | Owner (Writer) | Verantwortung |
-|---|---|---|
-| ⏱️ **Spielzeit** | `core/clock.ts` | Fixed-Timestep 30 Ticks/s, Phase (Tag/Nacht) |
-| 🎲 **RNG** | `core/rng.ts` | Einzige Zufallsquelle, 8 Namespaces, `deriveSeed` |
-| 🌱 **Pflanzen** | `simulation/plantSystem.ts` | Spawn, Platzierung, Attacke, Schaden |
-| 🐛 **Gegner** | `simulation/enemySystem.ts` | Bewegung, Targeting, Schaden, Tod |
-| 🏹 **Projektile** | `simulation/projectileSystem.ts` | Flug, Treffer, Effekte (Pierce, Chain, Slow…) |
-| 💰 **Energie/Score** | `simulation/scoreSystem.ts` | Nektar, Wellen-Belohnungen, Combo-Multiplikator |
-| ⚡ **Combo** | `simulation/comboSystem.ts` | Count, Timer, Multiplier (1–5×) |
-| 🌊 **Wellen** | `simulation/waveSystem.ts` | Schedule, Spawns, Boss-Wellen |
-| 🧠 **SimState** | `simulation/root.ts` | Zentrale Instanz, Worker-kompatibel |
-| 📦 **Content** | `config/*.source.ts` | **SOURCE = CONTENT TRUTH** — keine Constants im Code |
-| 🎨 **Visuals** | `visual/generator.ts` | `visualSeed + Source = ResolvedVisual` |
-| 🖼️ **Render** | `render/` | Canvas-Layer 0–8, Camera (Observer-owned) |
-| ✨ **Observer** | `observers/` | Event→FX, Partikel-Pool, Audio (read-only!) |
-| 💾 **Persistenz** | `persistence/storage.ts` | Ein Owner, Checksummen, Migration, Quarantäne |
-
-**Goldene Regeln:**
-- 🚫 Gameplay ≠ Rendering — Canvas/React **schreiben nie** Gameplay-State
-- 🚫 Graphics = Observers — Partikel/Shader entscheiden **nichts** über Gameplay
-- 🚫 Source = Content Truth — **keine** Gameplay-Konstanten außerhalb `config/`
-- 🚫 Bus = Handover — Systeme rufen sich **nie direkt** auf (nur Events/Commands)
-- 🚫 Kein `Math.random` / `Date.now` in Spiellogik
+*Krix' Merksatz:* **Gleiche Eltern + gleicher Seed = exakt dasselbe Kind.** Weltweit. Auf jedem Rechner. Teilbar als Code: `lifeseed:<seed>:<gen>:<hash>`.
 
 ---
 
-## 🚀 Schnellstart
+## 🎨 Art Direction: „Papier trifft CGI“
+
+LifeSeedLab sieht nicht aus wie ein generisches Mobile-Game. Die visuelle Identität folgt einem bindenden Vertrag:
+
+- **Welt aus Notizpapier:** Karo-Muster, ausgefranste Kanten, Kaffee-Ränder, aufgetackerte Zettel und Bleistift-Notizen.
+- **Leuchtender Nintendo-Pop:** Pflanzen, Käfer und Gegner brechen mit satten Fills, dicken 2.5px Tusche-Outlines und Glanzpunkten bewusst aus dem matten Papierhintergrund hervor.
+- **Reine Handarbeit:** Keine fremde Game-Engine. Reines HTML5 Canvas 2D, handgezeichnete `Path2D`-Pfade und mathematisch generierte Offscreen-Texturen.
+
+---
+
+## 🏗️ Architektur & Determinismus (Das Herz unter der Haube)
+
+Das Spiel folgt zwei unumstößlichen Endgleichungen:
+
+```
+SOURCE + SEED + CLOCK + PLAYER COMMANDS        = DETERMINISTIC GAME STATE
+STATE  + EVENTS + VISUAL SOURCE + VISUAL SEED  = DETERMINISTIC PRESENTATION
+```
+
+- **Fixed Timestep (30 TPS):** `core/clock.ts` taktet die Welt starr und unabhängig von Render-Frames.
+- **RNG-Isolation:** 8 isolierte Namespaces (`world`, `wave`, `enemy`, `plant`, `brood`, `loot` für Simulation; `visual`, `particle`, `cosmetic` für Darstellung). Kein `Math.random()`, kein `Date.now()`.
+- **Single-Writer-Ownership:** Jedes State-Slice (Pflanzen, Gegner, Projektile, Score, Wellen) gehört exakt einem System.
+- **State-Hash-Verifikation:** In jedem Tick wird der Zustand per FNV-1a gehasht. Gleiche Eingaben erzeugen auf die Sekunde identische Hashes.
+
+---
+
+## 🚀 Schnellstart für Forscher & Entwickler
 
 ```bash
-# Abhängigkeiten installieren
+# Repository klonen & Abhängigkeiten installieren
 npm install
 
-# Dev-Server (Port 5173, auf 0.0.0.0 für Mobile-Test)
+# Entwicklungsserver starten (Vite, Port 5173)
 npm run dev
 
-# Type-Check (muss 0 Fehler sein)
-npm run typecheck
+# Inkrementeller Typecheck (0 Fehler Pflicht)
+node node_modules/typescript/bin/tsc -b --noEmit
 
-# Test-Suite (282 Tests, alle grün)
-npm test
+# Test-Suite ausführen (Commit-Lane / berührte Tests)
+node scripts/test-lane.mjs
 
-# Produktions-Build
-npm run build
+# Komplette Test-Suite (429+ Tests, alle grün)
+node scripts/test-lane.mjs --full
 
-# Preview des Builds
-npm run preview
+# Produktions-Build erzeugen
+node node_modules/vite/bin/vite.js build
 ```
 
-### Mobile Testen (Portrait 390×844)
-```bash
-npm run dev
-# Dann im Browser: Device Toolbar → iPhone 12/13/14 Pro (390×844)
-# Oder: Chrome DevTools → Toggle Device Toolbar → Responsive → 390×844
-```
+### 📱 Mobile-Test (Portrait 390×844)
+Das Spiel ist **Portrait-First (390×844)** entwickelt:
+1. `npm run dev` starten.
+2. In den Chrome/Firefox DevTools: *Toggle Device Toolbar* → *Responsive* → **390 × 844** einstellen.
+3. Touch-Targets sind mindestens 44×44px groß.
+
+### 🧪 Das DevGate (`?dev=1`)
+Hänge `?dev=1` an die URL an, um das geheime Labor-Panel freizuschalten:
+- Live State-Hash, Tick-Zähler, Event-Stream.
+- Fast-Forward (`window.__ff(n)`).
+- Partikel-Budgets, Seed-Inspektor und FX-Toggles.
+*(Im normalen Spiel bleibt all das unsichtbar!)*
 
 ---
 
-## 🧪 Determinismus live prüfen
-
-Das ist das Herzstück — du kannst es **jetzt** verifizieren:
-
-1. **Run starten** — Seed wird aus Master-Seed + Run-Nummer abgeleitet
-2. **DevGate öffnen** — URL `?dev=1` anhängen oder `#dev` im Hash
-3. **State-Hash beobachten** — wird live im Dev-Panel angezeigt
-4. **FX ausschalten** — Gameplay-State bleibt **bit-identisch**
-5. **Gleicher Seed + gleiche Züge** → gleicher Hash, gleiche Entity-IDs, gleicher Wellenverlauf
-
-```ts
-// Beispiel: State-Hash im DevGate
-State Hash: 0x3f2a1c9e (tick 1247)
-Run ID:     42
-Seed:       lifeseed:0x7a3f:42:0x3f2a1c9e
-```
-
----
-
-## 📁 Projektstruktur (Kurzüberblick)
+## 🧭 Projektstruktur
 
 ```
 src/
-├── core/           # Clock, RNG, IDs, Hash — das deterministische Fundament
-├── bus/            # EventBus, Commands, Contracts (v1, versioniert)
-├── simulation/     # 6 Owningsysteme + Root + State
-├── config/         # SOURCE FILES — Content Truth (Plants, Enemies, Effects…)
-├── visual/         # Generator: Genome → ResolvedVisual (nur visual-Namespace)
-├── render/         # Canvas 2D, Layers 0–8, Camera
-├── observers/      # VisualObserver, ParticlePool, AudioObserver
-├── persistence/    # storage.ts (Owner), meta.ts, runSave.ts
-├── discovery/      # Genome-Hash-Chain (Blockchain-lite, lokal-first)
-├── genome/         # Kreuzung, Mutation, Naming, Gacha
-├── components/     # React Screens (Start, Menu, GameView, Breeding, Codex…)
-├── i18n/           # DE/EN, Context, persisted in Meta
-└── App.tsx         # Router + Run-Initialisierung
+├── core/           # Clock (30tps), deterministischer RNG (8 Namespaces), IDs, Hashes
+├── bus/            # EventBus & CommandQueue (strikte Contracts v1)
+├── simulation/     # 6 Gameplay-Systeme + MapSystem + SimRoot (reine Spiellogik)
+├── config/         # Content Truth (*.source.ts: Pflanzen, Gegner, Käfer, Map, Werte)
+├── genome/         # Genom-Modell, Kreuzung, Mendel-Logik, Mutationen, Phänotypen
+├── visual/         # Generator: Genom + visualSeed → ResolvedVisual
+├── render/         # Canvas 2D Renderer, Papercraft-Offscreen, 9 Zeichen-Layer
+├── observers/      # Read-only Beobachter (Partikel, SFX-Audio, Visual-Commands)
+├── persistence/    # Speicher-Owner (storage.ts, Checksummen, Quarantäne, Save-Migration)
+├── discovery/      # Discovery-Chain (lokaler Codex, kryptografischer Genom-Beweis)
+├── components/     # React-Screens (Labor, Gewächshaus, Brutstätte, Beet, Krix-Tutorial)
+└── i18n/           # Vollständig zweisprachig (Deutsch / Englisch)
 ```
 
 ---
 
-## 🧬 Zucht-System — Deep Dive
+## 📜 Regelwerk & Weiterführende Doku
 
-### Genom-Struktur
-```
-PlantVariant
-├── id: "cross_01a3"          // stabil, deterministisch
-├── genome: Gene[]            // 10 Gene-Slots (Base/Extra/Effect)
-├── stats: BredStats          // hp, dmg, range, rof, pierce, crit…
-├── traits: Trait[]           // "burn", "slow", "heal_aura"…
-├── visual: ResolvedVisual    // aus Generator (deterministisch!)
-└── generation: number        // Zucht-Generation (persistiert)
-```
-
-### Kreuzen (vereinfacht)
-```ts
-// In genome/beetle.ts
-function crossGenomes(a: Genome, b: Genome, seed: string): Genome {
-  const rng = deriveSeed(rootSeed, 'plant', a.id, b.id, generation);
-  // 1. Slot-Weise Dominanz/Rezessivität
-  // 2. Mutations-Chance pro Slot (gewichtet)
-  // 3. Name generieren (Silben aus names.source.ts)
-  // → Kind-Genom ist deterministisch ableitbar
-}
-```
-
-### Visuelle Identität aus Genom
-```ts
-// visual/generator.ts
-function genomeToVisualInput(variant: PlantVariant, visualSeed: string): VisualInput {
-  // Base → Extra → Effect Tint
-  // Jede Entscheidung via deriveSeed(visualSeed, ...)
-  // Gleiches Genom + gleicher Seed = identisches ResolvedVisual
-}
-```
+- [`AGENTS.md`](AGENTS.md) — Kompakter, bindender Arbeitsvertrag für Entwickler & Agenten.
+- [`docs/architecture/architecture-contract.md`](docs/architecture/architecture-contract.md) — Rechtsverbindliche System- und Ownership-Regeln.
+- [`docs/architecture/architecture.md`](docs/architecture/architecture.md) — Ausführliche technische Dokumentation & Domänen-Verträge.
+- [`docs/process/ROADMAP.md`](docs/process/ROADMAP.md) — Meilensteine, QA-Findings und Aufgabenliste in logischer Reihenfolge.
+- [`docs/quality/quality-spec.md`](docs/quality/quality-spec.md) — Asset-Spezifikationen und DoD-Kriterien.
 
 ---
 
-## 💾 Persistenz & Resume
+## 📄 Lizenz & Danksagung
 
-### Zwei Stores, ein Owner (`persistence/storage.ts`)
+- **Lizenz:** MIT License — siehe [`LICENSE`](LICENSE).
+- **Entwickelt von:** VANNON (`Volatile Agent Needing No Other Nonsense`).
+- **Besonderer Dank:** An Krix, der trotz verschüttetem Dünger und gefräßigen Raupen immer noch tapfer sein Klemmbrett hält.
 
-| Store | Backend | Inhalt | Sync? |
-|---|---|---|---|
-| `meta` | localStorage | Sprache, Nektar, Stats, Sammlung, Loadout, `runId`, `breedGeneration` | **Ja** (vor erstem Render) |
-| `run` | localStorage (MVP) → IndexedDB | Run-Snapshot v2 | Nein (async ok) |
-
-### Resume-Vertrag (ehrlich & testbar)
-- **Gespeichert:** `{ version, runId, seed, tick, waveNumber, phase:'prep', energy, lives, score, combo, plants[], inventory, nektarEarned }`
-- **NICHT gespeichert:** enemies, projectiles, schedule
-- **Resume:** State in `prep` wiederaufbauen → nächster Wave-Start regeneriert Schedule deterministisch aus `(seed, waveNumber+1)`
-- **Begründung:** Fortlaufende Gegner exakt wiederherstellen = Event-Log-Replay (out of scope). Wellen-Neustart ist der ehrliche, testbare Vertrag.
-
----
-
-## 🔬 Discovery-Chain — Teilen ohne Blockchain
-
-```
-Eltern A + B + Seed → Kind Genom → FNV-1a Hash → genome_hash
-                                                      ↓
-                              prev_hash (Kette) ← entry_hash
-                                                      ↓
-                                    lifeseed:<seed>:<gen>:<genome_hash>
-```
-
-- **Append-only, hash-linked, lokal-first**
-- `UNIQUE(genome_hash)` lokal & remote (Supabase Spiegel) — erste Entdeckung gewinnt dauerhaft
-- **Teilen:** `lifeseed:0x7a3f:3:0x3f2a1c9e` → jeder kann exakt dieselbe Pflanze sehen
-- Kein Wallet, kein Token, keine Energie — nur Mathematik
-
----
-
-## 🎨 Art Direction — "Papier trifft CGI"
-
-> **Binding Contract** (siehe `docs/quality/quality-spec.md` B0, B9, B10)
-
-| Ebene | Stil | Technik |
-|---|---|---|
-| **Welt** | Schul-Mathe-Collageblock | Blaues Raster auf `CELL_SIZE`, Blockrand + Lochung, Bleistift-Kritzeleien, Collage-Fetzen — **einmalig gebacken** (visual-Namespace) |
-| **Wege** | Aufgeklebte Papierstreifen | Drop-Shadow, ausgefranste Kanten, Fineliner-Rasterpunkte, Trittsteine |
-| **UI** | Notizzettel / Post-its | `#f5efdc` Fill, `#2b2b26` Ink-Border 2px, 3px Hard-Shadow, Büroklammern — **kein Blur-Glass** |
-| **Pflanzen/Gegner** | Nintendo-Pop auf Papier | Satte Fills, 2-Stopp-Verläufe, Specular-Highlights, 2.5px Ink-Kontur — **brechen bewusst aus** der matten Welt |
-| **Animation** | Papier-Juice | Squash & Stretch, Papierschnipsel-Konfetti, Idle-Atmen/Schwanken — alles Observer/Feedback-Layer |
-
-**Skala ist Genom-Aussage:** `ResolvedVisual.scale = 0.85 + strength·0.3 ± 0.05` (geklemmt 0.85–1.25), deterministisch, test-locked.
-
----
-
-## 🧪 Tests & Qualitätssicherung
-
-```bash
-# Komplette Suite
-npx vitest run
-
-# Nur Core (Clock/RNG/IDs/Hash)
-npx vitest run src/core
-
-# Mit Coverage
-npx vitest run --coverage
-
-# E2E (Playwright)
-npm run test:e2e
-```
-
-### Abgedeckte Gates
-- ✅ Clock-Determinismus (Fixed-Step, Phase-Flips)
-- ✅ RNG-Isolation pro Namespace (Gameplay ↔ Presentation)
-- ✅ Seed-Derivation & ID-Sequenzen
-- ✅ State-Hash (Identität über Runs)
-- ✅ Event/Command-Contracts (Schema v1)
-- ✅ Sim-Integration (Seed+Commands → Hash)
-- ✅ Source-ID-Validierung (alle IDs eindeutig)
-- ✅ Visual-Determinismus (Generator)
-- ✅ Observer-Purity (keine State-Mutation)
-- ✅ Partikel-Budgets (Normal/Busy/Chaos)
-
-### Umgesetzte Gates (quality-spec.md B13)
-- ✅ Combo×Score Integration
-- ✅ Effect-Profil Cross-Reference Gate
-- ✅ Resume-Shape Contract
-- ✅ Breeding-Determinismus über `breedGeneration`
-- ✅ Meta-Migration v1/v2 → v3
-- ✅ Day/Night Event Emission
-- ✅ Placement-Rules + Controller (pointer-only, test-locked)
-- ✅ Identitäts-Gate: monotone Entitäts-Kennungen (B14, `MetaSave` v5 + Migration)
-- ✅ Kanonische Save-Checksumme (key-sortiert, Alt-Saves bleiben lesbar)
-- ✅ Genom-Mutation: Fremdgen, Stärke-Jitter, Dominanz-Drift (A15, `src/genome/cross.test.ts`)
-- ✅ Encoding-Gate: kein Mojibake, keine Ersatzzeichen in `src/` (A16, `src/encoding.test.ts`)
-- ✅ E2E (Playwright, 6 Spezifikationen / 27 Tests in `tests/`): Router, Platzierung, Run-Screen, Preview 390×844, Mechanik, Progression — gemeinsamer Harness (`tests/helpers/harness.ts`, B24)
-
-- ✅ Spielerbericht-Runde 1 (B21–B23): Onboarding „Krix“ (drei Screens), Erst-Anzeige der Tray, **Aufbauphase** (leeres Feld startet keine Welle), phasenrichter Wellen-Knopf, **sichtbare Ablehnungsgründe** (FieldToast), Score gerundet
-- ✅ Spielerbericht-Runde 2 (B25): **Haltbarkeitsleiste** am Feld (Verwelken ist sichtbar, Gelb = geschwächt), Loadout-Zähler aus einer Quelle mit der Liste, Codex als ehrliches Laborbuch („bleibt auf diesem Gerät“)
-- ✅ Version als eine Quelle (`src/version.ts` ← `package.json`, test-gelockt)
-- ✅ E2E-Harness als eine Quelle (B24) — Progression-Laufzeit ~5 min → ~31 s
-
-> **Offen (B16, spezifiziert, teilweise umgesetzt):** Genom-Modell schärfen (B16.2–B16.5),
-> E2E-Geometrie vom Renderer lesen (B16.9). Route sichtbar (B16.1) ist erledigt. Offen aus den
-> Spielerberichten: Platzierungs-Zuverlässigkeit am Touch-Pfad (Messung steht aus),
-> Reichweiten-Kreis/Kampfwerte (Neubau), Brutstätte-Einstieg (Balance).
-
----
+<div align="center">
+  <sub>🌱 <i>„Viel Glück da draußen. Ich bin Krix, der Strich, der an dich glaubt.“</i> 📋</sub>
+</div>
 
 ## 🧭 Projektstatus
-
-Diese Tabelle wird von **Shinon** aus dem realen Repository-Zustand erzeugt (`node git-noir/shinon/cli.ts prepare`) und vor jedem Commit aktualisiert — sie ist Messwert, keine Behauptung.
 
 <!-- SHINON:STATUS:BEGIN -->
 _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manuell pflegen._
@@ -320,120 +195,11 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `e293255` — feat(wirtschaft): material-pool ersetzt das energiesystem |
-| Arbeitsbaum | 42 gestaged, 0 geändert, 2 neu |
-| Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
+| HEAD | `e633bba` — fix(einstieg): leih-spross macht den run wieder spielbar |
+| Arbeitsbaum | 69 gestaged, 1 geändert, 0 neu |
+| Letztes Gate | 🛑 geschlossen (preflight, 0 Fehler, 1 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `e293255` feat(wirtschaft): material-pool ersetzt das energiesystem |
+| Letzter Shinon-Commit | `e633bba` fix(einstieg): leih-spross macht den run wieder spielbar |
 | Letzter Push | ✅ origin/main |
-| LOC-Hotspots | `src/config/phenotype.source.ts` 228/200 (114 %)<br>`src/render/gameRuntime.ts` 401/400 (100 %)<br>`src/simulation/root.ts` 300/300 (100 %)<br>`src/simulation/enemySystem.ts` 299/300 (100 %)<br>`src/components/Greenhouse.tsx` 382/400 (96 %) |
+| LOC-Hotspots | `src/components/Greenhouse.tsx` 480/400 (120 %)<br>`src/config/phenotype.source.ts` 228/200 (114 %)<br>`src/render/gameRuntime.ts` 404/400 (101 %)<br>`src/simulation/root.ts` 300/300 (100 %)<br>`src/simulation/enemySystem.ts` 299/300 (100 %) |
 <!-- SHINON:STATUS:END -->
-
-
-## 🔧 Naming Conventions & Pre‑Commit Check
-
-To avoid naming collisions, all files under `src/` must use a domain‑specific prefix in their filename:
-`<domain>_<descriptiveName>.[ts|tsx]` (e.g. `beetle.test.ts` → `genome_beetle.test.ts`).
-
-A local helper script (check-duplicate-basenames, in the ignored tooling folder scripts/) verifies that no two files share the same basename (without extension). It is intentionally not part of the repository — run it locally.
-
-Example pre‑commit setup (using husky or plain Git hook):
-```bash
-# .git/hooks/pre-commit
-#!/usr/bin/env bash
-"$PWD/scripts/check-duplicate-basenames.sh"
-```
----
-
-## 🗺️ Roadmap & Arbeitsliste
-
-Die verbindliche Arbeitsliste liegt in [`docs/quality/quality-spec.md`](docs/quality/quality-spec.md) (Part A: Befunde, Part B: Specs B0–B13).
-Der Stand der Meilensteine steht in [`docs/process/ROADMAP.md`](docs/process/ROADMAP.md).
-
-| Phase | Fokus | Status |
-|---|---|---|
-| **B14–B19** | Korrektheit: Run-Identity, Persistenz, Zucht-Schleife, E2E-Suite | ✅ Erledigt |
-| **B20–B25** | Onboarding (Krix), Spielerbericht-Fixes (Aufbauphase, Feedback, Zähler), Test-Harness | ✅ Erledigt |
-| **B16-Rest + Messschiene** | Genom-Modell, Touch-Zuverlässigkeit, Kampfwerte-Lesbarkeit | 🔄 Offen |
-| **B12/B13** | Mobile Performance + DoD | ⏳ Geplant |
-
-**Ausführungsreihenfolge:** Sequenziell — Gate rot ⇒ STOP, Ursache lokalisieren, Owner identifizieren, fixen, Test wiederholen.
-
----
-
-## 🛠️ Entwicklung
-
-### Code-Standards
-- **Sprache:** Deutsch (Dokumentation, Commits, Kommentare)
-- **TypeScript:** `strict: true`, keine `any`-Lecks
-- **LOC-Caps:** 300 (Sim/Core) / 400 (Render/Observer/UI) / 200 (Types/Config/Meta) — **hart**
-- **Architektur-Check:** Vor jedem Schreiben die 8-Fragen-Sperre (Contract §10)
-
-### Verifizierung vor jedem Commit (CI-lokal)
-```bash
-npx tsc -b --noEmit      # Typecheck: 0 Fehler
-npx vitest run           # Tests: alle grün
-npx vite build           # Build: durchlaufen
-```
-
-### DevGate (`?dev=1` / `#dev`)
-Alle Entwicklerwerkzeuge leben **nur** hinter dem DevGate:
-- State-Hash, Tick, Event-Log (letzte 20)
-- Partikelzähler/Budget, Seed + RunId
-- FX Toggle, RNG Draw-Counter
-- Entity Inspector (ID, VariantKey, Visual Seed, Palette)
-
-**Release-Build zeigt nichts davon.**
-
----
-
-## 📚 Dokumentation
-
-| Dokument | Zweck |
-|---|---|
-| [`docs/architecture/architecture-contract.md`](docs/architecture/architecture-contract.md) | Rechtsverbindlicher Vertrag (Regeln, Ownership, Caps, Seeds) |
-| [`docs/architecture/architecture.md`](docs/architecture/architecture.md) | Technische Architektur, Stack-Entscheidungen, Datenfluss |
-| [`docs/quality/quality-spec.md`](docs/quality/quality-spec.md) | Forensischer Scan + Asset/Render-Spec (Arbeitsliste B0–B13) |
-| [`docs/process/ROADMAP.md`](docs/process/ROADMAP.md) | Projektstatus, Dokumentationskarte, nächste Meilensteine |
-| [`AGENTS.md`](AGENTS.md) | Agenten-Regeln, Arbeitsmodus, DoD-Checkliste |
-
----
-
-## 🤝 Beitragen
-
-Das Projekt folgt einem strikten **Architekturvertrag**. Bevor du Code schreibst:
-
-1. **Lese** `AGENTS.md` + `docs/architecture/architecture-contract.md` + `docs/architecture/architecture.md`
-2. **Prüfe** die Ownership-Tabelle — gibt es schon einen Writer für deinen Slice?
-3. **Suche** nach bestehender Implementierung (`rg --files`, `rg "symbol"`)
-4. **Wende** die 8-Fragen-Sperre an (Contract §10)
-5. **Schreibe** Tests zuerst (TDD), dann Implementation
-6. **Verifiziere** lokal: `tsc`, `vitest`, `vite build`
-
-> **Nie** `vite.config.ts` anfassen (Plattform-managed).  
-> **Nie** Dependencies ohne dokumentierte Begründung + Katalog-Prüfung hinzufügen.
-
----
-
-## 📄 Lizenz
-
-MIT License — siehe [`LICENSE`](LICENSE) (falls vorhanden, sonst Standard-MIT).
-
----
-
-## 🙏 Credits
-
-- **Architektur & Code:** Buffy (Codebuff Agent) + Human-in-the-loop
-- **Engine:** Keine — Canvas 2D, handgeschrieben, deterministisch
-- **Fonts:** Gaegu / Patrick Hand (via @fontsource, gebündelt, kein CDN)
-- **Icons:** Eigenes SVG-Icon-Set (`ui/icons.tsx`)
-
----
-
-<div align="center">
-
-**LifeSeedLab** — wo deine Kreuzungen die Türme sind.
-
-*Built with deterministic love 🌱*
-
-</div>

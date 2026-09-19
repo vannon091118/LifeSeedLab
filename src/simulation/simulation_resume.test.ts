@@ -42,7 +42,7 @@ describe('Gate B — Resume-Vertrag der Sim', () => {
     expect(after.phase).toBe('prep');
     expect(after.wave.number).toBe(snapshot.waveNumber);
     expect(after.plants).toEqual(snapshot.plants);
-    expect(after.resources.coins).toBe(0); // #4: Loot-Muenzen sind Run-Zustand, kein Resume-Bestandteil
+    expect(after.resources.experience).toBe(0); // #4: Lauf-Erfahrung ist Run-Zustand, kein Resume-Bestandteil
     expect(after.lives).toBe(snapshot.lives);
     expect(after.inventory).toEqual(snapshot.inventory);
     expect(after.discoveredVariants).toEqual(snapshot.discoveredVariants);
@@ -84,7 +84,7 @@ describe('Gate B — Resume-Vertrag der Sim', () => {
     expect(a.getSnapshot().wave.number).toBe(b.getSnapshot().wave.number);
     expect(a.getSnapshot().enemies.length).toBeGreaterThan(0);
     expect(shape(a)).toEqual(shape(b));
-    expect(a.getSnapshot().resources.coins).toBe(b.getSnapshot().resources.coins);
+    expect(a.getSnapshot().resources.experience).toBe(b.getSnapshot().resources.experience);
     expect(a.getSnapshot().lives).toBe(b.getSnapshot().lives);
   });
 

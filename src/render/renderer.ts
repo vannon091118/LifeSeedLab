@@ -14,6 +14,7 @@ import { drawSprite } from './spriteCache';
 import { drawBeetleSprite } from './beetleSprites';
 import { beetleBob } from './beetles';
 import type { ResolvedBeetleVisual } from '../visual/beetleGenerator';
+import { enemyVisualFor } from '../visual/enemyVisuals';
 import { drawMapTile } from './layers/mapTiles';
 import { drawEnemyBody } from './layers/enemies';
 import { drawParticle } from './layers/particlesDraw';
@@ -168,7 +169,7 @@ export class Renderer {
     }
 
     for (const plant of state.plants) this.drawPlant(ctx, plant, state, toPx, toPy, cell, feedback);
-    for (const e of state.enemies) this.drawEnemy(ctx, e, toPx, toPy, cell, feedback);
+    for (const e of state.enemies) this.drawEnemy(ctx, e, toPx, toPy, cell, state.clock.tick, feedback);
 
     // projectiles — shape by effect (B10)
     ctx.lineWidth = 2;
@@ -322,14 +323,15 @@ export class Renderer {
 
   private drawEnemy(
     ctx: CanvasRenderingContext2D, e: import('../simulation/state').EnemyEntity,
-    toPx: (x: number) => number, toPy: (y: number) => number, cell: number,
+    toPx: (x: number) => number, toPy: (y: number) => number, cell: number, tick: number,
     feedback?: FeedbackLayer,
   ): void {
     const cx = toPx(e.px), cy = toPy(e.py);
-    const t = e.px * 100 + e.py * 61;
     const punch = feedback?.punchOf(e.id) ?? 1;
+    // Identität kommt aus dem aufgelösten Phänotyp des Archetyps (Boss: individualisiert per ID).
+    const visual = enemyVisualFor(e.typeId, e.id);
     ctx.save(); ctx.translate(cx, cy); ctx.scale(punch, punch);
-    drawEnemyBody(ctx, e.typeId, cell, t);
+    drawEnemyBody(ctx, visual, e.typeId, cell, this.dpr, tick);
     ctx.restore();
     if (e.slowUntil > 0) {
       ctx.strokeStyle = 'rgba(125,155,192,0.7)'; ctx.lineWidth = 2;

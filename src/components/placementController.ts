@@ -63,6 +63,9 @@ export interface PlacementEnvironment {
   board(): {
     plants: ReadonlyArray<Cell>;
     inventory: Record<string, number>;
+    /** Run-Weltgröße (kann durch FELD wachsen) — die Geometrie-Regel braucht sie. */
+    cols: number;
+    rows: number;
     mapTiles: Record<string, string>;
   };
   /** Sim-Tick als deterministische Zeitbasis für Shake/FX. */
@@ -201,7 +204,9 @@ export class PlacementController {
     const stats = this.env.statsFor(this.variantId);
     if (!stats) return 'unknown';
     return placementRejectReason({
-      board: { gx: cell.gx, gy: cell.gy, plants: board.plants },
+      // Geometrie mit der ECHTEN Weltgröße: fehlten cols/rows, prüfte die Vorschau gegen 12×12
+      // und lehnte jede Zelle einer gewachsenen Welt ab (rote Welle + „hier ist kein Platz").
+      board: { gx: cell.gx, gy: cell.gy, plants: board.plants, cols: board.cols, rows: board.rows },
       inventoryCount: board.inventory[this.variantId] ?? 0,
     });
   }

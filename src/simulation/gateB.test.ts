@@ -18,7 +18,6 @@ function toHashable(root: SimulationRoot): HashableState {
     seed: s.seed,
     clock: s.clock,
     wave: { number: s.wave.number },
-    resources: { coins: s.resources.coins },
     plants: s.plants.map(p => ({ id: p.id, gx: p.gx, gy: p.gy, hp: p.hp, variantId: p.variantId, lastShot: p.lastShot })),
     enemies: s.enemies.map(e => ({ id: e.id, hp: e.hp, px: e.px, py: e.py, pathIndex: e.pathIndex })),
     projectiles: s.projectiles.map(p => ({ id: p.id, px: p.px, py: p.py, dx: p.dx, dy: p.dy })),
@@ -71,7 +70,7 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
       clock: { tick: 10 },
       seed: SEED,
       score: 0,
-      resources: { energy: 0, coins: 0 },
+      resources: { experience: 0 },
       nektarEarned: 0,
       combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
     };
@@ -102,12 +101,12 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
     s.enemies.length = 0;
     s.wave.spawnQueue = [];
     const beforeScore = s.score;
-    const beforeCoins = s.resources.coins;
+    const beforeExperience = s.resources.experience;
     const beforePool = { ...s.inventory };
     const reward = (root as unknown as { waves: { checkCompletion: (s: unknown) => number | null } }).waves.checkCompletion(s);
     if (reward !== null) (root as unknown as { score: { grantWaveReward: (s: unknown, w: number, r: number) => void } }).score.grantWaveReward(s, s.wave.number, reward);
     expect(s.score).toBe(beforeScore);
-    expect(s.resources.coins).toBe(beforeCoins);
+    expect(s.resources.experience).toBe(beforeExperience);
     expect(s.inventory).toEqual(beforePool);
   });
 
@@ -198,11 +197,11 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
     expect(a).toBeLessThanOrEqual(5);
     // ScoreSystem nutzt loot-RNG pro (seed,tick,enemyId) — prüfe Range via echter ScoreSystem-Call
     const score = new ScoreSystem(() => {});
-    const s: unknown = { clock: { tick: 7 }, seed: SEED, score: 0, resources: { energy: 0, coins: 0 }, nektarEarned: 0, combo: { count: 0, timer: 0, multiplier: 1, highest: 0 } };
+    const s: unknown = { clock: { tick: 7 }, seed: SEED, score: 0, resources: { experience: 0 }, nektarEarned: 0, combo: { count: 0, timer: 0, multiplier: 1, highest: 0 } };
     score.onEnemyDied(s as import('./state').SimState, 'enemy-0001', 10, 10, 0, 0);
-    const coins = (s as import('./state').SimState).resources.coins;
-    expect(coins).toBeGreaterThanOrEqual(1);
-    expect(coins).toBeLessThanOrEqual(5);
+    const experience = (s as import('./state').SimState).resources.experience;
+    expect(experience).toBeGreaterThanOrEqual(1);
+    expect(experience).toBeLessThanOrEqual(5);
   });
 
   it('EFFECT_CHAIN: Kill springt zu nächstem Gegner', () => {

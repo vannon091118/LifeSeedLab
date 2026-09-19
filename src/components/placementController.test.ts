@@ -11,6 +11,8 @@ interface Board {
   plants: { gx: number; gy: number }[];
   inventory: Record<string, number>;
   mapTiles: Record<string, string>;
+  cols: number;
+  rows: number;
 }
 
 let board: Board;
@@ -28,7 +30,7 @@ function makeEnv(): PlacementEnvironment {
 describe('PlacementController (B3)', () => {
   beforeEach(() => {
     // #4: EIN Pool für Pflanzen UND Feld-Material (`inventory`) — Energie existiert nicht mehr.
-    board = { plants: [], inventory: { sprout: 2, path: 3, pot: 1 }, mapTiles: {} };
+    board = { plants: [], inventory: { sprout: 2, path: 3, pot: 1 }, mapTiles: {}, cols: 12, rows: 12 };
     controller = new PlacementController(makeEnv());
   });
 
@@ -86,6 +88,20 @@ describe('PlacementController (B3)', () => {
     const state = controller.hover(ON_PATH);
     expect(state.ghost?.valid).toBe(true);
     expect(state.ghost?.reason).toBeNull();
+  });
+
+  // Regression (Befund „kein Platz, obwohl oben herum Platz ist“): die Vorschau baute das
+  // Brett OHNE cols/rows und fiel damit hart auf 12×12 zurück — in einer per FELD gewachsenen
+  // Welt war jede Zelle ab gx/gy ≥ 12 „außerhalb“. Der Vertrag prüft jetzt mit der ECHTEN
+  // Brettgröße, die der Aufrufer liefern MUSS.
+  it('gewachsene Welt: Zelle 13,13 ist gültig und wird angenommen (kein falsches on_path)', () => {
+    board.cols = 14;
+    board.rows = 14;
+    controller.selectFromTray('sprout', 2);
+    const state = controller.hover({ gx: 13, gy: 13 });
+    expect(state.ghost?.valid).toBe(true);
+    expect(state.ghost?.reason).toBeNull();
+    expect(controller.drop({ gx: 13, gy: 13 })).toEqual({ kind: 'plant', variantId: 'sprout', gx: 13, gy: 13 });
   });
 
   it('ohne Bestand lehnt die Vorschau mit no_inventory ab', () => {

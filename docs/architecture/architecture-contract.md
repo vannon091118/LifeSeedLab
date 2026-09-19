@@ -1,120 +1,115 @@
 # LifeSeedLab — Architecture Contract
 
-Status: BINDING from Phase 1 onward. Every new/changed file must satisfy Phase 28 questions:
-one responsibility, one owner, defined read/write surface, events in/out, public API, LOC within cap.
+Status: **RECHTSVERBINDLICH (BINDING)**. Jede Datei im Projekt muss die folgenden Regeln einhalten.
+Ergänzende technische Details: [`architecture.md`](architecture.md).
+Arbeitsvertrag für Agenten & Entwickler: [`AGENTS.md`](../../AGENTS.md).
 
-## 1. Identity rules
+---
+
+## 1. Kern-Identität & Grundsätze
 
 ```
 ONE MODULE      = ONE PRIMARY RESPONSIBILITY
 ONE STATE OWNER = ONE AUTHORITY per authoritative slice
 ALL GRAPHICS    = OBSERVERS (read-only on gameplay state)
-GAMEPLAY        ≠ RENDERING
+GAMEPLAY        ≠ RENDERING (Canvas/React never write simulation state)
 SOURCE          = CONTENT TRUTH (no gameplay constants in code)
-SEED            = DETERMINISM INPUT
-CLOCK           = GAME TIME AUTHORITY
+SEED            = DETERMINISM INPUT (deriveSeed across 8 namespaces)
+CLOCK           = GAME TIME AUTHORITY (fixed-step 30 TPS)
 BUS             = HANDOVER PROTOCOL (no direct cross-system calls)
 ```
 
-## 2. End equations (Phase 36)
+---
+
+## 2. Endgleichungen des Determinismus
 
 ```
-SOURCE + SEED + CLOCK + PLAYER COMMANDS = DETERMINISTIC GAME STATE
-STATE  + EVENTS + VISUAL SOURCE + VISUAL SEED = DETERMINISTIC PRESENTATION
+SOURCE + SEED + CLOCK + PLAYER COMMANDS        = DETERMINISTIC GAME STATE
+STATE  + EVENTS + VISUAL SOURCE + VISUAL SEED  = DETERMINISTIC PRESENTATION
 ```
 
-## 3. Ownership map (single writer per slice)
+---
 
-| Slice | Owner (writer) | Readers |
-|---|---|---|
-| game time (tick, phase, phaseProgress, waveTime, paused) | ClockSystem | all |
-| plants (spawn/place/update/attack/damage) | PlantSystem | renderer, UI, visual observer |
-| enemies (move/target/damage/die) | EnemySystem | renderer, UI, visual observer |
-| projectiles | ProjectileSystem | renderer, UI, visual observer |
-| energy/score | ScoreSystem | renderer, UI |
-| combo (count/timer/multiplier/highest) | ComboSystem | renderer, UI |
-| waves (number, timer, schedule, completion) | WaveSystem | all |
-| inventory/discovered variants | InventorySystem | UI, PlantSystem(placement checks) |
-| worker-owned sim state | SimulationRoot (worker) | main thread via snapshots |
-| UI React state | Screen router (App) | components |
-| persisted meta | meta.ts (nursery stats) | menu/UI |
-| camera, FX layers, particles | observers/render | — |
+## 3. Ownership Contracts je Domäne
 
-No other file may write these slices. Cross-slice influence happens ONLY via commands/events.
+| Domäne | Pfad | Autoritativer Writer | Erlaubte Reader / Konsumenten | LOC-Cap |
+|---|---|---|---|---|
+| **`core`** | `src/core/` | `GameClock` (Zeit); Core-Module sind pure | Alle Domänen | 300 |
+| **`config`** | `src/config/` | Statische Source-Dateien (`*.source.ts`) | `simulation`, `genome`, `visual`, `ui` | 200 |
+| **`simulation`** | `src/simulation/` | `SimulationRoot` (leitet an Subsysteme) | Main Thread via Snapshot, Bus-Events | 300 |
+| **`bus`** | `src/bus/` | `EventBus` (Events), `CommandQueue` (Commands)| Alle Domänen (read-only Abonnenten) | 300 |
+| **`genome`** | `src/genome/` | Reine mathematische Berechnungen | `simulation`, `persistence`, `ui`, `visual` | 300 |
+| **`visual`** | `src/visual/` | `generator.ts` (reine Funktionen) | `render`, `ui/components` | 400 |
+| **`render`** | `src/render/` | `Renderer` & Canvas-Layer (read-only auf Sim) | Reine Bildschirmausgabe | 400 |
+| **`observers`**| `src/observers/` | `visualObserver`, `audioObserver`, `particles`| `render`, Web Audio API | 400 |
+| **`persistence`**| `src/persistence/`| `storage.ts` (einziger Web-Storage Writer) | `meta/`, `simulation/resume.ts` | 200 |
+| **`discovery`**| `src/discovery/`| `chain.ts` (Append-Only Hash-Chain) | `Codex.tsx`, `meta/store.ts` | 300 |
+| **`ui`** | `src/components/`| React Screen-Router & Komponenten | DOM / Spieler | 400 |
 
-## 4. LOC caps (hard; violation = split, never raise cap to fit code)
+*Regel:* Kein System schreibt außerhalb seines Slices. Cross-Slice-Kommunikation erfolgt **ausschließlich** über Commands (rein) oder Events (raus).
 
-| Cap | Applies to |
+---
+
+## 4. LOC-Caps (Hart) — Zählung von Code-Zeilen
+
+| Cap (LOC) | Geltungsbereich |
 |---|---|
-| 300 | simulation systems, bus, clock, rng, seed, ids, hash |
-| 400 | renderer, visual generator/resolvers, particles, feedback, observers |
-| 400 | UI components |
-| 200 | types, config/source files, meta, i18n |
+| **300** | Simulationssysteme, Bus, Clock, RNG, Seed, IDs, Hash, Discovery |
+| **400** | Renderer, Visual Generator, Partikel, Observer, UI-Komponenten |
+| **200** | Typen, Config/Source, Meta-Adapter, i18n, Persistenz |
 
-Exceptions granted only per file with a one-line justification in the file header.
+*Zählregel:* Gemessen werden **nur reine Code-Zeilen** (Kommentare und Leerzeilen zählen nicht, gemessen via Gate `codeLineCount`). Überschreitungen führen zum sofortigen STOPP und modularen Splitten.
 
-##  LOC audit command: `wc -l` per file vs table above.
+---
 
-## 5. Event schema (v1, binding)
+## 5. Event & Command Verträge (v1, Binding)
 
+### Event-Schema
 ```ts
 type GameEvent = {
-  eventId: string;   // stable: `${tick}:${sourceId}:${type}:${seq}`
-  tick: number;      // from Clock
-  type: EventType;   // UPPER_SNAKE string union
-  sourceId: string;  // owning entity or 'system:<Name>'
+  eventId: string;   // format: `${tick}:${sourceId}:${type}:${seq}`
+  tick: number;      // von Clock autorisiert
+  type: EventType;   // UPPER_SNAKE_CASE
+  sourceId: string;  // Entity-ID oder 'system:<Name>'
   version: 1;
-  payload: object;   // per-type, documented in bus/events.ts
+  payload: object;   // dokumentiert in bus/events.ts
 };
 ```
 
-Event families + producers/consumers are listed in `src/bus/events.ts` (Phase 3).
-
-## 6. Command schema (v1, binding)
-
+### Command-Schema
 ```ts
 type Command = {
   commandId: string;
   tick: number;
   type: 'PLACE_PLANT' | 'REMOVE_PLANT' | 'START_WAVE' | 'BREED_PLANTS' | 'SELECT_PLANT' | 'CANCEL_PLACEMENT' | 'INSPECT';
-  actorId: string; // 'player' for user input
+  actorId: string;   // 'player'
   version: 1;
   payload: object;
 };
 ```
 
-Dataflow is one-way: Input → Command → Bus → Simulation → State/Event → Observer. Canvas/React never call simulation directly.
+*Verbindlicher Datenfluss:*  
+Input (Pointer/Touch) → `CommandQueue` → `SimulationRoot` → `EventBus` → `Observers` → `Renderer`.
 
-## 7. Seed namespaces (binding set)
+---
 
-```
-world | wave | enemy | plant | loot | visual | particle | cosmetic
-```
+## 6. Determinismus & RNG-Isolation
 
-- Gameplay namespaces: `world, wave, enemy, plant, loot` — consumed by simulation only.
-- Presentation namespaces: `visual, particle, cosmetic` — consumed by observers/renderer only.
-- Rule: visual RNG consumption never advances gameplay RNG state, and vice versa.
-- Naming: `deriveSeed(rootSeed, namespace, entityId, eventId, version)` (Phase 2.3).
+- 8 autorisierte Namespaces:
+  - **Gameplay:** `world`, `wave`, `enemy`, `plant`, `brood`, `loot` (nur Simulation).
+  - **Präsentation:** `visual`, `particle`, `cosmetic` (nur Darstellung).
+- RNG-Aufrufe der Präsentation dürfen niemals den Gameplay-RNG vorantreiben.
+- `Math.random` und `Date.now` sind im gesamten Spielcode **verboten**. `performance.now` ist ausschließlich für Frame-Deltas in `GameView` zulässig.
 
-## 8. Determinism rules
+---
 
-- No `Math.random`, `Date.now`, `performance.now` in gameplay/presentation logic.
-  `performance.now` is allowed ONLY inside `clock.ts` (frame timing) and worker loop scheduling.
-- Same root seed + same command sequence = identical state hash, event sequence, entity ID sequence, visual keys.
-- FX ON/OFF must produce identical gameplay state (Test C, Phase 19).
+## 7. Die 8-Fragen-Sperre (Vor jedem Schreiben anzuwenden)
 
-## 9. Version policy
-
-- Entity/source/event/command carry `version: 1` explicitly.
-- Breaking change to schema ⇒ bump version field, keep old handler until migrated (no silent schema drift).
-- Meta save has `version`; `loadMeta()` migrates forward, never drops user currency silently.
-- Source files (plants/enemies/effects/extras/bases) are content-truth; changing values requires no code change elsewhere.
-
-## 10. Module boundary pre-check (Phase 30 checklist, applied before writing code)
-
-1. Does this function exist? 2. Which module owns it? 3. Gameplay/Source/Event/Observer/Rendering?
-4. New event/command needed? 5. Which seed namespace? 6. Rule → source? 7. LOC cap OK? 8. Second state source created?
-
-## 11. Deferred (explicit non-goals until core gates pass)
-
-Multiplayer/backend, 3D/shaders/physics, huge content volume, big meta systems (Phase 33).
+1. Existiert diese Funktion oder dieser Datentyp bereits im Projekt?
+2. Welches Modul besitzt die exklusive Verantwortung (Ownership)?
+3. Handelt es sich um Gameplay, Source, Event, Observer oder Rendering?
+4. Ist ein neues Command oder Event im Bus-Vertrag erforderlich?
+5. Welchem der 8 Seed-Namespaces ist der Zufall zuzuordnen?
+6. Gehört der Wert als Konstante in eine `*.source.ts`-Datei statt in den Code?
+7. Bleibt die Datei nach der Änderung unter ihrem LOC-Cap?
+8. Wird garantiert keine zweite Quelle der Wahrheit (State-Kopie) geschaffen?

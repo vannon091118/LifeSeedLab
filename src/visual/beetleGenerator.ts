@@ -29,8 +29,31 @@ function beetleGenomeHash(spec: BeetleSpecimen): number {
 
 /** Käfer-Phänotyp + Seed ⇒ Visual (EINE Ableitung für Brutstätte, Lager und Run). */
 export function resolveBeetleVisual(spec: BeetleSpecimen, rootSeed: number): ResolvedBeetleVisual {
-  const phenotype = beetlePhenotypeOf({ genome: spec.genome, generation: spec.generation ?? 1 });
-  const visualSeed = deriveSeed(rootSeed, 'visual', `beetle:${spec.id}`, beetleGenomeHash(spec), 1);
+  return resolveBeetleVisualFor(
+    { id: spec.id, genome: spec.genome, generation: spec.generation ?? 1 },
+    rootSeed,
+    beetleGenomeHash(spec),
+  );
+}
+
+/**
+ * DIESELBE Ableitung ohne Specimen-Hülle — für Wesen, die keine Zucht-Buchhaltung haben
+ * (Gegner/Archetypen). Ein Wesen braucht nur Identität, Genom und Generation; genau deshalb kann
+ * der Gegner dieselbe Zeichenkette benutzen wie ein gezüchteter Käfer (EINE Zeichen-Wahrheit).
+ */
+export function resolveBeetleVisualFor(
+  input: { id: string; genome: readonly { id: string; power: number; dominant: boolean }[]; generation: number },
+  rootSeed: number,
+  genomeHash?: number,
+  jitterNamespace: 'brood' | 'visual' = 'brood',
+): ResolvedBeetleVisual {
+  const phenotype = beetlePhenotypeOf({
+    genome: [...input.genome],
+    generation: input.generation,
+    jitterNamespace,
+  });
+  const hash = genomeHash ?? input.genome.reduce((h, g) => h ^ strHash(`${g.id}:${g.power.toFixed(3)}:${g.dominant ? 'd' : 'r'}`), 0) >>> 0;
+  const visualSeed = deriveSeed(rootSeed, 'visual', `beetle:${input.id}`, hash, 1);
   const base = phenotype.pigment.primary;
   return {
     version: 1,

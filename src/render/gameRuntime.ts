@@ -163,6 +163,9 @@ export class RunRuntime {
           inventory: snap.inventory,
           mapTiles: snap.mapTiles,
           route: snap.currentRoute, // R1: die Vorschau misst dieselbe Route wie die Sim
+          // Die Vorschau prüft die Geometrie mit DERSELBEN Weltgröße wie die Sim.
+          cols: snap.cols,
+          rows: snap.rows,
         };
       },
       tick: () => root.getSnapshot().clock.tick,

@@ -2,13 +2,14 @@ import type { MetaSave, PlantVariant, PendingBrood, BeetleSpecimen } from '../ty
 import { load, save, remove } from '../persistence/storage';
 import { APP_VERSION } from '../version';
 import { STARTER_PLANT_COUNT, STARTING_NEKTAR, GREENHOUSE_POT_SLOTS, REARING_SLOTS_START, REARING_SLOTS_MAX } from '../config/economy.source';
+import { STARTING_MATERIAL } from '../config/map.source';
 import { createBaseVariants } from '../genome/bases';
 import { genomeEffectIds } from '../genome/visualMap';
 
 // Owner: PersistenceSystem (meta store — the only persistence owner remains storage.ts).
 
 export const META_KEY = 'lifegamelab_meta';
-export const META_VERSION = 8;
+export const META_VERSION = 9;
 
 /** Legacy-Basen-IDs (vor der PLANTS_SOURCE-Vereinheitlichung) → kanonische PlantTypeId. */
 const LEGACY_BASE_ID: Record<string, 'sprout' | 'rootwall' | 'mycelia'> = {
@@ -37,20 +38,25 @@ export function deriveBredEntry(variant: PlantVariant): NonNullable<MetaSave['br
 }
 
 export function defaultMeta(): MetaSave {
-  // Einstiegs-Loop: KEIN Gratis-Besitz mehr. Der neue Spieler hat leere Hände — Krix leiht
+  // Einstiegs-Loop: KEINE Gratis-PFLANZEN mehr. Der neue Spieler hat leere Hände — Krix leiht
   // den Spross (meta/loan.ts, deterministisch), das Startkapital reicht für GENAU EINEN
   // eigenen Samen. Der alte Pauschal-Besitz (STARTER_PLANT_COUNT) entwertete Leihe, Kauf
   // und Gewächshaus: Es gab nie einen Grund, den Loop zu betreten.
-  const counts: Record<string, number> = {};
+  //
+  // FAIRES STARTMATERIAL (Besitz-Modell, 19.09.2026): Bau-Material ist keine Run-Gabe mehr,
+  // sondern BESITZ — deshalb bekommt es jedes Profil genau einmal hier. Ohne diesen Start
+  // wäre die Bauphase (der Kern des Spiels) auf einer leeren Karte tot, und die Shop-Preise
+  // hätten kein Gegenstück in einem Konto.
   return {
-    version: 8,
+    version: 9,
     appVersion: APP_VERSION,
     nektar: STARTING_NEKTAR,
     bestWave: 0,
     runs: 0,
     runId: 0,
     breedGeneration: 0,
-    variantCounts: counts,
+    variantCounts: { ...STARTING_MATERIAL },
+    materialGranted: true,
     savedVariants: [],
     loadout: [],
     language: 'en',
@@ -72,6 +78,27 @@ export function defaultMeta(): MetaSave {
     pots: Array<string | null>(GREENHOUSE_POT_SLOTS).fill(null),
     seedlings: [],
   };
+}
+
+/**
+ * FAIRES STARTMATERIAL — JEDEM Profil genau einmal (19.09.2026).
+ *
+ * Die Gabe ist ein BODEN, kein Geschenk pro Load: `max(Bestand, STARTING_MATERIAL[key])` für
+ * jedes Profil, das das Flag noch nicht trägt. Damit bekommt ein Altsave oder ein Stand mitten
+ * aus der Einführung des Besitz-Modells die Bauphase zurück, OHNE dass jemand reicher wird
+ * (wer schon mehr besitzt, behält seine Zahl) — und ein Profil, das sein Material verbaut hat,
+ * wird NICHT bei jedem Load neu ausgestattet: verbautes Material ist in der Karte, nicht weg.
+ */
+function grantStartingMaterial(
+  counts: Record<string, number>,
+  granted: unknown,
+): { counts: Record<string, number>; granted: boolean } {
+  if (granted === true) return { counts, granted: true };
+  const out: Record<string, number> = { ...counts };
+  for (const [key, amount] of Object.entries(STARTING_MATERIAL)) {
+    out[key] = Math.max(out[key] ?? 0, amount);
+  }
+  return { counts: out, granted: true };
 }
 
 function sanitizeCounts(raw: unknown, fallback: Record<string, number>): Record<string, number> {
@@ -132,6 +159,11 @@ function normalizeRipeness(meta: MetaSave): MetaSave {
 function toCurrent(base: MetaSave, raw: Partial<MetaSave>): MetaSave {
   const broods = Array.isArray(raw.pendingBroods) ? raw.pendingBroods : [];
   const beetles = Array.isArray(raw.beetles) ? raw.beetles : [];
+  // v9: das faire Startmaterial ist Besitz — Altsaves bekommen es hier genau einmal.
+  const granted = grantStartingMaterial(
+    sanitizeCounts(raw.variantCounts, base.variantCounts),
+    raw.materialGranted,
+  );
   // v6 kannte nur „gesehen: ja/nein". Das Ja wird zur Fassung 1 (die alte Run-Tour) —
   // damit sieht auch ein Bestandsspieler die überarbeitete Tour genau einmal.
   const legacySeen = (raw as { tutorialDone?: boolean }).tutorialDone === true;
@@ -142,7 +174,11 @@ function toCurrent(base: MetaSave, raw: Partial<MetaSave>): MetaSave {
     runs: typeof raw.runs === 'number' ? raw.runs : 0,
     runId: typeof raw.runId === 'number' ? raw.runId : 0,
     breedGeneration: typeof raw.breedGeneration === 'number' ? raw.breedGeneration : 0,
-    variantCounts: sanitizeCounts(raw.variantCounts, base.variantCounts),
+    // Besitz-Modell-Heilung: ein Save aus der Zeit VOR dem Besitz-Modell kennt kein Material
+    // (die Map-Pools waren Run-Gaben) — der bekommt das faire Startmaterial genau einmal.
+    // Danach entscheidet allein sein Bestand.
+    variantCounts: granted.counts,
+    materialGranted: granted.granted,
     savedVariants: Array.isArray(raw.savedVariants) ? raw.savedVariants : [],
     loadout: Array.isArray(raw.loadout) ? raw.loadout : [],
     language: raw.language === 'de' ? 'de' : 'en',
@@ -181,7 +217,9 @@ function sanitizePots(raw: unknown): (string | null)[] {
 }
 
 function migrate(raw: unknown, fromVersion: number): MetaSave | null {
-  if (fromVersion < 1 || fromVersion > 7) return null;
+  // Obergrenze = META_VERSION - 1. Ein Save der AKTUELLEN Version läuft hier nie an
+  // (storage.ts reicht ihn roh durch) — jedes ältere muss durch `toCurrent`.
+  if (fromVersion < 1 || fromVersion >= META_VERSION) return null;
   const old = raw as Partial<MetaSave> & { version?: number };
   if (typeof old.nektar !== 'number') return null;
   return toCurrent(defaultMeta(), old);
@@ -199,8 +237,13 @@ function healEntryLoop(meta: MetaSave): MetaSave {
   const slots = typeof meta.rearingSlots === 'number' && Number.isFinite(meta.rearingSlots)
     ? Math.min(REARING_SLOTS_MAX, Math.max(REARING_SLOTS_START, Math.floor(meta.rearingSlots)))
     : REARING_SLOTS_START;
+  // v9: dasselbe Muster für das Startmaterial — die Heilung deckt Saves ab, die nie durch die
+  // Migration liefen (gleiche Envelope-Version, Feld fehlt). Idempotent über das Flag.
+  const material = grantStartingMaterial(meta.variantCounts ?? {}, meta.materialGranted);
   return {
     ...meta,
+    variantCounts: material.counts,
+    materialGranted: material.granted,
     rearingSlots: slots,
     pots: sanitizePots(meta.pots),
     seedlings: Array.isArray(meta.seedlings) ? meta.seedlings.filter((s): s is string => typeof s === 'string') : [],

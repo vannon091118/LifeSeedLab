@@ -10,7 +10,7 @@ import {
   buySeedling, plantSeedlingIntoPot,
   deriveLoanPlant, isLoanVariant, LOAN_PLANT_ID,
 } from '../meta';
-import { STARTING_NEKTAR, SEED_SHOP_BASE_PRICE, GREENHOUSE_POT_SLOTS } from '../config/economy.source';
+import { STARTING_NEKTAR, SEED_PRICE, GREENHOUSE_POT_SLOTS } from '../config/economy.source';
 import { ownedInventory } from '../simulation/state';
 import { GAME_SEED } from '../config';
 
@@ -18,16 +18,16 @@ describe('Einstieg — Startkapital: genau EIN günstiger Samen', () => {
   beforeEach(() => { resetFullTestState(); });
 
   it('Start-Nektar ist exakt der Basis-Samenpreis — mehr ist nie möglich', () => {
-    expect(STARTING_NEKTAR).toBe(SEED_SHOP_BASE_PRICE);
+    expect(STARTING_NEKTAR).toBe(SEED_PRICE);
     expect(defaultMeta().nektar).toBe(STARTING_NEKTAR);
   });
 
   it('Zweiter Kauf ist aus Startkapital ausgeschlossen — der Loop zwingt in den Run', () => {
     // Erster Kauf: klappt, frisst das ganze Startkapital.
-    expect(buySeedling(SEED_SHOP_BASE_PRICE)).not.toBeNull();
+    expect(buySeedling()).not.toBeNull();
     expect(loadMeta().nektar).toBe(0);
     // Zweiter Kauf: fail-closed (null), kein Schuldenkauf.
-    expect(buySeedling(SEED_SHOP_BASE_PRICE)).toBeNull();
+    expect(buySeedling()).toBeNull();
   });
 });
 
@@ -62,7 +62,7 @@ describe('Einstieg — Leih-Spross: deterministisch, kein Dauerbesitz', () => {
   // (Bau-Material steht im selben Eimer!) nahmen dem Run die Leihe. Ergebnis: Run-Start mit
   // null platzierbaren Pflanzen, tote Bauphase, Tutorial zielt auf eine nicht existierende Karte.
   it('Besitz im Regal verdrängt die Leihe NICHT — nur ein ausgerüsteter Loadout tut das', () => {
-    expect(buySeedling(SEED_SHOP_BASE_PRICE)).not.toBeNull();
+    expect(buySeedling()).not.toBeNull();
     const owned = loadMeta();
     expect(owned.variantCounts.seed_0 ?? 0).toBeGreaterThan(0);
     expect(owned.loadout).toEqual([]);
@@ -121,7 +121,7 @@ describe('Einstieg — Gewächshaus: Töpfe sind die physischen Slots', () => {
   });
 
   it('Kauf → Keimling → Topf: der volle Übergang vom Shop ins Gewächshaus', () => {
-    expect(buySeedling(SEED_SHOP_BASE_PRICE)).not.toBeNull();
+    expect(buySeedling()).not.toBeNull();
     let meta = loadMeta();
     expect(meta.seedlings).toHaveLength(1);
     expect(meta.pots).toEqual([null, null, null]);
@@ -134,7 +134,7 @@ describe('Einstieg — Gewächshaus: Töpfe sind die physischen Slots', () => {
   });
 
   it('fail-closed: belegter Topf, fremder Topf-Index, unbekannter Keimling', () => {
-    expect(buySeedling(SEED_SHOP_BASE_PRICE)).not.toBeNull();
+    expect(buySeedling()).not.toBeNull();
     const seedling = loadMeta().seedlings[0]!;
     expect(plantSeedlingIntoPot(seedling, 0)).not.toBeNull();
     // Topf 0 ist jetzt belegt: gleicher/anderer Keimling dort ⇒ null.
