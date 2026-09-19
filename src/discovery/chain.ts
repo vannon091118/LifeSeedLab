@@ -5,6 +5,7 @@
 
 import type { Genome } from '../types';
 import { fnv1aHex } from '../core/hash';
+import { EPOCH_ID } from '../config';
 
 // ── Genome-Hash (einzige Wahrheit für eine Kreuzung) ─────────────────
 /** Kanonische Darstellung: Gene sortiert nach id, power auf 1e-4 quantisiert. */
@@ -19,6 +20,13 @@ export function hashGenome(genome: Genome): string {
 }
 
 // ── Discovery-Entry ──────────────────────────────────────────────────
+/**
+ * Eintragstyp (P2, plan-discovery-chain.md): versioniert die HERKUNFT eines Fundes.
+ * `cross` = aus zwei Eltern gekreuzt (heute der einzige Typ). Der Ticket-Worker (P4) ergänzt
+ * später `found` (Feldfund) — das Feld ist die Migrations-Naht, nicht ein Platzhalter.
+ */
+export type DiscoveryEntryType = 'cross' | 'found';
+
 export interface DiscoveryEntry {
   /** entry_hash — SHA256-lite (FNV-Hex) über alle Felder außer sich selbst. */
   entry_hash: string;
@@ -35,11 +43,18 @@ export interface DiscoveryEntry {
    *  derselbe Wert wie in `DiscoveryInput.timestamp`; er identifiziert das Zucht-EREIGNIS,
    *  nicht einen Kalendertag. */
   timestamp: number;
+  /** Epoche des Fundes — identifiziert die Wurzel, aus der `seed` abgeleitet wurde.
+   *  Ohne sie ist ein Eintrag nach einem Wurzel-Wechsel nicht mehr nachrechenbar (P1-Vertrag). */
+  epoch_id: number;
+  /** Herkunfts-Typ des Eintrags (siehe DiscoveryEntryType). */
+  type: DiscoveryEntryType;
+  /** Schema-Version der EINTRAGS-Struktur (unabhängig von der Codex-Speicher-Version). */
+  schema_version: 2;
   /** Hash des Vorgängers — null beim Genesis-Eintrag. */
   prev_hash: string | null;
 }
 
-/** Eingabe zum Erzeugen eines Eintrags — entry_hash/prev_hash werden abgeleitet. */
+/** Eingabe zum Erzeugen eines Eintrags — abgeleitete Felder werden hier gesetzt. */
 export interface DiscoveryInput {
   genome: Genome;
   parents: [string, string];
@@ -48,17 +63,27 @@ export interface DiscoveryInput {
   player_id: string;
   /** Logischer Zeitstempel (deterministisch, KEIN Date.now()). Caller muss liefern. */
   timestamp: number;
+  /** Epoche des Fundes — default: die aktive (EPOCH_ID). */
+  epoch_id?: number;
+  /** Herkunfts-Typ — default: 'cross'. */
+  type?: DiscoveryEntryType;
 }
 
 /** Stabile Serialisierung für den Entry-Hash (Feldreihenfolge fix). */
 function entryPayload(e: Omit<DiscoveryEntry, 'entry_hash'>): string {
   return JSON.stringify({
+    // ADDITIV-KONDITIONAL (D8-Muster, plan-discovery-chain.md §2): die neuen Felder hängen nur
+    // an, wenn vorhanden — Epoche-0-Einträge alter Struktur hashen damit UNVERÄNDERT weiter,
+    // neue Einträge tragen ihre Herkunft mit. Kein bestehender Hash bricht.
     genome_hash: e.genome_hash,
     parents: [...e.parents].sort(),
     seed: e.seed,
     generation: e.generation,
     player_id: e.player_id,
     timestamp: e.timestamp,
+    ...(e.epoch_id !== undefined ? { epoch_id: e.epoch_id } : {}),
+    ...(e.type !== undefined ? { type: e.type } : {}),
+    ...(e.schema_version !== undefined ? { schema_version: e.schema_version } : {}),
     prev_hash: e.prev_hash,
   });
 }
@@ -67,7 +92,7 @@ export function hashEntry(entry: Omit<DiscoveryEntry, 'entry_hash'>): string {
   return fnv1aHex(entryPayload(entry));
 }
 
-/** Erzeugt einen neuen Chain-Eintrag verkettet an `prev`. */
+/** Erzeugt einen neuen Chain-Eintrag verkettet an `prev` — mit Epoche, Typ und Schema (P2). */
 export function createEntry(input: DiscoveryInput, prev: DiscoveryEntry | null): DiscoveryEntry {
   const genome_hash = hashGenome(input.genome);
   const timestamp = input.timestamp; // required, deterministic — no Date.now()
@@ -79,6 +104,9 @@ export function createEntry(input: DiscoveryInput, prev: DiscoveryEntry | null):
     generation: input.generation,
     player_id: input.player_id,
     timestamp,
+    epoch_id: input.epoch_id ?? EPOCH_ID,
+    type: input.type ?? 'cross',
+    schema_version: 2,
     prev_hash: prev ? prev.entry_hash : null,
   };
   return { ...base, entry_hash: hashEntry(base) };

@@ -14,7 +14,7 @@ import type { SimState } from '../simulation/state';
 import { SimulationRoot, type RootInit } from '../simulation/root';
 import { makeCommand, type CommandPayloads } from '../bus/commands';
 import { deriveSeed } from '../core/rng';
-import { GAME_SEED, RUN_SEED_VERSION } from '../config';
+import { EPOCH_ROOT, RUN_SEED_VERSION } from '../config';
 import { createInitialWorld, worldSnapshotOf } from '../world/world_state';
 
 /** Leert Meta-Speicher + Test-Storage (Standard-Setup der meisten Tests). */
@@ -56,7 +56,7 @@ export function hashOfRoot(root: SimulationRoot): string {
  * meta/run.ts#reserveRunId) und liefert daraus den Run-Seed nach App.tsx-Muster.
  */
 export function makeRunSeed(runId: number): number {
-  return deriveSeed(GAME_SEED, 'world', 'run', runId, RUN_SEED_VERSION);
+  return deriveSeed(EPOCH_ROOT, 'world', 'run', runId, RUN_SEED_VERSION);
 }
 
 /**
@@ -82,7 +82,7 @@ export interface MakeRunOptions {
 /**
  * Deterministische SimulationRoot-Erzeugung im echten Run-Kontext:
  * runId (Default wie reserveRunId: max(meta.runId, meta.runs) + 1) → Seed
- * via deriveSeed(GAME_SEED,'world','run',runId,RUN_SEED_VERSION).
+ * via deriveSeed(EPOCH_ROOT,'world','run',runId,RUN_SEED_VERSION).
  * Frischer Run ohne Meta (nach resetTestState) ⇒ runId 1 ⇒ Seed 2447771834.
  */
 export function makeRun(options: MakeRunOptions = {}): SimulationRoot {

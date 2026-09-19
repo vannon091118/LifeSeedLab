@@ -1,5 +1,5 @@
 import type { BeetleAncestor, Genome, BeetleSpecimen } from '../types';
-import { GAME_SEED } from '../config';
+import { EPOCH_ROOT } from '../config';
 import { deriveSeed } from '../core/rng';
 import { breedGenome, expressed, genomePower, rollCandidates } from './breeding';
 import {
@@ -89,7 +89,7 @@ export function deriveBeetleStats(specimenId: string, genome: Genome): BeetleSpe
 /** Deterministischer Brut-Seed — eigene Domäne 'brood' (B30), getrennt von 'plant' (Pflanzenzucht)
  *  und 'enemy' (Gegner-Spawn/Crit). Siehe Migrationsnotiz an BROOD_SEED_NAMESPACE. */
 export function deriveBroodSeed(ancestorAId: string, ancestorBId: string, broodIndex: number): number {
-  return deriveSeed(GAME_SEED, BROOD_SEED_NAMESPACE, ancestorAId, `${ancestorBId}:${broodIndex}`, 1);
+  return deriveSeed(EPOCH_ROOT, BROOD_SEED_NAMESPACE, ancestorAId, `${ancestorBId}:${broodIndex}`, 1);
 }
 
 /**

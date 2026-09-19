@@ -1,11 +1,9 @@
 # Plan-Prüfung: Discovery-Chain & Ticket-Wurzel
 
-**Stand:** 19.09.2026 · **geprüft gegen:** `9824b54` · **Status:** Bewertung + Plan.
+**Stand:** 19.09.2026 · **geprüft gegen:** `9824b54` · **Status:** Bewertung + Plan; **P1+P2 sind umgesetzt** (siehe §7).
 
-> **Hier ist nichts implementiert.** Dieses Dokument prüft einen vorgelegten Plan
-> („Ticket-Chain": `EPOCH_ROOT` → Ticket → `RUN_ROOT`, ein Worker als einziger Schreiber,
-> Seltenheit als Signatur-Zähler) gegen den echten Code. Jede Zeile in §1 ist im Quelltext
-> belegt; Behauptungen ohne Beleg stehen nicht hier. Doku ist kein Ersatz für Umsetzung.
+> **Umsetzungsstand:** P1 (Wurzel als Kontext) und P2 (versionierte Einträge + Migration) sind
+> implementiert und gepinnt (`src/discovery/epoch.test.ts`). Alles andere in §3 ist geplant, nicht gebaut.
 
 ---
 
@@ -130,3 +128,27 @@ Ohne Schritt 1 ist jedes spätere B ein Bruch an Daten, die schon öffentlich si
 3. Ticket-Regeln: Pool-Größe offline, Ablauf, was im `unranked`-Modus fehlt.
 4. Codex-Altbestand: unsignierte „Gründer"-Einträge behalten — ja/nein.
 5. Reihenfolge zum Rest: vor oder nach Käfer-Fähigkeiten (Plan B) und den Ballistik-Fusionen.
+
+---
+
+## 7. Umsetzungsstand P1 + P2 (nachgetragen)
+
+**P1 — Wurzel als Kontext:** `src/config.ts` definiert `EPOCH_ROOT: number = GAME_SEED` und
+`EPOCH_ID = 0`. Alle zehn Ableitungsstellen (gacha, beetle, enemyPhenotype, economy, loan,
+testkit, enemyVisuals, world_state, App) lesen `EPOCH_ROOT` statt der Konstante. Beweis der
+Bitgleichkeit: `deriveSeed(EPOCH_ROOT, …) === deriveSeed(GAME_SEED, …)` gepinnt, Suite unverändert
+grün. Ein späterer Worker tauscht nur den Wert, nie die Ableitungen.
+
+**P2 — versionierte Einträge:** `DiscoveryEntry` trägt `epoch_id`, `type` (`'cross' | 'found'`)
+und `schema_version: 2`; `entryPayload` erweitert additiv-konditional (D8-Muster — v1-Hashes
+bleiben, solange die Felder fehlen). `createEntry` setzt die Felder aus `EPOCH_ID`/Defaults.
+
+**Migration v1→v2 mit gelerntem Vertrag:** Altbestand sind Epoche-0-Gründer. Der erste
+Migrations-Entwurf (stille Feld-Anreicherung) brach die Hash-Kette — ein v1-Hash ist ohne die
+Felder gebildet, verifyChain rechnet mit ihnen nach. Die Umsetzung (`codex_migration.ts`)
+NEUVERKETTET deshalb eine Kette mit v1-Gliedern als Ganzes im v2-Schema; gepinnt in
+`src/discovery/epoch.test.ts` (8 Tests, darunter gemischte Ketten und Idempotenz).
+
+**Nicht umgesetzt (bewusst):** P3 Sweep-Test, P4 Worker, P5 START-Flow, P6 Fund-Feed,
+P7 Replay-Log, P8 SHA-256-Identitäten. Die Migration 001 (Supabase) kennt die neuen Felder
+noch nicht — sie wird erst bei P4 erweitert, vorher ändert sie nichts an dem Stub-Status.

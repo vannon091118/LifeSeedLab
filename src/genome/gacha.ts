@@ -1,5 +1,5 @@
 import type { PlantType, PlantVariant, CrossResult } from '../types';
-import { GAME_SEED } from '../config';
+import { EPOCH_ROOT } from '../config';
 import { deriveSeed, makeRng } from '../core/rng';
 import { crossGenomes, deriveStats, deriveTraits, deriveColor, generateName } from './cross';
 
@@ -61,7 +61,7 @@ export function rollGachaCross(owned: PlantVariant[], seed: number, crossIndex: 
 }
 
 export function deriveGachaSeed(generation: number): number {
-  return deriveSeed(GAME_SEED, 'plant', 'gacha', 'roll', generation);
+  return deriveSeed(EPOCH_ROOT, 'plant', 'gacha', 'roll', generation);
 }
 
 /**
@@ -71,7 +71,7 @@ export function deriveGachaSeed(generation: number): number {
  * nur der Timer, kein zweiter Wurf.
  */
 export function crossPair(parentA: PlantVariant, parentB: PlantVariant, generation: number): GachaRoll {
-  const seed = deriveSeed(GAME_SEED, 'plant', parentA.id, `${parentB.id}`, generation);
+  const seed = deriveSeed(EPOCH_ROOT, 'plant', parentA.id, `${parentB.id}`, generation);
   const rng = makeRng('plant', seed);
 
   const childGenome = crossGenomes(parentA.genome, parentB.genome, rng);
@@ -96,7 +96,7 @@ export function crossPair(parentA: PlantVariant, parentB: PlantVariant, generati
 }
 
 export function deriveBreedSeed(parentAId: string, parentBId: string, generation: number): number {
-  return deriveSeed(GAME_SEED, 'plant', parentAId, `${parentBId}`, generation);
+  return deriveSeed(EPOCH_ROOT, 'plant', parentAId, `${parentBId}`, generation);
 }
 
 export function generateCrossResults(

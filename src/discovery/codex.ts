@@ -3,6 +3,7 @@
 // Keine Netzwerk-Deps — Supabase ist ein reiner INSERT-Stub hinter tryAppend.
 
 import { load, save } from '../persistence/storage';
+import { migrateV1Entries } from './codex_migration';
 import {
   createEntry,
   hashGenome,
@@ -16,13 +17,13 @@ import { fnv1aHex } from '../core/hash';
 import type { Genome } from '../types';
 
 const CODEX_KEY = 'lifegamelab_codex';
-const CODEX_VERSION = 1;
+const CODEX_VERSION = 2;
 const PLAYER_KEY = 'lifegamelab_player_id';
 const PLAYER_VERSION = 1;
 const PLAYER_SEQ_KEY = 'lifegamelab_player_seq';
 
 interface CodexSave {
-  version: 1;
+  version: 2;
   chain: DiscoveryEntry[];
 }
 
@@ -75,7 +76,7 @@ export function getPlayerId(): string {
 
 // ── Codex-Persistenz ─────────────────────────────────────────────────
 function defaultCodex(): CodexSave {
-  return { version: 1, chain: [] };
+  return { version: 2, chain: [] };
 }
 
 export function loadCodex(): DiscoveryEntry[] {
@@ -83,12 +84,16 @@ export function loadCodex(): DiscoveryEntry[] {
     version: CODEX_VERSION,
     fallback: defaultCodex,
   });
-  if (!saveData || !Array.isArray((saveData as CodexSave).chain)) return [];
-  return (saveData as CodexSave).chain;
+  if (!saveData) return [];
+  // Alte Struktur (version 1 bzw. fehlende Felder) wandert durch die Migration —
+  // der Vertrag lebt in `codex_migration.ts` (Gründer-Einträge, idempotent).
+  if ((saveData as CodexSave).version !== 2) return migrateV1Entries((saveData as CodexSave).chain ?? []);
+  if (!Array.isArray(saveData.chain)) return [];
+  return saveData.chain;
 }
 
 function saveCodex(chain: DiscoveryEntry[]): void {
-  save(CODEX_KEY, { version: 1, chain } satisfies CodexSave, CODEX_VERSION);
+  save(CODEX_KEY, { version: 2, chain } satisfies CodexSave, CODEX_VERSION);
 }
 
 // ── Append (lokal-first, UNIQUE genome_hash) ─────────────────────────
@@ -100,7 +105,24 @@ export interface AppendResult {
   genome_hash: string;
 }
 
-export function appendDiscovery(input: Omit<DiscoveryInput, 'player_id'> & { player_id?: string }): AppendResult {
+/** Input für appendDiscovery — timestamp wird intern deterministisch erzeugt. */
+export interface AppendDiscoveryInput {
+  genome: Genome;
+  parents: [string, string];
+  seed: number;
+  generation: number;
+  player_id?: string;
+}
+
+/**
+ * Deterministischer Zeitstempel für Discovery-Einträge.
+ * Nutzt (generation * 1_000_000) + (seed % 1_000_000) — reproduzierbar ohne Uhr.
+ */
+function logicalTimestamp(seed: number, generation: number): number {
+  return generation * 1_000_000 + (seed % 1_000_000);
+}
+
+export function appendDiscovery(input: AppendDiscoveryInput): AppendResult {
   const chain = loadCodex();
   const player_id = input.player_id ?? getPlayerId();
   const genome_hash = hashGenome(input.genome);
@@ -109,7 +131,8 @@ export function appendDiscovery(input: Omit<DiscoveryInput, 'player_id'> & { pla
     return { entry: null, appended: false, reason: 'duplicate genome_hash — first discovery wins', chain, genome_hash };
   }
   const prev = chain.length > 0 ? chain[chain.length - 1] : null;
-  const entry = createEntry({ ...input, player_id }, prev);
+  const timestamp = logicalTimestamp(input.seed, input.generation);
+  const entry = createEntry({ ...input, player_id, timestamp }, prev);
   const res = tryAppend(chain, entry);
   if (res.appended) {
     saveCodex(res.chain);

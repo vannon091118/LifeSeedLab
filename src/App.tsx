@@ -3,7 +3,7 @@ import type { MetaSave, GameMode } from './types';
 import { loadMeta, beginRun, updateMeta, deriveLoanPlant, LOAN_PLANT_ID } from './meta';
 import { I18nProvider, detectLangFromMeta } from './i18n';
 import { deriveSeed } from './core/rng';
-import { GAME_SEED, RUN_SEED_VERSION } from './config';
+import { EPOCH_ROOT, RUN_SEED_VERSION } from './config';
 import { PLANTS_SOURCE } from './config/plants.source';
 import { clearRun, loadRun, type RunSave } from './persistence/runSave';
 import { ensureWorld, loadWorld } from './persistence/worldSave';
@@ -57,7 +57,7 @@ function AppInner() {
   useEffect(() => {
     if (!meta) return;
     let alive = true;
-    const runSeed = deriveSeed(GAME_SEED, 'world', 'run', meta.runId, RUN_SEED_VERSION);
+    const runSeed = deriveSeed(EPOCH_ROOT, 'world', 'run', meta.runId, RUN_SEED_VERSION);
     void loadRun().then(save => {
       if (!alive) return;
       const matches = save !== null && meta.runId > 0 && save.runId === meta.runId && save.seed === runSeed;
@@ -126,7 +126,7 @@ function AppInner() {
   const renderScreen = () => {
     switch (screen) {
       case 'run': {
-        const runSeed = deriveSeed(GAME_SEED, 'world', 'run', meta.runId, RUN_SEED_VERSION);
+        const runSeed = deriveSeed(EPOCH_ROOT, 'world', 'run', meta.runId, RUN_SEED_VERSION);
         // Leih-Spross (falls aktiv): die Variante muss dem Run bekannt sein, damit sie
         // platzierbar ist — ohne savedVariants-Eintrag wäre resolvePlantStats blind.
         const hasLoan = (meta.variantCounts[LOAN_PLANT_ID] ?? 0) > 0;

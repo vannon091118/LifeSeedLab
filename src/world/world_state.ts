@@ -13,7 +13,7 @@
 // (B37-Besitzkette) und laufen über Loadout/Run — die Welt trägt die TOPOLOGIE.
 
 import { deriveSeed } from '../core/rng';
-import { GAME_SEED } from '../config';
+import { EPOCH_ROOT } from '../config';
 
 /** Startgröße der Welt (die Werte bleiben source-driven, die Quelle ist world.source). */
 export const WORLD_START_COLS = 12;
@@ -39,7 +39,7 @@ export interface WorldState {
 
 /** Die Welt-Seed-Ableitung: EINE Konvention für die Initialwelt (Namespace 'world'). */
 export function deriveWorldSeed(): number {
-  return deriveSeed(GAME_SEED, 'world', 'world', 1, 1);
+  return deriveSeed(EPOCH_ROOT, 'world', 'world', 1, 1);
 }
 
 /**

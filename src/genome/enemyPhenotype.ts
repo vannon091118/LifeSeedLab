@@ -8,7 +8,7 @@
 // (Spawn/Crit) nicht einmal berühren.
 
 import type { BeetleAncestor, Genome } from '../types';
-import { GAME_SEED } from '../config';
+import { EPOCH_ROOT } from '../config';
 import { deriveSeed, makeRng } from '../core/rng';
 import { BEETLE_GENE_POOL } from '../config/beetles.source';
 import { beetlePhenotypeOf, type BeetlePhenotype } from './beetlePhenotype';
@@ -40,7 +40,7 @@ export function enemyGenomeFor(typeId: EnemyTypeId, individualKey?: string): Gen
   const powers: number[] = genes.map(() => ENEMY_GENE_POWER);
   if (!src.individual || !individualKey) return genomeOf(genes, powers);
 
-  const rng = makeRng('visual', deriveSeed(GAME_SEED, 'visual', `enemy:${typeId}`, individualKey, 1));
+  const rng = makeRng('visual', deriveSeed(EPOCH_ROOT, 'visual', `enemy:${typeId}`, individualKey, 1));
   for (let i = 0; i < powers.length; i++) {
     const jitter = (rng.next() - 0.5) * 2 * ENEMY_INDIVIDUAL_SPREAD;
     powers[i] = clamp(ENEMY_GENE_POWER + jitter, ENEMY_POWER_RANGE[0], ENEMY_POWER_RANGE[1]);

@@ -114,6 +114,16 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ### Intern (Technik, Verträge & Tests)
 
+- [Discovery/P1+P2] **Die Wurzel ist ein Kontext, der Eintrag trägt seine Herkunft.** Statt der
+  Konstante `GAME_SEED` leiten alle zehn Ableitungsstellen über `EPOCH_ROOT` (Epoche 0 = 1337,
+  beweisbar bitgleich: Suite unverändert grün) — ein späterer Ticket-Worker tauscht die Wurzel,
+  nicht die Ableitung. Jeder Discovery-Eintrag trägt jetzt `epoch_id`, `type` und
+  `schema_version`; der Payload-Erweiterung ist additiv-konditional. Neuer Test `epoch.test.ts`
+  pinnt die Verträge und fand dabei einen echten Konflikt in der ersten Migration: ein
+  v1-Gründer trägt seinen Hash OHNE die neuen Felder, verifyChain rechnet MIT ihnen nach —
+  die Migration ist deshalb eine NEUVERKETTUNG (Kette wird als Ganzes im v2-Schema neu gehasht
+  und verkettet), dokumentiert statt still. **537/537 Tests.**
+
 - [Codex] **Der Codex zeigt Ereignis statt erfundener Daten.** Die Anzeige formatierte den
   logischen Zeitstempel als Kalenderdatum (`new Date(ts * 1000)`) — mit deterministischen
   Zeitstempeln hieß das: 1970. Jeder Eintrag zeigt jetzt „Gen n · Seed x“ (das ist der Wert,

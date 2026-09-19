@@ -1,5 +1,5 @@
 import type { PlantVariant, PlantType } from '../types';
-import { GAME_SEED } from '../config';
+import { EPOCH_ROOT } from '../config';
 import { deriveSeed, makeRng } from '../core/rng';
 import { PLANTS_SOURCE } from '../config/plants.source';
 import { crossGenomes, deriveStats, deriveTraits, deriveColor } from '../genome/cross';
@@ -9,7 +9,7 @@ import { crossGenomes, deriveStats, deriveTraits, deriveColor } from '../genome/
 // kein dauerhafter Gratis-Besitz, kein zweiter Zufallsgenerator.
 //
 // Determinismus-Vertrag: Die Leihpflanze entsteht AUSSCHLIESSLICH aus der bestehenden
-// Chain — `deriveSeed(GAME_SEED, 'plant', 'loan', <runId>)` füttert dieselbe Rng-Maschine
+// Chain — `deriveSeed(EPOCH_ROOT, 'plant', 'loan', <runId>)` füttert dieselbe Rng-Maschine
 // (`makeRng('plant', …)`), die auch Kreuzungen und Keime treibt. Derselbe runId ergibt
 // weltweit dieselbe Leihpflanze; kein `Math.random`, kein separater Namespace.
 //
@@ -31,7 +31,7 @@ export function isLoanVariant(variantId: string): boolean {
  * Dasselbe runId ⇒ dieselbe Pflanze (immer, überall, Replay-sicher).
  */
 export function deriveLoanPlant(runId: number): PlantVariant {
-  const seed = deriveSeed(GAME_SEED, 'plant', 'loan', runId);
+  const seed = deriveSeed(EPOCH_ROOT, 'plant', 'loan', runId);
   const rng = makeRng('plant', seed);
 
   // Basis-Form: IMMER der Spross — die einzige fest codierte Pflanze und die schwächste

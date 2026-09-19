@@ -12,7 +12,7 @@
 // Reine Präsentation: kein Zustand in der Sim, kein RNG-Strom, keine Uhr. Der Cache ist reine
 // Ableitungs-Memoisation (dieselben Eingaben ⇒ dieselbe Ausgabe), wie render/spriteCache.ts.
 
-import { GAME_SEED } from '../config';
+import { EPOCH_ROOT } from '../config';
 import { ENEMY_GENOMES_SOURCE, type EnemyTypeId } from '../config/enemyGenome.source';
 import { enemyAncestorFor } from '../genome/enemyPhenotype';
 import { resolveBeetleVisualFor, type ResolvedBeetleVisual } from './beetleGenerator';
@@ -34,7 +34,7 @@ export function enemyVisualFor(typeId: EnemyTypeId, individualKey?: string): Res
   // `visual`-Namespace: die Gegner-Domäne (Spawn/Crit) wird nie berührt.
   const visual = resolveBeetleVisualFor(
     { id: key, genome: ancestor.genome, generation: ancestor.generation },
-    GAME_SEED,
+    EPOCH_ROOT,
     undefined,
     'visual',
   );

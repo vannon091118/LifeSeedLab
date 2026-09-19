@@ -2,7 +2,7 @@ import type { MetaSave, PendingCross, PlantVariant } from '../types';
 import { loadMeta, updateMeta } from './store';
 import { registerVariant } from './run';
 import { wavesToUnlockFor, PENDING_CROSSES_MAX, GREENHOUSE_POT_SLOTS, rearingSlotGate, SEED_PRICE } from '../config/economy.source';
-import { GAME_SEED } from '../config';
+import { EPOCH_ROOT } from '../config';
 import { deriveSeed } from '../core/rng';
 import { createBaseVariants } from '../genome/bases';
 import { POOL_KEYS } from '../config/map.source';
@@ -58,7 +58,7 @@ export function buySeedAndGerminate(price: number, index: number): MetaSave | nu
  *
  * Vorher war ein Samen nur ein Kreuzungs-Ticket (`seedStash` → `consumeSeedAndEnqueueCross`):
  * nach dem ersten Keep blieben 0 Pflanzen, und es gab keinen Weg zurück (A19.4). Der Samen
- * wird aus dem Spiel-Seed deterministisch abgeleitet (`deriveSeed(GAME_SEED,'plant',…,index)`)
+ * wird aus dem Spiel-Seed deterministisch abgeleitet (`deriveSeed(EPOCH_ROOT,'plant',…,index)`)
  * — die Rolle/das Genom kommt aus `PLANTS_SOURCE` (Allel-Quelle), der Name trägt den Keim-Index.
  * Registrierung über `registerVariant` — derselbe Pfad wie ein gezüchtetes Kind.
  */
@@ -132,7 +132,7 @@ export function enqueueCross(seed: number, crossIndex: number, currentWave: numb
  */
 export function germinateVariant(index: number): PlantVariant {
   const bases = createBaseVariants();
-  const seed = deriveSeed(GAME_SEED, 'plant', 'seed', index);
+  const seed = deriveSeed(EPOCH_ROOT, 'plant', 'seed', index);
   const base = bases[seed % bases.length]!;
   return { ...base, id: `seed_${index}`, name: `${base.name} (Keim ${index + 1})` };
 }
