@@ -23,7 +23,7 @@ export function shiftChannels(hex: string, dr: number, dg: number, db: number): 
 }
 
 /** Faktor-Shift: f ≥ 0 aufhellen (zum Weiß), f < 0 abdunkeln (multiplikativ) — CGI-Shading. */
-export function shiftFactor(hex: string, f: number): string {
+function shiftFactor(hex: string, f: number): string {
   const [r, g, b] = hexToRgb(hex);
   if (f >= 0) return rgbToHex(r + (255 - r) * f, g + (255 - g) * f, b + (255 - b) * f);
   return rgbToHex(r * (1 + f), g * (1 + f), b * (1 + f));

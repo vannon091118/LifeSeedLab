@@ -59,7 +59,7 @@ export function bubbleFrameStyle(cueMode: boolean): CSSProperties {
  * AUTO, damit gelesenes Nachschlägen die Handlung nicht blockiert — und die Textzeile verliert
  * ihre Durchlässigkeit erst, wenn wirklich aufgeklappt ist.
  */
-export function bubbleGhostRowEvents(cueMode: boolean, open: boolean): CSSProperties {
+function bubbleGhostRowEvents(cueMode: boolean, open: boolean): CSSProperties {
   return cueMode && !open ? { pointerEvents: 'none', cursor: 'default' } : { pointerEvents: 'auto', cursor: 'pointer' };
 }
 

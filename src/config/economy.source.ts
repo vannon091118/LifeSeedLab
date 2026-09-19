@@ -34,8 +34,8 @@ export const SEED_SHOP_OFFERS = 3;
  * der Spieler auf ~156 Wellen, ohne noch aussäen zu können. Jetzt deckelt die Kurve bei
  * MATURATION_WAVES_CAP: stärkere Kreuzungen kosten weiterhin mehr Geduld, aber der Loop
  * dreht immer in absehbarer Zeit. */
-export const MATURATION_BASE_WAVES = 2;
-export const MATURATION_STEP_WAVES = 2;
+const MATURATION_BASE_WAVES = 2;
+const MATURATION_STEP_WAVES = 2;
 export const MATURATION_WAVES_CAP = 12;
 export function wavesToUnlockFor(crossIndex: number): number {
   return Math.min(MATURATION_WAVES_CAP, MATURATION_BASE_WAVES + crossIndex * MATURATION_STEP_WAVES);
@@ -46,9 +46,6 @@ export function wavesToUnlockFor(crossIndex: number): number {
  *  begrenzt nur den Speicher-Wachstum. Bei Überschreitung fallen die ÄLTESTEN Einträge.
  *  Die Queue wird ausschließlich beim Beanspruchen (`keepCross`) ausgebucht. */
 export const PENDING_CROSSES_MAX = 12;
-
-/** Gacha: die Instanz (z.B. Greenhouse) entscheidet deterministisch aus diesem Seed. */
-export const GACHA_NAMESPACES = { plant: 'plant' } as const;
 
 // ── Kampfökonomie & Pflanzen-Lebenszyklus (Source = Truth) ──────
 /** 1–5 Münzen pro Kill für den In-Run-Shop (deterministisch via loot-RNG). */

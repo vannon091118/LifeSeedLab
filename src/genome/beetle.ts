@@ -119,19 +119,6 @@ export function broodGenomeHash(brood: BeetleSpecimen): string {
   return hashGenome(brood.genome.map(g => ({ id: `b:${g.id}`, power: g.power, dominant: g.dominant })));
 }
 
-/** Effekt-Tags für die Run-Stats-Injektion (bredStats-Parallele für Käfer). */
-export function beetleEffectTags(genome: Genome): string[] {
-  const tags: string[] = [];
-  for (const g of genome) {
-    const gs = BEETLE_GENES_SOURCE[g.id];
-    if (!gs || g.power <= 0.2) continue;
-    if (gs.taunt) tags.push('BEETLE_TAUNT');
-    if (gs.spawnX) tags.push(`BEETLE_SPAWN_${Math.min(5, Math.round(gs.spawnX * g.power) + 1)}`);
-    if (gs.deathSpawnX) tags.push(`BEETLE_DEATHSPAWN_${Math.min(3, Math.round(gs.deathSpawnX * g.power))}`);
-  }
-  return tags;
-}
-
 /** Specimen → Deploy-Spec (Root ruft das beim DEPLOY_BEETLE-Command — reines Mapping). */
 export function toDeploySpec(spec: BeetleSpecimen): BeetleDeploySpec {
   return {

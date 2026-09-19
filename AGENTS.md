@@ -86,11 +86,17 @@ Ein lokales Hilfsskript (check-duplicate-basenames, im ignorierten Werkzeug-Ordn
 
 **Nie:** Canvas/React schreibt Gameplay · Particle beeinflusst Gameplay · Audio erzeugt RNG · System ruft System direkt (immer Bus).
 
-## LOC-Caps (hart)
+## LOC-Caps (hart) — gezählt werden CODE-Zeilen
 
 `300` Simulationssysteme/Bus/Clock/RNG/IDs/Hash · `400` Renderer/Generator/Partikel/Observer/UI-Komponenten · `200` Types/Source/Meta/i18n/Persistenz. Über dem Cap → STOP, Verantwortungs-Audit, splitten. Ausnahme nur mit Einzeiler-Begründung im Dateiheader.
-Ist-Stand: `src/components/GameView.tsx` liegt knapp unter dem Cap (387/400) — Zusatzzeilen nur durch
-Verdichten bestehender Zeilen oder Splitten, nie durch Erhöhen.
+
+**Zählregel:** Es zählen **nur Code-Zeilen**. Kommentare (Zeilen, die mit `//`, `/*`, `*` oder `*/`
+beginnen, Block-Kommentare über `inBlock` verfolgt) und Leerzeilen zählen **nicht** — das Gate misst
+genau das (`codeLineCount` in `git-noir/shinon/checks/check.ts`). Eine Datei darf also reich
+kommentiert sein, ohne den Cap zu berühren; gewachsene *Logik* schlägt weiter an. Kein Erhöhen eines
+Caps, um Code unterzubringen: verdichten oder splitten (Ist-Stand 19.09.2026: größe Code-Datei
+`src/i18n/translations.ts` 362, absolute größte Datei `src/components/GameView.tsx` 290/400 —
+Kommentar-Anteil liegt bei vielen Dateien zwischen 20 % und 40 %).
 
 ## Determinismus (nie antasten)
 
@@ -110,17 +116,28 @@ in Dauerschleife prüfen. Ausnahme: eine gezielte, einzelne Testdatei zur Fehler
 Gate, `gate.commands` in `shinon.config.json`):
 
 ```bash
-node node_modules/typescript/bin/tsc -b --noEmit   # Typecheck muss 0 Fehler sein
-node node_modules/vitest/vitest.mjs run            # komplette Suite muss grün sein
+node node_modules/typescript/bin/tsc -b --noEmit   # Typecheck, inkrementell (~0,3 s warm)
+node scripts/test-lane.mjs                         # Commit-Lane: NUR die berührten Tests
+node scripts/test-lane.mjs --full                  # Sprintende: komplette Suite
 node node_modules/vite/bin/vite.js build           # nur wenn Build-relevant geändert
 ```
+
+**Test-Lane-Regel (Budget 10 s):** Im Commit-Pfad wird **nicht** mehr alles getestet. Das Gate ruft
+`scripts/test-lane.mjs` — die Lane bestimmt aus dem Diff gegen `HEAD` die berührten Dateien und lässt
+nur die Tests laufen, die an ihnen hängen (`vitest related`, gemessen 19.09.2026: eine geänderte
+Source-Datei ⇒ 273 statt 429 Tests, ~3,4 s statt ~5,2 s). **Sicherheitsnetz, damit „nicht alles"
+nie „nichts" bedeutet:** hängt an der Änderung kein Test (neues Modul, reine Datenänderung), oder
+berührt der Diff keine TS/TSX-Datei, eskaliert die Lane automatisch auf die Voll-Suite; ein roter
+Impacted-Lauf bricht ab, ohne zu eskalieren. Die **Voll-Suite ist am Sprintende Pflicht**
+(`--full`, zusätzlich zu E2E) und bleibt im Gate die Wahrheit für den README-Status.
 
 Kein „sollte passen", kein claims ohne Ausführung — aber auch kein Ressourcen-Verbrennen durch
 wiederholte Läufe innerhalb einer Aufgabe. Dev-Server/Preview wird **nie** manuell gestartet/gestoppt/killt (Plattform-managed). `vite.config.ts` ist **tabu**.
 
 Kosten & Haken der Werkzeuge: die Hooks in `git-noir/hooks` (`core.hooksPath`) fahren bei **jedem**
-Commit das Gate — LOC-Caps, Architektur-Constraints, Typecheck, Test-Suite, **warm ~4 s**
-(gemessen 17.09.2026: pre-commit-Gate 4,2 s gesamt — Tests 3,8 s, Typecheck 0,3 s, Changelog 0,07 s),
+Commit das Gate — LOC-Caps, Architektur-Constraints, Typecheck, Test-Lane, **warm ~6,5 s**
+(gemessen 19.09.2026: Gate gesamt ~6,5 s — Test-Lane IMPACTED 5,9 s, Typecheck 0,3 s,
+LOC-Caps 0,004 s; Zielmarke ist **≤10 s** für den Commit-Pfad, mit der Voll-Suite am Sprintende),
 fail-closed (rot ⇒ Commit abgebrochen). Die E2E-Stufe liegt bewusst **nicht** im Commit-Pfad
 (`gate.checks.e2e=false` in `shinon.config.json`): sie kostet Minuten und läuft getrennt vor dem
 Sprint-Abschluss (`node node_modules/playwright/test/cli.js test`).
@@ -134,7 +151,9 @@ abgestellt — nicht per abgeschwächter Prüfung:
 2. **Tests** laufen mit `isolate: false` (`vitest.config.ts`): ein Worker-Pool statt 41 Isolaten
    (je ~3,7 s Spawn-Overhead = ~27 s vor dem ersten Test); dazu `fsModuleCache: true` — die
    Transformate werden inhaltsgehasht gecacht statt pro Lauf neu erzeugt. Test-Suite kalt ~10 s,
-   warm ~4 s (vorher 44–56 s), und die Parallelitäts-Timeouts in `meta/capping.test.ts` sind weg.
+   warm ~4–5 s (vorher 44–56 s), und die Parallelitäts-Timeouts in `meta/capping.test.ts` sind weg.
+   **Dazu die Lane** (siehe oben): im Commit-Pfad nur die berührten Tests — die Suite darf wachsen,
+   ohne das Budget zu sprengen.
 3. **Kein `npx` im Gate.** `npx` kostet auf dieser Maschine ~3 s npm-Startup **pro Kommando**; das
    Gate ruft die Werkzeuge direkt über Node auf (`gate.commands` in `shinon.config.json`). Der
    Changelog-Check läuft über `spawnSync` (GitHelfer) statt `execSync`-Shell: ~1,1 s → ~0,1 s je
@@ -181,6 +200,9 @@ Nach einem **erfolgreichen Umsetzungssprint** (Code steht, Typecheck/Tests/Build
    (z. B. eine Signatur-Ecke) über eine zweite Instanz mit `viewBox`-Crop vergößern. Prüfdatei in
    `dist/` anlegen und danach löschen (landet nicht im Commit).
 2. **E2E laufen lassen** — einmal, am Sprint-Ende: `node node_modules/playwright/test/cli.js test` (`tests/`, Chromium, baseURL `http://localhost:5173`). Playwright verwaltet seinen Dev-Server selbst (`webServer` mit `reuseExistingServer`) — nicht von Hand dazwischenfunken. Rote E2E ⇒ der Sprint ist **nicht** abgeschlossen.
+2b. **Voll-Suite einmal fahren** — am Sprintende ist die Impacted-Lane der Commits **nicht** genug:
+   `node scripts/test-lane.mjs --full` (429 Tests/44 Dateien, warm ~5 s). Das ist die Stufe, die den
+   README-Teststand und die Aussage „Suite grün" trägt; im Commit-Pfad läuft sie bewusst nicht mehr.
 3. **Erst dann Shinon.** Commit und Push laufen **ausschließlich** über Shinon:
 
 ```bash

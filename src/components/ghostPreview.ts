@@ -8,7 +8,7 @@ import type { RenderGhost } from '../render/renderer';
 import type { PlacementState } from './placementController';
 
 /** Ablehnungs-Shake: tick-basiert (deterministisch), Präsentation-only. */
-export const SHAKE_TICKS = 16;
+const SHAKE_TICKS = 16;
 
 export function ghostForRender(placement: PlacementState, tick: number): RenderGhost | null {
   const ghost = placement.ghost;

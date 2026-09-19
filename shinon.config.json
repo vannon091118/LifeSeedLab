@@ -14,7 +14,7 @@
       },
       "tests": {
         "command": "node",
-        "args": ["node_modules/vitest/vitest.mjs", "run"],
+        "args": ["scripts/test-lane.mjs"],
         "enabled": true
       },
       "changelog": {

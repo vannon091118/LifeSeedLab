@@ -25,9 +25,39 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
   Jetzt: „Welle starten" startet direkt, „Bauen beenden" geht in die Vorbereitung.
 - **Trait-Tags sind übersetzt.** Die Eigenschafts-Tags neu gezüchteter Pflanzen standen
   fest auf Englisch („rapid fire") — auch in der deutschen Oberfläche.
+- **Aufgeräumt statt zugemüllt.** Ein Haufen Code, den niemand mehr benutzt hat, ist raus
+  (zwei ganze Module, tote Weg-Regeln aus dem alten Pfad-Modell, 12 Texte, die keine Stelle
+  anzeigte). Für dich ändert sich nichts — außer dass das Spiel an genau diesen Stellen
+  nicht mehr mit Altlasten zu tun hat.
 
 ### Intern (Technik, Verträge & Tests)
 
+- [Redundanz] Harter Schnitt am toten Code (Nachweis: Import-Graph + Export-Scan über den
+  ganzen Baum, jeder Treffer vor dem Löschen geprüft): `src/config/mapLayout.source.ts` und
+  `src/components/MenuScene.tsx` waren nirgends importiert und sind gelöscht. Dazu tote
+  Altlasten des alten Weg-Modells (`MAP_NEIGHBOR_MODE`, `GridCell`, `cellKey`,
+  `WAVES_PER_NIGHT`, `SPAWN_QUEUE_SHUFFLE`), ungenutzte Source-Werte (`GACHA_NAMESPACES`,
+  `BREED_SOURCE`), tote Discovery-API (`setPlayerId`, `clearCodex`, `exportChainJson`),
+  `beetleEffectTags`, `peekIdCount`, `isValidBase` — und 12 nie angezeigte i18n-Schlüssel
+  (`breed.*`, `gacha.keep`, `codex.genome/verify/loadSeed`; `trait.*` bleibt, weil es
+  dynamisch über `t(\`trait.${id}\`)` gebaut wird). Symbole, die nur lokal benutzt werden,
+  sind nicht mehr exportiert (`PARTICLE_PROFILES`, `SHAKE_TICKS`, `shiftFactor`, `dist2`,
+  `PATH_NEIGHBORS`, `MATURATION_*`, `saveCodex`, `bubbleGhostRowEvents`).
+- [Gate-Regel] **LOC zählt Code-Zeilen** (neue `codeLineCount` im Gate): Kommentare und
+  Leerzeilen zählen nicht mehr. Dokumentation kostet damit keinen Cap mehr — das Gate meldet
+  jetzt z. B. `GameView 290/400 Code-Zeilen` statt 366 Gesamtzeilen. Die Caps selbst bleiben,
+  wie sie sind; Erhöhen bleibt verboten.
+- [Gate-Regel] **Test-Lane statt Voll-Suite im Commit-Pfad:** `scripts/test-lane.mjs` lässt
+  nur die vom Diff berührten Tests laufen (`vitest related`) — Sicherheitsnetz: hängt an der
+  Änderung kein Test oder berührt der Diff keine TS/TSX-Datei, eskaliert die Lane auf die
+  Voll-Suite; die Voll-Suite ist am Sprintende Pflicht (`--full`). Gemessen: Gate gesamt
+  ~6,5 s (Zielmarke ≤10 s), 429 Tests warm ~5 s.
+- [Repo] `/scripts/` ist nicht mehr pauschal ignoriert: die Gate-Skripte (`check-changelog.sh`,
+  `test-lane.mjs`) sind jetzt getrackt — der Verweis in `shinon.config.json` zeigte sonst ins
+  Leere (Befund aus der QA-Kiste).
+- [Doku] Playtest-Bericht auf den echten Teststand gezogen (statt „220 Tests" jetzt 429 Tests
+  + 27 E2E-Specs) und E2E-Harness auf den R1-Vertrag nachgezogen: der Marathon-Test verlässt
+  die Bauphase bewusst (`layout` → `prep`), das 20-s-Budget der Canvas-Prüfung war zu knapp.
 - [Hygiene] `npm run lint` läuft wieder grün: der `eslint-disable`-Kommentar für eine Regel,
   die die Konfiguration gar nicht lädt, ist weg; `verifyLocalChain(chain?)` nimmt die Chain
   als Parameter, damit die `useMemo`-Abhängigkeit im Codex-Screen echt ist (vorher Warnung).
@@ -84,7 +114,7 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 - [B37/B38] Zucht-Loop-Besitz + gewählte Eltern: (1) **B37 Besitz-Wahrheit** — das Run-Inventar spiegelt GENAU `Meta.variantCounts` (RootInit.ownedCounts; Altsave/Tests ohne Meta: B1-Fallback `loadoutStock`, Default 2); ein Loadout-Eintrag ohne Besitz lehnt mit `no_inventory` ab statt still 2 Stück zu schenken. Run-End-Sync: `applyRunEnd`/`recordRunEnd` übernimmt den Restbestand des Run-Inventars als Besitz (positives Max — Besitz schrumpft nie durch einen Run), die Kette „kaufen → einpflanzen → pflegen → ernten → Loadout" bleibt geschlossen; GameView-Abbruch zählt als Run (`countRun` im Runtime-Recorder) statt stiller Kopie (A19). (2) **B38 gewählte Eltern** — `crossPair` kreuzt aus vom Spieler GEWÄHLTEN Eltern (Seed aus beiden Eltern-IDs + Generation abgeleitet ⇒ dasselbe Paar ergibt dasselbe Kind; das Kind ist bei der Aussaat fest, die Reifung nur noch Timer). (3) **Ökonomie-Bereinigung im selben Zug** — Pflanzen kosten beim Platzieren kein Harz mehr (Besitz ist die Grenze, Placement-Regel spiegelt die UI-Vorschau), das passive Energie-Tropfen in der Vorbereitung ist entfernt (`prepDrip`), und Verwelken gibt es in der Runde nicht mehr: einmal platziert bleibt die Pflanze bis Game Over. Tests: B37-Blöcke in `placement_map` (no_inventory bei 0, Besitz-Grenze 5) und `brood_loop_continuation` (Run-End-Sync, positives Max, Kompatibilität ohne Argument), `gameover_notice` an die neue Ökonomie angepasst (Energie-Senkung über Findlinge+Deko statt Prep-Drip; 6 statt 7 Findlinge — maxCount aus der Source), E2E-Progression-Spec auf die Besitz-Wahrheit umgestellt (Run-Tray erwartet den echten Besitz des geholten Kindes statt Pauschal-×2). Suite 34 Dateien / 351 Tests grün, E2E 27/27, Typecheck clean.
 
-- [B32-Plan Gate-Runde] Erstes `finish --all` vom Gate abgefangen (fail-closed, korrekt): 15 DLK000-Fehler (tote Referenzen auf gelöschte Testdateien in quality-spec, ROADMAP, implementation-plan) und 2 LOC001-Fehler (das 300er-Cap gilt auch für Testdateien unter src/simulation/ — die Phase-4-Fusionen 342/393 Zeilen waren zu groß). Behoben: alle Doku-Referenzen auf die neuen Dateien gezogen, placement_map → placement_map + wave_flow, simulation_beetle_fire_pair → simulation_beetle_fire_pair + gameover_notice gesplittet (alle sim-Testdateien jetzt ≤ 300, max. 279), dabei vier fehlende Helper/Imports im Split nachgezogen. Echte B30-Mutations-Stichprobe nachgeholt (Namespace-Flip per Probe-Test: Pin hält, Flip erzeugt 951497721 ≠ 905729497 — sensitive). It-Ledger aktualisiert: 34 Dateien / 346 its, simulation jetzt 7 Dateien (76 its unverändert). E2E 27/27, Suite 34/346 grün.
+- [B32-Plan Gate-Runde] Erstes `finish --all` vom Gate abgefangen (fail-closed, korrekt): 15 DLK000-Fehler (tote Referenzen auf gelöschte Testdateien in quality-spec, ROADMAP, implementation-plan) und 2 LOC001-Fehler (das 300er-Cap gilt auch für Testdateien unter src/simulation/ — die Phase-4-Fusionen 342/393 Zeilen waren zu groß). Behoben: alle Doku-Referenzen auf die neuen Dateien gezogen, placement_map → placement_map + wave_flow, simulation_beetle_fire_pair → simulation_beetle_fire_pair + gameover_notice gesplittet (alle sim-Testdateien jetzt ≤ 300, max. 279), dabei vier fehlende Helper/Imports im Split nachgezogen. Echte B30-Mutations-Stichprobe nachgeholt (Namespace-Flip per Probe-Test: Pin hält, Flip erzeugt 951497721 ≠ 905729497 — sensitive). It-Ledger aktualisiert: 34 Dateien / 346 its, simulation jetzt 7 Dateien (76 its unverändert). E2E 27/27, Suite 34/346 grün.
 
 - [B32-Plan Phase 5] Abschluss: E2E 27/27 grün (Playwright, 2,2 min), Mutation-Protokoll in quality-spec B32.4 dokumentiert (Replay-Selbstkontrolle, ID-Reset-Nachweis, B30-Pins, PlacementTray-Compiler-Bruch). Adversarial-Review Phase 4: das Fusionsskript hatte den doppelten Import-Block von speed_autowaves mitten in simulation_resume.test.ts stehen lassen (22 Duplicate-Identifier-tsc-Fehler) und fünf describe-Titel als „Phase 4 — …“ statt der Original-B-Titel geschrieben — beides behoben; It-Ledger bleibt 346 = 346. Drei Störfeuer der Concurrent-Session am B36-Nachkauf-Feature als Anhalterpflege beantwortet: PlacementTray.tsx (unvollständiger JSX-Edit: Fragment fehlte), GAME_OVER-Payload im Audience-SAMPLES, und ein weiterer Fragment-Nachtrag — die verbleibenden 9 tsc-Fehler liegen in deren unvollendeter BUY_REJECTED-Verdrahtung (rootCommands/fieldNotice).
 

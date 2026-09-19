@@ -119,7 +119,3 @@ export const BASES_SOURCE: Record<BaseId, BaseSource> = {
 };
 
 export const BASE_IDS = Object.keys(BASES_SOURCE) as BaseId[];
-
-export function isValidBase(id: string): id is BaseId {
-  return id in BASES_SOURCE;
-}

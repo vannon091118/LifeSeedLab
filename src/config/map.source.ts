@@ -39,9 +39,6 @@ export const MAP_TILES_SOURCE: Record<MapTileType, MapTileSource> = {
 
 export const MAP_TILE_IDS = Object.keys(MAP_TILES_SOURCE) as MapTileType[];
 
-/** Dijkstra-Nachbarschaft: 4-direktional (kein diagonales Schneiden von Weg-Blöcken). */
-export const MAP_NEIGHBOR_MODE = 'ortho4' as const;
-
 /** Grund-Gewicht für un-bebaut begehbare Zellen (Papier-Wiese). */
 export const MAP_DEFAULT_WEIGHT = 1;
 
@@ -55,7 +52,7 @@ export const PLANT_ROUTE_COST = 2;
 // logik ist config-driven: jeder Tile-Typ kann `connectsTo` angeben.
 
 /** Nachbar-Offsets für die Verbindungs-Erkennung (ortho4). */
-export const PATH_NEIGHBORS: readonly [number, number][] = [
+const PATH_NEIGHBORS: readonly [number, number][] = [
   [0, -1], // oben
   [1, 0],  // rechts
   [0, 1],  // unten

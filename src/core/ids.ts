@@ -19,10 +19,6 @@ export function nextId(kind: EntityKind): string {
   return `${PREFIX[kind]}-${String(counters[kind]).padStart(4, '0')}`;
 }
 
-export function peekIdCount(kind: EntityKind): number {
-  return counters[kind] ?? 0;
-}
-
 /** Phase E — Run-/Match-Kontext für deterministische IDs ohne UUID/Zufall.
  *  Gleicher (runId|matchId, kind, seq) ⇒ gleiche ID, über Namespace getrennt. */
 export function nextScopedId(runOrMatchId: number, kind: EntityKind, seq: number): string {

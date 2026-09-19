@@ -32,7 +32,7 @@ export interface ParticleProfile {
 }
 
 // Kernprofile (Observer-Matrix B5) + alle EFFECTS_SOURCE-Referenzen (B6/FX-Grammatik).
-export const PARTICLE_PROFILES: Record<string, ParticleProfile> = {
+const PARTICLE_PROFILES: Record<string, ParticleProfile> = {
   // ── Observer-Kern ──
   impact_ring:  { kind: 'RING',    count: 8,  lifetime: 18, size: [0.08, 0.16], velocity: [0.02, 0.06], gravity: 0,     rotationSpeed: 0,   alphaCurve: 'easeOut',   spawnShape: 'ring' },
   death_pop:    { kind: 'SPARK',   count: 12, lifetime: 24, size: [0.06, 0.14], velocity: [0.04, 0.10], gravity: 0.004, rotationSpeed: 0.2, alphaCurve: 'linear',    spawnShape: 'ring' },

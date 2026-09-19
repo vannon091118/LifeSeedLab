@@ -320,11 +320,11 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `63222e5` — fix(qa): befunde N4/F5/F6/Q16/Q17 + abbruch-drift im reifungszähler |
-| Arbeitsbaum | 0 gestaged, 75 geändert, 5 neu |
-| Letztes Gate | ✅ offen (preflight, 0 Fehler, 0 Warnungen) |
+| HEAD | `4547aa1` — feat(world): eigene karte, diagonale route und mazing-verkauf |
+| Arbeitsbaum | 3 gestaged, 20 geändert, 0 neu |
+| Letztes Gate | 🛑 geschlossen (preflight, 1 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `63222e5` fix(qa): befunde N4/F5/F6/Q16/Q17 + abbruch-drift im reifungszähler |
+| Letzter Shinon-Commit | `4547aa1` feat(world): eigene karte, diagonale route und mazing-verkauf |
 | Letzter Push | ✅ origin/main |
 | LOC-Hotspots | `src/simulation/enemySystem.ts` 301/300 (100 %)<br>`src/render/gameRuntime.ts` 401/400 (100 %)<br>`src/simulation/root.ts` 296/300 (99 %)<br>`src/persistence/storage.ts` 191/200 (96 %)<br>`src/components/Greenhouse.tsx` 376/400 (94 %) |
 <!-- SHINON:STATUS:END -->

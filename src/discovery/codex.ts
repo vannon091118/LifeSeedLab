@@ -73,12 +73,6 @@ export function getPlayerId(): string {
   return fresh;
 }
 
-export function setPlayerId(id: string): void {
-  const trimmed = id.trim().slice(0, 32);
-  if (!trimmed) return;
-  save(PLAYER_KEY, trimmed, PLAYER_VERSION);
-}
-
 // ── Codex-Persistenz ─────────────────────────────────────────────────
 function defaultCodex(): CodexSave {
   return { version: 1, chain: [] };
@@ -93,12 +87,8 @@ export function loadCodex(): DiscoveryEntry[] {
   return (saveData as CodexSave).chain;
 }
 
-export function saveCodex(chain: DiscoveryEntry[]): void {
+function saveCodex(chain: DiscoveryEntry[]): void {
   save(CODEX_KEY, { version: 1, chain } satisfies CodexSave, CODEX_VERSION);
-}
-
-export function clearCodex(): void {
-  saveCodex([]);
 }
 
 // ── Append (lokal-first, UNIQUE genome_hash) ─────────────────────────
@@ -148,11 +138,6 @@ export function verifyLocalChain(chain?: DiscoveryEntry[]): ReturnType<typeof ve
 /** Seed-Teilstring für Sharing: `lifeseed:<seed>:<gen>:<genome_hash>` */
 export function seedShareText(seed: number, generation: number, genome: Genome): string {
   return `lifeseed:${seed}:${generation}:${hashGenome(genome)}`;
-}
-
-/** Export der Chain als JSON (öffentlich lesbar, kein Login nötig). */
-export function exportChainJson(): string {
-  return JSON.stringify(loadCodex(), null, 2);
 }
 
 export type { DiscoveryEntry, Genome };

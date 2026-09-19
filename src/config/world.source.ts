@@ -14,23 +14,12 @@ export const GRID_ROWS = 12;
 /** Wegpunkt in Zell-Koordinaten (ein Typ für Sim-, Renderer- und Terrain-Sicht). */
 export type RoutePoint = { x: number; y: number };
 
-/** Eine Zelle in Rasterkoordinaten. */
-export interface GridCell {
-  gx: number;
-  gy: number;
-}
-
-/** Zellschlüssel EINE Konvention: "gx,gy". */
-export function cellKey(gx: number, gy: number): string {
-  return `${gx},${gy}`;
-}
-
 /** R2: Bounds prüfen gegen die DYNAMISCHE Weltfläche (Run-Kopie der Weltgröße). */
 export function isInsideWorld(cols: number, rows: number, gx: number, gy: number): boolean {
   return Number.isInteger(gx) && Number.isInteger(gy) && gx >= 0 && gx < cols && gy >= 0 && gy < rows;
 }
 
-export function dist2(ax: number, ay: number, bx: number, by: number): number {
+function dist2(ax: number, ay: number, bx: number, by: number): number {
   const dx = ax - bx, dy = ay - by;
   return dx * dx + dy * dy;
 }
@@ -38,7 +27,3 @@ export function dist2(ax: number, ay: number, bx: number, by: number): number {
 export function dist(ax: number, ay: number, bx: number, by: number): number {
   return Math.sqrt(dist2(ax, ay, bx, by));
 }
-
-/** Wellen-Scheduler source values. */
-export const WAVES_PER_NIGHT = 3;
-export const SPAWN_QUEUE_SHUFFLE = true;

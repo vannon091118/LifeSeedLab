@@ -46,7 +46,11 @@ repo_structure_summary.md
 playwright-report/
 test-results/
 docs/art/
-/scripts/
+# Werkzeug-Ordner: nur die Gate-Skripte sind getrackt (der Gate-Verweis in shinon.config.json
+# darf nicht ins Leere zeigen — Befund: check-changelog.sh fehlte im Repo).
+/scripts/*
+!/scripts/check-changelog.sh
+!/scripts/test-lane.mjs
 CLAUDE.md
 
 # PROPSA-History (lokal, nie committen)

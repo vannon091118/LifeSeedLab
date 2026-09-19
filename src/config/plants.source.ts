@@ -75,11 +75,3 @@ export const STARTING_INVENTORY: Record<PlantTypeId, number> = {
   mycelia: 0,
 };
 
-/** Breeding machine parameters (source-driven economy). */
-export const BREED_SOURCE = {
-  energyCost: 40,
-  mutationChance: 0.15,
-  parentDominantBias: 0.6,
-  blendSpread: 0.3,
-  powerJitter: 0.1,
-};
