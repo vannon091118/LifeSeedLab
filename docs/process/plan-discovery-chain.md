@@ -36,7 +36,7 @@
 
 ---
 
-## 2. Zwei Konsequenzen, die aus dem Code folgen
+## 2. Drei Konsequenzen, die aus dem Code folgen
 
 1. **Vorrechenbarkeit.** Die Wurzel ist konstant und `crossPair` rein (`config.ts:7` +
    `gacha.ts:73-74`): Kind und damit jeder seltene `genome_hash` sind vorab berechenbar.
@@ -44,6 +44,15 @@
 2. **Keine Gesamtordnung.** `prev_hash` verkettet korrekt **lokal** (`verifyChain`/`tryAppend`),
    ohne einzigen Schreiber gibt es global aber keinen Tip. Die Begründung für „ein Worker" ist
    also **Ordnung**, nicht Last.
+3. **Nachrechnen ist billig — gemessen, nicht geschätzt.** Sonde auf dieser Maschine (V8, warmer
+   Lauf, 20 000 Kreuzungen, danach gelöscht): volle Kreuzung inkl. Stats/Farbe/Name **81 967/s**
+   (10⁶ ≈ 12 s, 10⁹ ≈ 3,4 h); der Pfad, den ein Angreifer wirklich braucht (Seed → Genome →
+   `genome_hash`, ohne Stats/Farbe/Name) **46 512/s** (10⁶ ≈ 22 s, 10⁹ ≈ 6 h); 20 000 von 20 000
+   Läufen ergaben verschiedene Hashes (100 %). Eine Gegenmessung aus dem Umfeld nennt 220 000/s
+   (≈ 3× schneller) — deren Aufbau ist hier nicht reproduzierbar, deshalb stehen beide Zahlen
+   samt Methode nebeneinander statt einer „Wahrheit". **Die Folgerung ist von der Zahl
+   unabhängig:** ein Fund mit 1:10⁶ kostet Sekunden bis Minuten. „Noch nicht fertig" schützt nur
+   bis zum ersten eingefrorenen Stand — danach rechnet jemand den Baum in Minuten durch.
 
 ---
 
@@ -64,6 +73,16 @@
 
 ## 4. Was der Plan nicht ausspricht
 
+- **Direktes Client-Schreiben ist der dokumentierte Squatting-Pfad.** Gibt es keinen Worker, müssen
+  die Clients selbst in Supabase schreiben — genau die Lücke, die die Migration als Restrisiko
+  benennt (§1.2/§1.3). `to authenticated` hilft nur, wenn im Projekt **keine anonymen Sign-ins**
+  aktiv sind: Supabase vergibt Anon-Sessions ebenfalls die Rolle `authenticated`. Das ist lokal
+  **nicht prüfbar** (Dashboard-Einstellung) und muss vor jeder Aktivierung dort nachgesehen werden.
+- **Das Replay-Log früh bauen.** Es ist die Voraussetzung für „erspielt statt errechnet" (§1.15),
+  es ist klein — und es hat sofort einen zweiten Nutzen: QA-Agenten können einen gemeldeten Bug
+  nachspielen, statt ihn zu beschreiben. Der Nutzen tritt also lange vor der Chain ein.
+- **Beleg ohne Rohdaten.** Für Evidenz reicht der SHA-256 des Pakets im Repo plus eine geschwärzte
+  Zusammenfassung — nicht das offene Fund-Archiv.
 - **Kein Gate im frischen Klon.** Die Prüfskripte liegen im Repo, ihre Verdrahtung nicht (§1.13):
   wer klont, hat Tests, aber keinen Hook und keine CI. Der „Beweis" gilt bis heute nur maschinenlokal.
 - **Identitätsbruch.** Eine neue Wurzel entwertet alles, was aus der alten abgeleitet wurde:
@@ -86,10 +105,21 @@ Kein Identitätsbruch.
 **B — Wurzel-Varianz je Ticket (Plan):** jeder Spieler hat einen anderen Baum, Seltenheit wird
 echt eigentümlich. Kosten: Netz beim Start, Worker als Schiedsrichter, Codex-Bruch (§4).
 
-**Empfehlung:** erst **A** ehrlich machen (Signatur-Klassen, globaler Zähler, Fund-Feed, rein
-lesend), danach **B**. Begründung: der Reinschau-Haken — der Teil, der den Spieler zurückholt —
-braucht keinen Worker. A liefert dieselbe Anzeige bei einem Bruchteil des Risikos und ohne
-Identitätsbruch; B kann danach auf saubere Signatur-Klassen aufsetzen statt auf `genome_hash`.
+**Empfehlung (nach Einwand überarbeitet): erst P1 + P2, dann A öffentlich, dann B.**
+
+Als **Produktexperiment** („kommt jemand zum Reinschauen?") bleibt A richtig: der Fund-Feed braucht
+keinen Worker. Als **Schutz** ist A allein nicht tragfähig — ohne Worker schreiben die Clients
+selbst nach Supabase und laufen direkt in den dokumentierten Squatting-Pfad (§4). Deshalb in dieser
+Reihenfolge:
+
+1. **P1 + P2 zuerst** (Wurzel durchfädeln, Eintrag trägt `epoch_id`/`type`/`schema_version`), noch
+   ohne jede öffentliche Fläche: damit tragen A-Einträge schon `epoch 0`, und der spätere Wechsel
+   auf Ticket-Wurzeln ist eine **Migration** statt eines Identitätsbruchs.
+2. **A lesbar schalten** (Signatur-Klassen, Zähler, Feed) — rein lesend, aber erst mit P1/P2 im Rücken.
+3. **B** (Ticket, Worker, Replay) — die Wurzeln sind dann vorbereitet, und `genome_hash` muss nicht
+   mehr die Eindeutigkeit tragen, weil das die Form-Signatur tut.
+
+Ohne Schritt 1 ist jedes spätere B ein Bruch an Daten, die schon öffentlich sind.
 
 ---
 

@@ -195,11 +195,11 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `445322f` — docs(plan): Ticket-Chain-Plan gegen den Code geprüft und festgehalten |
-| Arbeitsbaum | 0 gestaged, 4 geändert, 0 neu |
-| Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
+| HEAD | `aaf597f` — docs(vertrag): drei Grundsätze verankert, Verbotsliste entdriftet |
+| Arbeitsbaum | 0 gestaged, 7 geändert, 0 neu |
+| Letztes Gate | ✅ offen (preflight, 0 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `445322f` docs(plan): Ticket-Chain-Plan gegen den Code geprüft und festgehalten |
+| Letzter Shinon-Commit | `aaf597f` docs(vertrag): drei Grundsätze verankert, Verbotsliste entdriftet |
 | Letzter Push | ✅ origin/main |
-| LOC-Hotspots | `src/meta/store.ts` 283/200 (142 %)<br>`src/meta/run.ts` 265/200 (133 %)<br>`src/components/Greenhouse.tsx` 480/400 (120 %)<br>`src/config/phenotype.source.ts` 239/200 (120 %)<br>`src/meta/economy.ts` 222/200 (111 %) |
+| LOC-Hotspots | `src/components/Greenhouse.tsx` 392/400 (98 %)<br>`src/meta/store.ts` 186/200 (93 %)<br>`src/i18n/tutorial.ts` 172/200 (86 %)<br>`src/simulation/enemySystem.ts` 249/300 (83 %)<br>`src/meta/run.ts` 154/200 (77 %) |
 <!-- SHINON:STATUS:END -->

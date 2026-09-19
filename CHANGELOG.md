@@ -114,6 +114,26 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ### Intern (Technik, Verträge & Tests)
 
+- [Tooling] **README-Block und Gate behaupten nicht mehr zwei verschiedene Caps.** Der Shinon-Starter
+  zählte für den LOC-Hotspot-Block ROH-Zeilen (`split('\n').length`) und meldete damit z. B.
+  `src/meta/store.ts` mit 142 % ÜBER Cap, während das bindende Gate (Code-Zeilen ohne Kommentare und
+  Leerzeilen) 93 % sah. Der Starter nutzt jetzt dieselbe exportierte Funktion wie die Prüfklasse
+  (`codeLineCount` aus `checks/check.ts`) — eine Regel, eine Zahl, eine Implementierung.
+  Nebenbefund, der dabei auffiel: `forbidden-patterns` prüfte rohe Zeilen und schlug damit auf
+  Kommentare an — ein Kommentar, der `Date.now()` nur ERWÄHNT, war selbst ein Gate-Fehler und
+  blockierte genau die Datei, die das Verbot gerade behoben hatte. Die Prüfung sieht jetzt Code
+  statt Prosa (Kommentarzeilen und trailing-Kommentare werden abgetrennt, Strings bleiben
+  unangetastet), belegt mit einer Sonde: drei Prosa-Erwähnungen ohne Befund, eine echte
+  Code-Zeile mit Befund.
+- [Plan/Discovery] `docs/process/plan-discovery-chain.md` auf den geprüften Stand gebracht: die
+  Nachrechen-Kosten sind jetzt **gemessen** statt behauptet (volle Kreuzung 81 967/s, Angreiferpfad
+  Seed→Genome→Hash 46 512/s, 20 000/20 000 verschiedene Hashes — Methode und Gegenmessung stehen
+  daneben) und die Reihenfolge lautet jetzt P1+P2 → öffentliches A → B, damit der spätere
+  Wurzelwechsel eine Migration ist statt eines Bruchs. Ergänzt: direktes Client-Schreiben ist der
+  dokumentierte Squatting-Pfad, `to authenticated` hilft nur ohne anonyme Sign-ins im Projekt
+  (lokal nicht prüfbar), das Replay-Log gehört früh gebaut (es ist zugleich QA-Werkzeug), und
+  Evidenz braucht kein Rohdaten-Archiv (SHA-256 des Pakets plus geschwärzte Zusammenfassung).
+
 - [Vertrag] `AGENTS.md` verankert drei Grundsätze, die bisher nur im Gespräch galten und nirgends
   belegt waren (0 Treffer per Grep): **eigener Kritiker** (jede eigene Behauptung vor der Ausgabe
   gegenprüfen, aktiv den Gegenbeweis suchen, gefundene eigene Fehler benennen), **keine
