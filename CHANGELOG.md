@@ -46,6 +46,12 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 - **Kreuzungen und Bruten kosten wirklich Nektar.** Die Brutstätte zeigte „🍯 35", zog aber nie
   etwas ab — züchten war gratis, während der Samen-Shop korrekt abbuchte. Jetzt wird gebucht,
   und wenn der Nektar nicht reicht, passiert schlicht nichts (kein stiller Kredit).
+- **Kein leerer Lauf mehr.** Wer noch keine eigene Pflanze mitgenommen hat, bekam den
+  Krix-Spross bisher nur, wenn er GAR nichts besaß — ein einziger gekaufter Weg oder ein Samen
+  im Regal nahm ihm die Leihe, und der Lauf startete ohne eine einzige platzierbare Pflanze.
+  Jetzt leiht Krix immer dann, wenn **nichts einsatzbereit** ist — und es ist immer der Spross:
+  die schwächste Pflanze, die garantiert angreift (vorher konnte die Leihe eine Wurzelmauer
+  ohne Angriff sein).
 
 - **Die Kreuzung ist jetzt deine Entscheidung.** Vorher würfelte „Aussäen" die Eltern aus
   deinem Bestand, und die Pflanzenkarten waren im Zuchtfenster nur Zierde. Jetzt wählst du
@@ -61,6 +67,17 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ### Intern (Technik, Verträge & Tests)
 
+- [Dead-Game-Leihe] Der Run war startbar, aber leer: `beginRun()` vergab die Leihpflanze nur,
+  wenn `variantCounts.some(n > 0)` FALSE war. Dieser Eimer führt Pflanzen UND Bau-Material —
+  ein einziger gekaufter Weg verdrängte die Leihe; und ein gekeimtes `seed_0` im Regal, das
+  noch nicht im Loadout stand, ebenso. Ergebnis: null platzierbare Pflanzen, tote Bauphase,
+  Krix zielt auf eine Karte, die es nicht gibt („Tutorial überspringen ist ein Dead Game").
+  Vertrag ist jetzt **platzierbar statt besessen**: `loadout.some(id => counts[id] > 0)`.
+  Regressionstests für Regalbesitz, Bau-Material und ausgerüsteten Loadout.
+- [Leih-Rolle] `deriveLoanPlant` rotierte über `PLANTS_SOURCE` — in jedem dritten Run war die
+  Leihgabe eine Wurzelmauer oder ein Myzel. Ein Spieler ohne Besitz bekam damit eine Pflanze
+  ohne Angriff („Leih-Spross macht gar nichts"). Die Leihe ist jetzt IMMER der Spross: die
+  schwächste Schuss-Pflanze, die einzige fest codierte. Die Genom-Variation pro `runId` bleibt.
 - [Zucht-Paarwahl] `crossPair` existierte seit B38, aber die Aussaat rief weiterhin
   `rollGachaCross` — der Playtest-Befund („Eltern automatisch gewürfelt, Karten deaktiviert")
   war also korrekt. Das Gewächshaus hat jetzt eine A/B-Auswahl (`pickParent`, `aria-pressed`),

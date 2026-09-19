@@ -254,9 +254,14 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
             .replace('{b}', parentB ? variantName(parentB, meta) : '—')}
         </div>
 
+        {/* Der Knopf behält seinen NAMEN, wenn er aus ist (Barrierefreiheit: ein Bedienelement
+            wird nicht umbenannt, nur weil es deaktiviert ist) — der Grund steht daneben. */}
         <button onClick={handleSow} disabled={!canSow} style={{ ...styles.sowBtn, opacity: canSow ? 1 : 0.4 }}>
-          🌱 {canSow ? t('shop.sow') : t('shop.sowPickParents')}
+          🌱 {t('shop.sow')}
         </button>
+        {!canSow && !queueFull && owned.length >= 2 && (
+          <div style={styles.hint}>{t('shop.sowPickParents')}</div>
+        )}
         {!canSow && queueFull && (
           <div style={readyCount > 0 ? { ...styles.hint, color: 'var(--leaf-dark)', borderColor: 'var(--leaf-dark)' } : styles.hint}>
             {readyCount > 0

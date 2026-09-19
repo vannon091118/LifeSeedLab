@@ -13,10 +13,11 @@ import { crossGenomes, deriveStats, deriveTraits, deriveColor } from '../genome/
 // (`makeRng('plant', …)`), die auch Kreuzungen und Keime treibt. Derselbe runId ergibt
 // weltweit dieselbe Leihpflanze; kein `Math.random`, kein separater Namespace.
 //
-// Diversität-Vertrag: Die Basis-FORM (Rolle: shooter/wall/support) rotiert deterministisch
-// über den runId, die Genom-Powers werden über die Chain aus `PLANTS_SOURCE` (Allel-Quelle)
+// Diversität-Vertrag: Die Genom-Powers werden über die Chain aus `PLANTS_SOURCE` (Allel-Quelle)
 // abgeleitet — der Pool ist damit groß und fair, ohne die Reproduzierbarkeit zu verlieren.
-// Fairness entsteht aus Chain + Quellen-Diversität, nicht aus LAUNE.
+// Die ROLLE ist fix (Spross, die schwächste Schuss-Pflanze): die Leihe muss den Run
+// spielbar machen, nicht überraschen. Fairness entsteht aus Chain + Quellen-Diversität,
+// nicht aus LAUNE.
 
 export const LOAN_PLANT_ID = 'loan_sprout';
 
@@ -33,10 +34,13 @@ export function deriveLoanPlant(runId: number): PlantVariant {
   const seed = deriveSeed(GAME_SEED, 'plant', 'loan', runId);
   const rng = makeRng('plant', seed);
 
-  // Basis-Form: alle Rollen aus PLANTS_SOURCE sind Kandidaten (Source-Diversität),
-  // Rotation über die Chain, nicht über Listen-Ordnung des Save-Objekts.
-  const roles = Object.values(PLANTS_SOURCE);
-  const base = roles[seed % roles.length]!;
+  // Basis-Form: IMMER der Spross — die einzige fest codierte Pflanze und die schwächste
+  // (Entscheidung 19.09.2026, „Leih-Spross macht gar nichts"). Vorher rotierte die Rolle über
+  // `PLANTS_SOURCE`: in jedem dritten Run war die Leihgabe eine Wurzelmauer oder ein Myzel.
+  // Ein Spieler, der NICHTS besitzt, bekam damit eine Pflanze ohne Angriff gereicht und sah
+  // der ersten Welle zu — die Leihe muss die schwächste SCHUSS-Pflanze sein, nicht irgendeine.
+  // Die deterministische Variation bleibt: sie variiert die Stärke des Spross, nicht seine Rolle.
+  const base = PLANTS_SOURCE.sprout;
 
   // Genom-Variation über dieselbe Kreuzungsmaschine: die Basis kreuzt sich mit sich
   // selbst (Jitter der Powers/Dominanz) — die Maschine entscheidet, nicht der Zufall.

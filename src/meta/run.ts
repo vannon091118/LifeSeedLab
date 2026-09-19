@@ -50,12 +50,17 @@ export function reserveRunId(meta: MetaSave): MetaSave {
  */
 export function beginRun(): MetaSave {
   const reserved = reserveRunId(loadMeta());
-  // Einstiegs-Leihe: Besitzt der Spieler KEINE eigene Pflanze, leiht Krix den Spross —
-  // deterministisch aus der Chain (loan.ts), nie echter Besitz.
-  const needsLoan = !Object.values(reserved.variantCounts).some(n => n > 0);
-  const next = needsLoan
-    ? { ...reserved, variantCounts: { ...reserved.variantCounts, [LOAN_PLANT_ID]: 1 } }
-    : reserved;
+  // Einstiegs-Leihe: entliehen wird, wenn im RUN nichts PLATZIERBAR ist — nicht, wenn „irgendwas
+  // besessen" ist. Grund (Dead-Game-Befund 19.09.2026): `variantCounts` führt Pflanzen UND
+  // Bau-Material in einem Eimer. Der alte Test `!some(n > 0)` verdrängte die Leihe damit schon
+  // durch einen einzigen gekauften Weg; und ein gekeimtes `seed_0`, das (noch) nicht im Loadout
+  // steht, ließ einen Run mit NULL Pflanzen starten — Bauphase tot, Tutorial zielt auf eine Karte,
+  // die es nicht gibt, Überspringen endet in einem Spiel ohne Handlung.
+  // Platzierbar ist nur, was im Loadout STEHT und wirklich besessen wird.
+  const placeable = reserved.loadout.some(id => (reserved.variantCounts[id] ?? 0) > 0);
+  const next = placeable
+    ? reserved
+    : { ...reserved, variantCounts: { ...reserved.variantCounts, [LOAN_PLANT_ID]: 1 } };
   persistMeta(next);
   return next;
 }

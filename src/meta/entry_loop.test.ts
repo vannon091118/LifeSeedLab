@@ -52,15 +52,37 @@ describe('Einstieg — Leih-Spross: deterministisch, kein Dauerbesitz', () => {
     expect(variants.size).toBeGreaterThanOrEqual(3);
   });
 
-  it('beginRun leiht NUR bei leerem Besitz — eigener Besitz verdrängt die Leihe', () => {
-    // Frischer Spieler: kein Besitz ⇒ Leihe.
-    const loan = beginRun();
-    expect(loan.variantCounts[LOAN_PLANT_ID]).toBe(1);
-    // Mit eigenem Besitz: keine Leihe (der Kauf verdrängt sie).
-    resetFullTestState();
+  it('beginRun leiht dem frischen Spieler (nichts platzierbar ⇒ Leihe)', () => {
+    expect(beginRun().variantCounts[LOAN_PLANT_ID]).toBe(1);
+  });
+
+  // DEAD-GAME-REGRESSION (19.09.2026): Der alte Vertrag lautete „eigener Besitz verdrängt die
+  // Leihe" — geprüft wurde `variantCounts.some(n > 0)`. Beides war falsch: ein gekeimtes
+  // `seed_0` im Regal (noch nicht im Loadout ausgerüstet) und ein einziger gekaufter Weg
+  // (Bau-Material steht im selben Eimer!) nahmen dem Run die Leihe. Ergebnis: Run-Start mit
+  // null platzierbaren Pflanzen, tote Bauphase, Tutorial zielt auf eine nicht existierende Karte.
+  it('Besitz im Regal verdrängt die Leihe NICHT — nur ein ausgerüsteter Loadout tut das', () => {
     expect(buySeedling(SEED_SHOP_BASE_PRICE)).not.toBeNull();
-    const owned = beginRun();
-    expect(owned.variantCounts[LOAN_PLANT_ID] ?? 0).toBe(0);
+    const owned = loadMeta();
+    expect(owned.variantCounts.seed_0 ?? 0).toBeGreaterThan(0);
+    expect(owned.loadout).toEqual([]);
+    expect(beginRun().variantCounts[LOAN_PLANT_ID]).toBe(1);
+  });
+
+  it('Bau-Material verdrängt die Leihe nicht', () => {
+    updateMeta({ variantCounts: { path: 20, pot: 6, boulder: 3, decor: 6, plot: 1 } });
+    expect(beginRun().variantCounts[LOAN_PLANT_ID]).toBe(1);
+  });
+
+  it('Ein ausgerüsteter, besessener Loadout-Spross verdrängt die Leihe', () => {
+    updateMeta({ variantCounts: { sprout: 1 }, loadout: ['sprout'] });
+    expect(beginRun().variantCounts[LOAN_PLANT_ID] ?? 0).toBe(0);
+  });
+
+  it('Die Leihe ist immer der Spross — nie eine Wurzelmauer ohne Angriff', () => {
+    for (let runId = 1; runId <= 12; runId++) {
+      expect(deriveLoanPlant(runId).type, `runId=${runId}`).toBe('shooter');
+    }
   });
 
   it('Run-Ende nimmt die Leihpflanze zurück — Restbestand eigener Pflanzen bleibt', () => {
