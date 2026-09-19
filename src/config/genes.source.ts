@@ -32,4 +32,15 @@ export const GENE_EFFECTS: Record<string, EffectId> = {
   swift: 'EFFECT_HASTE',
   crit: 'EFFECT_CRIT',
   aura: 'EFFECT_HEAL',
+  // Zweite Gen-Gruppe (v9, 19.09.2026): acht Gene mit je einem EIGENEN Effekt. Sie sind
+  // bewusst NUR hier, im Pool und in den Achsen verdrahtet — kein Gen bringt ein eigenes
+  // System mit, jedes benutzt die vorhandenen Kanäle (Wirkung → Effekt, Bild → Achsen).
+  gravity: 'EFFECT_GRAVITY',
+  acid: 'EFFECT_ACID',
+  prismatic: 'EFFECT_PRISMATIC',
+  echo: 'EFFECT_ECHO',
+  spore: 'EFFECT_SPORE',
+  titan: 'EFFECT_TITAN',
+  bloom: 'EFFECT_BLOOM',
+  vortex: 'EFFECT_VORTEX',
 };

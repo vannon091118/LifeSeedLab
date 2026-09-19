@@ -59,6 +59,17 @@ export const PLANT_AXES_BY_GENE: Record<string, Partial<Record<PlantAxis, number
   swift:  { height: 0.30, sway: 0.50, leafAngle: 0.25, leafSize: -0.15 },
   crit:   { pattern: 0.45, flowers: 0.25, asymmetry: 0.30, pigmentB: 0.30 },
   aura:   { flowers: 0.35, pigmentB: 0.50, sway: 0.20, relief: 0.20 },
+  // Zweite Gen-Gruppe (v9, 19.09.2026): acht Gene, jedes mit mindestens drei Achsen — genau die
+  // Regel, die das Gate erzwingt. Sie benutzen AUSSCHLIESSLICH vorhandene Achsen (kein neues
+  // Vokabular, keine Achse ohne Bild) und bleiben im geklemmten Fenster ±1.
+  gravity: { thickness: 0.45, height: -0.25, vigour: 0.20, sway: -0.30 },
+  acid:   { pigmentA: 0.55, pattern: 0.35, relief: 0.35, thorns: 0.10 },
+  prismatic: { pigmentA: 0.40, pigmentB: 0.60, pattern: 0.50, flowerSize: 0.25 },
+  echo:   { flowers: 0.30, flowerSize: 0.35, sway: 0.35, asymmetry: 0.15 },
+  spore:  { flowers: 0.40, leaves: 0.25, pattern: 0.40, branches: 0.30 },
+  titan:  { height: 0.45, thickness: 0.55, leafSize: 0.40, vigour: 0.40 },
+  bloom:  { flowers: 0.55, flowerSize: 0.45, pigmentB: 0.35, sway: 0.20 },
+  vortex: { curve: 0.55, lean: 0.35, leafAngle: 0.35, sway: 0.40 },
 };
 
 /**

@@ -26,6 +26,16 @@ export const NAME_CORE_BY_GENE: Record<string, string> = {
   swift: 'wind',
   lure: 'lockruf',
   aura: 'hauch',
+  // Zweite Gen-Gruppe (v9, 19.09.2026): der Kern benennt die Wirkung, wie bei den ersten 15.
+  // Kein Sonderfall, kein Zufallsname — derselbe Generator, derselbe Seed-Vertrag.
+  gravity: 'wucht',
+  acid: 'säure',
+  prismatic: 'bunt',
+  echo: 'hall',
+  spore: 'sporen',
+  titan: 'koloss',
+  bloom: 'blüte',
+  vortex: 'wirbel',
 };
 
 /** Adjektivische/präfixartige Herkunfts-Wörter (Teil 1 der Komposita).

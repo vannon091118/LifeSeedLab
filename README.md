@@ -195,11 +195,11 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `666df90` — feat(sprint): phänotyp, organe, wirtschaft, elternwahl & test-perf |
-| Arbeitsbaum | 0 gestaged, 9 geändert, 4 neu |
-| Letztes Gate | ✅ offen (preflight, 0 Fehler, 0 Warnungen) |
+| HEAD | `0f0e415` — refactor(i18n): textmodule nach domäne, loc-caps an den vertrag gezogen |
+| Arbeitsbaum | 0 gestaged, 38 geändert, 9 neu |
+| Letztes Gate | 🛑 geschlossen (preflight, 0 Fehler, 1 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `666df90` feat(sprint): phänotyp, organe, wirtschaft, elternwahl & test-perf |
+| Letzter Shinon-Commit | `0f0e415` refactor(i18n): textmodule nach domäne, loc-caps an den vertrag gezogen |
 | Letzter Push | ✅ origin/main |
-| LOC-Hotspots | `src/meta/store.ts` 279/200 (140 %)<br>`src/meta/run.ts` 265/200 (133 %)<br>`src/components/Greenhouse.tsx` 480/400 (120 %)<br>`src/config/phenotype.source.ts` 228/200 (114 %)<br>`src/meta/economy.ts` 222/200 (111 %) |
+| LOC-Hotspots | `src/meta/store.ts` 283/200 (142 %)<br>`src/meta/run.ts` 265/200 (133 %)<br>`src/components/Greenhouse.tsx` 480/400 (120 %)<br>`src/config/phenotype.source.ts` 239/200 (120 %)<br>`src/meta/economy.ts` 222/200 (111 %) |
 <!-- SHINON:STATUS:END -->

@@ -11,6 +11,13 @@ import { saveWorld } from './worldSave';
 //
 // SPA-Einwand (Persistenz nur bei Wechsel): gespiegelt wird nur, wenn sich Ops
 // angesammelt haben — ein Flush ohne Änderung schreibt nichts.
+//
+// B40 (Defekt, 19.09.2026): `applyWorldOps` ist REIN und liefert ein NEUES Welt-Objekt. Der
+// Autor ersetzte damit nur sein eigenes Feld — der Besitzer (App) hielt weiter die ALTE Karte.
+// Folge im Spiel: ein neuer Run startete auf der 12×12-Startwelt, und sobald dort etwas gebaut
+// wurde, schrieb der Autor „alte Welt + neues Tile“ in den Speicher — die gebaute Karte war
+// damit auch PERSISTENT verloren (nicht nur optisch neu). Deshalb meldet der Autor jede
+// Flush-Welt an seinen Besitzer: ein Welt-Objekt, zwei Halter, keine dritte Wahrheit.
 
 /** Tile-Typen, die die Welt als Flächenerweiterung kennt (MAP_EXPANDED-Vertrag). */
 export class WorldAutor {
@@ -22,6 +29,9 @@ export class WorldAutor {
   constructor(
     private world: WorldState,
     private readonly bus: import('../bus/bus').EventBus,
+    /** Hält die Sicht des Besitzers aktuell (App-React-State) — sonst bleibt sie auf dem Stand
+     *  des App-Starts stehen und der nächste Run liest eine veraltete Karte. */
+    private readonly onWorldChange?: (world: WorldState) => void,
   ) {
     // TILE_PLACED → die gebaute Umgebung ist Welt-Besitz (dieselbe "gx,gy"-Konvention).
     this.unsub.push(this.bus.subscribe('TILE_PLACED', (e) => {
@@ -66,12 +76,8 @@ export class WorldAutor {
       this.newSize = null;
     }
     this.world = next;
+    this.onWorldChange?.(next); // Besitzer und Autor zeigen auf DASSELBE Objekt
     saveWorld(this.world);
-  }
-
-  /** Aktuelle Welt (z. B. für Tests oder Übergaben) — Kopie, kein Besitz. */
-  snapshot(): WorldState {
-    return { ...this.world, tiles: { ...this.world.tiles } };
   }
 
   destroy(): void {

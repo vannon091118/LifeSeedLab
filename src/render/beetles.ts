@@ -12,6 +12,7 @@
 
 import type { BeetlePhenotype } from '../genome/beetlePhenotype';
 import { shiftChannels } from '../core/color';
+import { GAIT_STEPS_PER_CYCLE, bobAmplitudeOf } from './beetleGait';
 // Tusche, Farbhelfer und die erweiterten Organe (Flügel, Pelz, Stachel, Halschild, Sprungbeine)
 // kommen aus EINEM Organ-Modul — die Zeichenwahrheit der Käfer liegt dort, nicht doppelt hier.
 import {
@@ -20,7 +21,24 @@ import {
   drawJumpLeg, drawPelage, drawPronotum, drawStinger, drawWings,
 } from './beetleOrgans';
 
-/** Bein: Hüfte → Schenkel → Schiene als echte Gliederkette (Winkel aus `stance`). */
+/**
+ * Bein-Phase im Tripod-Gang: Vorder- und Hinterbein der einen Seite laufen mit dem Mittelbein
+ * der anderen — das ist der Dreibein-Schritt echter Insekten. `row` 0..2 (vorn..hinten),
+ * `side` −1|1. Ergebnis 0..1 (0 = Tritt nach vorn, 0.5 = gegenüberliegendes Dreibein).
+ */
+export function legPhase(row: number, side: number, gait: number): number {
+  const inFirstTripod = (row + (side > 0 ? 1 : 0)) % 2 === 0;
+  const p = gait + (inFirstTripod ? 0 : 0.5);
+  return p - Math.floor(p);
+}
+
+/**
+ * Bein: Hüfte → Schenkel → Schiene als echte Gliederkette. `swing` (0..1) verschiebt den Fuß
+ * nach vorn/hinten und HEBT ihn beim Vorschwung — die Kette knickt mit, deshalb sieht es aus wie
+ * ein Schritt und nicht wie ein Pendel.
+ *
+ * Koordinaten: Kopfnach vorn ist −y. Schritt nach vorn = kleineres y.
+ */
 function drawLeg(
   ctx: CanvasRenderingContext2D,
   y: number,
@@ -28,12 +46,19 @@ function drawLeg(
   spread: number,
   length: number,
   fill: string,
+  swing = 0,
 ): void {
+  // Ein voller Schritt: Vorschwung in der ersten Hälfte, Standbein schiebt in der zweiten.
+  const cycle = swing * Math.PI * 2;
+  const reach = Math.cos(cycle);           // +1 hinten, −1 vorn
+  const lift = Math.max(0, Math.sin(cycle)); // angehoben nur beim Vorschwung
+
   const hipX = side * 0.16 * (0.8 + spread * 0.4);
+  const stride = length * 0.55;
   const kneeX = hipX + side * length * 0.5;
-  const kneeY = y - length * 0.22;
+  const kneeY = y - length * 0.22 - lift * stride * 0.25;
   const footX = kneeX + side * length * 0.42;
-  const footY = y + length * 0.34;
+  const footY = y + length * 0.34 + reach * stride - lift * length * 0.42;
 
   ctx.strokeStyle = OUTLINE;
   ctx.lineWidth = 0.055;
@@ -187,8 +212,11 @@ function elytraPath(p: BeetlePhenotype): Path2D {
  * EIN Käfer. `span` = Kantenlänge des Zeichenfensters in Pixeln; die Anatomie ist normiert,
  * der Aufrufer skaliert. Der Aufrufer darf anschließend transformieren (Lauf-Bob, Biss) —
  * die Form selbst bleibt gebacken und unverändert.
+ *
+ * `gait` (0..1) ist die Schrittphase aus dem `GaitTracker` (Strecke, nicht Zeit). Ohne Angabe
+ * steht das Tier (Vorschau, Portrait) — dann ist die Bein-Stellung die Ruhestellung.
  */
-export function drawBeetleAnatomy(ctx: CanvasRenderingContext2D, p: BeetlePhenotype, span: number): void {
+export function drawBeetleAnatomy(ctx: CanvasRenderingContext2D, p: BeetlePhenotype, span: number, gait = 0): void {
   const scale = (span / 2) * 0.72 * p.scale;
   const primary = p.pigment.primary;
   const shell = p.carapace.form === 'spiked' ? lighten(primary) : primary;
@@ -220,8 +248,9 @@ export function drawBeetleAnatomy(ctx: CanvasRenderingContext2D, p: BeetlePhenot
       const asym = 1 + (side > 0 ? 1 : -1) * p.asymmetry * 0.25;
       const y = row * (0.6 + p.body.length * 0.6);
       const length = p.legs.length * 0.5 * asym;
+      // Beim Sprungbein übernimmt die Organ-Zeichnung den Schritt (sie kennt die eigene Form).
       if (hind && jump > 0) drawJumpLeg(ctx, y, side, p.legs.stance, length, darken(primary), jump);
-      else drawLeg(ctx, y, side, p.legs.stance, length, darken(primary));
+      else drawLeg(ctx, y, side, p.legs.stance, length, darken(primary), legPhase(index, side, gait));
     }
   });
 
@@ -332,9 +361,12 @@ export function drawBeetleAnatomy(ctx: CanvasRenderingContext2D, p: BeetlePhenot
   ctx.restore();
 }
 
-/** Lauf-Bob: Amplitude aus dem Bewegungsstil — reine Präsentation, kein Gameplay-Einfluss. */
-export function beetleBob(p: BeetlePhenotype, timeMs: number): number {
-  const freq = p.motion.style === 'dash' ? 0.006 : p.motion.style === 'hop' ? 0.004 : p.motion.style === 'scuttle' ? 0.003 : 0.0018;
-  const amp = p.motion.style === 'hop' ? 0.09 : p.motion.style === 'dash' ? 0.05 : 0.035;
-  return Math.abs(Math.sin(timeMs * freq)) * amp;
+/**
+ * Lauf-Bob: hängt an der GANG-PHASE, nicht an der Uhr (B41). Zwei Hübe je Zyklus = ein Hub je
+ * Schritt, deshalb steigt der Körper genau dann, wenn ein Dreibein tritt. Steht das Tier, steht
+ * auch der Bob — vorher zappelte es an Ort und Stelle weiter.
+ */
+export function beetleBob(p: BeetlePhenotype, gait: number): number {
+  const humps = Math.abs(Math.sin(gait * Math.PI * GAIT_STEPS_PER_CYCLE));
+  return humps * bobAmplitudeOf(p);
 }

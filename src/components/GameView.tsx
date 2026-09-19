@@ -43,12 +43,14 @@ interface Props {
   resume?: RunSave | null;
   /** R2: die persistente Welt (Pflicht) — der Run läuft auf ihrem Snapshot, nie auf einer frischen Map. */
   world: WorldState;
+  /** B40: der Welt-Autor meldet jede gebaute Änderung zurück — der nächste Run baut darauf auf. */
+  onWorldChange?: (world: WorldState) => void;
   onMetaChange: (meta: MetaSave) => void; onExit: () => void;
 }
 
 const IDLE: PlacementState = { mode: 'plant', variantId: null, ghost: null, rejection: null };
 
-export function GameView({ seed, runId, loadout, savedVariants, bredStats, ownedCounts, beetles, audioOn, resume, world, onMetaChange, onExit }: Props){
+export function GameView({ seed, runId, loadout, savedVariants, bredStats, ownedCounts, beetles, audioOn, resume, world, onWorldChange, onMetaChange, onExit }: Props){
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const runtimeRef = useRef<RunRuntime | null>(null);
   const pausedRef = useRef(false);
@@ -103,7 +105,7 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;
     const runtime = new RunRuntime(
-      { canvas, seed, runId, loadout, savedVariants, bredStats, ownedCounts, beetles, audioOn, resume: resume ?? null, world, onMetaChange },
+      { canvas, seed, runId, loadout, savedVariants, bredStats, ownedCounts, beetles, audioOn, resume: resume ?? null, world, onWorldChange, onMetaChange },
       {
         onPlacement: applyPlacement,
         onHud: setHud,

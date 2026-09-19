@@ -40,7 +40,15 @@ export interface MetaView {
   loadout?: string[];
 }
 
-/** Startet einen Endless-Run hinter dem DevGate und wartet, bis die Sim-Brücke gebunden ist. */
+/**
+ * Startet einen Endless-Run hinter dem DevGate und wartet, bis die Sim-Brücke gebunden ist.
+ *
+ * WARTEN AUF DAS OVERLAY (nicht raten): Der Run-Start liest zuerst die persistierte Welt
+ * (`App.syncWorld`) — der Feld-Screen mountet also einen Tick später als der Klick. Vorher lasen
+ * die Specs den ersten Messwert direkt nach `simBound()` und trafen gelegentlich eine Seite, die
+ * das DevGate noch nicht gezeichnet hatte („DevGate-Wert nicht gefunden“, flaky). `simBound`
+ * beweist nur, dass der Sim-Root existiert — nicht, dass sein Overlay schon im DOM steht.
+ */
 export async function startRun(page: Page): Promise<void> {
   await page.goto('/?dev=1');
   await page.waitForLoadState('networkidle');
@@ -48,6 +56,7 @@ export async function startRun(page: Page): Promise<void> {
   await page.getByRole('button', { name: /endless/i }).first().click();
   await expect(page.locator('canvas')).toHaveCount(1);
   await expect.simBound(page);
+  await expect(page.locator('[aria-label="Dev Overlay"]')).toBeVisible();
 }
 
 /**

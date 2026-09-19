@@ -11,6 +11,33 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ### Für Spieler
 
+- **Die Käfer laufen jetzt wirklich.** Vorher standen die Beine still, während der Körper sich
+  zeitgesteuert auf und ab schob — das Auge liest das als Gleiten. Jetzt treten sie im
+  Dreibein-Schritt (Insekten-Gang), und die Schrittfolge hängt an der ZURÜCKGEGLEGTEN STRECKE:
+  schneller laufen heißt schnellere Schritte, verlangsamt heißt langsamere, und wer steht, steht
+  still. Kein Tritt mehr ins Leere, kein Schweben.
+- **Krix ist wieder lesbar.** Im Handlungsschritt klappte die Sprechblase sich selbst auf eine
+  Titelzeile ein — und der Knopf zum Aufklappen war gleichzeitig nicht anklickbar. Man sah den
+  Text also nie. Jetzt steht die Notiz vollständig da, bis du sie wegklickst („✕ Gelesen", mit
+  „▸ Notiz" jederzeit zurück) oder der nächste Schritt kommt. Getippt wird nur noch, wo die Blase
+  selbst der Knopf ist — niemals dort, wo du wegklicken kannst und den Rest nie gelesen hättest.
+- **Krix redet jetzt über DIESES Spiel.** Das Onboarding hat vorher einen Ablauf erklärt, den es
+  nicht mehr gibt (Energie, „Material aus dem Vorrat", neue Karte pro Runde). Jetzt erzählt er,
+  was wirklich gilt: dein Beet ist Besitz und bleibt, der Lauf beginnt MIT DEM BAUEN, Nektar
+  verdienst du im Beet und gibst ihn im Flur aus, Samen/Tiles/Deko sind drei getrennte Vorräte —
+  und die Käfer nehmen immer den schnellsten freien Weg, den DU gelegt hast.
+- **Deine Karte bleibt — auch im nächsten Lauf.** Ein neuer Lauf startete auf der leeren
+  Startkarte, obwohl du längst gebaut hattest. Schlimmer: sobald du dort etwas gesetzt hast,
+  überschrieb das Spiel die gebaute Karte auch im Speicher — sie war wirklich weg, nicht nur
+  unsichtbar. Jetzt liest jeder Lauf die Karte aus deinem Speicher, und gebaute Objekte bleiben,
+  bis DU sie zurücksetzt.
+- **Pflanzen schießen nach ihrem Erbgut.** `swift` lässt Schüsse schneller fliegen, `pierce`
+  durchschlägt mehr Gegner (bis vier), `crit` erhöht die Krit-Chance (bis 35 %). Vorher waren
+  das Zahlen auf der Karte, die den Schuss selbst nicht berührten — alle flogen gleich schnell.
+- **Der zweite Effekt einer Pflanze wirkt jetzt.** Eine Blüte mit zwei Effekten verlor bisher
+  den zweiten: es reiste nur der stärkste mit. Jetzt wirken beide — Schaden bleibt einmalig,
+  der zweite Effekt setzt seinen Status (Brennen/Gift/Verlangsamung).
+
 - [Docs/Architecture] Doku-Konsolidierung: AGENTS.md gestrafft (ohne Verlust), README im Tonfall von Krix neu gefasst, technische Details & Ownership Contracts je Domäne in architecture.md/architecture-contract.md verankert, ROADMAP konsolidiert (Status, Findings, geordnete Todos) und Root bereinigt.
 - [Test-Perf] `gameover_notice.test.ts`: P1-Freeze-Tests teilen jetzt einen gemeinsamen gameover-Root (`beforeAll` statt 3× `forceGameOver`). Möglich weil `stepOnce` nach gameover ein echter no-op ist — kein Sicherheitsbruch, Testzeit -1200 ms (1932 ms → 741 ms). Voll-Suite 491/491 grün in ~4 s.
 
@@ -86,6 +113,52 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
   eines Laufs.
 
 ### Intern (Technik, Verträge & Tests)
+
+- [B41 Lauf-Gang] Die Beine standen still (EIN Backbild pro Wesen) und der Bob hing an `tick * 16`,
+  also an der Wanduhr — ein Standbild, das sich zeitgesteuert schiebt, liest das Auge als Gleiten.
+  Neu: `render/beetleGait.ts` (Präsentation, streckenbasiert) + Tripod-Gang in `beetles.drawLeg`
+  (`legPhase(row, side, gait)`) + `GAIT_FRAMES`-Backbilder in `beetleSprites` (Cache-Key enthält
+  den Frame). Die Phase kommt aus dem ECHTEN Positionsdelta der Sim — deshalb sind Stillstand,
+  Verlangsamung und Tempo automatisch richtig, und 30 fps wie 120 fps zeigen denselben Lauf.
+  Kein RNG, keine Uhr, kein Sim-Schreibrecht. Test: `render/beetleGait.test.ts` (8 Fälle).
+- [B42 Tutorial-Nachlesbarkeit] Im cueMode war der Text AUTOMATISCH eingeklappt UND die Zeile
+  pointer-durchlässig — der Aufklapp-Klick war damit unerreichbar, der volle Text nie lesbar
+  (toter Pfad, dessen eigener Kommentar „R1 (Nachlesbarkeit)“ hieß). Jetzt: Text steht, bis der
+  Spieler ihn wegklickt (`✕ Gelesen`, wieder aufklappbar mit `▸ Notiz`) oder der Schritt
+  weitergeht; im Handlungsschritt wird NICHT getippt (der Spieler kann das Ziel anklicken, während
+  der Text noch schreibt). Vertrag + Test: `bubbleTextVisible(cueMode, dismissed)`,
+  `qa_befunde.test.ts`.
+- [B43 Onboarding-Inhalt] `TUTORIAL_VERSION` 3 → 4: die Tour erklärt jetzt das AKTUELLE System
+  (Besitz-Karte, Bauphase als Run-Start, Nektar nur außerhalb, drei getrennte Vorräte, kein
+  Energie-System) statt eines Ablaufs, den es nicht mehr gibt. Ton: Krix bleibt Krix — ironisch,
+  sarkastisch, zynisch, persönlich; DE und EN mit identischen Keys (`i18n_texts.test.ts`).
+
+
+- [B40 Welt-Persistenz] Der Welt-Autor ersetzte bei jedem Flush sein eigenes Welt-Objekt
+  (`applyWorldOps` ist rein), der Besitzer hielt die alte Karte: der nächste Run startete auf der
+  Startwelt und schrieb sie beim ersten Bau über den Speicherstand (Datenverlust, nicht nur
+  Anzeige). Fix in zwei Teilen — der Autor MELDET jede Flush-Welt an den Besitzer (ein Objekt,
+  zwei Halter), und der Run-Start liest die Welt-Wahrheit aus dem WorldSave (`App.syncWorld`,
+  fail-closed: ohne lesbare Welt bleibt die bisherige Sicht, nie eine leere Karte). Regression:
+  `persistence/world_autor.test.ts` (6 Fälle, inkl. „der nächste Run sieht die gebaute Karte").
+- [Ballistik, Regel 6] `config/ballistics.source.ts` (neu) besitzt Geschwindigkeit, Durchschlag,
+  Krit, Trefferradius und Effekt-Slots; `genome/ballistics.ts` (neu) ist die EINZIGE Ableitung
+  Genom → Profil — rein, in Basispunkten (`Math.round(power*10000)`, genau die Quantisierung des
+  `genome_hash`), rollen-gesteuert (nur Schützen schießen). Die Zahlen `HIT_RADIUS 0.4`,
+  `speed 0.15`, Pierce `2`, Crit `0.2` und die Statusdauern `90/3/5` standen vorher als Literale
+  in der Simulation und sind jetzt Content (`effects.source.statusTicks`).
+- [Effekt-Vertrag] `root.ts` reichte nur `effects[0]` durch (zweiter Effekt toter Content);
+  jetzt `effectIds` auf dem Projektil, Schaden einmalig, Zweiteffekt über
+  `EnemySystem.applyEffect` (Status-ART in `effectSupport`, Status-DAUER in der Source — beide
+  Hälften im Test gegeneinander gepinnt).
+- [Hash] Projektile hashen additive-optional `speed`, `pierce` und `effectIds` — Ballistik ist
+  spielfähige Divergenz. Dabei die VIERTE Kopie der Hash-Projektion in `gateB.test.ts` entfernt
+  (sie hätte die neuen Felder still verschluckt); Owner ist `snapshot.ts#toHashable`.
+- [Altsave-Heilung] `bredStats` ohne `ballistics` (alles vor dieser Fassung) bekommt beim Lesen
+  `legacyProfileFromEffects` — exakt das alte Verhalten, kein stiller Verlust von Durchschlag/Krit.
+- [Goldset] `genome/ballistics.test.ts` pinnt zwölf Genome auf ihre Profile; wer Zahlen in der
+  Source dreht, macht den Test rot und muss `BALLISTICS_VERSION` bewusst anheben.
+
 
 - [LOC-Wahrheit] Die LOC-Hotspot-Liste im README zählt ROH-Zeilen, das Gate prüft CODE-Zeilen
   (Kommentare und Leerzeilen ausgenommen). Dadurch stand dieselbe Datei als „über Cap" im README

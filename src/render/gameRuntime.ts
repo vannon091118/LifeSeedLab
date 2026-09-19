@@ -70,6 +70,9 @@ export interface RunRuntimeInput {
   resume?: RunSave | null;
   /** R2: die persistente Welt (Pflicht) — der Run läuft auf ihrem Snapshot. */
   world: WorldState;
+  /** B40: der Autor ersetzt bei jedem Flush sein Welt-Objekt — die Sicht des Besitzers muss
+   *  mitziehen, sonst startet der NÄCHSTE Run auf der Karte von vorhin. */
+  onWorldChange?: (world: WorldState) => void;
   onMetaChange: (meta: MetaSave) => void;
 }
 
@@ -119,7 +122,7 @@ export class RunRuntime {
     });
     // R2: der EINZIGE Schreibpfad in die persistente Welt — der Autor spiegelt die
     // akzeptierten Bau-Events (TILE_PLACED/MAP_EXPANDED) deterministisch ins WorldSave.
-    this.worldAutor = new WorldAutor(input.world, root.bus);
+    this.worldAutor = new WorldAutor(input.world, root.bus, input.onWorldChange);
     this.root = root;
     installTestHooks(); bindSimRoot(root); // DevGate-only E2E-Brücke (Release: no-op)
 

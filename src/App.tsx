@@ -6,7 +6,7 @@ import { deriveSeed } from './core/rng';
 import { GAME_SEED, RUN_SEED_VERSION } from './config';
 import { PLANTS_SOURCE } from './config/plants.source';
 import { clearRun, loadRun, type RunSave } from './persistence/runSave';
-import { ensureWorld } from './persistence/worldSave';
+import { ensureWorld, loadWorld } from './persistence/worldSave';
 import { worldSnapshotOf, type WorldState } from './world/world_state';
 import { StartScreen } from './components/StartScreen';
 import { MainMenu } from './components/MainMenu';
@@ -76,6 +76,17 @@ function AppInner() {
     else setMeta(loadMeta());
     setScreen('menu');
   }, []);
+  /**
+   * B40: Liest die WELT-WAHRHEIT aus dem Speicher. Der React-State ist nur eine Sicht; die
+   * Karte selbst gehört dem WorldSave. Ohne diesen Schritt vor einem Run-Start startete der Run
+   * auf dem Stand des App-Starts und überschrieb die gebaute Karte (Defekt vom 19.09.2026).
+   * Fail-closed: ohne lesbare Welt bleibt die bisherige Sicht stehen — nie eine leere Karte.
+   */
+  const syncWorld = useCallback(async () => {
+    const saved = await loadWorld();
+    if (saved) setWorld(saved);
+  }, []);
+
   const handleNavigate = useCallback((s: MenuScreen) => setScreen(s), []);
   const handleBegin = useCallback(() => setScreen('menu'), []);
   const handleMenuBack = useCallback(() => setScreen('start'), []);
@@ -94,17 +105,19 @@ function AppInner() {
       // React-Kopie. Der Start schrieb früher die Kopie zurück und überschrieb damit jeden
       // Fortschritt, der während des letzten Runs direkt in die Persistenz ging.
       setMeta(beginRun());
-      setScreen('run');
+      // Erst die persistierte Karte lesen, DANN den Run zeigen — der Run startet nie auf einer
+      // veralteten Welt (die er sonst beim ersten Bau als „neue“ Welt zurückschreiben würde).
+      void syncWorld().then(() => setScreen('run'));
     },
-    [],
+    [syncWorld],
   );
 
   /** B2: Fortsetzen nutzt die BESTEHENDE runId — kein neuer Seed, keine neue Identität. */
   const handleResumeRun = useCallback(() => {
     if (!pendingRun) return;
     setResuming(true);
-    setScreen('run');
-  }, [pendingRun]);
+    void syncWorld().then(() => setScreen('run'));
+  }, [pendingRun, syncWorld]);
 
   if (!meta || !world) {
     return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}>…</div>;
@@ -157,6 +170,7 @@ function AppInner() {
             audioOn={meta.audioOn}
             resume={resuming ? pendingRun : null}
             world={world}
+            onWorldChange={setWorld}
             onMetaChange={setMeta}
             onExit={handleExitRun}
           />

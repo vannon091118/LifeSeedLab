@@ -13,8 +13,10 @@ import { PLANTS_SOURCE } from './plants.source';
 // jedes Gen hat einen Gameplay-Effekt UND mindestens eine sichtbare Achse.
 
 describe('Phase 5 gate: source validation', () => {
-  it('exactly 10 effects exist', () => {
-    expect(EFFECT_IDS).toHaveLength(10);
+  it('exactly 18 effects exist (10 Grundstock + 8 der zweiten Gen-Gruppe)', () => {
+    // Bewusst eine feste Zahl: ein neuer Effekt ist eine Content-Entscheidung, kein Zufall.
+    // Ob die Simulation ihn RECHNET, sagt `simulation/effectSupport.ts` (dort erzwungen).
+    expect(EFFECT_IDS).toHaveLength(18);
   });
 
   it('jedes Pool-Gen hat einen Gameplay-Effekt aus der Source', () => {

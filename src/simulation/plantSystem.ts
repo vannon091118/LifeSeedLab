@@ -3,6 +3,8 @@
 // May not: draw, animate, play sound, touch React (contract Phase 4.1).
 
 import type { SimState, PlantEntity, EnemyEntity } from './state';
+import type { BallisticProfile, BredStatsEntry } from '../types';
+import { ballisticsOf, legacyProfileFromEffects } from '../genome/ballistics';
 import { makeEvent, type GameEvent } from '../bus/events';
 import { PLANTS_SOURCE, type PlantSource } from '../config/plants.source';
 import { isInsideWorld, dist } from '../config/world.source';
@@ -24,6 +26,12 @@ export interface PlantStats {
   cost: number;
   /** EFFECT ids (source-driven for bases, genome-derived for bred — B6). */
   effects: string[];
+  /**
+   * Schuss-Verhalten aus dem Genom. Immer gefüllt — auch für Altsaves ohne Profil-Feld:
+   * dann rekonstruiert `legacyProfileFromEffects` genau das alte Verhalten. Damit gibt es
+   * EINEN Ort, an dem ein Schuss seine Zahlen findet, und keinen dritten Fallback im System.
+   */
+  ballistics: BallisticProfile;
 }
 
 export type PlaceResult =
@@ -35,12 +43,19 @@ export function resolvePlantStats(state: SimState, variantId: string): PlantStat
 }
 
 /** State-independent stats lookup (used by renderer observers too). */
-export function getPlantStats(variantId: string, bred?: Record<string, PlantStats>): PlantStats | null {
+export function getPlantStats(variantId: string, bred?: Record<string, BredStatsEntry>): PlantStats | null {
   const base = (PLANTS_SOURCE as Record<string, PlantSource>)[variantId];
   if (base) {
-    return { ...base.stats, cost: base.cost, effects: base.effects };
+    return {
+      ...base.stats,
+      cost: base.cost,
+      effects: base.effects,
+      ballistics: ballisticsOf(base.genome, base.role),
+    };
   }
-  return bred?.[variantId] ?? null;
+  const entry = bred?.[variantId];
+  if (!entry) return null;
+  return { ...entry, ballistics: entry.ballistics ?? legacyProfileFromEffects(entry.effects) };
 }
 
 export class PlantSystem {

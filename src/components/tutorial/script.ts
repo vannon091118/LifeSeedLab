@@ -62,8 +62,14 @@ export function screenRank(screen: string): number {
   return SCREEN_RANK.menu;
 }
 
-/** Fassung der Tour. Erhöhen ⇒ jeder Spieler sieht die überarbeitete Tour genau einmal neu. */
-export const TUTORIAL_VERSION = 3;
+/**
+ * Fassung der Tour. Erhöhen ⇒ jeder Spieler sieht die überarbeitete Tour genau einmal neu.
+ * B42/B43 (19.09.2026) = Fassung 4: Die Handlungsschritte waren UNLESBAR (Auto-Kollaps + pointer-
+ * durchlässige Zeile ⇒ der Aufklapp-Klick war unerreichbar), und die Texte erklärten ein System,
+ * das es nicht mehr gibt. Beides ist neu — also muss die Tour einmal neu laufen, sonst sieht sie
+ * nie jemand.
+ */
+export const TUTORIAL_VERSION = 4;
 
 export const TUTORIAL_STEPS: readonly TutorialStep[] = [
   // ── Start-Screen: Krix kommt, bevor der Spieler das Labor betritt ──

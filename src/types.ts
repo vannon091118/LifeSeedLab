@@ -12,6 +12,42 @@ export type Genome = Gene[];
 
 export type PlantType = 'shooter' | 'wall' | 'support';
 
+/**
+ * Ballistik-Profil EINES Schusses — abgeleitet aus dem Genom (`genome/ballistics.ts`), nie
+ * aus dem gejitterten Phänotyp (D5): Gameplay darf nicht an Präsentations-Streuung hängen.
+ * Alle Felder sind Zahlen (JSON-sicher, kein Verhalten in Objekten).
+ *
+ * Ein Profil entsteht an genau zwei Stellen — aus dem Basis-Genom (`plants.source`) und beim
+ * Eintrag einer gezüchteten Variante (`meta/store.deriveBredEntry`). Fehlt es (Altsave), gilt
+ * das Legacy-Profil aus den Effekt-Tags (`legacyProfileFromEffects`).
+ */
+export interface BallisticProfile {
+  /** Zellen/Tick, ganzzahlig in 1e-4 abgeleitet (keine Gleitkomma-Drift). */
+  speed: number;
+  /** Zusätzlich durchschlagene Gegner (0 = beim ersten Treffer Ende). */
+  pierce: number;
+  /** Krit-Chance 0..1 (Basispunkte/10000). */
+  critChance: number;
+  /** Schaden-Vielfaches bei Krit. */
+  critMult: number;
+}
+
+/**
+ * Der GESPEICHERTE Eintrag einer gezüchteten Variante (Meta, Run-Snapshot, Sim). Ein Shape,
+ * drei Leser — vorher stand dieselbe Zeile dreimal inline in `types.ts`, `state.ts` und
+ * `plantSystem.ts` (Regel 4: eine Wahrheit). `ballistics` ist optional, weil Altsaves es nicht
+ * kennen; gefüllt wird es beim Lesen (`plantSystem.getPlantStats`).
+ */
+export type BredStatsEntry = {
+  hp: number;
+  damage: number;
+  range: number;
+  cooldown: number;
+  cost: number;
+  effects: string[];
+  ballistics?: BallisticProfile;
+};
+
 export type PlantVariant = {
   id: string;
   name: string;
@@ -82,7 +118,7 @@ export type MetaSave = {
   /** Gesamtzahl bestandener Wellen (Reifungszähler). */
   totalWavesSurvived: number;
   /** EINE Quelle für Zucht-Stats: beim Claim abgeleitet, an jeden Run injiziert (B1). */
-  bredStats: Record<string, { hp: number; damage: number; range: number; cooldown: number; cost: number; effects: string[] }>;
+  bredStats: Record<string, BredStatsEntry>;
   // R2: `mapLayouts` ist GESTORBEN — die Spielerwelt lebt als EINE persistente Welt im
   // WorldSave (persistence/worldSave.ts), nicht als benannte Layout-Sammlung im Meta.
   /** P6 Käferzucht: gezüchtete Specimen (Brut-Lager) + Reifungs-Queue. */

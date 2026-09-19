@@ -13,6 +13,7 @@ import { strHash } from '../core/rng';
 import { drawSprite } from './spriteCache';
 import { drawBeetleSprite } from './beetleSprites';
 import { beetleBob } from './beetles';
+import { GaitTracker, gaitFrameOf } from './beetleGait';
 import type { ResolvedBeetleVisual } from '../visual/beetleGenerator';
 import { enemyVisualFor } from '../visual/enemyVisuals';
 import { drawMapTile } from './layers/mapTiles';
@@ -78,6 +79,9 @@ export class Renderer {
     if (!c) throw new Error('Canvas 2D not supported');
     this.ctx = c; this.resize();
   }
+
+  /** Lauf-Gang (B41): Schrittphase aus der zurückgelegten Strecke — Präsentation, kein State der Sim. */
+  private readonly gait = new GaitTracker();
 
   resize(): void {
     const parent = this.canvas.parentElement;
@@ -169,18 +173,24 @@ export class Renderer {
     }
 
     for (const plant of state.plants) this.drawPlant(ctx, plant, state, toPx, toPy, cell, feedback);
-    for (const e of state.enemies) this.drawEnemy(ctx, e, toPx, toPy, cell, state.clock.tick, feedback);
+    // Lauf-Gang: die Phase kommt aus der STRECKE, nicht aus dem Takt (beetleGait). Ein Frame
+    // umschließt alle Wesen, damit `endFrame()` die Getöteten vergisst.
+    this.gait.beginFrame();
+    for (const e of state.enemies) this.drawEnemy(ctx, e, toPx, toPy, cell, feedback);
+    this.gait.endFrame();
 
     // projectiles — shape by effect (B10)
     ctx.lineWidth = 2;
     for (const p of state.projectiles) {
       const x = toPx(p.px), y = toPy(p.py);
-      const color = p.effectId === 'EFFECT_BURN' ? '#c96f3b'
-        : p.effectId === 'EFFECT_SLOW' ? '#7d9bc0'
-        : p.effectId === 'EFFECT_POISON' ? '#7d9c46'
-        : p.effectId === 'EFFECT_CHAIN' ? '#c9a83b' : '#2b2b26';
+      // Der FÜHRENDE Effekt bestimmt die Optik — ein Schuss trägt bis zu zwei (EFFECT_SLOTS).
+      const fx = p.effectIds[0] ?? null;
+      const color = fx === 'EFFECT_BURN' ? '#c96f3b'
+        : fx === 'EFFECT_SLOW' ? '#7d9bc0'
+        : fx === 'EFFECT_POISON' ? '#7d9c46'
+        : fx === 'EFFECT_CHAIN' ? '#c9a83b' : '#2b2b26';
       ctx.strokeStyle = color; ctx.fillStyle = color;
-      if (p.effectId === 'EFFECT_SLOW') { ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.stroke(); }
+      if (fx === 'EFFECT_SLOW') { ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.stroke(); }
       else {
         const ang = Math.atan2(p.dy, p.dx);
         ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
@@ -258,15 +268,18 @@ export class Renderer {
     if (!b) return;
     const visual = this.beetleVisuals.get(b.specimenId) ?? this.beetleVisuals.get(b.id);
     if (!visual) return;
-    const t = state.clock.tick;
-    const bob = beetleBob(visual.phenotype, t * 16);
+    // Der Brutling läuft frei (kein Pfad): seine Phase kommt ebenfalls aus der Strecke.
+    const { phase } = this.gait.phaseOf(b.id, b.px, b.py, visual.phenotype);
+    const frame = gaitFrameOf(phase);
+    const bob = beetleBob(visual.phenotype, phase);
     const cx = toPx(b.px), cy = toPy(b.py) - bob * cell;
 
-    // Mit-Brutlinge: kleinere Ausgaben DESSELBEN Wesens (kein zweiter Zeichenpfad).
+    // Mit-Brutlinge: kleinere Ausgaben DESSELBEN Wesens (kein zweiter Zeichenpfad). Sie folgen
+    // dem Anführer — deshalb laufen sie in seinem Tritt (kein zweiter Tracker-Schlüssel nötig).
     for (const brood of b.broodlings) {
-      drawBeetleSprite(ctx, visual, cell, this.dpr, toPx(brood.px), toPy(brood.py), 0.55 * visual.scale);
+      drawBeetleSprite(ctx, visual, cell, this.dpr, toPx(brood.px), toPy(brood.py), 0.55 * visual.scale, frame);
     }
-    drawBeetleSprite(ctx, visual, cell, this.dpr, cx, cy, visual.scale);
+    drawBeetleSprite(ctx, visual, cell, this.dpr, cx, cy, visual.scale, frame);
 
     // Lebensbalken des Anführers (nur wenn verletzt) — dieselbe Sprache wie Pflanze/Gegner.
     if (b.hp < b.maxHp) {
@@ -323,15 +336,17 @@ export class Renderer {
 
   private drawEnemy(
     ctx: CanvasRenderingContext2D, e: import('../simulation/state').EnemyEntity,
-    toPx: (x: number) => number, toPy: (y: number) => number, cell: number, tick: number,
+    toPx: (x: number) => number, toPy: (y: number) => number, cell: number,
     feedback?: FeedbackLayer,
   ): void {
     const cx = toPx(e.px), cy = toPy(e.py);
     const punch = feedback?.punchOf(e.id) ?? 1;
     // Identität kommt aus dem aufgelösten Phänotyp des Archetyps (Boss: individualisiert per ID).
     const visual = enemyVisualFor(e.typeId, e.id);
+    // Schrittphase aus der zurückgelegten Strecke — läuft das Tier nicht, stehen die Beine.
+    const { phase } = this.gait.phaseOf(e.id, e.px, e.py, visual.phenotype);
     ctx.save(); ctx.translate(cx, cy); ctx.scale(punch, punch);
-    drawEnemyBody(ctx, visual, e.typeId, cell, this.dpr, tick);
+    drawEnemyBody(ctx, visual, e.typeId, cell, this.dpr, phase);
     ctx.restore();
     if (e.slowUntil > 0) {
       ctx.strokeStyle = 'rgba(125,155,192,0.7)'; ctx.lineWidth = 2;

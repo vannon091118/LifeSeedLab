@@ -9,6 +9,13 @@
 // kann das geführte Ziel nie wieder verdecken (Positionsabhängigkeit 1/3 strukturell aus).
 // F1: Im cueMode zeigt ein Pfeil-Hinweis aufs Cue-Ziel („→ HIER DRÜCKEN") statt des
 // Expandier-Hinweises — der Erstspieler erkennt die passende Aktion.
+//
+// B42 (Defekt, 19.09.2026): Der Text war im cueMode AUTOMATISCH eingeklappt („F2 Auto-Kollaps") —
+// und die eingeklappte Zeile war gleichzeitig pointer-durchlässig. Der Aufklapp-Klick war damit
+// UNERREICHBAR: In jedem Handlungsschritt sah der Spieler nur eine Titelzeile, den Rest nie.
+// Genau das war der Befund „Nachrichten klappen ein, ohne dass man sie nachlesen kann“.
+// Jetzt gilt: **Text steht, bis der Spieler ihn wegklickt oder der Schritt weitergeht** —
+// eingeklappt wird nur auf ausdrücklichen Klick (✕) und ist wieder aufklappbar (▸).
 
 import { useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
@@ -45,34 +52,36 @@ export interface SpeechBubbleProps {
  */
 export function bubbleIsPointerTransparent(cueMode: boolean): boolean {
   return cueMode;
-}
-
-/** F5: der gerenderte Rahmen-Stil — auto (normal) oder durchlässig (cueMode). Messbar gelockt. */
+}/** F5: der gerenderte Rahmen-Stil — auto (normal) oder durchlässig (cueMode). Messbar gelockt. */
 export function bubbleFrameStyle(cueMode: boolean): CSSProperties {
   return cueMode ? styles.frameCue : styles.frame;
 }
 
 /**
- * R1 (Eigentümer-Feedback): der ZONEN-Vertrag des Aufklappers — im cueMode bleibt die ge-
- * klappte Textzeile pointer-DURCHLÄSSIG (das Ziel darunter bleibt klickbar), der Knopf selbst
- * ist der einzige Interaktionspunkt. `open` klappt den vollen Krix-Text auf: pointer-events
- * AUTO, damit gelesenes Nachschlägen die Handlung nicht blockiert — und die Textzeile verliert
- * ihre Durchlässigkeit erst, wenn wirklich aufgeklappt ist.
+ * B42: Ist der Text SICHTBAR? Vertrag in einer Zeile: nur ein ausdrücklicher Klick des Spielers
+ * klappt ihn weg — der cueMode tut es nie (vorher war es umgekehrt und damit unlesbar).
+ * Der Gate-Test liest genau diese Entscheidung.
  */
-function bubbleGhostRowEvents(cueMode: boolean, open: boolean): CSSProperties {
-  return cueMode && !open ? { pointerEvents: 'none', cursor: 'default' } : { pointerEvents: 'auto', cursor: 'pointer' };
+export function bubbleTextVisible(cueMode: boolean, dismissed: boolean): boolean {
+  return !(cueMode && dismissed);
+}
+
+/**
+ * Der Textkörper liegt im cueMode DURCHLÄSSIG (das geführte Ziel bleibt klickbar) und sonst
+ * interaktiv (dort ist die Blase selbst der Knopf). Kein Auto-Kollaps, kein toter Aufklapp-Pfad.
+ */
+function bubbleBodyEvents(cueMode: boolean): CSSProperties {
+  return cueMode ? { pointerEvents: 'none', cursor: 'default' } : { cursor: 'pointer' };
 }
 
 export function SpeechBubble({
   speaker, role, note, title, text, typing, pressLabel, skipLabel, hint, cueHint, cueMode, tail, onPress, onSkip,
 }: SpeechBubbleProps): ReactNode {
-  // F2 Auto-Kollaps: im cueMode steht nur der Titel (1 Zeile), der volle Text klappt
-  // per Knopf auf — die Blase bleibt klein und das Cue-Ziel frei.
-  const collapsed = cueMode;
-  // R1 (Nachlesbarkeit): klappt den vollständigen Text AUF — einmal offen bleibt offen
-  // (Nachschlagen während der Handlung), der Skip wechselt nie die Bedeutung.
-  const [expanded, setExpanded] = useState(false);
-  const open = collapsed && expanded;
+  // B42: Der Schritt startet IMMER mit sichtbarem Text. `dismissed` entsteht ausschließlich durch
+  // einen Klick auf „✕ Gelesen" (cueMode) — nie automatisch. Der nächste Schritt remountet die
+  // Blase (`key={view.index}` im Layer), damit jeder Schritt wieder vollständig dasteht.
+  const [dismissed, setDismissed] = useState(false);
+  const showText = bubbleTextVisible(cueMode, dismissed);
   return (
     // F5 (F2-Regression, 4/4): Im cueMode ist die GESAMTE Blase pointer-durchlässig — der Rahmen
     // selbst hat `auto` (340×200-Verdeckungszone) und fing jeden Klick aufs geführte Ziel (nur der
@@ -85,27 +94,20 @@ export function SpeechBubble({
         <span style={styles.role}>{role}</span>
         <span style={styles.note}>{note}</span>
       </div>
-      {collapsed ? (
-        // F2 + R1: KLAPP-Zustand — die Zeile ist durchlässig (Ziel darunter klickbar), der
-        // Knopf hebt den Text nach. AUFGEKLAPPT: pointer-events auto — der volle Text bleibt
-        // lesbar stehen, die Handlung läuft darunter weiter.
-        <div
-          style={{ ...styles.body, ...bubbleGhostRowEvents(cueMode, open) }}
-          onClick={() => { if (!open) { setExpanded(true); onPress(); } }}
-          role={open ? undefined : 'button'}
-          aria-expanded={open}
-          title={hint}
-        >
+      {cueMode ? (
+        // Handlungsschritt: Text steht (durchlässig, das Ziel bleibt klickbar) — nur der
+        // ausdrückliche Klick auf „✕" klappt ihn weg.
+        <div style={{ ...styles.body, ...bubbleBodyEvents(cueMode) }} title={hint}>
           <span style={styles.title}>{title}</span>
-          {open && (
+          {showText && (
             <span style={styles.text}>
               {text}
               {typing && <span className="tut-caret" aria-hidden>▌</span>}
             </span>
           )}
-          {!open && typing && <span style={styles.text}>{text}<span className="tut-caret" aria-hidden>▌</span></span>}
         </div>
       ) : (
+        // Leseschritt: die Blase ist der Knopf (Weiter). Text voll lesbar, Klick = weiter.
         <button type="button" onClick={onPress} title={hint} style={styles.body}>
           <span style={styles.title}>{title}</span>
           <span style={styles.text}>
@@ -114,11 +116,24 @@ export function SpeechBubble({
           </span>
         </button>
       )}
-      {collapsed && (
+      {cueMode && (
         // F1: der Vorwärts-Hinweis — Pfeil + Cue-Wort, sichtbar statt versteckt im Titel.
         <span style={styles.cueHint} className="tut-cue-hint" aria-live="polite">→ {cueHint}</span>
       )}
       <div style={styles.footer}>
+        {cueMode && (
+          // B42: der Wegklick-Knopf. Er klappt den Text NUR weg (der Schritt läuft weiter) und
+          // holt ihn zurück — pointer-events explizit auto, weil die Blase durchlässig ist.
+          <button
+            type="button"
+            onClick={() => setDismissed(v => !v)}
+            style={{ ...styles.btn, ...styles.btnGhostOverride }}
+            aria-expanded={showText}
+            title={hint}
+          >
+            {showText ? '✕ Gelesen' : '▸ Notiz'}
+          </button>
+        )}
         {pressLabel && (
           // Der Weiter-Knopf existiert NUR bei `advanceOn: 'press'` — genau dort ist cueMode
           // false (cueMode = advanceOn !== 'press' && cue !== 'none'), der Rahmen nimmt Zeiger
@@ -210,8 +225,6 @@ const styles: Record<string, CSSProperties> = {
     cursor: 'pointer',
     color: 'var(--ink)',
   },
-  // F2: cueMode-Körper — Klicks/Touches fallen zum echten Ziel durch.
-  bodyGhost: { pointerEvents: 'none', cursor: 'default' } as CSSProperties,
   // F5: cueMode-Rahmen — die GESAMTE Blase durchlässig (Backdrop passthrough), nicht nur der Text.
   frameCue: { pointerEvents: 'none' } as CSSProperties,
   // F5: Ausnahme vom Backdrop-Passthrough — der Skip-Knopf bleibt im cueMode klickbar.

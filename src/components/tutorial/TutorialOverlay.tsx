@@ -57,7 +57,13 @@ export function TutorialOverlay({ step, index, total, onPress, onSkip }: Tutoria
     () => tutorialText(`tut.${stepId}.text` as TutorialTextKey, lang),
     [stepId, lang],
   );
-  const typing = useTypewriter(stepText, prefersReducedMotion());
+  // F1/F2: Ein Schritt verlangt eine Handlung AM CUE-ZIEL (`advanceOn !== 'press'`) ⇒ cueMode.
+  // Die Blase bleibt dort pointer-durchlässig — das geführte Ziel ist immer klickbar.
+  const cueMode = step.advanceOn !== 'press' && cueKind !== 'none';
+  // B42: Im Handlungsschritt wird NICHT getippt. Der Spieler kann das Ziel anklicken, während der
+  // Text noch schreibt — den Rest hätte er dann nie gelesen. Dort steht der Text sofort; nur im
+  // Leseschritt (die Blase IST der Knopf) darf er sich aufschreiben.
+  const typing = useTypewriter(cueMode ? '' : stepText, prefersReducedMotion());
 
   // Ziel einmal ins Bild holen (der Hub scrollt; ein Cue unterhalb der Falz wäre unsichtbar).
   useEffect(() => {
@@ -125,11 +131,6 @@ export function TutorialOverlay({ step, index, total, onPress, onSkip }: Tutoria
     if (step.advanceOn === 'press') onPress();
   };
 
-  // F1/F2 (Spielfluss-Audit): Ein Schritt verlangt eine Handlung AM CUE-ZIEL (advanceOn !=
-  // 'press') ⇒ cueMode. Die Blase kollabiert auf Titel + Pfeil-Hinweis, der Textkörper wird
-  // pointer-durchlässig — das geführte Ziel bleibt klickbar, egal wo die Blase steht.
-  const cueMode = step.advanceOn !== 'press' && cueKind !== 'none';
-
   const note = tutorialText('tut.note', lang)
     .replace('{n}', String(index + 1))
     .replace('{m}', String(total));
@@ -174,8 +175,8 @@ export function TutorialOverlay({ step, index, total, onPress, onSkip }: Tutoria
           role={tutorialText('tut.role', lang)}
           note={note}
           title={tutorialText(`tut.${stepId}.title` as TutorialTextKey, lang)}
-          text={typing.shown}
-          typing={!complete}
+          text={cueMode ? stepText : typing.shown}
+          typing={!cueMode && !complete}
           pressLabel={step.advanceOn === 'press'
             ? tutorialText(stepId === 'abschluss' ? 'tut.finish' : 'tut.next', lang)
             : null}

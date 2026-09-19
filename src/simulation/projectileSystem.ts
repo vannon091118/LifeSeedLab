@@ -3,12 +3,13 @@
 // delegates damage application to EnemySystem via callback (no direct writes).
 
 import type { SimState, ProjectileEntity, EnemyEntity } from './state';
+import type { BallisticProfile } from '../types';
 import { makeEvent, type GameEvent } from '../bus/events';
 import { dist } from '../config/world.source';
+import { HIT_RADIUS, EFFECT_SLOTS } from '../config/ballistics.source';
 import { nextId } from '../core/ids';
 import { makeRng } from '../core/rng';
 
-const HIT_RADIUS = 0.4;
 const OFFSCREEN = -999;
 
 export class ProjectileSystem {
@@ -16,41 +17,49 @@ export class ProjectileSystem {
 
   constructor(
     private emit: (e: GameEvent) => void,
-    private applyDamage: (state: SimState, enemyId: string, amount: number, critical: boolean, effectId: string | null, sourcePlantId: string | null) => { died: boolean }
+    private applyDamage: (state: SimState, enemyId: string, amount: number, critical: boolean, effectId: string | null, sourcePlantId: string | null) => { died: boolean },
+    /** Wirkung ohne Schaden — der zweite Effekt eines Schusses (EnemySystem bleibt der Writer). */
+    private applyEffect: (state: SimState, enemyId: string, effectId: string | null) => void
   ) {}
 
-  /** Spawn a projectile from a plant toward an enemy (root wiring). */
+  /**
+   * Spawn a projectile from a plant toward an enemy (root wiring).
+   * Das PROFIL kommt aus dem Genom (`genome/ballistics.ballisticsOf`) — Geschwindigkeit,
+   * Durchschlag und Krit-Chance sind damit Gene statt Konstanten.
+   */
   fire(
     state: SimState,
     plant: PlantEntityRef,
     target: EnemyEntity,
     damage: number,
-    pierce: number,
-    effectId: string | null = null,
-    critChance = 0
+    profile: BallisticProfile,
+    effectIds: string[] = []
   ): ProjectileEntity {
     const dx = target.px - (plant.gx + 0.5);
     const dy = target.py - (plant.gy + 0.5);
     const d = Math.sqrt(dx * dx + dy * dy) || 1;
 
+    const carried = effectIds.slice(0, EFFECT_SLOTS);
     const p: ProjectileEntity = {
       id: nextId('projectile'),
       px: plant.gx + 0.5,
       py: plant.gy + 0.5,
       dx: dx / d,
       dy: dy / d,
-      speed: 0.15,
+      speed: profile.speed,
       damage,
-      remainingPierce: pierce,
+      remainingPierce: profile.pierce,
       plantId: plant.id,
-      effectId,
+      effectIds: carried,
+      critChance: profile.critChance,
+      critMult: profile.critMult,
     };
     state.projectiles.push(p);
 
+    // Der Event trägt den FÜHRENDEN Effekt (Projektion fürs Publikum), die Entität trägt alle.
     this.emit(makeEvent(state.clock.tick, 'PROJECTILE_FIRED', p.id, ++this.seq, {
-      projectileId: p.id, plantId: plant.id, targetId: target.id, damage, effectId,
+      projectileId: p.id, plantId: plant.id, targetId: target.id, damage, effectId: carried[0] ?? null,
     }));
-    void critChance; // crit rolls at hit time, deterministic per (seed, tick, projectile)
     return p;
   }
 
@@ -63,17 +72,19 @@ export class ProjectileSystem {
       for (const e of state.enemies) {
         if (e.hp <= 0) continue; // no double rewards
         if (dist(p.px, p.py, e.px, e.py) < HIT_RADIUS) {
-          // deterministic crit roll per (seed, tick, projectile id) — no stream state
-          const crit = p.effectId === 'EFFECT_CRIT'
-            ? makeRng('enemy', (state.seed ^ Math.imul(state.clock.tick, 0x51ED) ^ Math.imul(p.id.charCodeAt(p.id.length - 1), 0x2701)) >>> 0).next() < 0.2
-            : false;
-          const dmg = crit ? Math.round(p.damage * 2) : p.damage;
+          // Deterministischer Krit-Wurf je (Seed, Tick, Projektil) — kein Stromzustand.
+          // Die CHANCE kommt aus dem Genom (`p.critChance`), das Vielfache aus der Source.
+          const crit = p.critChance > 0
+            && makeRng('enemy', (state.seed ^ Math.imul(state.clock.tick, 0x51ED) ^ Math.imul(p.id.charCodeAt(p.id.length - 1), 0x2701)) >>> 0).next() < p.critChance;
+          const dmg = crit ? Math.round(p.damage * p.critMult) : p.damage;
 
-          const res = this.applyDamage(state, e.id, dmg, crit, p.effectId, p.plantId);
+          const lead = p.effectIds[0] ?? null;
+          const res = this.applyDamage(state, e.id, dmg, crit, lead, p.plantId);
+          for (const extra of p.effectIds.slice(1)) this.applyEffect(state, e.id, extra);
 
           this.emit(makeEvent(state.clock.tick, 'PROJECTILE_HIT', p.id, ++this.seq, {
             projectileId: p.id, enemyId: e.id, damage: dmg, critical: crit,
-            px: p.px, py: p.py, effectId: p.effectId,
+            px: p.px, py: p.py, effectId: lead,
           }));
           if (crit) {
             this.emit(makeEvent(state.clock.tick, 'CRITICAL_HIT', e.id, ++this.seq, {

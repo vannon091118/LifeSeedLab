@@ -5,6 +5,7 @@ import { STARTER_PLANT_COUNT, STARTING_NEKTAR, GREENHOUSE_POT_SLOTS, REARING_SLO
 import { STARTING_MATERIAL } from '../config/map.source';
 import { createBaseVariants } from '../genome/bases';
 import { genomeEffectIds } from '../genome/visualMap';
+import { ballisticsOf } from '../genome/ballistics';
 
 // Owner: PersistenceSystem (meta store — the only persistence owner remains storage.ts).
 
@@ -34,6 +35,9 @@ export function deriveBredEntry(variant: PlantVariant): NonNullable<MetaSave['br
     cooldown: variant.stats.cooldown,
     cost: variant.cost,
     effects: genomeEffectIds(variant.genome).map(e => String(e)),
+    // Ballistik wird HIER abgeleitet, nicht im Run: nur am Eintrag ist das Genom verfügbar
+    // (`SimState` trägt bewusst kein Genom), und der Run bleibt deterministisch über Zeit.
+    ballistics: ballisticsOf(variant.genome, variant.type),
   };
 }
 

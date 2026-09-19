@@ -3,6 +3,7 @@
 
 import type { ClockState } from '../core/clock';
 import type { EnemyTypeId } from '../config/enemies.source';
+import type { BredStatsEntry } from '../types';
 
 export type PlantGrowthState = 'growing' | 'mature';
 /** LIFESPAN removed: einmal platziert bleibt bis GameOver (user: pflanze verschwindet nicht in der runde). */
@@ -58,8 +59,15 @@ export interface ProjectileEntity {
   damage: number;
   remainingPierce: number;
   plantId: string;
-  /** Effect riding the projectile — drives combat + observer FX (B6). */
-  effectId: string | null;
+  /**
+   * Effekte auf diesem Schuss (bis `EFFECT_SLOTS`) — Effekt 0 trifft MIT Schaden, die
+   * weiteren setzen nur ihren Status. Vorher gab es nur EIN Feld: der zweite Effekt eines
+   * Genoms (`genomeEffectIds` liefert zwei) war toter Content.
+   */
+  effectIds: string[];
+  /** Krit-Chance/-Vielfaches aus dem Ballistik-Profil — eine Wahrheit, kein Trefferzufall. */
+  critChance: number;
+  critMult: number;
 }
 
 /**
@@ -151,7 +159,7 @@ export interface SimState {
   /** Variants the player carried in via loadout (placeable bred plants — B1). */
   loadout: string[];
   /** Stats of bred (non-source) variants, keyed by variant id (incl. effect tags — B6). */
-  bredStats?: Record<string, { hp: number; damage: number; range: number; cooldown: number; cost: number; effects: string[] }>;
+  bredStats?: Record<string, BredStatsEntry>;
   /** P6 Käferzucht: eingesetzter Brutling (allierter Kämpfer). Owner: EnemySystem. */
   deployedBeetle: {
     id: string;

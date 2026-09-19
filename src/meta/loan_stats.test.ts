@@ -24,6 +24,8 @@ describe('D2b: Leih-Stats sind für die Sim auflösbar', () => {
           ...variant.stats,
           cost: variant.cost,
           effects: EFFECTS_BY_TYPE[variant.type] ?? [],
+          // Kein `ballistics` hier: das ist genau der ALTSAVE-Fall. `getPlantStats` muss ihn
+          // selbst heilen (Legacy-Profil aus den Effekt-Tags) — der Test prüft das mit.
         },
       };
       const stats = getPlantStats(LOAN_PLANT_ID, bredStats);

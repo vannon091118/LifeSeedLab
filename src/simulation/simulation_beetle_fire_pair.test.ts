@@ -184,14 +184,14 @@ describe('B26 — fire als Paar: eine Zeile, drei Kanäle', () => {
     root.commands.push(makeCommand(1, 'START_WAVE', 2, {}));
     root.stepOnce();
 
-    // Der Schütze feuert von selbst (stats.effects[0] aus dem Genom) — bis zum ersten Schuss.
-    let fired: { effectId: string | null } | null = null;
+    // Der Schütze feuert von selbst (Effekte aus dem Genom) — bis zum ersten Schuss.
+    let fired: { effectIds: string[] } | null = null;
     for (let i = 0; i < 3000 && !fired; i++) {
       root.stepOnce();
-      fired = root.getSnapshot().projectiles.find(p => p.effectId !== null) ?? null;
+      fired = root.getSnapshot().projectiles.find(p => p.effectIds.length > 0) ?? null;
     }
     expect(fired, 'kein Projektil gefeuert — Schütze/Welle nicht verdrahtet?').not.toBeNull();
-    expect(fired!.effectId).toBe('EFFECT_BURN');
+    expect(fired!.effectIds[0]).toBe('EFFECT_BURN');
 
     // Treffer: derselbe effectId setzt in enemySystem `burnTicks` (B6-Status).
     let burning = 0;

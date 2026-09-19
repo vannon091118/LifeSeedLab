@@ -12,7 +12,10 @@ export interface HashableState {
   // eine Falle („warum ändert sich mein Hash nicht?“) — entfernt am 19.09.2026 (Regel 4.3).
   plants: { id: string; gx: number; gy: number; hp: number; variantId: string; lastShot: number }[];
   enemies: { id: string; hp: number; px: number; py: number; pathIndex: number }[];
-  projectiles: { id: string; px: number; py: number; dx: number; dy: number }[];
+  // Ballistik ist spielfähige Divergenz: Geschwindigkeit, Durchschlag und Effekte entscheiden
+  // über Treffer und Schaden. Deshalb gehören sie in den Hash (sonst könnten zwei Läufe mit
+  // unterschiedlichem Ausgang denselben Hash tragen).
+  projectiles: { id: string; px: number; py: number; dx: number; dy: number; speed?: number; pierce?: number; effects?: string[] }[];
   score: number;
   combo: { count: number; multiplier: number; timer: number; highest: number };
 }
@@ -64,6 +67,11 @@ export function hashState(s: HashableState): string {
   h = fnv1a(h, `projs:${projs.length}`);
   for (const p of projs) {
     h = fnv1a(h, `${p.id}|pos:${NUM(p.px)},${NUM(p.py)}|dir:${NUM(p.dx)},${NUM(p.dy)}`);
+    // Additiv-optional (D8): nur wenn vorhanden. Bestehende Szenarien hashen damit unverändert
+    // (ihre Projektile tragen die Felder nicht), neue Schüsse hashen ihre Wirkung mit.
+    if (p.speed !== undefined) h = fnv1a(h, `sp:${NUM(p.speed)}`);
+    if (p.pierce !== undefined) h = fnv1a(h, `pie:${NUM(p.pierce)}`);
+    if (p.effects && p.effects.length > 0) h = fnv1a(h, `fx:${p.effects.join('+')}`);
   }
 
   return (h >>> 0).toString(16).padStart(8, '0');

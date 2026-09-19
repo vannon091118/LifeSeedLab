@@ -10,6 +10,7 @@ import type { RoutePoint } from '../config/world.source';
 import { makeEvent, type GameEvent } from '../bus/events';
 import { nextId } from '../core/ids';
 import { makeRng } from '../core/rng';
+import { statusForEffect, statusTicksOf } from './effectSupport';
 
 /** Deploy-Spezifikation (Root leitet sie aus dem Meta-Brutling ab — P6). */
 export interface BeetleDeploySpec {
@@ -170,10 +171,7 @@ export class EnemySystem {
       enemyId: e.id, amount, critical, hp: Math.max(0, e.hp), px: e.px, py: e.py,
     }));
 
-    // status application (B6) — deterministic expiry ticks
-    if (effectId === 'EFFECT_SLOW') e.slowUntil = state.clock.tick + 90;
-    if (effectId === 'EFFECT_BURN') e.burnTicks = 3;
-    if (effectId === 'EFFECT_POISON') e.poisonTicks = 5;
+    this.setStatus(state, e, effectId);
 
     if (e.hp <= 0) {
       this.emit(makeEvent(state.clock.tick, 'ENEMY_DIED', e.id, ++this.seq, {
@@ -182,6 +180,33 @@ export class EnemySystem {
       return { died: true };
     }
     return { died: false };
+  }
+
+  /**
+   * Zweiter Effekt eines Schusses: Wirkung OHNE Schaden. Ein Schuss trägt bis zu zwei Effekte
+   * (`EFFECT_SLOTS`) — vorher reichte `root.ts` nur `effects[0]` durch, der zweite Effekt eines
+   * Genoms war damit toter Content. Schaden bleibt einmalig, deshalb getrennt vom Treffer.
+   */
+  applyEffect(state: SimState, enemyId: string, effectId: string | null): void {
+    const e = state.enemies.find(x => x.id === enemyId);
+    if (!e || e.hp <= 0) return;
+    this.setStatus(state, e, effectId);
+  }
+
+  /**
+   * Status setzen — die EINE Stelle. WELCHER Effekt welchen Status setzt, steht in
+   * `effectSupport.ts` (Sim-Vertrag); WIE LANGE er wirkt, in `config/effects.source.ts`
+   * (Content). Vorher stand hier eine `if`-Kette mit den Literalen 90/3/5, die jeden neuen
+   * Effekt still fallen ließ — genau der Grund, warum die acht Gene der zweiten Gruppe
+   * unsichtbar gewirkt hätten.
+   */
+  private setStatus(state: SimState, e: EnemyEntity, effectId: string | null): void {
+    const status = statusForEffect(effectId);
+    if (!status) return;
+    const ticks = statusTicksOf(effectId);
+    if (status === 'slow') e.slowUntil = state.clock.tick + ticks;
+    else if (status === 'burn') e.burnTicks = ticks;
+    else if (status === 'poison') e.poisonTicks = ticks;
   }
 
   private damage(state: SimState, e: EnemyEntity, amount: number, critical: boolean): void {

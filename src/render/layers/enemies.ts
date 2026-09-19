@@ -12,11 +12,14 @@ import type { EnemyTypeId } from '../../config/enemyGenome.source';
 import type { ResolvedBeetleVisual } from '../../visual/beetleGenerator';
 import { beetleBob } from '../beetles';
 import { drawBeetleSprite } from '../beetleSprites';
+import { gaitFrameOf } from '../beetleGait';
 import { enemyDrawScale } from '../../visual/enemyVisuals';
 
 /**
- * Ein Gegner an (0, 0) des aktuellen Transform. Der Aufrufer besitzt Position und Treffer-Punch.
- * `tick` speist nur den Lauf-Bob (Präsentation) — dieselbe Bewegungssprache wie der Brutling.
+ * Ein Gegner an (0, 0) des aktuellen Transform. `gait` (0..1) speist Schritte UND Bob — beide
+ * hängen an derselben zurückgelegten Strecke (beetleGait.GaitTracker), nie an der Uhr. Deshalb
+ * kriechen sie, wenn sie verlangsamt sind, und bleiben stehen, wenn sie stehen — statt zu fliegen.
+ * Der Aufrufer besitzt Position und Treffer-Punch.
  */
 export function drawEnemyBody(
   ctx: CanvasRenderingContext2D,
@@ -24,8 +27,10 @@ export function drawEnemyBody(
   typeId: EnemyTypeId,
   cell: number,
   dpr: number,
-  tick: number,
+  gait: number,
 ): void {
-  const bob = beetleBob(visual.phenotype, tick * 16) * cell;
-  drawBeetleSprite(ctx, visual, cell, dpr, 0, -bob, enemyDrawScale(typeId) * visual.scale);
+  const phase = gait - Math.floor(gait);
+  const bob = beetleBob(visual.phenotype, phase) * cell;
+  // Sprite-Bild und Bein-Stellung kommen aus DERSELBEN Phase (gaitFrameOf → gait = frame/8).
+  drawBeetleSprite(ctx, visual, cell, dpr, 0, -bob, enemyDrawScale(typeId) * visual.scale, gaitFrameOf(phase));
 }

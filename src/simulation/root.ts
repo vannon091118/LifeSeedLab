@@ -77,7 +77,8 @@ export class SimulationRoot {
     this.enemies = enemies;
     this.projectiles = new ProjectileSystem(
       e => this.publish(e),
-      (s: SimState, id: string, amt: number, crit: boolean, eff: string | null, src: string | null) => enemies.applyDamage(s, id, amt, crit, eff, src)
+      (s: SimState, id: string, amt: number, crit: boolean, eff: string | null, src: string | null) => enemies.applyDamage(s, id, amt, crit, eff, src),
+      (s: SimState, id: string, eff: string | null) => enemies.applyEffect(s, id, eff)
     );
     this.score = new ScoreSystem(e => this.publish(e));
     this.combo = new ComboSystem(e => this.publish(e));
@@ -171,10 +172,10 @@ export class SimulationRoot {
       this.plants.update(state, (plant, target, damage) => {
         const stats = resolvePlantStats(state, plant.variantId);
         if (!stats) return;
-        // B6: effect-driven combat — pierce and crit come from the variant's EFFECT tags
-        const pierce = stats.effects.includes('EFFECT_PIERCE') ? 2 : 0;
-        const critChance = stats.effects.includes('EFFECT_CRIT') ? 0.2 : 0;
-        this.projectiles.fire(state, plant, target, damage, pierce, stats.effects[0] ?? null, critChance);
+        // B6/Ballistik: Durchschlag, Krit und Geschwindigkeit kommen aus dem GENOM
+        // (`stats.ballistics`), nicht mehr aus Konstanten hier. ALLE Effekte des Genoms
+        // reisen mit (bis EFFECT_SLOTS) — vorher war `effects[1]` toter Content.
+        this.projectiles.fire(state, plant, target, damage, stats.ballistics, stats.effects);
       });
       this.projectiles.update(state);
       this.enemies.applyStatusTicks(state);

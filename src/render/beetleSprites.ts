@@ -7,6 +7,7 @@
 
 import type { ResolvedBeetleVisual } from '../visual/beetleGenerator';
 import { drawBeetleAnatomy } from './beetles';
+import { GAIT_FRAMES } from './beetleGait';
 
 interface CacheEntry {
   canvas: HTMLCanvasElement;
@@ -18,9 +19,11 @@ const SPRITE_SPAN = 2;
 
 const cache = new Map<string, CacheEntry>();
 
-export function beetleSpriteFor(visual: ResolvedBeetleVisual, cell: number, dpr: number): HTMLCanvasElement {
+export function beetleFrameFor(visual: ResolvedBeetleVisual, cell: number, dpr: number, frame: number): HTMLCanvasElement {
   const spanPx = Math.ceil(cell * SPRITE_SPAN * dpr);
-  const key = `${visual.variantKey}|${spanPx}`;
+  const f = ((frame % GAIT_FRAMES) + GAIT_FRAMES) % GAIT_FRAMES;
+  const gait = f / GAIT_FRAMES; // Bild → Phase 0..1 (eine Quelle: beetleGait.GAIT_FRAMES)
+  const key = `${visual.variantKey}|${spanPx}|${f}`;
   const hit = cache.get(key);
   if (hit) return hit.canvas;
 
@@ -30,11 +33,16 @@ export function beetleSpriteFor(visual: ResolvedBeetleVisual, cell: number, dpr:
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('BeetleSpriteCache: 2D context unavailable');
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  drawBeetleAnatomy(ctx, visual.phenotype, spanPx);
+  drawBeetleAnatomy(ctx, visual.phenotype, spanPx, gait);
 
   const entry: CacheEntry = { canvas, spanPx };
   cache.set(key, entry);
   return canvas;
+}
+
+/** Ein-Rahmen-Sprite (Vorschau, Idle) — Phase 0, das ist der Ruhe-Stand. */
+export function beetleSpriteFor(visual: ResolvedBeetleVisual, cell: number, dpr: number): HTMLCanvasElement {
+  return beetleFrameFor(visual, cell, dpr, 0);
 }
 
 export function beetleSpriteCacheSize(): number {
@@ -54,8 +62,9 @@ export function drawBeetleSprite(
   x: number,
   y: number,
   scale: number,
+  frame = 0,
 ): void {
-  const sprite = beetleSpriteFor(visual, cell, dpr);
+  const sprite = beetleFrameFor(visual, cell, dpr, frame);
   const drawSpan = cell * SPRITE_SPAN * scale;
   ctx.drawImage(sprite, x - drawSpan / 2, y - drawSpan / 2, drawSpan, drawSpan);
 }

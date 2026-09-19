@@ -15,6 +15,7 @@ Neue Berichte unter `qa/` lesen (Input für Task), Status der Befunde auf `in-ar
 2. Erst danach relevante Dateien gezielt lesen — niemals den gesamten Workspace.
 3. `ls`/`dir`/`find` verboten, wenn `rg` verfügbar ist. Vor Änderungen bestehende Implementierungen suchen.
 4. Neue Strukturen erst nach Prüfung auf semantisch passende Existenz anlegen.
+5. **READ double or Shut up:** Keine Annahmen als Wahrheit behaupten. Jede Behauptung muss durch **Read/Grep/tsc/vitest** verifiziert sein, bevor sie als Fakt verwendet wird. Der deterministische Weg (Nachprüfen) hat Vorrang vor dem offensichtlichen (Raten).
 
 ---
 
@@ -25,6 +26,12 @@ Neue Berichte unter `qa/` lesen (Input für Task), Status der Befunde auf `in-ar
 - **Regel 2 — Modularität & Ownership:** 1 Modul = 1 Hauptverantwortung (bei LOC-Überhang splitten, nie Cap erhöhen). 1 State-Slice = genau 1 Writer. Neu bauen > herumnudeln (falsche Module löschen & neu modular bauen; korrekte Module nie duplizieren). **8-Fragen-Sperre vor jedem Edit:** Existiert Funktion schon? Modul-Owner? Gameplay/Source/Event/Observer/Render? Neues Event/Command? Welcher Seed-Namespace? Regel in Source? LOC-Cap ok? Zweite State-Quelle vermieden?
 - **Regel 3 — Namenskonvention (Kollisionsfreiheit):** Kein Basisname darf unter `src/` doppelt existieren (ohne Extension). Domäne steuert Ordner (`simulation/`, `genome/`, `render/` etc.). Bei Mehrdeutigkeit Domänen-Präfix `<domain>_<descriptiveName>.[ts|tsx]` vergeben.
 - **Regel 4 — Wahrheiten, Konflikte, Neubau:** Eine Wahrheit überall (zwei Repräsentationen desselben Faktums = Defekt). Auflösung nur mit messbarem Gewinn für Gameplay, Determinismus, Lesbarkeit oder Performance. Kein Code auf Vorrat (Totes löschen). Strukturfehler = Modul neu bauen. Reihenfolge: Wahrheit → Darstellung → Verhalten → UI.
+- **Regel 5 — Kontext-Integrität & Ehrlichkeit:** 
+  - **Kontextverlust:** Wenn Kontext verloren geht (Datei nicht mehr im Kontext, unklare Zusammenhänge) → **sofort melden**, nicht raten.
+  - **Déjà-vu-Fragen:** Wenn eine Frage bekannt vorkommt, die schon gestellt/beantwortet wurde → **Abbruch, Bescheid geben**, nicht wiederholen.
+  - **Kleine Tasks:** Lieber in **kleineren, verifizierbaren Schritten** arbeiten als große Blöcke, die scheitern.
+  - **Keine Halluzinationen:** Niemals Annahmen als Wahrheit behaupten – erst prüfen (Read/Grep/tsc), dann handeln.
+  - **Dokumentation aktiv pflegen:** Änderungen an Regeln/Architektur werden **in die Source-Dokumente eingepflegt**, nicht nur angehängt.
 
 ---
 
@@ -112,6 +119,10 @@ node node_modules/vite/bin/vite.js build           # Nur bei Build-Relevanz
 8. Unbegründete neue Dependencies (keine fremden Game-Engines oder externen State-Manager).
 9. Git-Abschluss von Hand via `git commit` / `git push`.
 10. Maschinelle Commit-Signaturen („Generated with …", „Co-Authored-By: Codebuff …").
+11. **Annahmen als Wahrheit halluzinieren** — Jede Behauptung muss durch **Read/Grep/tsc/vitest** verifiziert sein (READ double or Shut up).
+12. **Kontextverlust verschweigen** — Statt zu raten: sofort melden („Hab den Faden verloren“).
+13. **Déjà-vu-Fragen wiederholen** — Bekannte Frage → Abbruch, Flag setzen, nicht neu beantworten.
+14. **Große Blöcke ohne Verifikation** — Nur kleine, testbare Schritte (Read → Prüf → Edit → Test).
 
 ---
 

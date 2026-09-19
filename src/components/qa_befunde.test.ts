@@ -13,7 +13,7 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { PlacementController, type PlacementEnvironment } from './placementController';
 import type { ResolvedVisual } from '../visual/generator';
 import { countsAsPlacement } from './placementSignal';
-import { bubbleFrameStyle, bubbleIsPointerTransparent } from './tutorial/SpeechBubble';
+import { bubbleFrameStyle, bubbleIsPointerTransparent, bubbleTextVisible } from './tutorial/SpeechBubble';
 import { gameViewStyles } from './gameViewStyles';
 import { MAP_TILES_SOURCE, MAP_TILE_IDS } from '../config/map.source';
 
@@ -29,6 +29,16 @@ describe('F5 — Blase im cueMode durchlässig (Backdrop-Passthrough, Skip bleib
   it('im cueMode rendert der Rahmen pointerEvents none — vorher war er `auto` (F5-Zonen-Messung: 2529 px² Verdeckung)', () => {
     expect(bubbleFrameStyle(true).pointerEvents).toBe('none');
     expect(bubbleFrameStyle(false).pointerEvents).toBe('auto');
+  });
+
+  // B42 (19.09.2026): Die Blase klappte im Handlungsschritt VON SELBST ein und war zugleich
+  // pointer-durchlässig — der Aufklapp-Klick war unerreichbar, der Text damit unlesbar. Der
+  // Vertrag lautet jetzt: sichtbar, bis der SPIELER wegklickt (oder der Schritt weitergeht).
+  it('B42: der Text steht im cueMode — nur ein ausdrücklicher Klick klappt ihn weg', () => {
+    expect(bubbleTextVisible(true, false)).toBe(true);   // Schritt beginnt LESBAR
+    expect(bubbleTextVisible(true, true)).toBe(false);   // ✕ gedrückt
+    expect(bubbleTextVisible(false, true)).toBe(true);   // Leseschritt: Text immer da
+    expect(bubbleTextVisible(false, false)).toBe(true);
   });
 });
 

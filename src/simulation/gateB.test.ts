@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { SimulationRoot, makeCommand } from './root';
 import { makeRoot } from '../testing/testkit';
-import { hashState, type HashableState } from '../core/hash';
+import { hashState } from '../core/hash';
+import { toHashable } from './snapshot';
 import { resetIds } from '../core/ids';
 import { VisualObserver } from '../observers/visualObserver';
 import { Camera } from '../render/camera';
+import { resolvePlantStats } from './plantSystem';
 import { ScoreSystem } from './scoreSystem';
 import { ComboSystem } from './comboSystem';
 import { makeRng } from '../core/rng';
@@ -12,18 +14,12 @@ import type { GameEvent } from '../bus/events';
 
 const SEED = 771123;
 
-function toHashable(root: SimulationRoot): HashableState {
-  const s = root.getSnapshot();
-  return {
-    seed: s.seed,
-    clock: s.clock,
-    wave: { number: s.wave.number },
-    plants: s.plants.map(p => ({ id: p.id, gx: p.gx, gy: p.gy, hp: p.hp, variantId: p.variantId, lastShot: p.lastShot })),
-    enemies: s.enemies.map(e => ({ id: e.id, hp: e.hp, px: e.px, py: e.py, pathIndex: e.pathIndex })),
-    projectiles: s.projectiles.map(p => ({ id: p.id, px: p.px, py: p.py, dx: p.dx, dy: p.dy })),
-    score: s.score,
-    combo: s.combo,
-  };
+// KEINE eigene Hash-Projektion mehr: hier stand die vierte Kopie derselben Projektion
+// (snapshot, testkit, gateB, DevOverlay). Eine Kopie, die neue Felder NICHT kennt, wäre der
+// leiseste Determinismus-Defekt von allen — der Vergleich hätte weiter bestanden, nur über
+// weniger Zustand. Owner ist `snapshot.ts#toHashable`.
+function hashOf(root: SimulationRoot): string {
+  return hashState(toHashable(root.getSnapshot()));
 }
 
 describe('Gate B — deterministische Wiederholung', () => {
@@ -42,7 +38,7 @@ describe('Gate B — deterministische Wiederholung', () => {
     a.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 1, gy: 2 }));
     a.commands.push(makeCommand(0, 'START_WAVE', 2, {}));
     for (let i = 0; i < 500; i++) { a.stepOnce(); obsA.drain(); }
-    const hashA = hashState(toHashable(a));
+    const hashA = hashOf(a);
     const scoreA = a.getSnapshot().score;
 
     resetIds();
@@ -53,7 +49,7 @@ describe('Gate B — deterministische Wiederholung', () => {
     b.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: 1, gy: 2 }));
     b.commands.push(makeCommand(0, 'START_WAVE', 2, {}));
     for (let i = 0; i < 500; i++) { b.stepOnce(); obsB.drain(); }
-    expect(hashState(toHashable(b))).toBe(hashA);
+    expect(hashOf(b)).toBe(hashA);
     expect(b.getSnapshot().score).toBe(scoreA);
   });
 });
@@ -168,8 +164,17 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
       damage: 1, reward: 5, scoreValue: 10, slowUntil: 0, burnTicks: 0, poisonTicks: 0, lastHitByPlantId: null,
     } as import('./state').EnemyEntity;
     st.enemies.push(target);
-    const proj = (root as unknown as { projectiles: { fire: (s: unknown, p: unknown, t: unknown, dmg: number, pierce: number, eff: string | null) => { remainingPierce: number } } }).projectiles.fire(st, plant, target, 10, 2, 'EFFECT_PIERCE');
+    // Der Schuss zieht sein Verhalten aus dem PROFIL (`stats.ballistics`), nicht mehr aus
+    // Argumenten. Dieser Eintrag hat kein Profil-Feld — genau der Altsave-Fall, den
+    // `getPlantStats` über die Effekt-Tags heilt (Durchschlag 2 wie vorher, kein stilles Nichts).
+    const stats = resolvePlantStats(st, 'cross_pierce');
+    expect(stats?.ballistics.pierce).toBe(2);
+    const proj = (root as unknown as {
+      projectiles: { fire: (s: unknown, p: unknown, t: unknown, dmg: number, profile: { speed: number; pierce: number; critChance: number; critMult: number }, effects: string[]) => { remainingPierce: number; speed: number; effectIds: string[] } }
+    }).projectiles.fire(st, plant, target, 10, stats!.ballistics, stats!.effects);
     expect(proj.remainingPierce).toBe(2);
+    expect(proj.speed).toBeGreaterThan(0);
+    expect(proj.effectIds).toEqual(['EFFECT_PIERCE']);
   });
 
   it('EFFECT_BURN / SLOW / POISON setzen Statusfelder deterministisch', () => {
