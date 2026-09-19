@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 // Konsolidierung: translations.test.ts + help.test.ts + i18n_tutorial.test.ts
 // (alle It-Fälle unverändert; Datei-Header-Kommentare der Originale erhalten).
 
-import { translations } from './translations';
+import { translations, TEXT_MODULES } from './translations';
 import { helpTexts, helpText, type HelpKey } from './help';
 import { tutorialTexts, tutorialText, type TutorialTextKey } from './tutorial';
 
@@ -21,6 +21,19 @@ describe('i18n Parität (DE/EN)', () => {
       const de = (translations.de[key] as string).match(placeholderRe)?.sort() ?? [];
       const en = (translations.en[key] as string).match(placeholderRe)?.sort() ?? [];
       expect(de, `Placeholder-Mismatch bei '${key}' (DE: ${de}, EN: ${en})`).toEqual(en);
+    }
+  });
+
+  // Der Barrel komponiert vier Domänen-Module per Spread — doppelte Schlüssel würden still das
+  // spätere Modul gewinnen lassen. Diese Zusage hielt vorher die EINE Datei; hier wird sie für
+  // die Komposition nachgeholt (Modul-Summe === Schlüsselmenge).
+  it('kein Schlüssel liegt in zwei Text-Modulen (Komposition verliert nichts)', () => {
+    for (const lang of ['de', 'en'] as const) {
+      const perModule = Object.values(TEXT_MODULES).map(dict => Object.keys(dict[lang]));
+      const sum = perModule.reduce((n, keys) => n + keys.length, 0);
+      const union = new Set(perModule.flat()).size;
+      expect(sum, `${lang}: Modul-Summe ${sum} vs. eindeutige Schlüssel ${union}`).toBe(union);
+      expect(union).toBe(Object.keys(translations[lang]).length);
     }
   });
 

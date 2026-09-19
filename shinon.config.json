@@ -6,6 +6,20 @@
       "changelog": true,
       "docLinks": true
     },
+    "locCaps": [
+      { "path": "src/simulation/", "cap": 300, "label": "Simulationssystem" },
+      { "path": "src/bus/", "cap": 300, "label": "Bus/Clock" },
+      { "path": "src/core/", "cap": 300, "label": "Core (Clock/RNG/IDs/Hash)" },
+      { "path": "src/visual/", "cap": 400, "label": "Visual/Generator" },
+      { "path": "src/render/", "cap": 400, "label": "Renderer" },
+      { "path": "src/observers/", "cap": 400, "label": "Observer" },
+      { "path": "src/components/", "cap": 400, "label": "UI-Komponente" },
+      { "path": "src/types/", "cap": 200, "label": "Types" },
+      { "path": "src/config/", "cap": 200, "label": "Source/Config" },
+      { "path": "src/persistence/", "cap": 200, "label": "Persistenz" },
+      { "path": "src/meta/", "cap": 200, "label": "Meta" },
+      { "path": "src/i18n/", "cap": 200, "label": "i18n" }
+    ],
     "commands": {
       "typecheck": {
         "command": "node",

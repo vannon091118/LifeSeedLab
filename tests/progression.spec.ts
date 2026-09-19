@@ -105,7 +105,9 @@ test.describe('Progression — Spielverlust', () => {
 // ── 2. WALLEN-ENDE ───────────────────────────────────────────────────────────
 
 test.describe('Progression — Wellen-Ende', () => {
-  test('Welle 1 läuft durch: WAVE_COMPLETED, Energie-Bonus, Auto-Folgewelle', async ({ page }) => {
+  // Der Titel nennt die MECHANIK dieses Übergangs, nicht Belohnungen: das Energie-System ist
+  // geschnitten (Bauen zahlt mit Material-Besitz, verdient wird Nektar am Run-Ende).
+  test('Welle 1 läuft durch: WAVE_COMPLETED, Auto-Folgewelle', async ({ page }) => {
     test.setTimeout(60_000);
     await startRun(page);
 
@@ -161,16 +163,21 @@ test.describe('Progression — Reifungs-Loop', () => {
     await bootToMenu(page);       // Kauf/Aussaat laufen über die Menü-Tabs, nicht im Feld
 
     // ── Schritt 1: Samen kaufen (SeedShop) ──
-    await page.getByRole('tab', { name: /seed shop/i }).click();
-    await expect(page.getByRole('button', { name: /common/i }).first()).toBeVisible();
-    // Start-Nektar 60 (SEED_SHOP_BASE_PRICE); es gibt ein Common-Angebot für genau 40.
-    const buyBtn = page.locator('button', { hasText: /40/ }).first();
+    // Seit den getrennten Pools heißt der Menü-Tab „Shop"; der Samen-Pool ist sein erster Reiter
+    // und führt GENAU EINE Karte (Samen ⇒ Keimling) — kein Seltenheits-Roulette mehr.
+    await page.getByRole('tab', { name: /shop/i }).click();
+    const buyBtn = page.getByRole('button', { name: /seeds/i }).first();
+    await expect(buyBtn).toBeVisible();
+    // Start-Nektar = SEED_PRICE (40): der erste Kauf frisst das Startkapital genau auf.
     await buyBtn.click();
     const mid = await meta(page);
     // B17.3 (Option A): kein Stash mehr (B18.3) — der Kauf KEIMT DIREKT zum Besitz.
     expect(mid.seedStash).toBe(0);
-    const ownedTotal = Object.values(mid.variantCounts ?? {}).reduce((a, b) => a + b, 0);
-    expect(ownedTotal, 'Kauf muss den Bestand auf 1 heben (frisch 0 + Keimling)').toBe(1);
+    // BESITZ-MODELL: `variantCounts` führt PFLANZEN und BAU-MATERIAL in einem Eimer — das frische
+    // Profil startet mit Material (faieres Startmaterial), aber ohne Pflanze. Der Kauf muss den
+    // PFLANZEN-Bestand um genau 1 heben (der alte Summen-Check konnte Material mitzählen).
+    expect(mid.variantCounts.seed_0, 'Kauf hebt den Pflanzen-Bestand um 1').toBe(1);
+    expect(mid.savedVariants?.map((v) => v.id), 'die gekeimte Pflanze steht in der Bibliothek').toEqual(['seed_0']);
     expect(mid.seedlings?.length, 'Keimling wartet im Gewächshaus auf seinen Topf').toBe(1);
     expect(mid.nektar).toBe(0);
 

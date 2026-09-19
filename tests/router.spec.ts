@@ -42,11 +42,14 @@ test.describe('Screen-Router', () => {
     await expect(page.getByText(/LOADOUT/i).first()).toBeVisible();
   });
 
-  test('Menü → Samen-Shop → Brutkammer → zurück', async ({ page }) => {
+  test('Menü → Shop → Brutkammer → zurück', async ({ page }) => {
     await bootToMenu(page);
 
-    await page.getByRole('tab', { name: /seed shop/i }).click();
-    await expect(page.getByRole('button', { name: /common/i })).toBeVisible();
+    // Der Menü-Tab heißt seit den getrennten Pools „🛒 Shop — Seeds, Tiles & Decor" (vorher
+    // „Samen-Shop"); er öffnet den Shop mit den drei Pool-Reitern.
+    await page.getByRole('tab', { name: /shop/i }).click();
+    // Erster Pool ist „Seeds": EINE Karte (Preis aus der Source), kein Seltenheits-Roulette mehr.
+    await expect(page.getByRole('button', { name: /seeds/i }).first()).toBeVisible();
 
     await page.getByRole('tab', { name: /brood chamber/i }).click();
     await expect(page.getByRole('button', { name: /breed/i })).toBeVisible();

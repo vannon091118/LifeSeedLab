@@ -87,6 +87,34 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ### Intern (Technik, Verträge & Tests)
 
+- [LOC-Wahrheit] Die LOC-Hotspot-Liste im README zählt ROH-Zeilen, das Gate prüft CODE-Zeilen
+  (Kommentare und Leerzeilen ausgenommen). Dadurch stand dieselbe Datei als „über Cap" im README
+  und mit 0 Befunden im Gate. Drei der gemeldeten Überschreitungen waren Phantom-Werte:
+  `components/Greenhouse.tsx` 392/400 (98 %, nicht 120 %), `config/phenotype.source.ts` 105/200
+  (53 %, nicht 114 %), `render/gameRuntime.ts` 285/400 (71 %, nicht 101 %). Kein Modul liegt
+  über seinem Cap; die einzige echte Enge ist Greenhouse (98 %).
+- [LOC-Caps] Die Cap-Tabelle stand nur in der (gitignorierten) Tool-Config und war kürzer als der
+  Vertrag in AGENTS.md: `src/meta/` und `src/i18n/` wurden überhaupt nicht geprüft. Jetzt liegen
+  alle zwölf Regeln in der versionierten `shinon.config.json` — Cap-Regel und Vertrag sind eine
+  Wahrheit statt zweier.
+- [i18n] `i18n/translations.ts` war auf 362 Code-Zeilen (181 % des i18n-Caps) gewachsen und
+  bediente gleichzeitig Titel, Shop, Lauf und Sammlung. Geschnitten nach Domäne (dasselbe Muster
+  wie `help.ts`/`tutorial.ts`): `texts_shell` 76 · `texts_shop` 90 · `texts_run` 118 ·
+  `texts_codex` 94, dahinter ein Barrel (11 Zeilen), der `translations` und `TranslationKey`
+  unverändert nach außen gibt — kein Konsument musste angefasst werden. 177 Schlüssel je Sprache,
+  keine verloren, keine doppelt: ein neuer Test sichert die Komposition ab (Modul-Summe ===
+  Schlüsselmenge), sonst würde still das spätere Modul gewinnen.
+- [E2E an den Shop-Vertrag gezogen] Zwei Specs hingen am alten Samen-Shop und waren rot: der
+  Menü-Tab heißt seit den getrennten Pools „🛒 Shop — Seeds, Tiles & Decor" statt „Samen-Shop",
+  und der Samen-Pool führt GENAU EINE Karte (vorher drei Seltenheits-Karten für denselben Keim).
+  `router.spec` und `progression.spec` sind nachgezogen; die Besitz-Zusage im Kaufschritt prüft
+  jetzt die PFLANZE (`variantCounts.seed_0` + Bibliothek) statt der Gesamt-Summe — die zählte seit
+  dem Besitz-Modell das Bau-Material mit. E2E wieder 27/27.
+- [Meta-Cap, bewusst offen] Mit dem neuen `src/meta/`-Cap fällt auf, dass
+  `meta/brood_identity.test.ts` bei 233 Code-Zeilen liegt. LOC-Caps prüfen nur BERÜHRTE Dateien,
+  deshalb ist sie heute grün — wer sie anfasst, splittet sie. Die Alternative (Testdateien ganz
+  aus der Cap-Regel nehmen) ist nicht entschieden und wird hier nicht stillschweigend gesetzt.
+
 - [Phänotyp global] Die Gegner benutzen jetzt dasselbe Kreaturen-Modell wie Brut und Käfer — der
   `switch` über fünf von Hand gezeichnete Körper in `render/layers/enemies.ts` ist gelöscht
   (87 → 16 Code-Zeilen). Kette: `config/enemyGenome.source.ts` (Erbgut-Rezepte) →
@@ -126,8 +154,6 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 - [Identitätsbruch, dokumentiert] Die Erbgut-Erweiterung der Gründer ändert die Genom-Hashes
   ihrer Brut einmalig; der gepinnte Kandidatensatz in `meta/brood_identity.test.ts` wurde
   nachgezogen (IDs unverändert, kein Schema-Bump, Specimen sind Daten).
-
-### Intern (Technik, Verträge & Tests)
 
 - [Dead-Game-Leihe] Der Run war startbar, aber leer: `beginRun()` vergab die Leihpflanze nur,
   wenn `variantCounts.some(n > 0)` FALSE war. Dieser Eimer führt Pflanzen UND Bau-Material —
