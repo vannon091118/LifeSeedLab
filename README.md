@@ -128,8 +128,10 @@ node scripts/test-lane.mjs
 # Komplette Test-Suite (alle grün)
 node scripts/test-lane.mjs --full
 
-# Hinweis: Jede Testzahl in dieser Datei ist ein Messwert aus `--full` (heute 570/570).
-# Zahlen nicht aus dem Gedächtnis fortschreiben — sonst widersprechen sich README und Lauf.
+# Hier steht bewusst KEINE Testzahl: sie wird gemessen, nicht abgeschrieben.
+# `node scripts/test-count.mjs` bringt den Messwert in die CI-Zusammenfassung und prüft,
+# dass in dieser Datei keine abgeschriebene Zahl steht (Befund 20.09.2026: README nannte
+# 570/570, die Lane maß 662/662 — und die Zahl driftete über 429, 492, 529, 570 weiter).
 
 # Produktions-Build erzeugen
 node node_modules/vite/bin/vite.js build
@@ -198,11 +200,11 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `71e93d2` — fix: resolve TypeScript errors and test failures |
-| Arbeitsbaum | 4 gestaged, 0 geändert, 4 neu |
-| Letztes Gate | 🛑 geschlossen (preflight, 0 Fehler, 1 Warnungen) |
+| HEAD | `0389136` — fix(test): Reifungs-Loop data-tut, Coverage-Wache neu gemessen |
+| Arbeitsbaum | 152 gestaged, 1 geändert, 1 neu |
+| Letztes Gate | 🛑 geschlossen (preflight, 1 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `71e93d2` fix: resolve TypeScript errors and test failures |
+| Letzter Shinon-Commit | `0389136` fix(test): Reifungs-Loop data-tut, Coverage-Wache neu gemessen |
 | Letzter Push | ✅ origin/main |
-| LOC-Hotspots | `src/meta/store.ts` 189/200 (95 %)<br>`src/simulation/enemySystem.ts` 273/300 (91 %)<br>`src/i18n/tutorial.ts` 172/200 (86 %)<br>`src/simulation/plantSystem.ts` 247/300 (82 %)<br>`src/meta/run.ts` 164/200 (82 %) |
+| LOC-Hotspots | `src/simulation/root.ts` 268/300 (89 %)<br>`src/simulation/plantSystem.ts` 261/300 (87 %)<br>`src/i18n/tutorial.ts` 172/200 (86 %)<br>`src/simulation/enemySystem.ts` 243/300 (81 %)<br>`src/meta/run.ts` 158/200 (79 %) |
 <!-- SHINON:STATUS:END -->

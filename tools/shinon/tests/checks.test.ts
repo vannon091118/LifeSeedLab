@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { buildChecks } from '../checks/index.ts';
+import { buildChecks, knownCheckIds } from '../checks/index.ts';
+import { CommitSizeCheck } from '../checks/commit-size-check.ts';
+import { ShinonGate } from '../gate.ts';
 import { runMessageSelfTest, validateMessage } from '../checks/commit-message-check.ts';
 import { ForbiddenPatternCheck } from '../checks/forbidden-pattern-check.ts';
 import { LocCapCheck } from '../checks/loc-cap-check.ts';
@@ -30,6 +32,57 @@ describe('Gate-Registry', () => {
     const config = defaultConfig('/tmp/shinon');
     expect(config.gate.checks.changelog).toBe(true);
     expect(buildChecks(config).map((check) => check.id)).toContain('changelog');
+  });
+
+  // Dieselbe Klasse Fehler, zweiter Fall: die Slice-Grenze steht hier als Default UND im
+  // Registry-Eintrag — ohne beides wäre der 152-Dateien-Commit (`eccfede`) weiter möglich.
+  it('Slice-Grenze ist ein Default-Check mit Default-Wert 25', () => {
+    const config = defaultConfig('/tmp/shinon');
+    expect(config.commit.maxFiles).toBe(25);
+    expect(config.gate.checks.commitSize).toBe(true);
+    expect(buildChecks(config).map((check) => check.id)).toContain('commit-size');
+    expect(knownCheckIds()).toContain('commit-size');
+  });
+});
+
+describe('Commit-Größe (Slice-Regel)', () => {
+  // Kontext mit echtem Index: die Prüfung urteilt über `stagedFiles`, nicht über den Arbeitsbaum.
+  function indexContext(dir: string, staged: string[]): CheckContext {
+    const ctx = contextIn(dir, []);
+    ctx.stagedFiles = staged;
+    return ctx;
+  }
+
+  it('blockiert oberhalb der Grenze und lässt die Grenze selbst durch', () => {
+    const dir = tempDir('commit-size');
+    const at = Array.from({ length: 25 }, (_, i) => `src/at_${i}.ts`);
+    const over = [...at, 'src/one_too_many.ts'];
+
+    expect(new CommitSizeCheck().run(indexContext(dir, at)).some((item) => item.severity === 'error')).toBe(false);
+    expect(new CommitSizeCheck().run(indexContext(dir, at)).some((item) => item.code === 'CSZ000')).toBe(true);
+
+    const findings = new CommitSizeCheck().run(indexContext(dir, over));
+    const error = findings.find((item) => item.severity === 'error');
+    expect(error?.code).toBe('CSZ001');
+    expect(error?.message).toContain('26 Dateien');
+  });
+
+  it('urteilt nicht über einen leeren Index (voller Arbeitsbaum ist kein Befund)', () => {
+    const dir = tempDir('commit-size-empty');
+    const ctx = contextIn(dir, Array.from({ length: 80 }, (_, i) => `src/loose_${i}.ts`));
+    const findings = new CommitSizeCheck().run(ctx);
+    expect(findings.some((item) => item.severity === 'error')).toBe(false);
+    expect(findings[0]?.code).toBe('CSZ000');
+  });
+
+  it('beißt im echten Gate: 26 gestagte Dateien schließen es, 25 nicht', async () => {
+    const dir = tempDir('commit-size-gate');
+    const staged = Array.from({ length: 26 }, (_, i) => `src/file_${i}.ts`);
+    const ctx = indexContext(dir, staged);
+    const report = await new ShinonGate([new CommitSizeCheck()]).run(ctx);
+    expect(report.passed).toBe(false);
+    const ok = await new ShinonGate([new CommitSizeCheck()]).run(indexContext(dir, staged.slice(0, 25)));
+    expect(ok.passed).toBe(true);
   });
 });
 

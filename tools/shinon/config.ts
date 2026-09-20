@@ -62,6 +62,8 @@ interface GateChecks {
   commitMessage: boolean;
   /** Doku-Referenzen gegen git ls-files statt Worktree (A13.14-Regel automatisiert). */
   docLinks: boolean;
+  /** Slice-Grenze je Commit (`commit.maxFiles`) — der Mega-Commit bleibt abweisbar. */
+  commitSize: boolean;
 }
 
 /**
@@ -99,6 +101,14 @@ interface CommitConfig {
   prefixes: string[];
   /** true ⇒ nur Leerheit und Kommentarreste werden geprüft (freie Betreffzeilen erlaubt). */
   freeForm: boolean;
+  /**
+   * Obergrenze der Dateien in EINEM Commit (Slice-Regel).
+   *
+   * Anlass: Commit `eccfede` (20.09.2026) trug einen Bugfix-Titel ohne Body über 152 Dateien —
+   * Vektor-Engine, UI-Splits, Bus-Typen, Löschungen und Aufräumen untrennbar in einem Schritt.
+   * Die Zahl stand bisher nur als Vorsatz in AGENTS.md; hier ist sie eine Prüfung.
+   */
+  maxFiles: number;
 }
 
 interface PushConfig {
@@ -139,6 +149,9 @@ export function defaultConfig(root: string): ShinonConfig {
       conventional: true,
       prefixes: ['FOLD', 'CUT', 'SEED', 'STAMP'],
       freeForm: false,
+      // 25 Dateien: groß genug für einen echten Slice (Modul + Tests + Doku), klein genug, dass
+      // ein `bisect` Mechanik und Aufräumen noch trennen kann.
+      maxFiles: 25,
     },
     gate: {
       checks: {
@@ -151,6 +164,7 @@ export function defaultConfig(root: string): ShinonConfig {
         commitMessage: true,
         changelog: true,
         docLinks: true,
+        commitSize: true,
       },
       failFast: true,
       enforcement: 'advisory',
@@ -205,6 +219,21 @@ export function defaultConfig(root: string): ShinonConfig {
           message:
             'Verboten in Simulation/Source: Math.pow, Math.hypot und Transzendente — exakte Operationen nutzen (Multiplikationsschleife, Math.sqrt)',
           include: ['src/simulation/', 'src/config/*.source.ts'],
+        },
+        {
+          // Deterministische Reihenfolge (Befund 20.09.2026, adversarialer Review):
+          // `localeCompare` kollationiert sprachabhängig — dieselben IDs sortierten unter
+          // cs-CZ/da-DK/lt-LT anders als unter en-US. Die kanonische Sortierung steckt im
+          // genome_hash (`discovery/chain.ts`), im Zustands-Hash (`core/hash.ts`) und im
+          // Dijkstra-Tie-Break (`simulation/vectorSystem.ts`): ein sprachabhängiger Hash ist
+          // kein Determinismus. Ersatz ist `compareCodeUnits` aus `core/order.ts`.
+          // Geltung als AUSSCHLUSS-Liste, damit neue Codepfade ohne Nacharbeit fail-closed
+          // erfasst werden. Ausgenommen ist bewusst NUR die Präsentationsschicht, wo
+          // sprachrichtige Anzeige-Sortierung legitim ist und keinen Zustand beeinflusst.
+          pattern: '\\.localeCompare\\s*\\(',
+          message:
+            'Verboten im Spielcode: String.prototype.localeCompare — deterministisch mit compareCodeUnits (core/order.ts) sortieren',
+          exclude: ['tools/', 'src/components/', 'src/render/', 'src/observers/', 'src/i18n.tsx', 'src/i18n/'],
         },
       ],
       commands: {

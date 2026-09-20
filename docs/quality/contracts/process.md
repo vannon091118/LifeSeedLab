@@ -163,3 +163,28 @@ zurückgesetzt. Ergebnis je Gruppe:
 
 Kein Wert wurde dauerhaft gekippt; alle Stichproben sind im jeweiligen Test als
 Selbstkontrolle verankert, wo sie dauerhaften Wert haben (Replay-Selbstkontrolle, ID-Reset).
+
+### Nachtrag 21.09.2026 — zwei Prüfungen aus dem adversarialen Review (bewusst ohne Audit-ID)
+
+**`commit-size` — die Slice-Grenze ist jetzt eine Prüfung.** Commit `eccfede` trug den Titel
+„fix(sim): Attraktor-Zug auf den Weg begrenzen", keinen Body und **152 Dateien** (Vektor-Engine,
+UI-Splits, Bus-Typen, gelöschte `src/cloud/*`, alte `.bak`). Ein Gate, das nur das Betreff-Format
+prüft, ließ das durch; per `bisect` war danach Mechanik und Aufräumen nicht mehr trennbar.
+Regel: mehr als `commit.maxFiles` (Default **25**) Dateien im **Index** ⇒ Fehler `CSZ001`
+(`tools/shinon/checks/commit-size-check.ts`). Geprüft wird der Index, nicht der Arbeitsbaum —
+ein unaufgeräumter Baum ist kein Commit. Der 152-Dateien-Commit ist zerlegt (7 Slices + ein
+Korrektur-Slice, Union gegen den alten Stand geprüft: 152/152 Dateien erhalten).
+
+**Commit-Nachricht ≥ 200 Wörter.** Einzeiler sagen bei Struktur-Änderungen nichts über Umfang
+und Grenzen. Die Grenze ist nach oben offen (`MSG007`, `MIN_COMMIT_WORDS` in
+`tools/shinon/checks/commit-message-check.ts`, Unicode-Wortzählung); der Ton bleibt ironisch,
+die technische Aussage prüfbar. Beides ist mit Selbsttests gepinnt (`message --self-test`,
+`checks.test.ts`, `komponist.test.ts`).
+
+**Testzahl-Drift ist ein Fehler, kein Zahlenrätsel.** Die README nannte 570/570 in 61 Dateien,
+die Lane maß 662 in 66 — und die Zahl war über 429/492/529/570 gewandert, obwohl ein Commit
+„Zählweise eine Wahrheit" hieß. Ein abgeschriebener Messwert altert lautlos.
+`scripts/test-count.mjs` misst die Suite (Vitest-JSON) und **veröffentlicht** die Zahl in der
+CI-Zusammenfassung (`--summary`); `--check` **weist jede hartkodierte Testzahl in der README
+ab** (Exit 1). Geltung nur dort: `CHANGELOG.md` und ROADMAP tragen datierte Messwerte — das ist
+Chronik und darf sich nicht mitwachsen, dieselbe Ausnahme wie beim Doku-Referenz-Check.

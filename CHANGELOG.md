@@ -9,6 +9,8 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ## Unreleased (Arbeitsstand 19.–21.09.2026)
 
+- [Review] Die Slice-Regel wird eine Prüfung: Shinon-Check `commit-size` (Fehler `CSZ001`) blockiert Commits über `commit.maxFiles` (Default 25) Dateien im **Index** — der 152-Dateien-Commit `eccfede` mit Bugfix-Titel wäre damit nicht mehr durchgekommen; Selbsttest deckt Grenzfall und leeren Index ab.
+- [Review] Die Testzahl driftet nicht mehr: `scripts/test-count.mjs` misst Tests und Dateien in der offiziellen Lane, `--check` weist abgeschriebene Zahlen in `README.md` ab (dasselbe Muster wie `quality-register --check`), CI veröffentlicht den Messwert; das Skript musste dafür in `.gitignore` freigegeben werden — der Doku-Referenz-Check hat die tote Referenz gefunden.
 - [Review] `localeCompare` ist aus dem Spielcode verbannt: neues Kernmodul `core/order.ts` (`compareCodeUnits`, reiner Code-Unit-Vergleich), angewendet an allen acht Fundstellen (Genom-Hash `chain.ts`, Zustands-Hash `hash.ts`, Tie-Break im Leitfähigkeits-Dijkstra `vectorSystem.ts`); Gate-Regel „Deterministische Reihenfolge" plus Baum-Test. Dieselben Gen-IDs sortierten unter cs-CZ/da-DK/lt-LT anders als unter en-US — ein tschechischer Browser hätte einen anderen `genome_hash` ergeben.
 - [Review] `plant_hmac` heißt jetzt `plant_ref`: der Feldname versprach einen HMAC, der Code war ein schlüsselloser FNV-Mischwert. Weil der Name im gehashten Payload steht, ist das eine Schema-Migration (v3): Feld umbenannt, Wert-Präfix `ph-` → `pr-`, Kette als Ganzes neu verkettet (`codex_migration.ts`), SQL-Spiegel `002_plant_ref.sql`; nebenbei die nie verdrahtete v1→v2-Wanderkette in `codex.ts` angeschlossen, die still Saves verworfen hätte.
 

@@ -7,11 +7,13 @@ import { E2eCheck } from './e2e-check.ts';
 import { BuildCheck } from './build-check.ts';
 import { ChangelogCheck } from './changelog-check.ts';
 import { DocLinkCheck } from './doc-link-check.ts';
+import { CommitSizeCheck } from './commit-size-check.ts';
 import type { ShinonCheck } from './check.ts';
 import type { ShinonConfig } from '../config.ts';
 
 export type { CheckContext, Finding, Severity, ShinonCheck, ShinonPhase } from './check.ts';
 export { finding, hasErrors, countBySeverity, targetFiles, lineCount, codeLineCount, tail } from './check.ts';
+export { CommitSizeCheck } from './commit-size-check.ts';
 
 /**
  * Registry: die Reihenfolge ist die Gate-Reihenfolge (billig vor teuer). Neue Prüfklassen
@@ -28,6 +30,7 @@ export function buildChecks(config: ShinonConfig, only: string[] = []): ShinonCh
     new BuildCheck(),
     new ChangelogCheck(),
     new DocLinkCheck(),
+    new CommitSizeCheck(),
   ];
 
   const enabled: Record<string, boolean> = {
@@ -40,6 +43,7 @@ export function buildChecks(config: ShinonConfig, only: string[] = []): ShinonCh
     build: config.gate.checks.build,
     changelog: config.gate.checks.changelog,
     'doc-links': config.gate.checks.docLinks,
+    'commit-size': config.gate.checks.commitSize,
   };
 
   return candidates.filter((check) => enabled[check.id] === true && (only.length === 0 || only.includes(check.id)));
@@ -56,5 +60,6 @@ export function knownCheckIds(): string[] {
     'build',
     'changelog',
     'doc-links',
+    'commit-size',
   ];
 }

@@ -92,6 +92,7 @@ Neue Berichte unter `qa/` lesen (Input für Task), Status der Befunde auf `in-ar
   - Präsentations-Namespaces: `visual`, `particle`, `cosmetic` (nur Observer/Renderer).
   - Keine gegenseitige Beeinflussung! FX ON/OFF muss bit-identischen Spielzustand liefern.
 - **Float-Exaktheit:** In `src/simulation/**` + `src/config/*.source.ts` sind `Math.pow`, `Math.hypot` und alle Transzendenten (`sin/cos/tan/…`, `exp/log/…`) verboten — erlaubt sind exakte Operationen und `Math.sqrt`. Potenz = Multiplikationsschleife. Durchgesetzt von der Gate-Regel „Float-Exaktheit" + Baum-Test (`tools/shinon/tests/determinism_rule.test.ts`); Präsentation (`render/`, `observers/`) darf trigonometrisch zeichnen. Details: `architecture-contract.md` §6.
+- **Deterministische Reihenfolge:** `localeCompare` ist im Spielcode verboten — es sortiert sprachabhängig, und die kanonische Sortierung steckt in `genome_hash`, Zustands-Hash und Dijkstra-Tie-Break. Sortiert wird mit `compareCodeUnits` aus `src/core/order.ts`. Durchgesetzt von der Gate-Regel „Deterministische Reihenfolge" + derselben Baum-Testdatei; ausgenommen ist nur die Präsentationsschicht.
 - Run-Identität = `runId` (Autorität in `meta`).
 
 ---
@@ -119,6 +120,8 @@ node node_modules/vite/bin/vite.js build           # Nur bei Build-Relevanz
    ```
    - Gate-Modus: `enforcement=strict` (0 Fehler, 0 Warnungen). Manuelles `git commit`/`git push` ist **verboten**.
    - Commit-Format: `type(scope): Betreff` (Conventional Commits).
+   - **Commit-Nachricht ≥ 200 Wörter** (nach oben offen), Ton ironisch-humorvoll, technisch korrekt und prüfbar — durchgesetzt vom Gate (`MSG007`, Unicode-Wortzählung). Einzeiler werden abgewiesen, weil sie Umfang und Grenzen nicht erklären.
+   - **Slice-Grenze: höchstens 25 Dateien je Commit** (`commit.maxFiles`, Gate-Check `CSZ001`, geprüft am Index). Bei 10+ Dateien wird zerlegt; ein Titel wie ein Bugfix über 152 Dateien ist ab jetzt ein Gate-Fehler, kein Ermessensfall.
    - Remote-Wahrheit: `git ls-remote origin main` gegen `git rev-parse HEAD`. Deploy-Parität beachten (Index vs. Worktree).
    - **Staged-Satz muss kohärent sein:** Split staged/unstaged/untracked (z. B. Sim gestaged, Test untracked) ist nicht commit-fähig, auch wenn `tsc`/`test-lane` grün sind — `git diff --cached` muss den ganzen Commit zeigen.
    - **Recovery nach `reset --hard`/`clean -fd`:** `dist/assets/*.js` überlebt (vor Reset gebaut) und enthält minifiziert die letzte Logik (`receiveBite`, `ENEMY_BITE`, `EFFECT_REFLECT`) — bit-getreue Rekonstruktionsquelle.

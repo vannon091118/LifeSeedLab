@@ -1,13 +1,17 @@
-// Baum-Test der Regel „Float-Exaktheit in Simulation und Content-Truth"
-// (architecture-contract.md §6: verboten sind Math.pow, Math.hypot und alle Transzendenten;
-// erlaubt bleiben die exakten Operationen und Math.sqrt).
+// Baum-Tests der Determinismus-Regeln.
 //
-// WARUM DIESER TEST ZUSÄTZLICH ZUR GATE-REGEL EXISTIERT:
-// Die Gate-Regel läuft über `targetFiles()`, im Commit über den Index — sie sieht also nur
-// GEÄNDERTE Dateien. Ein Verstoß in einer Datei, die niemand anfasst, bliebe unsichtbar. Dieser
-// Test fährt denselben Check mit ALLEN Dateien des Geltungsbereichs als Zielmenge: der ganze
-// Baum, jede Zeile. Die Regelliste wird dabei NICHT nachgebaut, sondern aus der Gate-Konfiguration
-// gelesen — eine Wahrheit, zwei Reichweiten (Diff schnell im Gate, Baum vollständig hier).
+//   (1) Float-Exaktheit (architecture-contract.md §6): verboten sind Math.pow, Math.hypot und
+//       alle Transzendenten; erlaubt bleiben exakte Operationen und Math.sqrt.
+//   (2) Deterministische Reihenfolge (Befund 20.09.2026, adversarialer Review): verboten ist
+//       `String.prototype.localeCompare` im Spielcode — es kollationiert sprachabhängig.
+//
+// WARUM DIESE TESTS ZUSÄTZLICH ZU DEN GATE-REGELN EXISTIEREN:
+// Die Gate-Regeln laufen über `targetFiles()`, im Commit über den Index — sie sehen also nur
+// GEÄNDERTE Dateien. Ein Verstoß in einer Datei, die niemand anfasst, bliebe unsichtbar. Diese
+// Tests fahren dieselben Checks mit ALLEN Dateien des Geltungsbereichs als Zielmenge: der ganze
+// Baum, jede Zeile. Die Regellisten werden dabei NICHT nachgebaut, sondern aus der
+// Gate-Konfiguration gelesen — eine Wahrheit, zwei Reichweiten (Diff schnell im Gate, Baum
+// vollständig hier).
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it, expect } from 'vitest';
@@ -20,25 +24,46 @@ const ROOT = ShinonGitHelfer.detectRoot(process.cwd()) ?? process.cwd();
 const CONFIG = defaultConfig(ROOT);
 const TMP = path.join(ROOT, 'tools', '.tmp', 'determinism-scope');
 
-/** Die eine Regel, um die es hier geht — gefunden über ihr Geltungsmerkmal. */
-const RULE = ((): { pattern: string; message: string; include?: string[] } => {
-  const found = CONFIG.gate.forbiddenPatterns.find((rule) => rule.include?.includes('src/simulation/'));
-  if (!found) throw new Error('Regel „Float-Exaktheit" fehlt in der Gate-Konfiguration');
-  return found;
-})();
+/** Das, was an einer Regel zählt: Pattern, Meldung und Geltungsbereich. */
+interface Rule {
+  pattern: string;
+  message: string;
+  include?: string[];
+  exclude?: string[];
+}
 
-/** Alle Dateien im Geltungsbereich, relativ zur jeweiligen Wurzel. */
-function scopeFiles(root: string): string[] {
-  const listed = (relative: string, filter: (entry: string) => boolean): string[] =>
-    fs
-      .readdirSync(path.join(root, relative), { recursive: true, encoding: 'utf8' })
-      .filter((entry) => entry.endsWith('.ts') && filter(entry))
-      .map((entry) => `${relative}${entry}`)
-      .sort();
-  return [
-    ...listed('src/simulation/', () => true),
-    ...listed('src/config/', (entry) => entry.endsWith('.source.ts') && !entry.includes('/')),
-  ].sort();
+/** Regel über ihr Geltungsmerkmal finden — nicht über den Index in der Liste. */
+function ruleByInclude(entry: string): Rule {
+  const found = CONFIG.gate.forbiddenPatterns.find((rule) => rule.include?.includes(entry));
+  if (!found) throw new Error(`Regel mit include "${entry}" fehlt in der Gate-Konfiguration`);
+  return found;
+}
+
+/** Regel über ihren Pattern-Inhalt finden (für Regeln ohne include, mit Ausschluss-Liste). */
+function ruleByPattern(needle: string): Rule {
+  const found = CONFIG.gate.forbiddenPatterns.find((rule) => rule.pattern.includes(needle));
+  if (!found) throw new Error(`Regel mit Pattern "${needle}" fehlt in der Gate-Konfiguration`);
+  return found;
+}
+
+/** Alle `.ts`-Dateien unter den Präfixen, relativ zur Wurzel — immer mit `/` als Trenner. */
+function filesUnder(root: string, prefixes: string[], keep: (entry: string) => boolean): string[] {
+  return prefixes
+    .flatMap((relative) =>
+      fs
+        .readdirSync(path.join(root, relative), { recursive: true, encoding: 'utf8' })
+        // Windows liefert `bus\\bus.ts`: erst normalisieren, dann filtern und bauen — sonst
+        // passen weder die `/`-Vergleiche unten noch die Befund-Pfade des Checks dazu.
+        .map((entry) => entry.split(path.sep).join('/'))
+        .filter((entry) => entry.endsWith('.ts') && keep(entry))
+        .map((entry) => `${relative}${entry}`),
+    )
+    .sort();
+}
+
+/** Der gesamte Spielcode — Grundmenge für Regeln, die per Ausschluss gelten. */
+function allGameFiles(root: string): string[] {
+  return filesUnder(root, ['src/'], () => true);
 }
 
 /** Kontext mit ALLEN Dateien als Zielmenge (kein Index, kein Diff — reines Durchsehen). */
@@ -54,16 +79,20 @@ function contextAt(root: string, files: string[]): CheckContext {
   };
 }
 
-/** Nur die Befunde der Float-Regel, als `datei:zeile` — direkt auffindbar statt „irgendwo". */
-function violations(ctx: CheckContext): string[] {
+/** Nur die Befunde EINER Regel, als `datei:zeile` — direkt auffindbar statt „irgendwo". */
+function violationsFor(ctx: CheckContext, rule: Rule): string[] {
   return new ForbiddenPatternCheck()
     .run(ctx)
-    .filter((item) => item.code === 'PAT001' && item.message === RULE.message)
+    .filter((item) => item.code === 'PAT001' && item.message === rule.message)
     .map((item) => `${item.file}:${item.line}`);
 }
 
 describe('Float-Exaktheit: Simulation und Content-Truth ohne Potenz und Transzendente', () => {
-  const files = scopeFiles(ROOT);
+  const RULE = ruleByInclude('src/simulation/');
+  const files = [
+    ...filesUnder(ROOT, ['src/simulation/'], () => true),
+    ...filesUnder(ROOT, ['src/config/'], (entry) => entry.endsWith('.source.ts') && !entry.includes('/')),
+  ].sort();
 
   it('Geltungsbereich ist nicht leer und deckt genau die vorgesehenen Pfade', () => {
     // Ohne diese Zusicherung könnte ein Tippfehler im Scope den Baum-Test lautlos leeren.
@@ -83,7 +112,7 @@ describe('Float-Exaktheit: Simulation und Content-Truth ohne Potenz und Transzen
   });
 
   it('kein Verstoß im gesamten Baum — geprüft mit dem echten Check', () => {
-    expect(violations(contextAt(ROOT, files))).toEqual([]);
+    expect(violationsFor(contextAt(ROOT, files), RULE)).toEqual([]);
   });
 
   it('die Regel beißt: pow, hypot und sin im Scope, sqrt nicht — außerhalb des Scopes gar nicht', () => {
@@ -100,12 +129,59 @@ describe('Float-Exaktheit: Simulation und Content-Truth ohne Potenz und Transzen
     // Gleicher Verstoß, aber ein Test der Source-Dateien — nicht im Scope (nur *.source.ts).
     fs.writeFileSync(path.join(TMP, 'src', 'config', 'probe.test.ts'), 'export const c = Math.sin(1);', 'utf8');
 
-    const found = violations(contextAt(TMP, ['src/simulation/probe.ts', 'src/config/probe.test.ts']));
+    const found = violationsFor(
+      contextAt(TMP, ['src/simulation/probe.ts', 'src/config/probe.test.ts']),
+      RULE,
+    );
     expect(found).toEqual([
       'src/simulation/probe.ts:1',
       'src/simulation/probe.ts:2',
       'src/simulation/probe.ts:3',
     ]);
+    fs.rmSync(TMP, { recursive: true, force: true });
+  });
+});
+
+describe('Deterministische Reihenfolge: kein localeCompare im Spielcode', () => {
+  const RULE = ruleByPattern('localeCompare');
+  const excluded = (file: string): boolean => (RULE.exclude ?? []).some((entry) => matchesPath(entry, file));
+  const files = allGameFiles(ROOT).filter((file) => !excluded(file));
+
+  it('Geltungsbereich ist der Spielcode ohne Präsentationsschicht', () => {
+    expect(files.length).toBeGreaterThan(50);
+    // Die drei Stellen, an denen die Sortierung Gültigkeit trägt, sind ausdrücklich drin.
+    expect(files).toContain('src/core/hash.ts');
+    expect(files).toContain('src/core/order.ts');
+    expect(files).toContain('src/discovery/chain.ts');
+    expect(files).toContain('src/simulation/vectorSystem.ts');
+    // … und die Anzeige-Schicht ausdrücklich draußen: dort ist sprachrichtige Sortierung legitim.
+    expect(files.some((file) => file.startsWith('src/components/'))).toBe(false);
+    expect(files.some((file) => file.startsWith('src/render/'))).toBe(false);
+    // Die Ausschluss-Liste steht sichtbar — sie zu erweitern ist eine bewusste Entscheidung.
+    expect(RULE.exclude).toEqual(['tools/', 'src/components/', 'src/render/', 'src/observers/', 'src/i18n.tsx', 'src/i18n/']);
+    // Fail-closed: die Regel hat KEIN include, gilt also auch für künftige Ordner.
+    expect(RULE.include).toBeUndefined();
+  });
+
+  it('kein Verstoß im gesamten Spielcode — geprüft mit dem echten Check', () => {
+    expect(violationsFor(contextAt(ROOT, files), RULE)).toEqual([]);
+  });
+
+  it('die Regel beißt: localeCompare in Sim/Source geflaggt, in der Anzeige-Schicht nicht', () => {
+    fs.rmSync(TMP, { recursive: true, force: true });
+    fs.mkdirSync(path.join(TMP, 'src', 'simulation'), { recursive: true });
+    fs.mkdirSync(path.join(TMP, 'src', 'components'), { recursive: true });
+    fs.mkdirSync(path.join(TMP, 'tools', 'probe'), { recursive: true });
+    const violation = 'export const order = (a: string, b: string) => a.localeCompare(b);';
+    fs.writeFileSync(path.join(TMP, 'src', 'simulation', 'probe.ts'), violation, 'utf8');
+    fs.writeFileSync(path.join(TMP, 'src', 'components', 'probe.ts'), violation, 'utf8');
+    fs.writeFileSync(path.join(TMP, 'tools', 'probe', 'probe.ts'), violation, 'utf8');
+
+    const found = violationsFor(
+      contextAt(TMP, ['src/simulation/probe.ts', 'src/components/probe.ts', 'tools/probe/probe.ts']),
+      RULE,
+    );
+    expect(found).toEqual(['src/simulation/probe.ts:1']);
     fs.rmSync(TMP, { recursive: true, force: true });
   });
 });
