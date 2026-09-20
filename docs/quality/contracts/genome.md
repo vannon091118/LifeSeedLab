@@ -277,13 +277,15 @@ weiterhin Offene steht in `docs/process/ROADMAP.md` §3.
   (`parentSimilarityOk` gegen die stetige `driftFor`-Kurve), die Generation zählt wirklich weiter
   (jüngster Elternteil + 1).
 - **Kandidaten konnten Zwillings-Profile tragen — BEHOBEN (19.09.2026).** Der Neuheits-Vergleich
-  maß nur das AUSSEHEN: gemessen trugen **11 von 48 Bruten (22,9 %)** zwei Kandidaten mit
+  maß nur das AUSSEHEN: gemessen trugen **11 von 72 Bruten (15,3 %)** zwei Kandidaten mit
   identischen Stats, und die Form-Distanz dieser Paare lag bei 0,026–0,064 (Schwelle 0,055) —
   der Spieler wählte zwischen zwei Bildern desselben Tiers. Eingriff, Source-driven und modular:
   `rollCandidates` kennt die **optionale Domänen-Bedingung `distinct`** (ein Entwurf mit bereits
   vergebenem Kampfprofil verliert jeden Vergleich), und die Brut sucht 12 statt 6 Versuche
   (`BEETLE_BREED.noveltyAttempts`); die Pflanzenzucht bleibt unverändert bei 6. Ergebnis:
-  **0 von 48** Bruten mit Zwillingen, Form-Distanz der Kandidaten unverändert (Mittel 0,0753 →
+  **0 von 72** Bruten mit Zwillingen (Messmenge: 3 Gründer, alle geordneten Paarungen × 8
+  Brut-Indizes = 72 Bruten; „vorher" ist mit `4d50cc6^` nachgerechnet, nicht erinnert),
+  Form-Distanz der Kandidaten unverändert (Mittel 0,0753 →
   0,0758), Determinismus nachgemessen (zwei Aufrufe bytegleich). Lock: `genome_beetle.test.ts`
   „drei Kandidaten, drei WAHLEN" fährt ALLE Specimen-Paarungen × 8 Brut-Indizes; die Mutation
   (Bedingung entfernt) macht ihn rot — belegt, nicht behauptet.

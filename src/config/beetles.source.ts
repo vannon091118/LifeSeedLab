@@ -116,8 +116,9 @@ export const BEETLE_BREED = {
   /**
    * Suchbudget je Kandidat (Versuche). Höher als der Pflanzen-Default, weil der Brut-Suchraum
    * enger ist: bei genetisch gleichen Eltern erhält die Rekombination die Kräfte EXAKT, Vielfalt
-   * entsteht nur über Mutation — 6 Versuche lieferten dort in 7 von 48 Bruten keinen dritten
-   * Profil (gemessen), 12 genügten in allen. Wird nur ausgeschöpft, wenn die Neuheits-Schwelle
+   * entsteht nur über Mutation — 6 Versuche lieferten in 11 von 72 Bruten keinen dritten
+   * Profil, 12 genügten in allen. Messmenge (nachzählbar): 3 Gründer, alle GEORDNETEN Paarungen
+   * × 8 Brut-Indizes = 72 Bruten. Wird nur ausgeschöpft, wenn die Neuheits-Schwelle
    * nicht erreicht wird; der Normalfall bricht unverändert nach dem ersten Treffer ab.
    */
   noveltyAttempts: 12,
@@ -129,7 +130,7 @@ export const BEETLE_BREED = {
  * Der Neuheits-Vergleich der Brutkandidaten maß nur das AUSSEHEN. Bei genetisch gleichen Eltern
  * (Blatthüpfer×Blatthüpfer, Hummel×Hummel) erhält die Rekombination die Kräfte EXAKT — beide
  * Allele sind identisch, der Misch-Bias kürzt sich heraus — und ein Dominanz-Kippen ändert die
- * Käfer-Werte gar nicht (Dominanz bewegt nur die Form). Ergebnis: 11 von 48 Bruten (22,9 %)
+ * Käfer-Werte gar nicht (Dominanz bewegt nur die Form). Ergebnis: 11 von 72 Bruten (15,3 %)
  * trugen zwei Kandidaten mit IDENTISCHEN Stats; die Form-Distanz dieser Paare lag bei
  * 0,026–0,064 (Schwelle 0,055) — der Spieler entschied zwischen zwei Bildern desselben Tiers.
  *
@@ -137,7 +138,7 @@ export const BEETLE_BREED = {
  *   · Balance-Achsen in das FORM-Mass mischen: senkt die mittlere Form-Distanz der Kandidaten
  *     von 0,075 auf 0,069 (der Optik-Anteil verdünnt sich) — die Vielfalt wäre also an anderer
  *     Stelle bezahlt worden. Deshalb ist das Profil eine ZUSATZ-Bedingung, kein Achsen-Zusatz.
- *   · Suchbudget 6 → 12 Versuche: mit dem Zusatzkriterium bleiben 0 von 48 Bruten mit Zwillingen
+ *   · Suchbudget 6 → 12 Versuche: mit dem Zusatzkriterium bleiben 0 von 72 Bruten mit Zwillingen
  *     (vorher 11). Das Budget wird nur ausgeschöpft, wenn die Form-Schwelle nicht erreicht wird.
  *
  * Deterministisch bleibt alles: gleicher Seed ⇒ derselbe Wurf (2× identisch nachgemessen).

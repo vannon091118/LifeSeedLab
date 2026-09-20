@@ -75,7 +75,8 @@ describe('B30 — Brut-Domäne', () => {
     // (`distinct` in genome/beetle.ts) und sucht bei Zwillingen weiter (12 Versuche statt 6).
     // Dieser Pin belegt die GRENZE des Eingriffs: diese Fachkreuzung hatte nie Zwillinge, wird
     // also nicht anders gewürfelt — der Satz ist BITGLEICH zum Stand davor. Bewegt haben sich
-    // nur Bruten, die vorher zwei identische Profile trugen (0 von 48 statt 11 von 48).
+    // nur Bruten, die vorher zwei identische Profile trugen (0 von 72 statt 11 von 72;
+    // Messmenge: 3 Gründer, alle geordneten Paarungen × 8 Brut-Indizes).
     expect(rollBrood(A, B, 1).map(c => `${c.id}|${broodGenomeHash(c)}`)).toEqual([
       'brood_ez8xcp_0|hyb-8cd10b61',
       'brood_ez8xcp_1|hyb-536bbdff',

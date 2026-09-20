@@ -12,7 +12,8 @@ eines Praktikanten, ehrlich gesagt.
 Es waren fünf Punkte, und sie waren unterschiedlich schlimm:
 
 - **Q1 — Welle 1 tötet einen Erstspieler** (hoch). Drei Verteidiger, trotzdem 20 → 0 Leben.
-  Der Schlangenpfad war zu lang, die Grunts zu bissig (15 Schaden, 40 HP), eine
+  Der Schlangenpfad war zu lang, die Grunts zu bissig (`damage: 10`, 40 HP — am Bau jenes
+  Commits nachgezählt, nicht erinnert), eine
   Reichweite-3-Pflanze hatte schlicht keine Wirkzeit.
 - **Q2 — Ziehen platziert nicht** (mittel). Tippen ging, Ziehen nicht — obwohl der Hinweis
   in der Leiste beides verspricht.

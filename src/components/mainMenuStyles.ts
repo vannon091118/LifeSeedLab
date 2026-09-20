@@ -139,12 +139,11 @@ export const mainMenuStyles: Record<string, CSSProperties> = {
     opacity: 0.45,
     cursor: 'not-allowed',
   },
-  preview: {
-    width: 18,
-    height: 18,
-    borderRadius: 5,
-    border: '1.5px solid var(--ink)',
+  /** Rahmen um die Pflanzen-Kachel (B27): das Bild kommt aus `PlantVariantThumb`. */
+  thumb: {
     flexShrink: 0,
+    display: 'block',
+    lineHeight: 0,
   },
   name: {
     flex: 1,

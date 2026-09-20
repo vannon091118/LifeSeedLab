@@ -11,6 +11,12 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ### Für Spieler
 
+- **Deine Sammlung zeigt jetzt Pflanzen statt Farbpunkte.** Im Hub stand neben jedem Samen ein
+  kleiner Farbpunkt — jetzt siehst du dasselbe Bild, das später im Beet steht, gezeichnet aus
+  derselben Ableitung. Die Karte kann damit kein anderes Wesen ankündigen als das, das wächst.
+  Alte Spielstände mit unbekannten Samen zeigen bewusst ein neutrales graues Feld: lieber kein
+  Bild als ein gelogenes. Die Spielversion steht damit auf **v0.0.74**.
+
 - **Die Brutkandidaten sind jetzt sichtbar verschiedene Tiere — und die Gründer tragen wieder ihre
   eigenen Farben.** Vorher trugen in den meisten Bruten alle drei Kandidaten dieselbe Hauptfarbe,
   und die drei Gründer sahen **alle gleich** aus (dreimal dieselbe Farbe); ihre in der Source
@@ -168,6 +174,33 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
   eines Laufs.
 
 ### Intern (Technik, Verträge & Tests)
+
+- [UI] **B27 nachgezogen: EINE Pflanzen-Kachel für alle Listen.** `PlantVariantThumb`
+  (`components/PhenotypeCanvas`) baut den Phänotyp mit derselben Ableitung wie das Feld
+  (`genomeToVisualInput` + `GAME_SEED`); der Hub ersetzt damit seinen Farbpunkt
+  (`MainMenu`, `mainMenuStyles.preview` → `thumb`). Unbekannte Alt-Save-IDs bleiben neutral grau —
+  lieber kein Bild als ein gelogenes. Damit zeigt jede Pflanzen-Liste (Hub, Gewächshaus, Shop)
+  dieselbe Anatomie, die das Feld später zeichnet.
+
+- [Refactor] **Das Gewächshaus ist in Komponenten geteilt.** Aus der Sammeldatei
+  `components/Greenhouse.tsx` wurden `components/greenhouse/{ParentSelection, SeedlingTray,
+  PotRow, PendingQueue, SlotBuyButton, ResultCard}` plus `greenhouseStyles` (Präsentation) und
+  `greenhouseHelpers` (Ableitungen); Greenhouse bleibt der **einzige Zustands-Owner**
+  (`meta`/`onMetaChange`), jede Komponente deklariert ihre Props samt auf `TranslationKey`
+  verengtem `t`. Live durchgespielt statt behauptet: Gewächshaus geöffnet, Elternpaar
+  Spross × Myzel gesät — Ergebnis-Karte („Nachtsausnelke", Rapid fire · Pierce),
+  Reifungs-Queue (2/3) und Slot-Gate gerendert, Konsole fehlerfrei; `tsc` 0 Fehler,
+  Suite 578/578.
+
+- [Docs] **Belegzahlen nachgezählt statt erinnert (B30/B39).** Die Zwilling-Messmenge der Brut
+  ist 3 Gründer × alle GEORDNETEN Paarungen × 8 Brut-Indizes = **72 Bruten**; die Zahlen stehen
+  jetzt einheitlich als „11 von 72 (15,3 %) vorher — 0 von 72 nachher" in
+  `config/beetles.source`, im Kommentar von `meta/brood_domain.test.ts` und im Contract
+  `docs/quality/contracts/genome.md` (Vorher-Wert gegen `4d50cc6^` nachgerechnet). Die Devlogs
+  17_01/17_04 tragen ihre Nachträge mit Datum — die Grunt-Zahl ist am Bau jenes Commits gezählt,
+  und die Krix-Verdeckung lag drei Tage später auch über der Desktop-Tray. Dazu die
+  Ignorier-Zeile für die Scratch-Ablage der Experimente. Version **0.0.71 → 0.0.74**
+  (`package.json` + `src/version.ts`, Lock in `version.test.ts`).
 
 - [Vertrag] **B31 — Sichtbarkeit der Brutkandidaten ist gepinnt (Devlog 21).** Der
   **Sichtbarkeits-Gewinn** der formtragenden Maße steht in `src/render/beetles`
