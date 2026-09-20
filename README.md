@@ -195,11 +195,11 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `4d50cc6` — feat(sim): Blumentopf-Booster, Laufweg in Feldern, echte Brut-Wahlen |
-| Arbeitsbaum | 1 gestaged, 10 geändert, 0 neu |
-| Letztes Gate | 🛑 geschlossen (preflight, 0 Fehler, 1 Warnungen) |
+| HEAD | `5f14dbc` — fix(meta): Run-Stats kennen jede Loadout-Variante |
+| Arbeitsbaum | 0 gestaged, 7 geändert, 1 neu |
+| Letztes Gate | 🛑 geschlossen (preflight, 1 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `4d50cc6` feat(sim): Blumentopf-Booster, Laufweg in Feldern, echte Brut-Wahlen |
+| Letzter Shinon-Commit | `5f14dbc` fix(meta): Run-Stats kennen jede Loadout-Variante |
 | Letzter Push | ✅ origin/main |
 | LOC-Hotspots | `src/components/Greenhouse.tsx` 394/400 (99 %)<br>`src/meta/store.ts` 186/200 (93 %)<br>`src/i18n/tutorial.ts` 172/200 (86 %)<br>`src/simulation/enemySystem.ts` 249/300 (83 %)<br>`src/meta/run.ts` 164/200 (82 %) |
 <!-- SHINON:STATUS:END -->

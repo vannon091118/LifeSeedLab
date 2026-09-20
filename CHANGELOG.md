@@ -140,6 +140,22 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ### Intern (Technik, Verträge & Tests)
 
+- [Prozess] **Die QA-Berichte sind zur Chronik geworden.** Die 20 Berichte der Sessions
+  17./18.09.2026 lagen als Rohdateien auf `qa-reports` und beschrieben dieselben Dinge
+  ein zweites Mal neben den Domänen-Contracts. Sie sind jetzt als `docs/process/devlog/`
+  überführt: ein Index plus je Bericht ein Eintrag in Krix' Stimme — Datum, Version, Commit,
+  Befunde, was gebaut wurde (mit Beleg), was offen blieb. Formatregel: gleiche Anatomie,
+  nie gleiches Layout. Der Ablauf ist verbindlich festgeschrieben (Devlog-README +
+  `AGENTS.md`): abholen → umsetzen → Devlog-Eintrag → offene Punkte zusätzlich in die
+  ROADMAP → Erledigtes in den Domänen-Contract → **der konsolidierte Bericht wird aus `qa/`
+  entfernt** (eine Wahrheit, keine zwei).
+  Beim Abgleich gegen den heutigen Code entstanden sechs neue offene Punkte mit Beleg:
+  P-10 Tray ohne Scroll-Hinweis (mobil, Q9), P-11 Brutvorschau ohne Kontostand (Q11,
+  Designfrage), P-12 selbst-abwählendes Tile-Werkzeug (T3), P-13 Restfragen der
+  Nachverifikation zum Nachmessen, P-14 leere Route direkt nach dem Fortsetzen
+  (Beobachtung B, 0/3), P-15 fehlender Wiedereinstieg in die Krix-Notizen. Überholt ist
+  T2 (zwei Preise für die Leihe) — das Energie-Konto existiert nicht mehr.
+
 - [Meta/B1.1] **Run-Stats kennen jetzt JEDE Loadout-Variante (Befund: „kann keine Pflanze auf freie
   Plätze platzieren").** Ursache gemessen, nicht vermutet: der Run löst Zahlen über
   `getPlantStats(variantId, bredStats)` auf, und `bredStats` wird erst seit B1 bei der Registrierung

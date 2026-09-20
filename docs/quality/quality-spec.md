@@ -79,6 +79,7 @@ Klassen der Befunde: `DEFECT` (kaputt/falsch) · `INCOMPLETE` (Vertrag existiert
 | `A18.7` | [meta.md](./contracts/meta.md) | WIDERLEGT — zwei Review-Behauptungen, die der Code nicht trägt |
 | `A19` | [meta.md](./contracts/meta.md) | DEFECT (verifiziert an Code **und** Live-Save) — die Meta-Wahrheit lag im React-State, nicht in der Persistenz |
 | `B1` | [meta.md](./contracts/meta.md) | Run identity & loadout (repair: App.tsx, meta, root.ts) |
+| `B1.1` | [meta.md](./contracts/meta.md) | (behoben 20.09.2026) — Run-Stats müssen JEDE Loadout-Variante kennen |
 | `B14` | [meta.md](./contracts/meta.md) | Lifecycle-Identität, Snapshot-Budget & Reife-Gates (Auftrag aus A13) |
 | `B14.1` | [meta.md](./contracts/meta.md) | Monotoner Brut-Zähler statt Fenster-Maximum |
 | `B14.2` | [meta.md](./contracts/meta.md) | Migration v4 → v5 (kein Identitätsverlust, keine Doppelkennung) |

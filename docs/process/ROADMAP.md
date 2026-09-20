@@ -54,8 +54,9 @@ Alle historischen und aktuellen Befunde aus Code-Audits (jetzt domänenweise in 
 
 Aufgenommen ist nur, was am heutigen Stand **im Code belegt** offen ist — jede Zeile nennt
 Beleg und Owner. Was die Berichte gemeldet haben und inzwischen behoben ist, steht in den
-Domänen-Contracts (`docs/quality/contracts/`), nicht hier. Berichte: `2026-09-19` externer
-Spieler-Playtest, Verständnis-QA v0.0.55, Maze-/Objekt-/Mobile-QA v0.0.53, Re-Test v0.0.53.
+Domänen-Contracts (`docs/quality/contracts/`) und in der Chronologie des Devlogs
+(`docs/process/devlog/` — die QA-Berichte selbst werden nach der Überführung gelöscht,
+damit dieselbe Sache nicht an zwei Orten lebt).
 Entschiedene Punkte wandern nach unten in die Spur-Abschnitte (Nummern bleiben stabil).
 
 | # | Problem | Beleg am Code | Owner |
@@ -66,6 +67,12 @@ Entschiedene Punkte wandern nach unten in die Spur-Abschnitte (Nummern bleiben s
 | P-5 | **Krix-Blase auf 390×844.** Der Umbau des Tutorials hat die alte Verankerung (`anchor.y`, zu kurze Bühne) ersetzt; ein Beleg-Screenshot bei 390×844 nach dem Umbau steht aus. Nicht als behobene Behauptung führen, sondern nachmessen. | `components/tutorial/`, `components/gameViewStyles.ts` | `components/` |
 | P-8 | **`reward` und `scoreValue` sind in der Source für ALLE fünf Gegnertypen zahlenidentisch** (grunt 10/10 · fast 15/15 · tank 30/30 · swarm 5/5 · boss 150/150). Beide werden gelesen (Nektar-Anteil bzw. Score), die Trennung ist also echt — aber solange die Werte gleich sind, ist jeder Balance-Eingriff an einem Feld eine halbe Wahrheit. Offen: bewusst differenzieren oder ein Feld benennen. | `config/enemies.source.ts`, `simulation/scoreSystem.ts` | `config/` |
 | P-9 | **Inzucht-Vielfalt hängt allein an der Mutation.** Die Mutations-Chance ist fix (`BREEDING.mutationChance`), der Neuheitsdruck skaliert nur Drift/Dominanz — bei genetisch gleichen Eltern erhält die Rekombination die Kräfte EXAKT, und ein Dominanz-Kippen bewegt die Käfer-Werte gar nicht. Die Brut fängt das mit 12 statt 6 Versuchen ab (gemessen: vorher 7 von 48 Bruten nur zwei Profile, jetzt 0 von 48) — der Kern selbst bleibt eng. Offen als BALANCE-Entscheidung, weil sie die Pflanzenzucht mitbewegt: Druck an die Mutations-Chance koppeln oder Pool/Content erweitern. | `config/phenotype.source.ts` `BREEDING`, `genome/breeding.ts` | `config/` |
+| P-10 | **Tray ohne Scroll-Hinweis (mobil).** Der Kartenstreifen einer Sparte ist breiter als 390 px (`overflowX: 'auto'`) und zeigt keinen Fade-, Pfeil- oder Zähler-Hinweis — ein Teil der Bau-Optionen ist unsichtbar, ohne dass etwas darauf deutet. Befund aus der Mobile-Runde (Q9, 1/3), seither nicht neu gemessen. | `components/PlacementTray.tsx` (`sectionRow`), Devlog 04 | `components/` |
+| P-11 | **Brutvorschau rendert ohne genug Nektar.** Die drei Kandidaten erscheinen, sobald zwei Eltern gewählt sind — der Kontostand beeinflusst nur die Knopf-Optik. Entweder ist das ein Teaser (dann fehlt die Kennzeichnung) oder ein Pfad, der die Wirtschaftsprüfung umgeht. Designfrage aus Q11. | `components/BeetleLab.tsx` (`preview`, `handleBreed`), Devlog 04 | `components/` + `i18n/` |
+| P-12 | **Tile-Werkzeug schaltet sich selbst ab (T3).** Die Werkzeug-Knöpfe sind Umschalter; beim Serien-Bau wählt der zweite Klick den Modus ab, und der Zustand ist an der Karte nicht schnell genug ablesbar. Kein Kaufschaden, aber ein Bruch mitten im Bauen. Kandidat 1/3 aus der Taktik-Session. | `components/placementController.ts` (`selectTile`), Devlog 18 | `components/` |
+| P-13 | **Restfragen der Nachverifikation** (Leih-Karte überragt die Tray um ~10 px, Größe der Krix-Blase). Beide wurden an der Oberfläche vor dem Tray-Umbau und vor dem neuen Onboarding gemessen — nicht als behoben führen, sondern an der heutigen Fläche nachmessen. | Devlog 17, `components/PlacementTray.tsx`, `components/tutorial/` | `components/` |
+| P-14 | **Leere Route direkt nach dem Fortsetzen** (Beobachtung B, 0/3). `applyResume` setzt `currentRoute = null`, abgeleitet wird sie erst im ersten Tick (`root.ts`) — für einen Moment zeigt das Brett keinen Laufweg. Bisher nicht reproduziert; entweder messen oder die Ableitung in den Resume ziehen. | `simulation/resume.ts`, `simulation/root.ts`, Devlog 10/13 | `simulation/` |
+| P-15 | **Wiedereinstieg in die Krix-Notizen.** Die Entscheidung von Q3 gilt (Überspringen verwirft bewusst, kein erneutes Aufdrängen) — der damals zugesagte Weg, die Notizen später auf Wunsch nachzulesen, wurde nie gebaut. Offen als Wunsch, nicht als Bug. | Devlog 01/06, `components/tutorial/` | `components/` |
 
 ### Am 19.09.2026 entschieden und umgesetzt (Nummern bleiben stabil)
 
@@ -80,6 +87,19 @@ damit die Nummern nicht wandern und alte Verweise gültig bleiben:
   `simulation/routeMetrics.ts` ersetzt `routeQuality.ts`; Chip „LAUFWEG 22 · min 22",
   `ROUTE_CHANGED` trägt `tiles`/`ideal`. Belege: `maze_plants.test.ts` (25 vs. 15 = 10 Felder
   Gewinn), `hudSnapshot.test.ts`, Live-Chip im Preview.
+### Am 20.09.2026 entschieden und umgesetzt
+
+- **P-16 Platzierbarkeit der eigenen Sammlung** → **behoben** (`5f14dbc`): Bestandssaves trugen
+  für ihren Bestand keinen `bredStats`-Eintrag, wodurch die Vorschau jede Zelle mit `unknown`
+  und die Sim mit `no_inventory` ablehnte (Tray zeigte ×1, gesetzt wurde nichts). Jetzt heilt
+  `deriveRunStats` die Run-Stats beim Start aus dem Genom (dieselbe Ableitung wie bei der
+  Registrierung). Beleg: `src/meta/run_stats.test.ts` (7 Gates, Mutation geprüft), Live-Preview
+  mit echtem Profil. Regel: `docs/quality/contracts/meta.md` B1.1.
+- **Q10 Mobile/Dev-Blende** (aus Devlog 04) → **behoben** (`5f14dbc`): Das Dev-Overlay lag über
+  der Tray und schluckte Karten- und Brett-Taps; es ist jetzt Lesefläche (`pointer-events: none`),
+  nur der FX-Knopf bleibt bedienbar. Beleg: Karten-Klick trifft mit Overlay den Handler,
+  FX toggelt weiter. Regel: `docs/quality/contracts/ui.md` (B7.6).
+
 - **P-7 `resources.experience`** → **Feld gestrichen** (Entscheidung „Feld streichen"): kein
   zweiter Kontostand im Run; Writer, Source-Konstanten, Resume-Kopie und die Tests, die ihn
   pinnten, sind weg. Dabei fielen zwei tote `resources.energy`-Zuweisungen in den Maze-Tests auf

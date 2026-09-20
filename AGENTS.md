@@ -10,6 +10,13 @@ git log HEAD..origin/qa-reports --oneline -- qa/
 ```
 Neue Berichte unter `qa/` lesen (Input für Task), Status der Befunde auf `in-arbeit` / `erledigt` / `widerlegt` setzen (`docs(qa): status <bericht> <befund>` auf `qa-reports`), **erst dann** Task starten. Branch nie in `main` mergen (Details: `qa/README.md`).
 
+## QA-Konsolidierung nach Task-Ende (PFLICHT, normaler Ablauf)
+1. **Überführen:** je abgeschlossenem Bericht **ein** Devlog-Eintrag in `docs/process/devlog/` — Datum, Version/Commit, Befunde, was gebaut wurde (mit Beleg), was offen blieb. Gleiche Anatomie, nie gleiches Layout (Krix' Stimme, s. `devlog/README.md`).
+2. **Offenes sichtbar halten:** jeder verbliebene Punkt zusätzlich in `docs/process/ROADMAP.md` §3 „Bekannte Probleme" (fortlaufende P-Nummer, Beleg + Owner).
+3. **Erledigtes an die Regelstelle:** Befund → Domänen-Contract (`in-arbeit`/`erledigt` mit Fundstelle), nicht in den Devlog allein.
+4. **Aufräumen:** der konsolidierte Bericht wird von `qa/` **entfernt** (eine Wahrheit, keine zwei) — Historie im Devlog, Arbeit in der Roadmap, Regel im Contract.
+5. **Erst dann** Commit/Push über Shinon.
+
 ## Repository-Search-Workflow (PFLICHT)
 1. Repository-Struktur ermitteln (`rg --files`, gezielte Pfade/Dateitypen).
 2. Erst danach relevante Dateien gezielt lesen — niemals den gesamten Workspace.
