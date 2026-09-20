@@ -72,3 +72,7 @@ coverage/
 
 # Lokale Arbeitsplane (Plan-Skill-Ausgaben, kein Repo-Inhalt)
 plan/
+
+# Quarantaene abgebrochener Agenten-Experimente (nicht Teil des Spiels, kein Pruef-Scope,
+# Entscheidung des Eigentuemers steht aus) — Konfliktloesung 20.09.2026
+experiments/pending/

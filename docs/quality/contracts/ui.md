@@ -51,6 +51,18 @@ Gefunden bei der Sichtprüfung, nicht in der Simulation: Mit Sprache **English**
 - Ghost = ResolvedVisual at 60% alpha + range ring (shooter/support) + green/red footprint tint. Same resolved visual as final placement (PreviewModifier = alpha only — identity never changes).
 - Desktop parity: identical pointer pipeline (no separate hover path).
 
+**Karten-Aktivierung: Pointer UND Klick (20.09.2026).** Der Befund des Spieltests v0.0.71
+(„Karten mit `onPointerDown` reagieren nicht auf synthetische Klick-Events") war ein echter
+Barrierefreiheits-Defekt, kein Messartefakt: ein `<button>` wird von Tastatur (Enter/Space),
+Vorlesewerkzeug und fremden Agenten über `click` aktiviert — dort feuert nie ein `pointerdown`.
+Regel: jede Tray-Karte geht durch EINEN Vertrag, `cardPress(activate)` in
+`components/PlacementTray.tsx` — Pointer wie bisher (inkl. `releasePointerCapture`, damit der
+Drag aus der Tray zum Brett möglich bleibt), plus `click` **nur** bei `detail === 0`. Echte
+Zeigegeräte liefern `detail ≥ 1`; ohne diese Unterscheidung würde jeder Maus-Tap die eben
+gesetzte Auswahl sofort wieder umschalten. Beleg: `placementTray.test.ts` (4 Fälle),
+Browser-Gegenprobe 6/6, und die Mutation (Klick-Zweig entfernt) macht genau die Tastatur- und
+Synthetik-Strecke rot.
+
 ## B7. Screen specifications
 
 **Title (B7.1)** — full-bleed canvas scene behind minimal DOM: layered paper hills + swaying grass silhouettes drifting (cosmetic namespace, 3 depths, parallax on device tilt later); 2–3 ambient LEAF/SPORE particles/s; logo = custom SVG wordmark (B9) with 600 ms draw-on + settle; big ink-styled PLAY button (min 56 px target); language pills bottom; first pointer = audio unlock + soft chime. Sequence: paint → logo draws → button fades up. Never a bare div flash.

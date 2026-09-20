@@ -15,6 +15,7 @@ import { ScoreSystem } from './scoreSystem';
 import { ComboSystem } from './comboSystem';
 import { WaveSystem } from './waveSystem';
 import { MapSystem } from './mapSystem';
+import type { MapTileType } from '../config/map.source';
 import { executeCommand, type CommandContext } from './rootCommands';
 import { freshState } from './pipeline';
 import { routeWalkTiles, routeIdealTiles } from './mapSystem';
@@ -107,6 +108,16 @@ export class SimulationRoot {
     if (e.type === 'ENEMY_DIED') this.pendingKills.push(e);
     this.eventLog.push(e);
     this.bus.publish(e);
+  }
+
+  /**
+   * Read-only Frage der Vorschau: würde dieser Bau den letzten freien Weg schließen?
+   * Die Regel bleibt im Map-Owner (`MapSystem.wouldClosePath` — dieselbe wie `placeTile`);
+   * dieser Zugang existiert nur, weil die Presentation den Root hält und sonst nichts schreibt.
+   * Kein Event, keine Mutation, kein RNG — fragen ist keine Spielentscheidung.
+   */
+  wouldClosePath(gx: number, gy: number, tile: MapTileType): boolean {
+    return this.map.wouldClosePath(this.state, gx, gy, tile);
   }
 
   /**

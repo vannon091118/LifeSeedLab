@@ -173,6 +173,10 @@ export class RunRuntime {
           rows: snap.rows,
         };
       },
+      // Weg-Integrität als read-only FRAGE an die Sim (Spieltest v0.0.71: der Geist versprach
+      // grün und der Bau wurde abgelehnt). Kein zweites Regelwerk: der Root delegiert an
+      // `MapSystem.wouldClosePath` — dieselbe Funktion, die `placeTile` beim Bau fährt.
+      wouldClosePath: (cell, tile) => root.wouldClosePath(cell.gx, cell.gy, tile),
       tick: () => root.getSnapshot().clock.tick,
     });
     this.controller = controller;
@@ -288,14 +292,16 @@ export class RunRuntime {
    * Ablehnung der UI zeigt exakt die FX der Sim-Ablehnung (eine FX-Wahrheit, kein Bus-Write).
    *
    * Das synthetische Event ist NUR der FX-Träger (rote Welle an der Zelle); der Ablehnungssprache
-   * des Observers ist der Grund gleich. Deshalb wird 'unknown' hier auf die Sim-Vokabel `on_path`
-   * abgebildet und NICHT als Payload-Wahrheit behandelt: was der Spieler liest, kommt aus dem
-   * Notice-Kanal mit dem echten UI-Grund (unten). Vorher war der Toast am Controller-Zustand
-   * aufgehängt — damit hatte die Meldung zwei Quellen (UI-Vorprüfung und Sim-Event).
+   * des Observers ist der Grund gleich. Deshalb werden 'unknown' UND 'route_blocked' hier auf die
+   * PLACEMENT_REJECTED-Vokabel `on_path` abgebildet und NICHT als Payload-Wahrheit behandelt: was
+   * der Spieler liest, kommt aus dem Notice-Kanal mit dem echten UI-Grund (unten). `route_blocked`
+   * ist im Bus ein TILE_REJECTED-Grund — dieselbe rote Welle, aber dieser Träger trägt ihn nicht.
+   * Vorher war der Toast am Controller-Zustand aufgehängt — damit hatte die Meldung zwei Quellen
+   * (UI-Vorprüfung und Sim-Event).
    */
   emitRejectionFx(reason: UiRejectReason, gx: number, gy: number): void {
     const tick = this.root.getSnapshot().clock.tick;
-    const contract = reason === 'unknown' ? 'on_path' : reason;
+    const contract = reason === 'unknown' || reason === 'route_blocked' ? 'on_path' : reason;
     const event = makePlacementRejected(tick, ++this.cmdSeq, gx, gy, contract as never);
     this.observer.observe(event as never);
     this.audio.observe(event as never);
@@ -320,7 +326,8 @@ export class RunRuntime {
     if (decision.kind === 'plant') {
       this.root.commands.push(makeCommand(this.root.clock.get().tick, 'PLACE_PLANT', ++this.cmdSeq, { variantId: decision.variantId, gx: decision.gx, gy: decision.gy }));
     } else if (decision.kind === 'tile') {
-      // Tiles entscheidet die Sim (TILE_REJECTED fängt Baubereich/Korridor ab) — gleicher Command-Pfad.
+      // Tiles entscheidet die Sim weiterhin selbst (Baubereich, maxCount, Pool) — gleicher
+      // Command-Pfad. Vorab geprüft ist nur die Weg-Integrität (s. PlacementController).
       this.root.commands.push(makeCommand(this.root.clock.get().tick, 'PLACE_TILE', ++this.cmdSeq, { gx: decision.gx, gy: decision.gy, tile: decision.tile }));
     } else if (decision.kind === 'sell') {
       // Juggling: Tile verkaufen (Refund 50%) — die Route kippt mid-Welle, Gegner drehen um.

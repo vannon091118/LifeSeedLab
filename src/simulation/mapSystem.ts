@@ -10,6 +10,9 @@
 //     freigeschaltete Weltfläche (state.cols/rows, dynamisch).
 //   · Die Route wird bei Run-Start, bei JEDEM Bau und zu jedem Wellenbeginn neu berechnet
 //     und VISUALISIERT — gespeichert wird sie nie als Vorgabe.
+//   · `wouldClosePath` ist dieselbe Integritätsregel als read-only FRAGE (kein Bau, kein Event):
+//     die Platzierungs-Vorschau der UI liest sie, damit der Geist nicht grün zeigt, was die
+//     Sim danach verwirft.
 
 import type { SimState, MapTiles, Route } from './state';
 import { makeEvent, type GameEvent } from '../bus/events';
@@ -70,8 +73,21 @@ export interface TileOverride { gx: number; gy: number; tile: string | null }
 
 export class MapSystem {
   private seq = 0;
+  /**
+   * Revision des BLOCKIERTEN SATZES (mapTiles + Weltfläche) — die Zeitbasis der Probe-Antwort.
+   * Vollständig, weil `mapTiles` und die Fläche ausschließlich hier geschrieben werden (Ownership:
+   * dieses Modul ist der einzige Karten-Autor; geprüft: nur `placeTile`/`removeTile`/`expandMap`).
+   * Der Konstruktionspfad (`pipeline.freshState`) läuft VOR jedem Aufruf und zählt deshalb nicht.
+   */
+  private mapRev = 0;
+  /** Antwort-Cache der Probe, gekeyt auf Revision + Zelle + Tile (s. `wouldClosePath`). */
+  private probeCache = new Map<string, boolean>();
 
   constructor(private emit: (e: GameEvent) => void) {}
+
+  /** Bewusst klein: die Probe wird pro Hover-Ereignis gefragt, die Menge der besuchten Zellen
+   *  ist klein. Beim Überschreiten wird geleert statt verdrängt — keine Wachstumsfrage. */
+  private static readonly PROBE_CACHE_MAX = 64;
 
   /**
    * PLACE_TILE command handler: Material aus dem POOL nehmen (#4 — keine Energie),
@@ -109,11 +125,51 @@ export class MapSystem {
 
     state.inventory[tile] = (state.inventory[tile] ?? 0) - 1;
     state.mapTiles[key] = tile;
+    this.mapRev++; // der blockierte Satz hat sich geändert — Probe-Antworten sind jetzt alt
 
     this.emit(makeEvent(state.clock.tick, 'TILE_PLACED', 'system:map', ++this.seq, {
       gx, gy, tile,
     }));
     return { ok: true };
+  }
+
+  /**
+   * Weg-Integritäts-Probe OHNE Zustandsänderung — die Wahrheit, die auch `placeTile` fährt.
+   *
+   * Sie existiert, weil die VORSCHAU sie braucht: Spieltest v0.0.71 („Stilles Bauversagen") — der
+   * Geist stand auf der letzten Wegzelle GRÜN, der Loslass-Tap wurde dann abgelehnt. Die Regel
+   * blieb dieselbe (`computeRoute` mit hypothetischem Zug), nur der Zugang für die UI fehlte.
+   *
+   * Die zwei Vorprüfungen sind aus dem Regelwerk abgeleitet, nicht geraten:
+   *   · `walkable` schließt nie einen Weg (Weg/Deko verändern ihn höchstens im Gewicht).
+   *   · Eine Zelle AUSSERHALB des aktuellen Laufwegs kann ihn nicht schließen — der bestehende Weg
+   *     bleibt unberührt gültig. Nur für Zellen AUF dem Laufweg muss das Pathfinding laufen
+   *     (O(V²) — bei 64×64 sonst pro Hover-Zelle zu teuer).
+   * Fehlt die Route (Vertragsbruch, kann die Integritätsregel nicht zulassen), wird NICHT
+   * abgekürzt: dann entscheidet die echte Probe (fail-closed).
+   *
+   * KOSTENKLEMME (gemessen, leere Welt, 200 Wiederholungen): die echte Probe ist ein Dijkstra und
+   * kostet 0,80 ms bei 12×12, 3,28 ms bei 24×24 und 26,77 ms bei 64×64. Der Hover fragt pro
+   * `pointermove` (bis ~60/s) — ohne Klemme friert ein ruhender Zeiger auf einer Laufweg-Zelle in
+   * einer gewachsenen Welt die Oberfläche ein. Die Antwort hängt AUSSCHLIESSLICH am blockierten
+   * Satz und der Zelle (Gegner, Tick und Pflanzen ändern nichts an der Existenz eines Weges):
+   * deshalb Cache auf `mapRev` — eine neue Kartenrevision macht jede alte Antwort ungültig, ohne
+   * dass irgendwo ein Ablaufdatum stehen muss. Die Regel selbst bleibt `computeRoute`.
+   */
+  wouldClosePath(state: SimState, gx: number, gy: number, tile: MapTileType): boolean {
+    const src = MAP_TILES_SOURCE[tile];
+    if (!src || src.walkable) return false;
+    if (state.mapTiles[tileKey(gx, gy)] === tile) return false; // idempotent, ändert nichts
+    const route = state.currentRoute;
+    if (route && !route.some(p => Math.floor(p.x) === gx && Math.floor(p.y) === gy)) return false;
+
+    const key = `${this.mapRev}:${gx},${gy},${tile}`;
+    const cached = this.probeCache.get(key);
+    if (cached !== undefined) return cached;
+    const closes = this.computeRoute(state, { gx, gy, tile }) === null;
+    if (this.probeCache.size >= MapSystem.PROBE_CACHE_MAX) this.probeCache.clear();
+    this.probeCache.set(key, closes);
+    return closes;
   }
 
   /**
@@ -131,6 +187,7 @@ export class MapSystem {
 
     delete state.mapTiles[key];
     state.inventory[tile] = (state.inventory[tile] ?? 0) + 1;
+    this.mapRev++; // Weg frei: die Probe kann jetzt anders antworten
 
     this.emit(makeEvent(state.clock.tick, 'TILE_REMOVED', 'system:map', ++this.seq, {
       gx, gy, tile,
@@ -232,6 +289,7 @@ export class MapSystem {
     state.inventory[PLOT_POOL_KEY] = (state.inventory[PLOT_POOL_KEY] ?? 0) - 1;
     state.cols += EXPAND_STEP;
     state.rows += EXPAND_STEP;
+    this.mapRev++; // neue Fläche = neuer Suchraum für dieselbe Frage
     this.emit(makeEvent(state.clock.tick, 'MAP_EXPANDED', 'system:map', ++this.seq, {
       gx: state.cols, gy: state.rows,
     }));

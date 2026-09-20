@@ -7,9 +7,26 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ---
 
-## Unreleased (Arbeitsstand 19.09.2026)
+## Unreleased (Arbeitsstand 19./20.09.2026)
 
 ### Für Spieler
+
+- **Run-Top-Bar bricht mobil um (P-2).** Auf 390×844 ragte „Exit Run“ 29 px aus dem Bild
+  (Reihe 407 px, `flexWrap: nowrap`). Die rechte Knopf-Gruppe umbricht jetzt rechtsbündig
+  (Reihe 366 px, kein Knopf außerhalb); Desktop bleibt unverändert. Der DoD-Punkt „Mobile
+  geprüft“ ist seit dieser Runde ein tragender E2E-Test (`tests/mobile.spec.ts`: Top-Bar,
+  roter Geist auf der schließenden Zelle, Tray per synthetischem Klick).
+
+- **Der Geist warnt jetzt, bevor ein Bau den Weg schließt.** Wenn du Findlinge oder Töpfe so
+  setzen wolltest, dass kein freier Weg mehr übrig wäre, zeigte dir der Umriss bisher ein
+  GRÜNES Ja — abgelehnt wurde erst beim Loslassen. Jetzt ist der Umriss dort rot und der Grund
+  steht dabei („Das wäre der letzte freie Weg"). Es ist dieselbe Regel wie beim Bauen, nur
+  vorher gefragt: das Spiel verspricht nichts mehr, was es gleich darauf zurücknimmt.
+- **Die Werkzeug- und Kartenleiste ist mit der Tastatur bedienbar.** Die Karten nahmen Berührung
+  und Maus an, aber keinen Tastendruck: Wer mit Tab auf „Spross" stand und Enter drückte, löste
+  nichts aus — dasselbe galt für Vorlesewerkzeuge und für Agenten, die das Spiel prüfen. Jetzt
+  wählt Enter (und jeder echte Klick von außen) genauso aus wie ein Finger, ohne dass ein
+  Mausklick doppelt zählt.
 
 - **Deine eigenen Pflanzen lassen sich wieder setzen.** In manchen Spielständen stand in der
   Leiste „Spross (Keim 6) ×1" — aber egal wohin du getippt hast, es passierte nichts: der Lauf
@@ -61,6 +78,7 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
   den zweiten: es reiste nur der stärkste mit. Jetzt wirken beide — Schaden bleibt einmalig,
   der zweite Effekt setzt seinen Status (Brennen/Gift/Verlangsamung).
 
+- [Fix/Spieltest v0.0.71] Zwei Befunde der Spieltestsession behoben, beide mit Beleg statt Behauptung: (1) **Weg-Integrität in der Vorschau** — der Geist zeigte auf der letzten Wegzelle grün, weil `placementRules` die Integritätsregel bewusst nicht vorab prüfte und `GhostCell.reason` nirgends gerendert wurde. Neu: `MapSystem.wouldClosePath` fragt dieselbe `computeRoute`-Regel read-only ab (mit zwei aus dem Regelwerk abgeleiteten Vorprüfungen — `walkable` schließt nie, und eine Zelle außerhalb des aktuellen Laufwegs kann ihn nicht schließen, was das O(V²)-Pathfinding auf die seltenen Fälle begrenzt), `SimulationRoot.wouldClosePath` ist der Zugang, `PlacementController` lehnt damit lokal mit `route_blocked` ab. Kein zweites Regelwerk: die UI fragt die Sim, statt zu raten. (2) **Tray-Aktivierung** — die Karten hatten nur `onPointerDown`; ein `<button>` wird von Tastatur/Screenreader/synthetischen Klicks aber über `click` (detail 0) aktiviert. Neuer `cardPress`-Vertrag in `components/PlacementTray.tsx` (Pointer UND Klick, ohne Doppel-Auslösung — echte Zeigegeräte liefern detail ≥ 1). Belege: `placement_map.test.ts` (Probe true ⇔ TILE_REJECTED `route_blocked`; Probe schreibt nichts: Zustand, Route und Event-Log unberührt; +2 Naht-Locks für die Cache-Invalidierung), `placementController.test.ts` (+5 Fälle Geist/Ablehnung/Reihenfolge), `placementTray.test.ts` (+4 Fälle Aktivierungsvertrag), Browser-Gegenprobe 6/6 (synthetischer Klick, `element.click()`, Tastatur-Enter, echter Mausklick doppel-frei) — mit entfernter Klick-Bindung wird GENAU die Tastatur-/Synthetik-Strecke rot, der Pointer-Pfad bleibt grün. **Nachbesserung aus dem adversarialen Review (noch im selben Task):** die Probe ist ein Dijkstra und kostet gemessen 0,80 ms (12×12), 3,28 ms (24×24) bzw. 26,77 ms (64×64) — pro `pointermove` wäre ein ruhender Zeiger auf einer Laufweg-Zelle in einer gewachsenen Welt ein eingefrorener Frame gewesen. Sie hängt jetzt an einem Antwort-Cache auf der **Kartenrevision** (`MapSystem.mapRev`, gehoben in `placeTile`/`removeTile`/`expandMap` — vollständig, weil `mapTiles` und die Fläche ausschließlich dort geschrieben werden): Wiederholung 0,0016 ms, Regel unverändert `computeRoute`. Live-Nachweis auf der laufenden Partie: UI-Tap schließt den Weg ⇒ Toast `route_blocked` und KEIN `TILE_REJECTED` am Bus (lokale Ablehnung, kein Command); derselbe Bau per Command direkt in die Sim ⇒ Bus meldet `route_blocked` (Positiv-Kontrolle, beide Seiten dieselbe Regel). Suite 569/569, getrackte E2E 27/27.
 - [Docs/Quality] `quality-spec.md` domänenweise aufgeteilt: aus einer Sammel-Datei (1367 Zeilen, Befunde A1–A19 + Specs B0–B38 gemischt) wurden ein **Register** (124 Zeilen) plus **8 Domänen-Contracts** unter `docs/quality/contracts/` — je Domäne **genau ein Owner-Contract** (Owner, Writer, Readers, LOC-Caps, Befunde, Spec, DoD an einer Stelle). Zuschnitt folgt der Ownership-Karte in AGENTS.md: core, simulation, genome, meta, persistence, visual, ui, process. Die historischen IDs (A…/B…) sind **unverändert** und bleiben die stabile Referenz aus Code, Tests und Historie; das Register trägt die ID→Contract-Tabelle. Dabei entdoppelt: `A13.12` war zweimal vergeben (Doku-Dopplung **und** Zucht-Schleife) — die Doku-Dopplung heißt jetzt `A13.14` (Referenzen in Gate-Header, Config-Kommentar und CHANGELOG mitgezogen), die Zucht-Schleife behält `A13.12`. Inhaltsbeweis statt Vertrauen: 993 nicht-leere Originalzeilen gegen 1179 neue geprüft — die 8 Abweichungen sind ausschließlich die gewollten Umschreibungen (Titel, Part-A/B-Header, alte A13.12-Überschrift), kein Befund und keine Spec-Zeile verloren. Beim Prüfen der ID-Tabelle fand ich einen **eigenen Fehler aus dem Split**: drei Register-Zeilen waren aus gekürzter Anzeige abgeschrieben und mitten im Wort abgeschnitten (`B23` „zwei Spielerberich", `A13.14`, `B32`) — dazu war die Tabelle unvollständig (74 von 143 IDs). Sie ist jetzt **generiert statt getippt**: `scripts/quality-register.mjs` schreibt sie aus den Contract-Überschriften, liest die Domänen-Reihenfolge aus der Domänen-Tabelle des Registers selbst (keine zweite Liste) und prüft mit: doppelte ID ⇒ Abbruch, Contract ohne Domänen-Eintrag ⇒ Abbruch, Waise ⇒ Abbruch, rohes `|` ⇒ Abbruch. `--check` lief gegen eine echte Mutation rot und nach der Reparatur grün; der Prüflauf hängt jetzt zusätzlich in CI. Dabei wurden drei Fehlbefunde des Doku-Checks sichtbar: Links ohne `./`-Präfix löst er gegen die Repo-Wurzel auf, Markdown dagegen gegen das Dokument — 80 gemeldete „tote Referenzen" waren ausschließlich dieser Doppelauslegung geschuldet. Das Register schreibt die Links jetzt explizit und hält die Konvention als Regel 6 fest.
 - [Regel/Gate] **Float-Exaktheit** festgeschrieben (`architecture-contract.md` §6, AGENTS.md, Domänen-Contract `simulation.md`): in `src/simulation/**` und `src/config/*.source.ts` sind `Math.pow`, `Math.hypot` und **alle Transzendenten** verboten; erlaubt bleiben die exakten Operationen, `Math.sqrt` und `abs/min/max/floor/ceil/round/trunc/sign`. Grund: `pow`, `hypot` und die Transzendenten rechnen intern über `exp`/`log` und sind plattformabhängig gerundet — ein daraus entstehender Spielzustand ist nicht über Maschinen hinweg derselbe. Durchgesetzt in zwei Reichweiten mit EINER Regelliste: die Gate-Regel „Float-Exaktheit" (Diff-Scope, `include: ['src/simulation/', 'src/config/*.source.ts']`; dafür bekam `ForbiddenRule` ein `include` und ein Pfad-Matching, das Präfix und `*`-Muster kann) plus der Baum-Test `tools/shinon/tests/determinism_rule.test.ts`, der denselben Check mit ALLEN Dateien des Geltungsbereichs fährt — weil das Gate nur geänderte Dateien sieht und ein unberührter Verstoß sonst unsichtbar bliebe. Der Baum-Test ist 3-fach: Scope nicht leer und exakt die zwei Einträge, kein Verstoß im gesamten Baum, und eine Gegenprobe auf einem Wegwerf-Baum, die belegt, dass die Regel beißt (`pow`/`hypot`/`sin` gefunden, `sqrt`/`abs`/`max` nicht, `*.test.ts` in `config/` außerhalb). **Ein echter Verstoß war im Scope vorhanden:** `driftFor` rechnete mit `Math.pow` — jetzt eine Multiplikationsschleife, die ausschließlich exakte Operationen benutzt. Gemessen: mit den echten Kurvenwerten (`retain 0.62`) sind Schleife und `pow` über g=1…500 **bit-identisch** (maximale Differenz exakt 0) — die Kurve bleibt also unverändert und die Balance unberührt; nur der plattformabhängige Rundungspfad ist weg. Die Messung ist nicht taub: mit `retain 0.85` weichen sie bis 5,6e-17 ab. `Generation 1 = start` gilt exakt und ist gepinnt. Belege: Gate gegen einen eingestagten Verstoß **rot** (2 Fehler, `sqrt` nicht geflaggt), nach dem Aufräumen offen · Tooling-Suite 37/37 · Projektsuite 539/539.
 - [Gate] Zwei belegte Defekte im Gate-Umfeld mitbehoben, beide über die Doku-Regel hinaus: (1) Die **Changelog-Pflicht hing allein an `shinon.config.json`** — `GateChecks` deklarierte kein `changelog`-Feld, `checks/index.ts` las es trotzdem, und ein Klon ohne die JSON hätte den Check stillschweigend abgeschaltet (`enabled['changelog'] === true` gegen `undefined`). Jetzt steht der Default `changelog: true` im Typ wie bei jedem anderen Check, die JSON darf ihn nur übersteuern; ein Test in `tools/shinon/tests/checks.test.ts` hält das. (2) Der **Tooling-Typecheck war dauerhaft rot** (`tsc -p tools/tsconfig.json`): dem eigenen minimalen Node-Shim (`tools/types/node-min.d.ts`) fehlten `path.posix` (vom Doku-Check benutzt) und `fs.unlinkSync` (vom Commit-Komponisten benutzt) — sechs Fehler in Dateien, die niemand angefasst hatte, weshalb das Signal unbrauchbar war. Shim ergänzt, `tsc -b tools/tsconfig.json` jetzt exit 0. Ehrlich benannt und NICHT angefasst: `commands.changelog` in `shinon.config.json` verweist auf `scripts/check-changelog.sh`, das niemand liest — der Check rechnet selbst über Git. Dieser Config-Eintrag ist tote Konfiguration; ob die Datei bleibt, ist eine Werkzeug-Entscheidung, kein Nebeneffekt einer Regel. sondern **unfähig zu laufen**: `actions/setup-node` mit `cache: npm` und `npm ci` setzen eine getrackte Lockdatei voraus, und `package-lock.json`/`bun.lock` sind hier bewusst untracked (Commit `49ff364` „untrack lockfile conflict"). Der Job brach deshalb vor der ersten Prüfung ab. Jetzt lockfrei: `npm install --no-audit --no-fund` ohne Cache, dafür mit der Begründung im Workflow, damit die Zeile nicht versehentlich auf `npm ci` zurückgedreht wird. Aktionen auf den belegten Stand gehoben (`actions/checkout@v7`, `actions/setup-node@v7` — Majors per Release-API geprüft), Node 24 in CI, weil der Plattform-Build `nodejs@24.18.0` meldet und CI denselben Lauf verifizieren soll. Beweis lokal nachgestellt: `npm install` ohne Lockdatei in einer Wegwerf-Kopie (209 Pakete, Exit 0), danach alle vier CI-Schritte grün. Preis, ehrlich benannt: ohne Lockdatei ist der Abhängigkeitsbaum nicht eingefroren — wer das abdrehen will, trackt eine Lockdatei und zieht `npm ci` + `cache: npm` GEMEINSAM nach. Ein ehrlicher Rest an Grenze: die Probe lief auf dieser Maschine, deren npm `postinstall`-Skripte blockt (gemeldet: `esbuild`); auf einem Standard-Runner laufen sie, das kann ich hier nicht beweisen.
@@ -139,6 +157,37 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
   eines Laufs.
 
 ### Intern (Technik, Verträge & Tests)
+
+- [Prozess] **Blocker gelöst: Gate wieder OFFEN (0 Fehler, 0 Warnungen), E2E 30/30, tsc 0.** Die
+  fremden, unversionierten Agenten-Experimente (`src/lib`, `src/mcpServer` — 70 TS-Fehler, null
+  Importe im Spielcode, bezogen sich auf das gestrichene Energie-Modell) und die rote untracked
+  Explorer-Scratch-Spec blockierten Typecheck, Gate und E2E-Abschluss. Beide sind **unangetastet**
+  in die git-ignorierte Quarantäne `experiments/pending/` verschoben — nichts gelöscht, nichts
+  repariert; die Fortführungs-/Archivierungs-Entscheidung liegt beim Eigentümer (P-22). Suite:
+  **570/570** in 61 Dateien.
+
+- [Prozess/ROADMAP] **Vier offene Punkte nachgemessen statt hoffen (Devlog 20).** P-2 behoben
+  (s. oben); **P-24 mobil widerlegt** (✕-Rechteck bei 390×844 verdeckt 0 Zellzentren — Desktop-
+  Fall bleibt offen); **P-10 heute ohne Überlauf** (342=342, konfigurationsabhängig, Zeile bleibt
+  mit Messwert); **P-14 widerlegt und als Invariante gepinnt** (der Root-Konstruktor leitet die
+  erste Route selbst, `qa_p14_resume_route.test.ts` lockt das). Neu: **P-25** — die Tray-
+  DOM überdeckt bei 390×844 die unterste Brettreihe inkl. Ausgang-Ecke (0,11) (Brett-Unterkante
+  ~696 px vs. Tray-Kante ~652 px).
+
+- [Prozess/ROADMAP] **Die ROADMAP sagt jetzt je Sache genau eine Wahrheit.** §1 nannte einen
+  Messstand vom 19.09. (0 Typecheck-Fehler, 541 Tests in 56 Testdateien, E2E 27/27, Gate 0/0),
+  der heute nicht mehr stimmt und damit wie eine grüne Freigabe las. Gemessen am 20.09.2026:
+  **2 Typecheck-Fehler** (beide in einer fremden untracked Datei), **569 Tests in 60 Dateien**
+  grün, **E2E 27 von 29** (zwei rot in einer untracked Scratch-Datei), **Gate: 0 Warnungen,
+  1 Fehler** — alle drei Ursachen sind fremde, unversionierte Fremdänderungen und stehen jetzt
+  als **P-22** in §3, statt als stiller Widerspruch in §1. Die Liste „2.2 Aktive Befunde" ist
+  aufgelöst: jeder Eintrag hat genau einen Ort (**T3** → P-12; **T2** → überholt, Devlog 18;
+  **N4** → behoben, 3/3, Beleg Devlog 17, der Rest in P-2/P-5/P-10/P-13; **B16.2–B16.5** und
+  **B16.9** → §4 STUFE 1; **B14.7** → §4 STUFE 2), die Audit-IDs bleiben in den Aufgabentexten
+  stehen, damit alte Verweise weiter auflösen. §2.1 heißt, was sie ist — Übersetzung alter
+  ID-Paare, kein Status-Ersatz; die Status-Wahrheit je Fundstelle ist das Register
+  `docs/quality/quality-spec.md` → `docs/quality/contracts/`. Keine P-Nummer und kein Beleg
+  ist dabei verloren gegangen (Inventar vor/nach dem Umbau verglichen).
 
 - [Prozess] **Die QA-Berichte sind zur Chronik geworden.** Die 20 Berichte der Sessions
   17./18.09.2026 lagen als Rohdateien auf `qa-reports` und beschrieben dieselben Dinge

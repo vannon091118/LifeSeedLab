@@ -10,27 +10,41 @@
 ## 1. Aktueller Projektstatus
 
 - **Code-Stand (`main`):** Phasen A–F vollständig implementiert und test-locked. Phase G (Multiplayer/Backend) bewusst aufgeschoben.
-- **Verifizierungs-Baseline:**
-  - TypeScript inkrementell: **0 Fehler** (`tsc -b --noEmit`)
-  - Test-Suite: **541 Tests in 56 Testdateien alle grün** (`node scripts/test-lane.mjs --full`, 19.09.2026)
+- **Verifizierungs-Baseline** — gemessen am **20.09.2026** im Arbeitsbaum (Stand `v0.0.72`); jede Zahl ist ein Messwert dieses Laufs, keine fortgeschriebene:
+  - TypeScript inkrementell: **0 Fehler** (`node node_modules/typescript/bin/tsc -b --noEmit`) — die zuvor blockierenden, fremden untracked Experimente (`src/lib`, `src/mcpServer`, 70 TS-Fehler, null Importe, bezogen sich auf das gestrichene Energie-Modell) sind in die Quarantäne `experiments/pending/` verschoben (git-ignoriert, lesbar, Entscheidung des Eigentümers steht aus).
+  - Test-Suite: **570 Tests in 61 Testdateien grün** (`node scripts/test-lane.mjs --full`)
   - Tooling-Suite: **38 Tests in 8 Dateien grün** (`--config tools/vitest.config.ts`)
-  - E2E-Suite: **27/27 Tests grün** (`tests/`, Chromium 390×844 Portrait & Progression)
-  - Vite-Build: **Produktions-Build fehlerfrei**
+  - E2E-Suite: **30/30 Tests grün** (`tests/`, Chromium 390×844 Portrait, Progression, Mobile-DoD) — die zuvor rote untracked Scratch-Spec liegt ebenfalls in der Quarantäne.
+  - Vite-Build: **Produktions-Build fehlerfrei** (24,1 s, `dist/` ist ignoriert)
 - **Qualitäts-Gate (Shinon):**
-  - Gate-Modus: `enforcement=strict` (0 Fehler, 0 Warnungen)
-  - Test-Lane: Ausführung relevanter Tests (`vitest related`) im Commit-Pfad ≤ 10 s
+  - Gate-Modus: `enforcement=strict`; **Gate OFFEN: 0 Fehler, 0 Warnungen** (Lauf 20.09.2026, nach der Quarantäne). `finish --all` ist damit technisch wieder frei.
+  - Test-Lane: Ausführung relevanter Tests (`vitest related`) im Commit-Pfad ≤ 10 s; letzter Lauf **6,8 s** bei 26 berührten Dateien — im Budget.
   - Git-Abschluss: Ausschließliche Ausführung über `node tools/shinon/cli.ts finish --all`
 - **Spielerlebnis & Onboarding:**
-  - **Krix-Tutorial (B21):** Vollständiges Strichmännchen-Onboarding über 3 Screens (Start → Hub → Feld)
+  - **Krix-Tutorial (B21):** Vollständiges Strichmännchen-Onboarding über 3 Screens (Start → Hub → Feld); die Textmenge ist als **P-21** offen (11 Schritte, 39 Absätze, 6850 Zeichen DE).
   - **Spieler-Feedback (B22–B25):** Aufbauphase vor erster Welle, optische Ablehnungsgründe (`FieldToast`), Haltbarkeitsanzeige am Feld, einheitlicher Loadout-Zähler, honest Codex.
 
 ---
 
 ## 2. Konsolidiertes Findings- & Befunde-Inventar
 
-Alle historischen und aktuellen Befunde aus Code-Audits (jetzt domänenweise in `docs/quality/contracts/`) und QA-Test-Sessions (`qa-reports`) sind hier konsolidiert:
+Alle historischen Befunde aus Code-Audits (jetzt domänenweise in `docs/quality/contracts/`) und QA-Test-Sessions (`qa-reports`) sind konsolidiert — **aber je Sache an genau einem Ort**:
 
-### 2.1 Gelöste Befunde (Status: ERLEDIGT)
+- **Offen** → §3 „Bekannte Probleme" (P-Nummer, Beleg, Owner).
+- **Beauftragt** → §4 (Meilenstein; die Audit-IDs bleiben im Aufgabentext stehen).
+- **Behoben** → Domänen-Contract (`docs/quality/contracts/`) plus Devlog-Chronologie; der QA-Bericht selbst wird nach der Überführung aus `qa/` entfernt.
+
+Die frühere Liste **„2.2 Aktive Befunde" wurde am 20.09.2026 aufgelöst** — sie war eine zweite Liste derselben Sachen, ohne P-Nummern. Ihre fünf Einträge haben jetzt je genau einen Ort: **T3** → **P-12**; **T2** → überholt (Devlog 18: das Energie-Konto existiert nicht mehr, es gibt keinen zweiten Zahltisch); **N4** → behoben (Devlog 17: 3/3 auf Desktop und Mobile; der Rest an derselben Stelle sind **P-2**, **P-5**, **P-10**, **P-13**); **B16.2–B16.5** und **B16.9** → §4 STUFE 1; **B14.7** → §4 STUFE 2.
+
+### 2.1 Herkunft der Audit-IDs (Übersetzung, KEIN Status-Ersatz)
+
+Die belastbare Status-Wahrheit je Fundstelle ist das Register
+[`docs/quality/quality-spec.md`](../quality/quality-spec.md) → `docs/quality/contracts/` (dort steht
+jeder Befund mit `REPARIERT`/`OFFEN` und Beleg). Die folgende Liste ist nur die Übersetzung der
+alten ID-**Paare** in ihr Ergebnis, damit Verweise in älteren Commits, Devlogs und Berichten
+auch in einem Jahr noch auflösen. Sie wird nicht fortgeschrieben: neue Befunde gehen nach §3,
+neue Aufträge nach §4.
+
 - **A13 / B14 (Identitäts- & Lifecycle-Lücken):** Monotoner Brut-Zähler `MetaSave.broodGeneration` (v5), zentrales Reife-Gate `isCrossReady`, atomares `keepCross`, kanonische FNV-1a Prüfsumme.
 - **A14 / B16.1 (Versteckte Map-Route):** Dynamische Routen-Berechnung wird nun korrekt visualisiert.
 - **A16 (Mojibake-Encoding):** UTF-8 Zeichencodierung im Codex bereinigt; Encoding-Gate in `src/encoding.test.ts`.
@@ -41,16 +55,9 @@ Alle historischen und aktuellen Befunde aus Code-Audits (jetzt domänenweise in 
 - **R1 / R2 (Zwei Weg-Wahrheiten):** Widerspruch zwischen statischem und dynamischem Pfad aufgelöst; R2-Welt-Neubau umgesetzt.
 - **F1–F6 (Spielfluss & Interaktion):** Nachbar-Auswahl, Button-States und UI/Sim-Divergenzen bereinigt.
 
-### 2.2 Aktive Befunde (Status: IN ARBEIT / OFFEN)
-- **T2 / T3 (Mazing & Weg-Lenkung):** Feinschliff der Pfad-Auswahl und Rand-Routen beim Setzen von Pflanzen (Verhinderung von Deadlocks).
-- **N4 (Mobile UX):** Hinweis-Sprechblase von Krix verdeckt auf schmalen Displays (390×844) stellenweise den oberen Bereich des Trays.
-- **B16.2–B16.5 (Genom-Modell):** Vererbung von 15 Pool-Genen auf ein offenes Allel-System mit dynamischer Stärke und Dominanz umstellen.
-- **B16.9 (E2E-Geometrie):** Playwright-Tests sollen Klick-Koordinaten direkt aus den berechneten Renderer-Bounds lesen statt statischer CSS-Offsets.
-- **B14.7 (Snapshot-Budget):** Der 10-Hz-HUD-Snapshot klont den `SimState`; Profiling gegen das Budget (Frame ≤ 16 ms, Sim ≤ 2 ms).
-
 ---
 
-## 3. Bekannte Probleme (verifiziert am Code, 19.09.2026)
+## 3. Bekannte Probleme (verifiziert am Code, 19.–20.09.2026)
 
 Aufgenommen ist nur, was am heutigen Stand **im Code belegt** offen ist — jede Zeile nennt
 Beleg und Owner. Was die Berichte gemeldet haben und inzwischen behoben ist, steht in den
@@ -61,18 +68,27 @@ Entschiedene Punkte wandern nach unten in die Spur-Abschnitte (Nummern bleiben s
 
 | # | Problem | Beleg am Code | Owner |
 |---|---|---|---|
-| P-2 | **Mobile Hochformat im Run.** Die rechte Knopf-Gruppe der Top-Bar steht ohne `flexWrap` in einer Zeile; auf 390×844 kann „Run beenden" dadurch aus dem Bild ragen. Das E2E deckt 390×844 nur für Router/Hub ab, nicht den Run-Screen — der Beleg in der laufenden App fehlt noch. | `components/gameViewStyles.ts` `topRight`, `tests/router.spec.ts` (Screen-Abdeckung) | `components/` |
+| P-2 | **Mobile Hochformat im Run — BEHOBEN (20.09.2026, `tests/mobile.spec.ts`).** Die rechte Knopf-Gruppe der Top-Bar stand ohne `flexWrap` in einer Zeile; gemessen bei 390×844: Reihe 407 px, „Exit Run“ 362–419 ⇒ 29 px außerhalb. Jetzt umbricht `topRight` rechtsbündig (Reihe 366 px, kein Knopf außerhalb; Desktop unverändert, die Zeile passt dort). DoD „Mobile geprüft“ ist damit ein tragender E2E-Test statt einer Erinnerung. | `components/gameViewStyles.ts` (`topRight`), `tests/mobile.spec.ts`, Devlog 20 | `components/` |
 | P-3 | **Duell-Brett verbraucht Hub-Aufmerksamkeit.** Die Karte ist gleich groß wie die spielbaren, liefert aber nur „Bald verfügbar". | `i18n/texts_shell.ts` `menu.pvp`/`menu.pvpDesc` | `components/` + `i18n/` |
 | P-4 | **Technische Identifikatoren in Normalansichten.** Die Codex-Karte zeigt `genome_hash`/`entry_hash` direkt im Spielerfluss; der externe Playtest wünscht sie in einer Detailansicht. | `components/Codex.tsx` | `components/` |
 | P-5 | **Krix-Blase auf 390×844.** Der Umbau des Tutorials hat die alte Verankerung (`anchor.y`, zu kurze Bühne) ersetzt; ein Beleg-Screenshot bei 390×844 nach dem Umbau steht aus. Nicht als behobene Behauptung führen, sondern nachmessen. | `components/tutorial/`, `components/gameViewStyles.ts` | `components/` |
 | P-8 | **`reward` und `scoreValue` sind in der Source für ALLE fünf Gegnertypen zahlenidentisch** (grunt 10/10 · fast 15/15 · tank 30/30 · swarm 5/5 · boss 150/150). Beide werden gelesen (Nektar-Anteil bzw. Score), die Trennung ist also echt — aber solange die Werte gleich sind, ist jeder Balance-Eingriff an einem Feld eine halbe Wahrheit. Offen: bewusst differenzieren oder ein Feld benennen. | `config/enemies.source.ts`, `simulation/scoreSystem.ts` | `config/` |
-| P-9 | **Inzucht-Vielfalt hängt allein an der Mutation.** Die Mutations-Chance ist fix (`BREEDING.mutationChance`), der Neuheitsdruck skaliert nur Drift/Dominanz — bei genetisch gleichen Eltern erhält die Rekombination die Kräfte EXAKT, und ein Dominanz-Kippen bewegt die Käfer-Werte gar nicht. Die Brut fängt das mit 12 statt 6 Versuchen ab (gemessen: vorher 7 von 48 Bruten nur zwei Profile, jetzt 0 von 48) — der Kern selbst bleibt eng. Offen als BALANCE-Entscheidung, weil sie die Pflanzenzucht mitbewegt: Druck an die Mutations-Chance koppeln oder Pool/Content erweitern. | `config/phenotype.source.ts` `BREEDING`, `genome/breeding.ts` | `config/` |
-| P-10 | **Tray ohne Scroll-Hinweis (mobil).** Der Kartenstreifen einer Sparte ist breiter als 390 px (`overflowX: 'auto'`) und zeigt keinen Fade-, Pfeil- oder Zähler-Hinweis — ein Teil der Bau-Optionen ist unsichtbar, ohne dass etwas darauf deutet. Befund aus der Mobile-Runde (Q9, 1/3), seither nicht neu gemessen. | `components/PlacementTray.tsx` (`sectionRow`), Devlog 04 | `components/` |
+| P-9 | **Inzucht-Vielfalt hängt allein an der Mutation.** Die Mutations-Chance ist fix (`BREEDING.mutationChance`), der Neuheitsdruck skaliert nur Drift/Dominanz — bei genetisch gleichen Eltern erhält die Rekombination die Kräfte EXAKT, und ein Dominanz-Kippen bewegt die Käfer-Werte gar nicht. Die Brut fängt das mit 12 statt 6 Versuchen ab (gemessen: vorher 11 von 72 Bruten nur zwei Profile, jetzt 0 von 72; Messmenge: 3 Gründer, alle geordneten Paarungen × 8 Brut-Indizes, „vorher" mit `4d50cc6^` nachgerechnet) — der Kern selbst bleibt eng. Offen als BALANCE-Entscheidung, weil sie die Pflanzenzucht mitbewegt: Druck an die Mutations-Chance koppeln oder Pool/Content erweitern. | `config/phenotype.source.ts` `BREEDING`, `genome/breeding.ts` | `config/` |
+| P-10 | **Tray ohne Scroll-Hinweis (mobil) — NACHGEMESSEN 20.09.2026: kein Überlauf.** Heute: `scrollWidth 342 = clientWidth 342`, alle Karten sichtbar, kein Hinweis nötig. Der Q9-Befund war konfigurationsabhängig (Kartenzahl × Kartenbreite) — beim nächsten Content-Zuwachs im Streifen kann er zurückkehren; deshalb bleibt die Zeile mit heutigem Messwert stehen, statt als erledigt zu verschwinden. | `components/PlacementTray.tsx` (`sectionRow`), Devlog 04/20 | `components/` |
 | P-11 | **Brutvorschau rendert ohne genug Nektar.** Die drei Kandidaten erscheinen, sobald zwei Eltern gewählt sind — der Kontostand beeinflusst nur die Knopf-Optik. Entweder ist das ein Teaser (dann fehlt die Kennzeichnung) oder ein Pfad, der die Wirtschaftsprüfung umgeht. Designfrage aus Q11. | `components/BeetleLab.tsx` (`preview`, `handleBreed`), Devlog 04 | `components/` + `i18n/` |
 | P-12 | **Tile-Werkzeug schaltet sich selbst ab (T3).** Die Werkzeug-Knöpfe sind Umschalter; beim Serien-Bau wählt der zweite Klick den Modus ab, und der Zustand ist an der Karte nicht schnell genug ablesbar. Kein Kaufschaden, aber ein Bruch mitten im Bauen. Kandidat 1/3 aus der Taktik-Session. | `components/placementController.ts` (`selectTile`), Devlog 18 | `components/` |
 | P-13 | **Restfragen der Nachverifikation** (Leih-Karte überragt die Tray um ~10 px, Größe der Krix-Blase). Beide wurden an der Oberfläche vor dem Tray-Umbau und vor dem neuen Onboarding gemessen — nicht als behoben führen, sondern an der heutigen Fläche nachmessen. | Devlog 17, `components/PlacementTray.tsx`, `components/tutorial/` | `components/` |
-| P-14 | **Leere Route direkt nach dem Fortsetzen** (Beobachtung B, 0/3). `applyResume` setzt `currentRoute = null`, abgeleitet wird sie erst im ersten Tick (`root.ts`) — für einen Moment zeigt das Brett keinen Laufweg. Bisher nicht reproduziert; entweder messen oder die Ableitung in den Resume ziehen. | `simulation/resume.ts`, `simulation/root.ts`, Devlog 10/13 | `simulation/` |
+| P-14 | **Leere Route direkt nach dem Fortsetzen — WIDERLEGT am heutigen HEAD, Invariante gepinnt.** Die Zeile beschrieb `applyResume` + Ableitung erst im ersten Tick; tatsächlich leitet der Root-Konstruktor die erste Route selbst ab (`recomputeRoute(this.state)` nach `applyResume`, `root.ts`), das leere Brett existiert nicht. Beleg: `simulation/qa_p14_resume_route.test.ts` — direkt nach Resume-Konstruktion ist `currentRoute` nicht null und nicht leer. Fällt die Invariante je zurück, fällt der Test und der Punkt ist wieder offen. | `simulation/root.ts` (Konstruktor), `simulation/qa_p14_resume_route.test.ts`, Devlog 10/13/20 | `simulation/` |
+| P-17 | **Zwei Zugangsdaten liegen im Klartext in der veröffentlichten Git-Historie.** Der Initial-Commit `f02614c` enthält `.env.local` mit `VERCEL_TOKEN` und `AI_GATEWAY_API_KEY`; die Datei wurde in `d8e1883` aus dem Tracking genommen, der Commit bleibt aber Vorfahre von `origin/main` (geprüft: `git merge-base --is-ancestor`). Kein Code liest die beiden Variablen (`git grep` leer) — es sind Werkzeug-Schlüssel, keine Laufzeit-Schlüssel. Aus dem Repo ist der Wert nicht entfernbar, ohne die veröffentlichte Historie umzuschreiben; **die einzige wirksame Reparatur ist Widerrufen und Neuausstellen beider Token.** | `f02614c:.env.local`, `.gitignore` Z. 12–14 | **Eigentümer** (extern, kein Code-Fix) |
 | P-15 | **Wiedereinstieg in die Krix-Notizen.** Die Entscheidung von Q3 gilt (Überspringen verwirft bewusst, kein erneutes Aufdrängen) — der damals zugesagte Weg, die Notizen später auf Wunsch nachzulesen, wurde nie gebaut. Offen als Wunsch, nicht als Bug. | Devlog 01/06, `components/tutorial/` | `components/` |
+| P-18 | **Balance-Klippe ab Welle 4 (Spieltest v0.0.71).** Aus der Source nachgerechnet statt geraten: `gruntCount = 4 + floor(n·1.5 + rnd·3)`, ab Welle 3 zusätzlich `fast = 2 + floor(n·0.8)` ⇒ Welle 4 bringt 10–13 Grunts **und** 5 Fast; ein Spross macht 15 Schaden bei 30 Ticks Cooldown, ein Grunt hat 40 HP (3 Treffer). Der Bericht spielte drei Läufe (beste Welle 8, Top-Score 3052) und nennt die Klippe ab Welle 4. Das ist eine BALANCE-Frage, kein Bug: Wellen-Kurve, Spross-Kadenz oder Startbudget. Vor jedem Eingriff P-19 mitentscheiden („der Preis" ist heute doppelt belegt). | `config/enemies.source.ts` (`generateWaveSchedule`), `config/plants.source.ts`, Devlog 19 | `config/` |
+| P-19 | **Eine Pflanze zu bekommen hat ZWEI Zahlen.** `PLANTS_SOURCE.sprout.cost = 50` ist kein Preis: gelesen wird das Feld nur von `rarityForCost` (Wachstumszeit/Haltbarkeit); der einzige Preis für „ein Samen" ist `SEED_PRICE = 40`, und `STARTING_NEKTAR = SEED_PRICE` heißt genau ein Kauf zum Start. Der Bericht liest die 50 als Samenpreis („ohne Samen (50 Nektar) ist der Start zäh") — solange beide Zahlen existieren, ist jede Balance-Aussage über „den Preis" eine halbe Wahrheit. Entscheidung: Feld benennen (Rarität) oder Shop-Preis daraus ableiten. | `config/plants.source.ts` (`cost`), `simulation/plantSystem.ts` (`rarityForCost`), `config/economy.source.ts` (`SEED_PRICE`) | `config/` |
+| P-20 | **Dimm-Verdacht des Spieltests (0/3, ungemessen).** Bericht: „Rendering dimmt ein, wenn der Tab länger ohne Mauskontakt ist — ein Reload behebt es." Im Code existiert genau EIN Dimmer: das Suspend-Overlay (`rgba(245,239,220,0.75)`, `inset: 0`), ausgelöst von `visibilitychange → hidden`. Nicht reproduziert und auf dieser Maschine nicht messbar (kein QA-Browser); Repro-Zyklus festlegen (Tab verstecken/zurückholen, `document.visibilityState`, Overlay, Sim-Pause, HUD-Zeile „Pause") und erst dann als behoben oder widerlegt führen. | `components/GameOverlays.tsx` (`resumeOverlay`), `render/gameRuntime.ts` (`onVisibility`), Devlog 19 | `render/` + `components/` |
+| P-21 | **Tutorial-Textmenge.** Der Bericht nennt es „textlastig (11 Feldnotizen + 6 Intro-Karten)"; an der heutigen Source gemessen: 11 Textschritte, 39 Absätze, 6850 Zeichen DE (Ø 623 je Schritt). Krix' Stimme ist Content, keine Code-Schuld — offen als Kürzungs-/„nachlesen statt vorsetzen"-Entscheidung des Eigentümers. | `i18n/tutorial.ts`, `components/tutorial/script.ts`, Devlog 19 | `i18n/` + `components/` |
+| P-23 | **Die Weg-Probe kostet einen Dijkstra (gemessen).** Die Integritätsregel ist korrekt und wird jetzt VORAB gefragt — die Rechnung dahinter (`computeRoute`) ist für die Frage aber zu teuer: 0,80 ms (12×12), 3,28 ms (24×24), 26,77 ms (64×64) pro erstmaliger Wegzelle. Eine Kostenklemme (Antwort-Cache auf `mapRev`) fängt nur die Wiederholung ab (0,0016 ms); beim Überstreichen einer gewachsenen Welt mit gewähltem Werkzeug bleibt ein Dijkstra je neuem Feld. Sauber wäre, die Regeln **Existenz** eines Weges als Breitensuche zu rechnen (O(V+E) statt O(V²)) — dieselbe Wahrheit, schnellere Rechnung; das ist der Map-Kern und bewegt jeden Bau, deshalb eigener Task mit eigener Messreihe. | `simulation/mapSystem.ts` (`wouldClosePath`, `PROBE_CACHE_MAX`), Devlog 19, Messung 20.09.2026 (200 Wiederholungen, leere Welt) | `simulation/` |
+| P-24 | **Der ✕-Knopf beim Bauen verdeckt die Spawn-Ecke (Desktop) — MOBIL WIDERLEGT.** Desktop-Messung 20.09.: Rechteck (87×44, Position 382/149 bei 1280×800) enthält die Zellzentren von **(10,0) und (11,0)** — (11,0) ist die SPAWN-Zelle; solange ein Werkzeug gewählt ist, ist dort nichts zu setzen. Mobile-Gegenmessung (390×844, Devlog 20): Rechteck bei 281/177, **0 Zellzentren** darunter — das Brett skaliert anders als die Knopf-Positionen. Offen bleibt der Desktop-Fall. | `components/GameView.tsx` (`cancelBtn`), `components/gameViewStyles.ts`, Messung 20.09.2026 (beide Viewports) | `components/` |
+| P-25 | **Die Tray überdeckt mobil die Ausgang-Ecke (0,11).** Neu gemessen bei 390×844 (Devlog 20): Brett-Unterkante ~696 px, Tray-Oberkante ~652 px — die unterste Brettreihe liegt hinter dem Tray-DOM, die Ausgang-Ecke ist nicht anklickbar und ihr Geist nicht sichtbar, solange die Tray offen ist. Layout-Regie (Brett-Skalierung vs. festes Tray-Overlay), kein Einzeiler; reproduzierbar via `tests/mobile.spec.ts` (der Geist-Test wählt deshalb sichtbare Zellen). | `components/PlacementTray.tsx` (`tray: position absolute`), `components/gameViewStyles.ts`, Messung 20.09.2026 | `components/` |
+| P-22 | ~~Fremde untracked Dateien reißen zwei Prüfungen.~~ **GELÖST (20.09.2026, Konfliktlösung):** beide Blocker sind in die git-ignorierte Quarantäne `experiments/pending/` verschoben — (a) die rote Explorer-Scratch-Spec (jetzt `agent-explorer.spec.ts`), (b) das unvollendete Agenten-Experiment `src/lib`+`src/mcpServer` (70 TS-Fehler, null Importe im Spielcode, bezog sich auf das gestrichene Energie-Modell). Danach: tsc 0 Fehler, E2E 30/30, Gate OFFEN. **Verbleibende Entscheidung beim Eigentümer:** die Experimente fortführen (auf das heutige Modell umschreiben), archivieren oder löschen — der Inhalt ist unangetastet lesbar, nichts wurde verworfen. | `experiments/pending/` (git-ignoriert, Devlog 20), tsc + E2E-Lauf 20.09.2026 | **Eigentümer** (Fortführung/Archivierung der Experimente) |
 
 ### Am 19.09.2026 entschieden und umgesetzt (Nummern bleiben stabil)
 
@@ -118,7 +134,7 @@ Die Umsetzung erfolgt strikt sequenziell nach dem Arbeitsrhythmus: **Aufgabe →
 │                                                                        │
 │  [STUFE 1: Sofort]  ──▶  [STUFE 2: Performance] ──▶  [STUFE 3: Endgame]│
 │  - Mazing-Stabilität     - HUD-Snapshot Budget       - Brutstätten-    │
-│  - N4 Blasen-Layout      - Touch-Latenz (390x844)      Balancing       │
+│  - Mobile-Layout         - Touch-Latenz (390x844)      Balancing       │
 │  - B16 Genom-Modell      - Savegame-Skalierung       - Boss-Wellen     │
 │  - Kampfwerte-Anzeige    - B12/B13 Gates               & Progression   │
 │                                                              │         │
@@ -132,12 +148,12 @@ Die Umsetzung erfolgt strikt sequenziell nach dem Arbeitsrhythmus: **Aufgabe →
 ### 🟢 STUFE 1: Sofort / Mechanik- & UX-Stabilisierung
 Fokus: Beseitigung aller offenen QA-Befunde und Schärfung des Genom-Gameplays.
 
-1. **N4 UX-Layout (Mobile 390×844):**
-   - Sprechblase (`SpeechBubble.tsx`) und Hinweisfelder so anordnen, dass das Placement-Tray und die Aktions-Buttons niemals blockiert werden.
-2. **T2/T3 Mazing & Weg-Lenkung:**
-   - Sicherstellen, dass Pflanzenplatzierungen keine geschlossenen Weg-Blockaden erzeugen.
-   - Routen-Aktualisierung bei jeder Feld-Veränderung synchron an `EnemySystem` und `Renderer` melden.
-3. **B16 Genom-Modell & Vererbungs-Tiefe:**
+1. **Mobile-Layout 390×844 (N4 ist abgeschlossen, Devlog 17: 3/3 Desktop und Mobile):**
+   - Der Rest an derselben Stelle, jetzt in §3 geführt: `flexWrap` der Run-Top-Bar (**P-2**), Blasen-Verankerung bei 390×844 (**P-5**), Scroll-Hinweis der Kartenreihe (**P-10**), Blasen-Größe und Leih-Karte (~10 px, **P-13**).
+2. **Mazing & Weg-Lenkung (T2 überholt, T3 = P-12):**
+   - T2 fiel mit dem Energie-Konto weg (Devlog 18); T3 ist der Tile-Schalter (**P-12**).
+   - Die Regeln stehen und sind belegt: keine Platzierung schließt den letzten Weg — dieselbe Integritätsregel wird jetzt **vorab** befragt statt erst beim Loslassen (Regel + Belege: `docs/quality/contracts/simulation.md`, QA-Abgleich 20.09.2026), und die Route wird über `ROUTE_CHANGED` gemeldet (`bus/events.ts`, Verbraucher `components/fieldNotice.ts`). Offen ist nur noch der **Preis** der Vorab-Probe (**P-23**, eigene Messreihe, weil sie jeden Bau berührt).
+3. **B16 Genom-Modell & Vererbungs-Tiefe (B16.2–B16.5):**
    - Genom-Allel-Matrix erweitern (nicht nur geschlossene 15 Gene).
    - Kampfwerte, Reichweitenkreise und Schadensarten im Feld-Inspektor klar visualisieren.
 4. **B16.9 E2E-Harness Geometrie:**
@@ -146,7 +162,7 @@ Fokus: Beseitigung aller offenen QA-Befunde und Schärfung des Genom-Gameplays.
 ### 🟡 STUFE 2: Mid-Term / Performance & Mobile-Optimierung
 Fokus: Messen statt hoffen — strikte Einhaltung der B12/B13 Spezifikationen.
 
-5. **B14.7 Snapshot-Budget:**
+5. **B14.7 Snapshot-Budget (HUD-10-Hz-Klon):**
    - `hudSnapshot.ts` optimieren: Nur geänderte Felder übertragen (Dirty-Flagging oder flache Projektion), um GC-Druck zu minimieren.
    - Messziel: Sim-Tick ≤ 2 ms, Frame-Render ≤ 16 ms auf mobilen Endgeräten.
 6. **Mobile Touch-Optimierung (390×844 Portrait):**

@@ -134,3 +134,25 @@ erledigt sind; alles weiterhin Offene steht in `docs/process/ROADMAP.md` §3.
 - **`scoreValue` schien tot. BEHOBEN/aufgelöst.** `scoreSystem.onEnemyDied` verbraucht ihn
   (`state.score += scoreValue`); `reward` bleibt der Energie-/Nektarwert. Zwei Werte, zwei
   benannte Zwecke — eine Wahrheit je Feld.
+
+## QA-Abgleich (20.09.2026) — erledigte Befunde dieser Domäne
+
+Quelle: Spieltest-Bericht „Tester-Perspektive" v0.0.71 (Devlog 19). Nur belegte Punkte; alles
+Offene steht in `docs/process/ROADMAP.md` §3.
+
+- **Die Weg-Integrität war für die Vorschau nicht befragbar. BEHOBEN (20.09.2026).** Befund:
+  „Stilles Bauversagen — ein Bau auf der einzigen Wegzelle wird abgelehnt, ohne sichtbare
+  Begründung." Die Sim war nie stumm (die Ablehnung kommt als `TILE_REJECTED route_blocked` mit
+  Text an), aber die VORSCHAU versprach vorher ein grünes Ja und nahm es erst beim Loslassen
+  zurück. Regel jetzt: dieselbe Integritätsregel ist als **read-only Frage** zugänglich —
+  `MapSystem.wouldClosePath(state, gx, gy, tile)` (Datei-Header: „derselbe Vertrag wie
+  `placeTile`", über `SimulationRoot.wouldClosePath` an die UI), `PlacementController` lehnt
+  damit lokal mit `route_blocked` ab und `GhostCell.reason` wird sichtbar (roter Umriss).
+  Zwei Vorprüfungen sind aus dem Regelwerk abgeleitet, nicht geraten: `walkable` schließt nie,
+  und eine Zelle außerhalb des aktuellen Laufwegs kann ihn nicht schließen (der bestehende Weg
+  bleibt gültig) — nur Zellen AUF dem Laufweg kosten das Pathfinding. Fehlt die Route, wird
+  NICHT abgekürzt (fail-closed). Belege: `placement_map.test.ts` (Probe `true` ⇔ `TILE_REJECTED
+  route_blocked`; die Probe schreibt nichts — Zustand, Route und Event-Log unverändert),
+  `placementController.test.ts` (5 neue Fälle). Grenze, bewusst benannt: die Geometrie- und
+  Pool-Vorprüfung bleibt der UI, das übrige Karten-Regelwerk (maxCount, Baufläche) weiterhin
+  allein der Sim.

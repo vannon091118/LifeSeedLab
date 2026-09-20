@@ -169,6 +169,105 @@ describe('B33 → R2 — Integritätsregel statt Korridor-Verbot', () => {
     root.stepOnce();
     expect(root.getSnapshot().mapTiles['6,2']).toBe('path');
   });
+
+  /** Spalte 5 als Mauer: nach 11 Töpfen ist genau die letzte Zelle (gy 11) der schließende Zug. */
+  function wallColumn(root: SimulationRoot, upto: number): void {
+    for (let gy = 0; gy < upto; gy++) {
+      root.commands.push(makeCommand(0, 'PLACE_TILE', gy + 1, { gx: 5, gy, tile: 'pot' }));
+    }
+    root.stepOnce();
+  }
+
+  it('wouldClosePath ist die VORAB-Frage derselben Regel: true ⇔ der Bau wird abgelehnt', () => {
+    const root = makeRoot({ seed: SEED, materialStock: { pot: 12 } });
+    wallColumn(root, 10);
+    // Zwei Lücken (gy 10/11) — der Zug auf gy 10 ist erlaubt, die Probe sagt false.
+    expect(root.wouldClosePath(5, 10, 'pot')).toBe(false);
+    root.commands.push(makeCommand(1, 'PLACE_TILE', 99, { gx: 5, gy: 10, tile: 'pot' }));
+    root.stepOnce();
+    expect(root.getSnapshot().mapTiles['5,10']).toBe('pot');
+    // Jetzt ist gy 11 die letzte freie Zelle der Spalte: die Probe sagt true, der Bau lehnt ab.
+    expect(root.wouldClosePath(5, 11, 'pot')).toBe(true);
+    const rejects: string[] = [];
+    root.bus.subscribe('TILE_REJECTED', (e) => rejects.push((e as unknown as { payload: { reason: string } }).payload.reason));
+    root.commands.push(makeCommand(2, 'PLACE_TILE', 100, { gx: 5, gy: 11, tile: 'pot' }));
+    root.stepOnce();
+    expect(rejects).toEqual(['route_blocked']);
+  });
+
+  it('wouldClosePath: begehbares Tile schließt nie (Weg und Deko sind keine Wände)', () => {
+    const root = makeRoot({ seed: SEED, materialStock: { pot: 12 } });
+    wallColumn(root, 11); // die Spalte ist bis auf gy 11 zu
+    expect(root.wouldClosePath(5, 11, 'path')).toBe(false);
+    expect(root.wouldClosePath(5, 11, 'decor')).toBe(false);
+  });
+
+  it('wouldClosePath ist idempotent: das schon stehende Tile ändert nichts', () => {
+    const root = makeRoot({ seed: SEED, materialStock: { pot: 12 } });
+    wallColumn(root, 12); // der zwölfte Zug (gy 11) wird abgelehnt — gy 10 steht
+    expect(root.getSnapshot().mapTiles['5,10']).toBe('pot');
+    expect(root.wouldClosePath(5, 10, 'pot')).toBe(false);
+  });
+
+  // Die Kostenklemme der Probe ist ein Cache auf `mapRev` (s. mapSystem.wouldClosePath): er ist
+  // nur so lange harmlos, wie JEDER Karten-Schreibpfad die Revision hebt. Diese zwei Fälle sind
+  // die Naht-Locks — ohne sie könnte ein vergessener `mapRev++` eine ALTE Antwort ausliefern und
+  // dem Spieler einen legalen Bau als „letzter Weg" verkaufen (oder umgekehrt).
+  it('die Probe antwortet nach einem BAU neu (Cache hängt an der Kartenrevision)', () => {
+    const root = makeRoot({ seed: SEED, materialStock: { boulder: 4 } });
+    // Das ZWEITE Wegefeld ist per Konstruktion auf dem Laufweg — nur dort läuft die echte Probe,
+    // und nur dort kann überhaupt etwas gecacht worden sein (Vorprüfung antwortet sonst früh).
+    const second = routeOf(root)![1];
+    const X = { gx: Math.floor(second.x), gy: Math.floor(second.y) };
+    // Der ANDERE Nachbar der Spawn-Ecke (11,0) — genau einer der beiden ist X.
+    const Y = X.gx === 11 ? { gx: 10, gy: 0 } : { gx: 11, gy: 1 };
+
+    expect(root.wouldClosePath(X.gx, X.gy, 'boulder')).toBe(false); // Weg bleibt über Y offen
+    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { ...Y, tile: 'boulder' }));
+    root.stepOnce();
+    expect(root.getSnapshot().mapTiles[`${Y.gx},${Y.gy}`]).toBe('boulder');
+
+    // Dieselbe Zelle, neue Welt: X ist jetzt die EINZIGE Ausfahrt der Spawn-Ecke.
+    const onRoute = (gx: number, gy: number) =>
+      routeOf(root)!.some(p => Math.floor(p.x) === gx && Math.floor(p.y) === gy);
+    expect(onRoute(X.gx, X.gy)).toBe(true); // Vorbedingung: die Frage läuft wirklich durch die Regel
+    expect(root.wouldClosePath(X.gx, X.gy, 'boulder')).toBe(true);
+  });
+
+  it('die Probe antwortet nach einem VERKAUF neu (Entfernen öffnet Wege)', () => {
+    const root = makeRoot({ seed: SEED, materialStock: { pot: 12 } });
+    // Die Querung bei (5,0) wird als WEG gebaut (Gewicht 0.6 < Wiese 1). Das ist Absicht: nach
+    // dem Verkauf entsteht bei (5,11) eine ZWEITE Querung, aber eine teurere — die Route bleibt
+    // deshalb bei (5,0). Ohne diesen Kunstgriff wandert der Laufweg nach dem Öffnen zur anderen
+    // Querung (im ersten Anlauf gemessen: die Zelle war dann nicht mehr Wegefeld und der Fall
+    // hätte nur die Vorprüfung geprüft statt der Revision).
+    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 5, gy: 0, tile: 'path' }));
+    for (let gy = 1; gy < 12; gy++) {
+      root.commands.push(makeCommand(0, 'PLACE_TILE', gy + 1, { gx: 5, gy, tile: 'pot' }));
+    }
+    root.stepOnce();
+    expect(root.getSnapshot().mapTiles['5,11']).toBe('pot'); // Spalte 5 ist bis auf (5,0) zu
+    const onRoute = (gx: number, gy: number) =>
+      routeOf(root)!.some(p => Math.floor(p.x) === gx && Math.floor(p.y) === gy);
+    expect(onRoute(5, 0)).toBe(true); // Vorbedingung: die Frage läuft durch die Regel, nicht die Vorprüfung
+    expect(root.wouldClosePath(5, 0, 'pot')).toBe(true);
+
+    root.commands.push(makeCommand(0, 'REMOVE_TILE', 99, { gx: 5, gy: 11 }));
+    root.stepOnce();
+    expect(root.getSnapshot().mapTiles['5,11']).toBeUndefined();
+    expect(onRoute(5, 0)).toBe(true); // dieselbe Vorbedingung, auch nach dem Verkauf
+    expect(root.wouldClosePath(5, 0, 'pot')).toBe(false);
+  });
+
+  it('wouldClosePath schreibt NICHTS: Zustand, Route und Event-Log bleiben unberührt', () => {
+    const root = makeRoot({ seed: SEED, materialStock: { pot: 12 } });
+    const before = root.getSnapshot();
+    const logBefore = root.getEventLog().length;
+    root.wouldClosePath(5, 10, 'pot');
+    root.wouldClosePath(0, 0, 'boulder');
+    expect(root.getSnapshot()).toEqual(before);
+    expect(root.getEventLog().length).toBe(logBefore);
+  });
 });
 
 // Die Weltgröße ist PFLICHT (`PlacementBoard`): die UI hatte sie früher weggelassen und

@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { Fragment } from 'react';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import { MAP_TILES_SOURCE, type MapTileType } from '../config/map.source';
 import type { PlaceMode } from './placementController';
 import { plantLabelKey, plantLabelFallback, tileLabelKey, tileLabelFallback } from './plantLabels';
 import { useI18n } from '../i18n';
 
 // Owner: UI (PlacementTray). LOC ≤ 400.
-// B3: Tray-Karten wählen per pointerdown aus (kein Hover, kein click-Pfad) — Desktop und
-// Touch teilen dieselbe Pipeline. Der Karten-Tap ist reine Auswahl; gelegt wird auf dem Feld.
+// B3: Tray-Karten wählen per pointerdown aus (kein Hover) — Desktop und Touch teilen dieselbe
+// Pipeline. Der Karten-Tap ist reine Auswahl; gelegt wird auf dem Feld.
+// Spieltest v0.0.71: `pointerdown` allein ließ Tastatur, Screenreader und synthetische
+// Klick-Events stumm — der Aktivierungsvertrag steht deshalb in `cardPress` (Pointer + Klick).
 //
 // Mapbuilder-Umschalter (Playtest R2-Diagonal): PFLANZEN und BAU sind zwei getrennte
 // Werkzeugkästen des Map-Builders — NUR der aktive Kasten ist sichtbar (Tab-Regie, kein
@@ -64,7 +66,7 @@ export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPl
           aria-selected (Knopf-Sprache wie der Rest der Tray, E2E liest pressed). */}
       <div style={styles.tabRow}>
         <button
-          onPointerDown={(e) => { (e.target as HTMLElement).releasePointerCapture?.(e.pointerId); setManualTab('plants'); }}
+          {...cardPress(() => setManualTab('plants'))}
           style={{ ...styles.tab, ...(active === 'plants' ? styles.tabActive : {}) }}
           aria-pressed={active === 'plants'}
           title={trayPlantsLabel}
@@ -73,7 +75,7 @@ export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPl
           {trayPlantsLabel}
         </button>
         <button
-          onPointerDown={(e) => { (e.target as HTMLElement).releasePointerCapture?.(e.pointerId); setManualTab('build'); }}
+          {...cardPress(() => setManualTab('build'))}
           style={{ ...styles.tab, ...(active === 'build' ? styles.tabActive : {}) }}
           aria-pressed={active === 'build'}
           title={trayFieldLabel}
@@ -95,7 +97,7 @@ export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPl
           return (
             <Fragment key={id}>
             <button
-              onPointerDown={(e) => { (e.target as HTMLElement).releasePointerCapture?.(e.pointerId); onSelectPlant(id, count); setManualTab(null); }}
+              {...cardPress(() => { onSelectPlant(id, count); setManualTab(null); })}
               data-tut={id === firstPlayable ? 'card' : undefined}
               data-plant={id}
               style={{ ...styles.trayItem, ...(isSelected ? styles.trayItemSelected : {}), ...(disabled ? styles.trayItemDisabled : {}) }}
@@ -118,7 +120,7 @@ export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPl
           ist der Auswahlzustand, den E2E liest. */}
       {active === 'build' && (
         <button
-          onPointerDown={(e) => { (e.target as HTMLElement).releasePointerCapture?.(e.pointerId); onSelectSell(); }}
+          {...cardPress(onSelectSell)}
           aria-pressed={mode === 'sell'}
           data-tool="sell"
           style={{ ...styles.sellButton, ...(mode === 'sell' ? styles.sellButtonActive : {}) }}
@@ -142,7 +144,7 @@ export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPl
           return (
             <button
               key={tile}
-              onPointerDown={(e) => { (e.target as HTMLElement).releasePointerCapture?.(e.pointerId); onSelectTile(tile); }}
+              {...cardPress(() => onSelectTile(tile))}
               style={{ ...styles.trayItem, ...(isSelected ? styles.trayItemSelected : {}), ...(affordable ? {} : styles.trayItemDisabled) }}
               aria-pressed={isSelected} aria-disabled={!affordable}
               // Der Topf erklärt seine vier Farben dort, wo man ihn auswählt (der Titel nennt
@@ -162,6 +164,34 @@ export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPl
       )}
     </div>
   );
+}
+
+/**
+ * Der EINE Aktivierungsvertrag jeder Tray-Karte: Pointer UND Klick.
+ *
+ * `pointerdown` bleibt der Pfad für Maus und Touch (B3: eine Pipeline für beide, und der
+ * `releasePointerCapture`-Griff lässt den Drag aus der Tray zum Brett durch). Aber ein `<button>`
+ * wird von TASTATUR (Enter/Space), Screenreader und synthetischen Klick-Events über `click`
+ * aktiviert — dort feuert nie ein `pointerdown`, die Karte war also stumm (Befund der
+ * Spieltestsession v0.0.71: „reagieren nicht auf Klick-Events").
+ *
+ * Die Herkunft unterscheidet der `detail`-Wert des Klicks: echte Zeigegeräte liefern `detail >= 1`
+ * (der pointerdown-Pfad hat schon ausgewählt — ein zweites Auslösen würde die Auswahl sofort
+ * wieder umschalten), Tastatur/Screenreader/synthetische Klicks liefern `detail === 0`.
+ */
+export function cardPress(activate: () => void): {
+  onPointerDown: (e: ReactPointerEvent<HTMLElement>) => void;
+  onClick: (e: { detail: number }) => void;
+} {
+  return {
+    onPointerDown: (e) => {
+      (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+      activate();
+    },
+    onClick: (e) => {
+      if (e.detail === 0) activate();
+    },
+  };
 }
 
 /** Die vier Topffarben als Punkt: der Topf ist ein Booster, seine Farbe sagt wie (s. Palette). */

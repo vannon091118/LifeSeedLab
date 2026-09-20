@@ -4,12 +4,18 @@
 // zurück — Commands erzeugt der Aufrufer, Gameplay schreibt sie nie. Die Zell-Regel kommt aus
 // simulation/placementRules (eine Wahrheit für Sim UND Vorschau).
 //
-// Tiles (P5) werden bewusst NICHT lokal abgelehnt: das Map-Regelwerk (Baubereich, Korridor,
-// maxCount pro Typ) ist reicher als eine Zellenprüfung, deshalb entscheidet dort die Sim über
-// TILE_REJECTED — die UI zeigt nur Bedienbarkeit (Energie) vorab an. B29: die Sim-Antwort ist
+// Tiles (P5) werden bewusst NICHT lokal abgelehnt: das Map-Regelwerk (Baubereich, maxCount pro
+// Typ, Material-Pool) ist reicher als eine Zellenprüfung, deshalb entscheidet dort die Sim über
+// TILE_REJECTED — die UI zeigt nur Bedienbarkeit (Pool) vorab an. B29: die Sim-Antwort ist
 // damit KEIN Nebenschauplatz mehr — sie kommt als rote Welle und Grund-Text beim Spieler an
 // (`bus/eventAudience` → `components/fieldNotice`). Wer hier eine Vorprüfung ergänzt, nimmt dem
 // Spieler den Grund, den nur die Sim kennt.
+//
+// EINE Ausnahme (Spieltest v0.0.71, „Stilles Bauversagen"): die WEG-INTEGRITÄT wird vorab
+// gefragt (`PlacementEnvironment.wouldClosePath`). Sie ist kein zweites Regelwerk, sondern eine
+// read-only Frage an dieselbe Funktion, die der Bau in der Sim fährt (`mapSystem.wouldClosePath`
+// → `computeRoute`) — vorher stand der Geist auf der letzten Wegzelle GRÜN und der Loslass-Tap
+// wurde abgelehnt. Der Grund heißt hier wie dort `route_blocked`; die Texte liefert FieldToast.
 
 import type { MapTileType } from '../config/map.source';
 import type { ResolvedVisual } from '../visual/generator';
@@ -18,8 +24,9 @@ import { placementRejectReason, type PlacementRejectReason } from '../simulation
 export type PlaceMode = 'plant' | 'sell' | MapTileType;
 
 /** Ablehnungsgrund in der UI. Die Pool-Vorprüfung spricht dieselbe Sprache wie die Sim
- *  (`no_inventory`): Pflanze UND Feld kommen aus demselben Pool (`inventory`, #4). */
-export type UiRejectReason = PlacementRejectReason | 'unknown';
+ *  (`no_inventory`): Pflanze UND Feld kommen aus demselben Pool (`inventory`, #4).
+ *  `route_blocked` kommt aus der Weg-Integritäts-Probe (Sim-Vokabular, s. Dateikopf). */
+export type UiRejectReason = PlacementRejectReason | 'route_blocked' | 'unknown';
 
 export interface Cell {
   gx: number;
@@ -65,6 +72,12 @@ export interface PlacementEnvironment {
    * 19.09.2026); ohne Topf liefert die Quelle die Basiswerte.
    */
   statsFor(variantId: string, cell: Cell): { cost: number; range: number } | null;
+  /**
+   * Read-only Weg-Integritäts-Probe der Sim: würde dieses Tile auf dieser Zelle den letzten freien
+   * Weg schließen? PFLICHTFELD — ohne sie könnte der Geist wieder grün zeigen, was der Bau
+   * danach ablehnt (genau der Befund, den diese Datei behebt).
+   */
+  wouldClosePath(cell: Cell, tile: MapTileType): boolean;
   board(): {
     plants: ReadonlyArray<Cell>;
     inventory: Record<string, number>;
@@ -202,7 +215,10 @@ export class PlacementController {
     if (this.mode === 'sell') return null; // Verkauf: die Sim entscheidet (empty_cell/occupied)
     if (this.mode !== 'plant') {
       if (board.mapTiles[`${cell.gx},${cell.gy}`] === this.mode) return null;
-      return (board.inventory[this.mode] ?? 0) <= 0 ? 'no_inventory' : null;
+      if ((board.inventory[this.mode] ?? 0) <= 0) return 'no_inventory';
+      // Spieltest v0.0.71: die Weg-Integrität VORAB fragen (dieselbe Regel wie der Bau) — der
+      // Geist wird rot, statt grün zu versprechen und beim Loslassen abzulehnen.
+      return this.env.wouldClosePath(cell, this.mode) ? 'route_blocked' : null;
     }
     if (this.variantId === null) return 'unknown';
 

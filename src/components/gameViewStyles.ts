@@ -9,7 +9,10 @@ export const gameViewStyles: Record<string, CSSProperties> = {
   topLeft: { display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' },
   logo: { fontSize: 18, fontWeight: 800, color: 'var(--ink)', letterSpacing: 0.3 },
   sub: { fontSize: 11, color: '#6b6250', fontWeight: 600, letterSpacing: 0.4, textTransform: 'uppercase' },
-  topRight: { display: 'flex', gap: 8, alignItems: 'center' },
+  // P-2 (Mobile 390×844): die rechte Knopf-Gruppe ist ohne flexWrap eine Zeile (gemessen:
+  // Reihe 407 px, „Exit Run“ 362–419 ⇒ 29 px außerhalb) — jetzt Umbruch rechtsbündig statt
+  // Überlauf. Desktop bleibt unverändert (die Zeile passt dort, wrap greift nie).
+  topRight: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' },
   btn: { padding: '10px 14px', background: '#fff', border: '2px solid var(--ink)', borderRadius: 10, color: 'var(--ink)', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '3px 3px 0 var(--ink)', lineHeight: 1, minHeight: 44, minWidth: 44 },
   btnPrimary: { background: 'var(--leaf)', color: '#fff', borderColor: 'var(--ink)' },
   btnBeetle: { background: '#d9a441', color: '#2b2b26', borderColor: 'var(--ink)' },

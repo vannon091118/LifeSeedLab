@@ -9,7 +9,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React 19](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=white)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6-646cff?logo=vite&logoColor=white)](https://vite.dev/)
-[![Vitest](https://img.shields.io/badge/tests-429%20passing-6e9f18?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![Vitest](https://img.shields.io/badge/tests-570%20passing-6e9f18?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![Determinismus](https://img.shields.io/badge/sim-deterministisch-4ade80)](docs/architecture/architecture-contract.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -125,8 +125,11 @@ node node_modules/typescript/bin/tsc -b --noEmit
 # Test-Suite ausführen (Commit-Lane / berührte Tests)
 node scripts/test-lane.mjs
 
-# Komplette Test-Suite (429+ Tests, alle grün)
+# Komplette Test-Suite (alle grün)
 node scripts/test-lane.mjs --full
+
+# Hinweis: Jede Testzahl in dieser Datei ist ein Messwert aus `--full` (heute 570/570).
+# Zahlen nicht aus dem Gedächtnis fortschreiben — sonst widersprechen sich README und Lauf.
 
 # Produktions-Build erzeugen
 node node_modules/vite/bin/vite.js build

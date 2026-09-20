@@ -24,6 +24,17 @@
 die Befunde, die Folgen und einen Schlusssatz von Krix — aber Reihenfolge, Mittel (Tabelle,
 Zitat, Fließtext, Randnotiz) und Länge wechseln. Wiedererkennbar ja, Schablone nein.
 
+**Schreibzeitpunkt (ehrlich):** Die Datumszeile nennt den **Tag des Berichts**, nicht den Tag
+an dem Krix tippt. Ein Eintrag entsteht bei der Konsolidierung — also nach dem Bericht, oft am
+selben Abend wie mehrere andere. Was später passiert ist als der Bericht, steht als eigener
+Absatz mit eigenem Datum (siehe Eintrag 04, „Nachtrag 20.09."). Kein Eintrag behauptet,
+live geschrieben zu sein.
+
+**Zahlen (bindend):** Jede Zahl im Devlog ist ein **Messwert aus dem genannten Bau** oder aus
+dem Code — nie aus dem Gedächtnis fortgeschrieben. Zwei Zahlen für dasselbe Faktum sind ein
+Defekt: wer eine Messung wiederholt, nennt die **Messmenge** (welche Eingaben, wie viele Fälle)
+und korrigiert die alte Stelle, statt eine neue Wahrheit daneben zu legen.
+
 ## Chronologie
 
 | # | Session | Bericht | Was draus wurde |
@@ -46,6 +57,8 @@ Zitat, Fließtext, Randnotiz) und Länge wechseln. Wiedererkennbar ja, Schablone
 | 16 | 18.09.2026 | [Verifikation VI: Q17/Q18](2026-09-18_16_verifikation-vi.md) | Q17 3/3, Q18 entkräftet, Fix-Richtung geliefert |
 | 17 | 18.09.2026 | [Nachverifikation 63222e5](2026-09-18_17_nachverifikation-63222e5.md) | N4/F5/F6/Q16/Q17 im Spiel bestätigt |
 | 18 | 18.09.2026 | [Taktik-Session Mazing](2026-09-18_18_taktik-session-mazing.md) | T1 behoben (Diagonale/echte Geometrie); T2 überholt, T3 offen |
+| 19 | 20.09.2026 | [Spieltest-Session v0.0.71](2026-09-20_19_spieltest-session.md) | Geist sagt die Weg-Wahrheit + Tray per Tastatur bedienbar; Balance/Dimmen/Textmenge offen (P-18…P-22) |
+| 20 | 20.09.2026 | [ROADMAP-Mobile-Runde](2026-09-20_20_roadmap-mobile.md) | P-2 behoben (Top-Bar bricht um), P-24 mobil widerlegt, P-10 ohne Überlauf, P-14 gepinnt, P-25 neu; Blocker gelöst: Experimente in Quarantäne, Gate OFFEN |
 
 Die frühen Runden 01–05 lagen zuletzt unter `qa/archiv/`; sie stehen hier, weil ein Archiv
 nichts ist, was man zweimal liest. Berichte der externen Spieltest-Reihe (19.09.2026,

@@ -67,6 +67,9 @@ function env(inventory: Record<string, number> = { sprout: 2 }): PlacementEnviro
     visualFor: () => VISUAL,
     statsFor: id => (id === 'sprout' ? { cost: 10, range: 4 } : { cost: 10, range: 0 }),
     board: () => ({ plants: [], inventory, mapTiles: {}, cols: 12, rows: 12 }),
+    // Weg-Integrität: hier nie schließend — diese Datei pinnt Auswahl-Hygiene (Q16/Q17),
+    // nicht die Bau-Regel (die liegt in placementController.test.ts).
+    wouldClosePath: () => false,
     tick: () => 42,
   };
 }
