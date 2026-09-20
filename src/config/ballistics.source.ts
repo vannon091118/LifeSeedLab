@@ -29,7 +29,50 @@ export const SPEED_GAIN_BP = 1200;
 /** 0.3000 — Obergrenze, damit ein Schuss nie zum Hitscan wird. */
 export const SPEED_MAX_BP = 3000;
 
-// ── Durchschlag ───────────────────────────────────────────────────────────────────────────
+// ── Wuchs ⇒ Schuss (Gameplay-Regel, Eigentümer-Entscheid 20.09.2026) ─────────────────────
+// "Groß = weit, Breite = Schussrate": die WUCHS-Gene tragen den Schuss mit. Bewusst über
+// Gene (D5), nicht über den gejitterten Phänotyp — zwei Spieler mit gleichem genome_hash
+// müssen identisch rechnen, auch wenn ihre Anzeige streut. Ganzzahlig in bp wie alles hier.
+
+/** Reichweite in Zellen ×100 (3.00 ⇒ 300): ganzzahlig, keine Gleitkomma-Schwelle. */
+export const RANGE_BASE_CX = 300;
+/** Je vollem Wuchs-Beitrag (Σ WUCHS_HEIGHT × 10000 bp) ±1.00 Zelle Reichweite. */
+export const RANGE_PER_HEIGHT_BP = 100;
+/** 6.00 Zellen — ein Schuss, der das halbe Brett überspannt, wäre kein Schuss mehr. */
+export const RANGE_MAX_CX = 600;
+/** Mindest-Reichweite: eine Wand „schießt" 0.5 Zellen (ihr Nahkreis), nie 0. */
+export const RANGE_MIN_CX = 50;
+
+/** Nachladezeit in Ticks ×100 (30 ⇒ 3000): Basis wie `plants.source` (eine Wahrheit je Ort).
+ *  Die Dicke KÜRZT die Nachladezeit — dicker = mehr Masse = schnellerer Nachschub. */
+export const COOLDOWN_BASE_CX = 3000;
+/** Je vollen 10000 bp `thickness`-Wuchs −15 % Nachladezeit (ganzzahlig abgezogen). */
+export const COOLDOWN_PER_THICKNESS_CX = 450;
+/** 30 % Kürzung ist genug — ein Maschinengewehr wäre das Ende des Wendespiels. */
+export const COOLDOWN_FLOOR_CX = 2100;
+
+/**
+ * Wuchs ⇒ Schuss: JEDES Pool-Gen trägt die Form seiner Pflanze — sonst sehen zwei Kreuzungen
+ * verschieden aus und rechnen identisch (Spieltest-Befund 20.09: „5 Runden gezüchtet, nichts
+ * gespürt"). Gewicht × Genstärke (bp) = Beitrag. Positiv = hoch (Reichweite +) bzw. dick
+ * (Nachlade −); negativ = das Gegenteil. 1.0 = ein voller Gen-Beitrag = ±1.00 Zelle Reichweite.
+ */
+export const WUCHS_HEIGHT: Record<string, number> = {
+  titan: 1.0, rapid: 0.6, swift: 0.5, pierce: 0.4, echo: 0.3, vortex: 0.3, spore: 0.2,
+  fire: 0.1, crit: 0.1, acid: 0.1,
+  heal: -0.1, aura: -0.15, prismatic: -0.2, bloom: -0.2, splash: -0.3, lure: -0.35,
+  ice: -0.45, venom: -0.4, gravity: -0.5, heavy: -0.6,
+  shield: -0.2, thorns: -0.3, regen: -0.2,
+};
+/** Dicke je Gen (Nachladezeit-Kürzung) — dieselbe Logik, andere Achse. */
+export const WUCHS_THICKNESS: Record<string, number> = {
+  heavy: 1.0, titan: 0.7, shield: 0.6, thorns: 0.5, regen: 0.4, gravity: 0.4,
+  venom: 0.2, ice: 0.25, rapid: 0.2, bloom: 0.1, heal: 0.1, aura: 0.05, fire: 0.1,
+  swift: -0.2, echo: -0.1, spore: -0.1, crit: -0.1, acid: -0.2, prismatic: -0.1,
+  lure: -0.2, splash: -0.15, vortex: -0.3, pierce: -0.3,
+};
+
+// ── Durchschlag ─────────────────────────────────────────────────────────────────────────
 /** Basis-Durchschlag bei vorhandenem Durchschlags-Effekt = bisheriges Verhalten (Konstante 2). */
 export const PIERCE_BASE = 2;
 /** Erst ab hier skaliert das `pierce`-Gen (darunter bleibt es bei `PIERCE_BASE`). */

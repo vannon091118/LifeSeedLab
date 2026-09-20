@@ -10,7 +10,6 @@ export {
   rollGachaCross,
   deriveGachaSeed,
   deriveBreedSeed,
-  generateCrossResults,
   crossPair,
 } from './genome/gacha';
 export { createBaseVariants } from './genome/bases';

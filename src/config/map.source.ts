@@ -6,7 +6,7 @@
 /** Tile-Typen, die der Spieler platzieren kann. */
 export type MapTileType = 'pot' | 'path' | 'boulder' | 'decor';
 
-export interface MapTileSource {
+interface MapTileSource {
   id: MapTileType;
   /** Anzeigename (UI/Tray) — die Spielwelt benennt deutsch (vgl. names.source). */
   label: string;

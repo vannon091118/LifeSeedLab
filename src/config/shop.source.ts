@@ -20,9 +20,9 @@ export type ShopPoolId = 'seed' | 'tile' | 'decor';
  * `generator` = der Kauf ERZEUGT ein Wesen (Samen ⇒ Keimling, deterministisch aus dem
  * Kaufzähler); Besitz sind die wartenden Keimlinge, keine Stückzahl auf einem Schlüssel.
  */
-export type ShopPoolKind = 'stock' | 'generator';
+type ShopPoolKind = 'stock' | 'generator';
 
-export interface ShopPoolSource {
+interface ShopPoolSource {
   id: ShopPoolId;
   /** i18n-Key des Pool-Reiters UND des Gegenstands (translations.ts). */
   i18nKey: string;

@@ -18,6 +18,9 @@ export interface HashableState {
   // über Treffer und Schaden. Deshalb gehören sie in den Hash (sonst könnten zwei Läufe mit
   // unterschiedlichem Ausgang denselben Hash tragen).
   projectiles: { id: string; px: number; py: number; dx: number; dy: number; speed?: number; pierce?: number; effects?: string[] }[];
+  // Vector-Engine: Flags pro Zelle + Attraktoren (vergänglich, aber spielfähig divergierend).
+  vectors: { key: string; cells: { vectorId: string; intensity: number; ttl: number }[] }[];
+  attractors: { id: string; x: number; y: number; strength: number; radius: number; ttl: number }[];
   score: number;
   combo: { count: number; multiplier: number; timer: number; highest: number };
 }
@@ -75,6 +78,17 @@ export function hashState(s: HashableState): string {
     if (p.pierce !== undefined) h = fnv1a(h, `pie:${NUM(p.pierce)}`);
     if (p.effects && p.effects.length > 0) h = fnv1a(h, `fx:${p.effects.join('+')}`);
   }
+
+  const vKeys = [...s.vectors].sort((a, b) => a.key.localeCompare(b.key));
+  h = fnv1a(h, `vec:${vKeys.length}`);
+  for (const v of vKeys) {
+    const cells = [...v.cells].sort((a, b) => a.vectorId.localeCompare(b.vectorId));
+    h = fnv1a(h, `${v.key}|${cells.length}`);
+    for (const c of cells) h = fnv1a(h, `${c.vectorId}|${NUM(c.intensity)}|${NUM(c.ttl)}`);
+  }
+  const attrs = [...s.attractors].sort((a, b) => a.id.localeCompare(b.id));
+  h = fnv1a(h, `attr:${attrs.length}`);
+  for (const a of attrs) h = fnv1a(h, `${a.id}|${NUM(a.x)},${NUM(a.y)}|${NUM(a.strength)}|${NUM(a.radius)}|${NUM(a.ttl)}`);
 
   return (h >>> 0).toString(16).padStart(8, '0');
 }

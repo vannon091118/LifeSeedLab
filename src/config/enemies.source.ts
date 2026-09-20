@@ -53,7 +53,7 @@ export const ENEMIES_SOURCE: Record<EnemySource['id'], EnemySource> = {
   boss:  { id: 'boss',  hp: 800, speed: 0.008, damage: 100, reward: 150, scoreValue: 150, stopsToEat: true },
 };
 
-export interface WaveSpawnGroup {
+interface WaveSpawnGroup {
   typeId: EnemySource['id'];
   count: number;
   delay: number; // ticks between spawns of this group

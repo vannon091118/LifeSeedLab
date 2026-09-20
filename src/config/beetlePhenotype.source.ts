@@ -107,8 +107,6 @@ export const BEETLE_BODY_PLAN: readonly { plan: BeetlePlan; test: (a: Record<Bee
 ];
 
 /** Achsen, die den Plan tragen — als Daten, damit Tests/UI den Plan prüfen können statt zu raten. */
-export const BEETLE_PLAN_AXES: readonly BeetleAxis[] = ['wings', 'pelage', 'stinger', 'pronotum', 'mandibles'];
-
 /**
  * Bernsteine/Tusche-Palette. Sie trägt GEZÜCHTETE Tiere — bewusst warm. Dokumentierte Gründer
  * tragen dagegen ihren Source-Anker (`BEETLES_SOURCE[id].color`), der auch außerhalb dieser Palette
@@ -147,7 +145,7 @@ export const BEETLE_PIGMENT_SHIFT = { perPigmentA: 24, perPigmentB: 16 } as cons
 export const BEETLE_PIGMENT_SCATTER = { walk: 5, axis: 0.06, hue: 60, lightness: 0.08 } as const;
 
 /** Interaktions-Achsen des Käfers — dieselbe Mechanik wie bei der Pflanze (Produkt der Abweichungen). */
-export type BeetleInteractionAxis = 'chitin' | 'bearing';
+type BeetleInteractionAxis = 'chitin' | 'bearing';
 export const BEETLE_INTERACTION: Record<BeetleInteractionAxis, { a: BeetleAxis; b: BeetleAxis; gain: number }> = {
   chitin: { a: 'segmentation', b: 'carapaceSurface', gain: 3.0 },
   bearing: { a: 'mandibles', b: 'bodyWidth', gain: 2.8 },

@@ -7,7 +7,7 @@
 import { makeRng } from '../core/rng';
 
 /** Käfer-Gene: jedes mit eigener Mechanik-Wirkung (P7 — keine Deko-Gene). */
-export interface BeetleGeneSource {
+interface BeetleGeneSource {
   id: string;
   /** Multiplikator-Basis; Stärke = power * mult (power 0..1). */
   hpMult: number;
@@ -59,7 +59,7 @@ export const BEETLE_GENE_POOL: Record<string, { dominant: boolean; weight: numbe
 };
 
 /** Basen-Tiere: der Ausgangsbestand (wie PlantVariant-Basen). */
-export interface BeetleSpecimenSource {
+interface BeetleSpecimenSource {
   id: string;
   /** Anzeigename (UI/Brut) — die Spielwelt benennt deutsch (vgl. names.source). */
   label: string;
@@ -146,8 +146,6 @@ export const BEETLE_BREED = {
  */
 
 /** Brut-Familie: deterministischer Brutlingstyp (ENEMIES_SOURCE-Eintrag, B10). */
-export const BROODLING_TYPE = 'broodling' as const;
-
 /** Wellen-Discovery-Verknüpfung: Reifung nach Kinderstärke (P7-Balance).
  *  Stärkere Brut braucht mehr überlebte Wellen — skaliert BEETLE_GENE_POOL-unabhängig. */
 export function beetleWavesToUnlock(childPower: number): number {

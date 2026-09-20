@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { EFFECTS_SOURCE, EFFECT_IDS, isValidEffect } from './effects.source';
+import { VECTOR_LOGIC_SOURCE, VECTOR_IDS, VECTOR_DIR_TABLE, vectorForEffect } from './vector_logic.source';
+import { VECTOR_VISUAL_SOURCE, VECTOR_VISUAL_IDS } from './vector_visual.source';
 import { GENE_EFFECTS } from './genes.source';
 import { GENE_POOL } from '../genome/pool';
 import {
@@ -105,5 +107,62 @@ describe('Phase 5 gate: source validation', () => {
     expect(PLANT_ROUTE_COST).toBe(2);
     expect(PLANT_ROUTE_COST).toBeGreaterThan(MAP_DEFAULT_WEIGHT);
     expect(PLANT_ROUTE_COST).toBeLessThan(MAP_TILES_SOURCE.boulder.weight);
+  });
+
+  // ── Vector-Engine Quellen-Gates (Phase 7) ───────────────────────────────────────────
+  it('Vector-Engine: jede Vector-ID des Logic-Vertrags hat eine Visual-Zeile', () => {
+    expect(VECTOR_IDS.length).toBe(7);
+    expect(VECTOR_VISUAL_IDS.length).toBe(VECTOR_IDS.length);
+    for (const id of VECTOR_IDS) {
+      expect(VECTOR_LOGIC_SOURCE[id], `Logic ohne Eintrag: ${id}`).toBeDefined();
+      expect(VECTOR_VISUAL_SOURCE[id], `Visual ohne Eintrag: ${id}`).toBeDefined();
+    }
+  });
+
+  it('Vector-Attributhygiene: ttl/decay/threshold/conductivity/tickDelta im vergänglichkeits-Fenster', () => {
+    for (const id of VECTOR_IDS) {
+      const s = VECTOR_LOGIC_SOURCE[id];
+      if (id === 'VECTOR_ATTRACTOR') {
+        expect(s.ttl).toBe(9999); // Entity-Gravity (ttl-geführt über spawn, nicht Zelle) — ausgenommen
+        continue;
+      }
+      expect(s.ttl, `${id} ttl außerhalb 1..180`).toBeGreaterThanOrEqual(10);
+      expect(s.ttl, `${id} ttl außerhalb 1..180`).toBeLessThanOrEqual(180);
+      expect(s.decay, `${id} decay`).toBeGreaterThan(0);
+      expect(s.decay, `${id} decay`).toBeLessThanOrEqual(1);
+      if (s.threshold !== null) expect(s.threshold).toBeGreaterThan(0);
+      if (s.conductivity !== null) {
+        expect(s.conductivity).toBeGreaterThan(0);
+        expect(s.conductivity).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+
+  it('Vector-DIR_TABLE: geschlossen, gebacken, keine Transzendente im Source', () => {
+    expect(VECTOR_DIR_TABLE.length).toBe(72);
+    for (const d of VECTOR_DIR_TABLE) {
+      const len2 = d.dx * d.dx + d.dy * d.dy;
+      expect(len2).toBeGreaterThan(0.98);
+      expect(len2).toBeLessThan(1.02);
+    }
+  });
+
+  it('Vector-Mapper: jedes Effect, das ein Gen trägt, speist einen Vector (kein toter Effect)', () => {
+    for (const geneId of Object.keys(GENE_POOL)) {
+      const eff = GENE_EFFECTS[geneId];
+      expect(eff).toBeDefined();
+      const vid = vectorForEffect(String(eff));
+      expect(vid, `Gen ${geneId} → ${eff} hat keinen Vector`).not.toBeNull();
+      expect(VECTOR_IDS as string[]).toContain(vid);
+    }
+  });
+
+  it('Vector-Palette/Particle-Hygiene: jede Visual-Zeile hat eine Palette-Basis und ein Partikel-Profil', () => {
+    for (const id of VECTOR_IDS) {
+      const v = VECTOR_VISUAL_SOURCE[id];
+      expect(v.paletteModifier, `${id} ohne Palette`).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(v.particleProfile).toMatch(/^[\w_]+$/);
+      expect(v.soundProfile).toBeTruthy();
+    }
   });
 });

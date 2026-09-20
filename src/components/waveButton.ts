@@ -7,7 +7,7 @@
 import type { TranslationKey } from '../i18n';
 import { autoStartSecondsLeft } from '../simulation/waveTiming';
 
-export interface WaveButtonState {
+interface WaveButtonState {
   /** Beschriftung des Knopfes: die HANDLUNG („Welle starten") oder der Zustand („Welle n läuft"). */
   labelKey: TranslationKey;
   /** true ⇒ während dieser Phase gibt es nichts zu drücken (Anzeige statt Knopf). */

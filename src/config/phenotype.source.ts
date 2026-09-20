@@ -17,7 +17,7 @@ import type { PlantType } from '../types';
 /** Wuchsgewohnheit (Silhouette) — eine Tendenz je Rolle, keine Schablone. */
 export type PlantHabit = 'upright' | 'creeping' | 'bulbous' | 'climbing';
 
-export interface PlantHabitTendency {
+interface PlantHabitTendency {
   habit: PlantHabit;
   /** Ruhelage: Höhe (0..1) und Breite (0..1) des Wuchses. Das Genom verschiebt beides. */
   height: number;
@@ -84,7 +84,7 @@ export const PLANT_AXES_BY_GENE: Record<string, Partial<Record<PlantAxis, number
  * `rhythm` — Wuchsrhythmus: wechselständig ↔ quirlig (Blätter je Knoten, Knotenabstand)
  * `guard`  — Abwehrhaltung: Einzeldorn ↔ Dornenwald ↔ Schutzkappe
  */
-export type PlantInteractionAxis = 'rhythm' | 'guard';
+type PlantInteractionAxis = 'rhythm' | 'guard';
 
 /** Wechselwirkungs-Regel je Interaktions-Achse: 0.5 + (a−0.5)·(b−0.5)·gain. */
 export const PLANT_INTERACTION: Record<PlantInteractionAxis, { a: PlantAxis; b: PlantAxis; gain: number }> = {

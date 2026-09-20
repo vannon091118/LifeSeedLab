@@ -4,7 +4,7 @@
 
 const counters: Record<string, number> = {};
 
-export type EntityKind = 'plant' | 'enemy' | 'projectile' | 'wave' | 'system';
+type EntityKind = 'plant' | 'enemy' | 'projectile' | 'wave' | 'system';
 
 const PREFIX: Record<EntityKind, string> = {
   plant: 'plant',

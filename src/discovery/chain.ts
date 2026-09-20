@@ -70,7 +70,7 @@ export interface DiscoveryEntry {
 }
 
 /** Eingabe zum Erzeugen eines Eintrags — abgeleitete Felder werden hier gesetzt. */
-export interface DiscoveryInput {
+interface DiscoveryInput {
   genome: Genome;
   parents: [string, string];
   /** Der private Zucht-Seed — wird NUR zur HMAC-Ableitung genutzt, verlässt die
@@ -134,7 +134,7 @@ export function createEntry(input: DiscoveryInput, prev: DiscoveryEntry | null):
 }
 
 // ── Chain-Verifikation ───────────────────────────────────────────────
-export type VerifyResult = { valid: true } | { valid: false; reason: string; index: number };
+type VerifyResult = { valid: true } | { valid: false; reason: string; index: number };
 
 export function verifyChain(chain: DiscoveryEntry[]): VerifyResult {
   const seenGenome = new Set<string>();
@@ -196,7 +196,7 @@ export function tryAppend(chain: DiscoveryEntry[], entry: DiscoveryEntry): { cha
 // Der echte Sync ist ein einziger INSERT mit UNIQUE(genome_hash).
 // Lokal ist die Chain bereits autoritativ; der Stub dokumentiert die Grenze.
 
-export interface SyncResult {
+interface SyncResult {
   ok: boolean;
   reason?: string;
   remoteRejectedAsDuplicate?: boolean;
