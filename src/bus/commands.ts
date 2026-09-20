@@ -1,7 +1,7 @@
 // Owner: CommandSystem. LOC ≤ 300.
 // Player input NEVER touches gameplay objects directly (contract Phase 3.3).
 
-import type { GameEvent } from './events';
+import type { GameEvent, PlacementRejectReason } from './events';
 
 export type CommandType =
   | 'PLACE_PLANT'
@@ -98,7 +98,7 @@ export function makePlacementRejected(
   seq: number,
   gx: number,
   gy: number,
-  reason: 'occupied' | 'on_path' | 'no_inventory'
+  reason: PlacementRejectReason
 ): GameEvent {
   return {
     eventId: `${tick}:system:inventory:PLACEMENT_REJECTED:${seq}`,

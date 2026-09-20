@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 // Owner: Bus-Tests — Sub-Domäne „Events“ (B32.2/3, Phase 4).
 // Konsolidierung: bus.test.ts (EventBus-Teile) + bus_audience.test.ts (B29).
@@ -6,7 +6,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 
 import { EventBus } from './bus';
 import { makeEvent, assertEventContract } from './events';
-import { makeCommand } from './commands';
 
 describe('Phase 3.1/3.2 EventBus + contract', () => {
   it('publish/subscribe dispatches in order', () => {

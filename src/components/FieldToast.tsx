@@ -55,6 +55,8 @@ const REASON_KEY: Record<NoticeReason, TranslationKey> = {
   none_available: 'field.reject.none_available',
   // M5: Route zugebaut — Fallback läuft, aber sichtbar
   route_blocked: 'field.reject.route_blocked',
+  // Wellen-Sperre: mid-Welle wird nicht gebaut (prep/layout bleiben frei)
+  wave_active: 'field.reject.wave_active',
   // Restfall der UI-Vorprüfung (kein Sim-Grund)
   unknown: 'field.reject.unknown',
 };

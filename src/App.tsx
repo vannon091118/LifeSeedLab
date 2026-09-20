@@ -7,7 +7,7 @@ import { EPOCH_ROOT, RUN_SEED_VERSION } from './config';
 import { PLANTS_SOURCE } from './config/plants.source';
 import { clearRun, loadRun, type RunSave } from './persistence/runSave';
 import { ensureWorld, loadWorld } from './persistence/worldSave';
-import { worldSnapshotOf, type WorldState } from './world/world_state';
+import type { WorldState } from './world/world_state';
 import { StartScreen } from './components/StartScreen';
 import { MainMenu } from './components/MainMenu';
 import { GameView } from './components/GameView';
