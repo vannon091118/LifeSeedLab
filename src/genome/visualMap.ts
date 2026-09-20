@@ -63,6 +63,3 @@ export function basePlantVisualInput(variantId: string, rootSeed: number): Visua
 }
 
 /** Stabile Phänotyp-Identität (Discovery/Sprite-Cache): derselbe Phänotyp ⇒ derselbe Schlüssel. */
-export function phenotypeKeyOf(phenotype: PlantPhenotype): string {
-  return plantPhenotypeKey(phenotype);
-}

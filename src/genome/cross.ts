@@ -2,6 +2,7 @@ import type { Gene, Genome, PlantType, PlantVariant } from '../types';
 import { GENE_POOL } from './pool';
 import type { Rng } from '../core/rng';
 import { NAME_CORE_BY_GENE, NAME_PREFIXES, NAME_SUFFIXES, NAME_FALLBACK_CORE } from '../config/names.source';
+import { rangeCxOf, cooldownCxOf } from './ballistics';
 
 // Owner: Source (cross engine). LOC ≤ 300.
 // crossGenomes + deriveStats/Traits/Color + generateName — deterministisch, nur rng.next().
@@ -36,11 +37,21 @@ export function deriveStats(type: PlantType, genome: Genome): PlantVariant['stat
   if (type === 'wall' && genePresent(genome, 'thorns')) special = 'reflect';
   if (type === 'support' && heal > 0.2) special = 'heal_aura';
 
+  // Wuchs ⇒ Schuss (Eigentümer-Entscheid 20.09.2026): Reichweite UND Nachladezeit hängen an
+  // den WUCHS-Genen (Höhe = weit, Dicke = schnell) — dieselbe bp-Ableitung wie die Ballistik
+  // (`ballistics.source`), eine Wahrheit. Die alten Inline-Hebel (rapid −15, swift −10,
+  // heavy +10 Ticks) sind gestorben: dieselbe Größe an zwei Orten wäre eine zweite Wahrheit.
+  // Die Basis-Differenz der Rollen bleibt als Rollen-Versatz (Wand −2.5, Unterstützung −1.0).
+  const roleRangeBonus = type === 'wall' ? -250 : type === 'support' ? -100 : 0; // Zellen ×100
+  const roleCdBonus = type === 'wall' ? 1500 : type === 'support' ? 500 : 0;      // Ticks ×100
+  const range = Math.max(5, rangeCxOf(genome) + roleRangeBonus) / 100;
+  const cooldown = Math.max(5, Math.round((cooldownCxOf(genome) + roleCdBonus) / 100));
+
   return {
     hp: Math.round(baseHp + hvy * 200 + sp * 100 + regen * 50),
     damage: Math.round(baseDmg + fp * 25 + rp * 10 + crit * 20),
-    range: +(baseRange + pp * 0.5 + splash * 0.3).toFixed(1),
-    cooldown: Math.max(5, Math.round(baseCd - rp * 15 - swift * 10 + hvy * 10)),
+    range: +range.toFixed(2),
+    cooldown,
     special,
   };
 }

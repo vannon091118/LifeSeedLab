@@ -9,6 +9,7 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ## Unreleased (Arbeitsstand 19.–21.09.2026)
 
+- [Rebase Slice 4] Noch ein begrenzter Block; der Commit-Riese wird Stück für Stück entzaubert.
 - [Rebase Slice 3] Der nächste historische Block bleibt klein; selbst Git darf heute einmal ordentlich atmen.
 - [Rebase Slice 2] Die historische Änderung bleibt in kleinen, prüfbaren Scheiben; Git darf weiter so tun, als sei ein 152-Dateien-Commit eine Persönlichkeit.
 - [B5.1] Die Belohnung reist sichtbar: echter Kill-Ort im Payload statt erfundener Rastermitte, quadratische Bahn zum neuen Nektar-Zähler im Run-HUD, Ankunfts-Puls am Zähler (visual.md B5.1, ui.md B7.4). Der dadurch tote Partikel-Profileintrag `reward_flight` ist gelöscht; die bei der Sichtprüfung gefundenen, **nicht** behobenen Punkte stehen im Register (ROADMAP P-27 `grow`/`death`-Animation, P-28 `muzzle_puff`, P-29 Wellen-Bonus ohne Senke).

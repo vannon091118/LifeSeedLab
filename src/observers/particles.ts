@@ -4,7 +4,7 @@
 
 import { makeRng } from '../core/rng';
 
-export type ParticleKind = 'DOT' | 'SPARK' | 'SMOKE' | 'DUST' | 'GLOW' | 'RING' | 'SHARD' | 'BUBBLE' | 'SPORE' | 'LEAF';
+type ParticleKind = 'DOT' | 'SPARK' | 'SMOKE' | 'DUST' | 'GLOW' | 'RING' | 'SHARD' | 'BUBBLE' | 'SPORE' | 'LEAF';
 
 export interface Particle {
   active: boolean;
@@ -19,7 +19,7 @@ export interface Particle {
   alpha: number;
 }
 
-export interface ParticleProfile {
+interface ParticleProfile {
   kind: ParticleKind;
   count: number;
   lifetime: number;          // ticks
@@ -58,7 +58,7 @@ const PARTICLE_PROFILES: Record<string, ParticleProfile> = {
 };
 
 // FX budget (Phase 11.4)
-export type FxBudget = 'NORMAL' | 'BUSY' | 'CHAOS';
+type FxBudget = 'NORMAL' | 'BUSY' | 'CHAOS';
 const BUDGET_CAPS: Record<FxBudget, number> = { NORMAL: 40, BUSY: 70, CHAOS: 100 };
 
 export class ParticlePool {

@@ -1,9 +1,10 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import type { MetaSave } from './types';
-import { translations, type TranslationKey } from './i18n/translations';
+import { translations, type TranslationKey, type Lang } from './i18n/translations';
 
-export type Lang = 'de' | 'en';
-export type { TranslationKey };
+// Regel 3: `Lang` wohnt EINMAL in i18n/translations.ts (Barrel) — importiert für den
+// eigenen Gebrauch und als Re-Export weitergereicht (bestehende Importe bleiben stabil).
+export type { Lang, TranslationKey };
 
 type I18nContextType = {
   lang: Lang;

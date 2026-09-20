@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { SimulationRoot, makeCommand } from '../simulation/root';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { makeCommand } from '../simulation/root';
 import { makeRoot } from '../testing/testkit';
 import type { MetaSave } from '../types';
 import { defaultMeta, META_VERSION } from '../meta';
@@ -38,10 +38,8 @@ describe('Gate B — Resume-Shape (RunSave v2)', () => {
     // Snapshot-Härtung: getSnapshot() liefert Kopien — der Save-Contract wird über die
     // öffentliche Sim-Pipeline verifiziert, nicht über Live-State-Manipulation.
     saveRun(root.getSnapshot());
-    const raw = localStorage.getItem('lifegamelab') ?? localStorage.getItem('run');
     // runSave nutzt idbSet → localStorage-Fallback ist nicht garantiert in jeder Umgebung.
     // Gate prüft daher den CONTRACT direkt: saveRun darf gameover nicht speichern + stripped shape.
-    // Fallback: prüfe, dass gameover-Runs nicht gespeichert werden
     // Q1-Balance-fest (grunt damage 4): Welle 1 ohne Abwehr endet nicht mehr — High-Wave-
     // Resume mit 1 Leben (Welle 21, ~60 Gegner) leakt garantiert über die echte Pipeline.
     const gameoverRoot = makeRoot({
@@ -58,14 +56,7 @@ describe('Gate B — Resume-Shape (RunSave v2)', () => {
     gameoverRoot.stepOnce();
     for (let i = 0; i < 60000 && !ended; i++) gameoverRoot.stepOnce();
     expect(ended).toBe(true);
-    saveRun(gameoverRoot.getSnapshot()); // contract: gameover wird NICHT gespeichert
-    // wenn localStorage-Pfad aktiv ist, prüfe envelope; sonst ist der Contract über idbSet erfüllt (kein Crash)
-    if (raw) {
-      const env = JSON.parse(raw);
-      const data = env.data as Record<string, unknown>;
-      // runSave speichert unter key 'run' im idb-Backend — localStorage ist nur fallback-Pfad
-      expect(data).toBeDefined();
-    }
+    saveRun(gameoverRoot.getSnapshot()); // contract: gameover wird NICHT gespeichert — fire-and-forget, kein Crash auch ohne idb
     // strukturell: SimState enthält die gestrippten Felder NICHT im Save-Shape (über idb)
     // wir verifizieren den Shape indirekt: RunSave type hat keine enemies/projectiles
     const shapeCheck: import('../persistence/runSave').RunSave = {

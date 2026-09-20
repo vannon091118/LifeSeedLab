@@ -4,24 +4,17 @@
 // Setup je describe über das Testkit — keine lokalen Setup-Kopien mehr.
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  resetTestState,
-  resetFullTestState,
-  writeLegacyEnvelope,
-} from '../testing/testkit';
+import { resetFullTestState, writeLegacyEnvelope } from '../testing/testkit';
 import { ensureLocalStorage } from '../persistence/testDom';
 import { fnv1a } from '../core/hash';
-import { deriveSeed, makeRng, GAMEPLAY_NAMESPACES, VISUAL_NAMESPACES } from '../core/rng';
-import { GAME_SEED } from '../config';
-import { BROOD_SEED_NAMESPACE, BEETLES_SOURCE, BEETLE_BREED } from '../config/beetles.source';
-import { deriveBroodSeed, rollBrood, broodGenomeHash, toDeploySpec } from '../genome/beetle';
-import { loadMeta, updateMeta, resetMeta, META_KEY, META_VERSION } from './store';
+import { BEETLE_BREED } from '../config/beetles.source';
+import { rollBrood } from '../genome/beetle';
+import { loadMeta, updateMeta, META_KEY, META_VERSION } from './store';
 import { enqueueBrood, claimBrood } from './run';
 import { BeetleSpecimen } from '../types';
 
 const A = 'leafhopper';
 const B = 'shellbeetle';
-const STORED_BROOD_INDEXES = [0, 1, 2, 7, 42];
 
 // ══ B14 — Brut-Identität ist monoton, nie aus einem Fenster abgeleitet ════════════════════════════
 // Befund A13.1: `enqueueBrood` leitete den broodIndex aus `Math.max(...pendingBroods) + 1` ab.

@@ -77,6 +77,8 @@ export const runTexts = {
     'field.reject.none_available': 'Kein Brutling im Lager.',
     // M5: zugebauter Laufweg — der gelegte Weg greift nicht mehr, der Fallback übernimmt.
     'field.reject.route_blocked': 'Das wäre der letzte freie Weg — der Bau wird abgelehnt!',
+    // Wellen-Sperre: zwischen Wellen gebaut wird, in der Runde nicht — Brett ist committet
+    'field.reject.wave_active': 'Während der Welle wird nicht gebaut — zwischen den Wellen committen!',
     'over.title': 'Run beendet',
     'over.waveReached': 'Erreichte Welle',
     'over.nektarEarned': 'Nektar verdient',
@@ -143,6 +145,7 @@ export const runTexts = {
     'field.reject.none_available': 'No broodling in the stash.',
     // M5: route blocked — the fallback path takes over, and that is announced.
     'field.reject.route_blocked': 'That would close the last free path — build rejected!',
+    'field.reject.wave_active': 'No building during the wave — commit your board between waves!',
     'over.title': 'Run Over',
     'over.waveReached': 'Wave Reached',
     'over.nektarEarned': 'Nectar Earned',
