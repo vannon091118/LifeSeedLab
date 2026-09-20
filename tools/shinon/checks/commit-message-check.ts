@@ -12,6 +12,12 @@ import type { ShinonConfig } from '../config.ts';
  */
 
 export const CONVENTIONAL_TYPES = ['feat', 'fix', 'docs', 'style', 'refactor', 'perf', 'test', 'chore', 'build'];
+/** Verpflichtende Mindestlänge für jede Commit-Nachricht; kurze Commit-Poesie ist kein Vertrag. */
+export const MIN_COMMIT_WORDS = 200;
+
+export function countMessageWords(message: string): number {
+  return message.match(/[\p{L}\p{N}]+/gu)?.length ?? 0;
+}
 
 /** Agenten-Signaturen, die nie in die Historie dürfen (severity: 'error' — Gate schließt). */
 const FORBIDDEN_FOOTERS: Array<{ pattern: RegExp; label: string }> = [
@@ -32,6 +38,7 @@ export function validateMessage(message: string, config: ShinonConfig): Finding[
   const findings: Finding[] = [];
   const lines = message.replace(/\r\n/g, '\n').split('\n');
   const subject = (lines[0] ?? '').trim();
+  const wordCount = countMessageWords(message);
 
   if (subject === '') {
     findings.push(finding(check, 'MSG001', 'Commit-Nachricht ist leer — Betreffzeile fehlt'));
@@ -51,6 +58,17 @@ export function validateMessage(message: string, config: ShinonConfig): Finding[
         }),
       );
     }
+  }
+
+  if (wordCount < MIN_COMMIT_WORDS) {
+    findings.push(
+      finding(
+        check,
+        'MSG007',
+        `Commit-Nachricht enthält ${wordCount} Wörter; mindestens ${MIN_COMMIT_WORDS} Wörter sind verpflichtend`,
+        { line: 1 },
+      ),
+    );
   }
 
   if (subject.length > 72) {
@@ -127,15 +145,21 @@ export class CommitMessageCheck implements ShinonCheck {
   }
 }
 
+/** Nur der interne Selbsttest erzeugt den langen Body; echte Commits liefern ihren Inhalt selbst. */
+function longMessage(subject: string): string {
+  const body = Array.from({ length: MIN_COMMIT_WORDS }, (_, index) => `Beleg${index + 1}`).join(' ');
+  return `${subject}\n\n${body}`;
+}
+
 /** Selbsttest der Regel — genutzt von `shinon message --self-test`. */
 export function runMessageSelfTest(config: ShinonConfig): { failed: string[]; total: number } {
   const cases: Array<{ message: string; valid: boolean }> = [
-    { message: 'feat(paper): neue Textur', valid: true },
-    { message: 'fix(canvas): Rendering-Fehler behoben', valid: true },
-    { message: 'docs(architecture): Vertrag aktualisiert', valid: true },
-    { message: 'chore(deps): TypeScript aktualisiert', valid: true },
-    { message: '[FOLD] Konsolidierung der Struktur', valid: true },
-    { message: '[CUT] obsoleten Code entfernt', valid: true },
+    { message: longMessage('feat(paper): neue Textur'), valid: true },
+    { message: longMessage('fix(canvas): Rendering-Fehler behoben'), valid: true },
+    { message: longMessage('docs(architecture): Vertrag aktualisiert'), valid: true },
+    { message: longMessage('chore(deps): TypeScript aktualisiert'), valid: true },
+    { message: longMessage('[FOLD] Konsolidierung der Struktur'), valid: true },
+    { message: longMessage('[CUT] obsoleten Code entfernt'), valid: true },
     { message: 'fehlt der Doppelpunkt', valid: false },
     { message: 'feat(): leere Beschreibung', valid: false },
     { message: '[UNKNOWN] nicht erlaubt', valid: false },
@@ -143,7 +167,7 @@ export function runMessageSelfTest(config: ShinonConfig): { failed: string[]; to
     { message: 'feat(x): ok\n\n🤖 Generated with Codebuff\nCo-Authored-By: Codebuff <noreply@codebuff.com>', valid: false },
     { message: 'feat(x): ok\n\nCo-Authored-By: Codebuff <noreply@codebuff.com>', valid: false },
     { message: 'feat(x): ok\n\nGenerated with SomeOtherAgent', valid: false },
-    { message: 'feat(x): ok\n\nCo-Authored-By: Mensch <mensch@example.org>', valid: true },
+    { message: longMessage('feat(x): ok\n\nCo-Authored-By: Mensch <mensch@example.org>'), valid: true },
   ];
 
   const failed: string[] = [];

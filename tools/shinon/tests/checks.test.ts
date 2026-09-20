@@ -35,10 +35,15 @@ describe('Gate-Registry', () => {
 
 describe('Commit-Nachrichtenregel', () => {
   const config = defaultConfig('/tmp/shinon');
+  const longMessage = (subject: string): string => `${subject}\n\n${Array.from({ length: 200 }, (_, index) => `Beleg${index + 1}`).join(' ')}`;
 
-  it('akzeptiert Conventional Commits und Projekt-Präfixe', () => {
-    expect(validateMessage('feat(paper): neue Textur', config)).toHaveLength(0);
-    expect(validateMessage('[FOLD] Struktur konsolidiert', config)).toHaveLength(0);
+  it('akzeptiert Conventional Commits und Projekt-Präfixe mit mindestens 200 Wörtern', () => {
+    expect(validateMessage(longMessage('feat(paper): neue Textur'), config)).toHaveLength(0);
+    expect(validateMessage(longMessage('[FOLD] Struktur konsolidiert'), config)).toHaveLength(0);
+  });
+
+  it('erzwingt die Mindestlänge auch bei formal gültigem Betreff', () => {
+    expect(validateMessage('feat(paper): zu kurze technische Pointe', config).some((item) => item.code === 'MSG007')).toBe(true);
   });
 
   it('lehnt fremde Formen und leere Nachrichten ab', () => {
@@ -54,7 +59,7 @@ describe('Commit-Nachrichtenregel', () => {
   it('erlaubt bei freeForm freie Betreffzeilen, warnt aber vor Kommentarresten', () => {
     const loose = defaultConfig('/tmp/shinon');
     loose.commit.freeForm = true;
-    expect(validateMessage('einfach nur ein Satz', loose)).toHaveLength(0);
+    expect(validateMessage(longMessage('einfach nur ein Satz'), loose)).toHaveLength(0);
     expect(validateMessage('feat(x): ok\n# Template-Rest', loose).some((item) => item.code === 'MSG004')).toBe(true);
   });
 });

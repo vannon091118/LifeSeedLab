@@ -11,12 +11,17 @@ import { resetIds } from '../core/ids';
 import { PlantSystem, resolvePlantStats } from './plantSystem';
 import { EnemySystem } from './enemySystem';
 import { ProjectileSystem } from './projectileSystem';
+import { VectorSystem } from './vectorSystem';
+import { VectorAttractor } from './vectorAttractor';
+import { potBoostAt } from './potBoost';
+import { vectorForEffect, VECTOR_ATTRACTOR_CONFIG } from '../config/vector_logic.source';
 import { ScoreSystem } from './scoreSystem';
 import { ComboSystem } from './comboSystem';
 import { WaveSystem } from './waveSystem';
 import { MapSystem } from './mapSystem';
 import type { MapTileType } from '../config/map.source';
 import { executeCommand, type CommandContext } from './rootCommands';
+import { reactToKills, chainAftermath } from './killReactor';
 import { freshState } from './pipeline';
 import { routeWalkTiles, routeIdealTiles } from './mapSystem';
 import { CYCLE_TICKS } from '../core/clock';
@@ -62,6 +67,8 @@ export class SimulationRoot {
   private plants: PlantSystem;
   private enemies: EnemySystem;
   private projectiles: ProjectileSystem;
+  private vectors: VectorSystem;
+  private attractors: VectorAttractor;
   private score: ScoreSystem;
   private combo: ComboSystem;
   private waves: WaveSystem;
@@ -94,6 +101,8 @@ export class SimulationRoot {
       (s: SimState, id: string, amt: number, crit: boolean, eff: string | null, src: string | null) => enemies.applyDamage(s, id, amt, crit, eff, src),
       (s: SimState, id: string, eff: string | null) => enemies.applyEffect(s, id, eff)
     );
+    this.vectors = new VectorSystem();
+    this.attractors = new VectorAttractor();
     this.score = new ScoreSystem(e => this.publish(e));
     this.combo = new ComboSystem(e => this.publish(e));
     this.waves = new WaveSystem(e => this.publish(e));
@@ -196,12 +205,67 @@ export class SimulationRoot {
       this.plants.update(state, (plant, target, damage) => {
         const stats = resolvePlantStats(state, plant.variantId);
         if (!stats) return;
+        const hasCharge = stats.effects.some(id => vectorForEffect(id) === 'VECTOR_CHARGE');
+        // Blitz-Trace: Dijkstra cost=1/conductivity — Wasser leitet, Ableiter emergent
+        if (hasCharge) {
+          const plantGx = plant.gx;
+          const plantGy = plant.gy;
+          const targetGx = Math.floor(target.px);
+          const targetGy = Math.floor(target.py);
+          const trace = this.vectors.traceCharge(state, plantGx, plantGy, targetGx, targetGy);
+          if (trace && trace.path.length > 1) {
+            let divert: { x: number; y: number } | null = null;
+            for (let i = 1; i < trace.path.length - 1; i++) {
+              const p = trace.path[i]!;
+              const flags = state.vectors[`${p.x},${p.y}`];
+              if (flags?.some(c => c.vectorId === 'VECTOR_WET')) { divert = p; break; }
+            }
+            if (divert) {
+              const extra = potBoostAt(state.mapTiles, plant.gx, plant.gy) ? 1 : 0;
+              this.vectors.deposit(state, divert.x, divert.y, 'VECTOR_CHARGE', 1.5, extra);
+              return;
+            }
+            for (const pt of trace.path) {
+              const extra = potBoostAt(state.mapTiles, plant.gx, plant.gy) ? 1 : 0;
+              this.vectors.deposit(state, pt.x, pt.y, 'VECTOR_CHARGE', 1.0, extra);
+            }
+            this.enemies.applyDamage(state, target.id, damage, false, stats.effects[0] ?? null, plant.id);
+            if (stats.effects[1]) this.enemies.applyEffect(state, target.id, stats.effects[1]);
+            return;
+          }
+        }
         // B6/Ballistik: Durchschlag, Krit und Geschwindigkeit kommen aus dem GENOM
         // (`stats.ballistics`), nicht mehr aus Konstanten hier. ALLE Effekte des Genoms
         // reisen mit (bis EFFECT_SLOTS) — vorher war `effects[1]` toter Content.
         this.projectiles.fire(state, plant, target, damage, stats.ballistics, stats.effects);
+        // Vector-Deposit per Schuss: Topf->Radius, Größe implizit via stats.range/ballistics
+        const tgx = Math.floor(target.px);
+        const tgy = Math.floor(target.py);
+        const extra = potBoostAt(state.mapTiles, plant.gx, plant.gy) ? 1 : 0;
+        for (const eff of stats.effects) {
+          const vid = vectorForEffect(eff);
+          if (!vid) continue;
+          if (vid === 'VECTOR_ATTRACTOR') {
+            const sp = VECTOR_ATTRACTOR_CONFIG.spawn;
+            this.attractors.spawn(state, plant.gx + 0.5, plant.gy + 0.5, sp.strength, sp.radius, sp.ttl);
+          } else if (vid === 'VECTOR_CHARGE') {
+            this.vectors.deposit(state, tgx, tgy, vid, 1.0, extra);
+          } else {
+            this.vectors.deposit(state, tgx, tgy, vid, 1.0, extra);
+            if (vid === 'VECTOR_OIL' || vid === 'VECTOR_WET' || vid === 'VECTOR_TOX') {
+              const dx = tgx - plant.gx;
+              const dy = tgy - plant.gy;
+              const len = Math.sqrt(dx * dx + dy * dy) || 1;
+              const frontGx = plant.gx + Math.round(dx / len);
+              const frontGy = plant.gy + Math.round(dy / len);
+              if (frontGx !== tgx || frontGy !== tgy) this.vectors.deposit(state, frontGx, frontGy, vid, 1.0, extra);
+            }
+          }
+        }
       });
       this.projectiles.update(state);
+      this.vectors.update(state);
+      this.attractors.update(state);
       this.enemies.applyStatusTicks(state);
 
       // P-26: Biss → Reflex. Kein System ruft ein System: biteIntents liefert reine Absichten,
@@ -229,25 +293,13 @@ export class SimulationRoot {
     // 4) react to kills (score + combo) — authoritative consumers of ENEMY_DIED.
     //    Consumed from pendingKills (private buffer), NOT via eventLog.filter: external
     //    readers of getEventLog()/late side effects can never double-count or drop kills.
+    //    Die REAKTION wohnt in killReactor.ts (Regel-1-Split); root bleibt alleiniger Draht
+    //    und hält die Reihenfolge als Vertrag: Kills → Log-Reset → Chain (bit-identisch).
     const killEvents = this.pendingKills;
     this.pendingKills = [];
-    for (const e of killEvents) {
-      // combo multiplier applies to score (Defect A4-2) — nektar stays flat by design
-      this.score.onEnemyDied(state, e.payload.enemyId, e.payload.reward, e.payload.reward * state.combo.multiplier, e.payload.px, e.payload.py);
-      this.combo.registerKill(state);
-    }
+    reactToKills(state, killEvents, { score: this.score, combo: this.combo, enemies: this.enemies });
     this.clearEventLog();
-
-    // 4b) chain effect (B6): kills by chain plants arc 50% damage to the nearest enemy.
-    //     Kills published here land in the fresh pendingKills → processed next tick (deferred, deterministic).
-    for (const e of killEvents) {
-      const plant = e.payload.killerPlantId
-        ? state.plants.find(p => p.id === e.payload.killerPlantId) : null;
-      if (!plant) continue;
-      const stats = resolvePlantStats(state, plant.variantId);
-      if (!stats || !stats.effects.includes('EFFECT_CHAIN')) continue;
-      this.enemies.chainFrom(state, e.payload.px, e.payload.py, 50, 2);
-    }
+    chainAftermath(state, killEvents, this.enemies);
 
     // 5) wave completion (only while still alive)
     if (state.phase === 'wave' && state.lives > 0) {
@@ -278,6 +330,22 @@ export class SimulationRoot {
     executeCommand(this.commandContext(), state, cmd);
   }
 
+  get vectorSystem(): VectorSystem { return this.vectors; }
+  get attractorSystem(): VectorAttractor { return this.attractors; }
+
+  // ── Vector-Emissions-Naht (Phase 5) ───────────────────────────
+  // Produzenten (Pflanze/Projektil, später Käfer-Aura) und die Gate-Tests brauchen denselben
+  // Weg in den EINEN Vector-Writer — der Live-State verlässt den Root nie. Deposit mutiert
+  // nur Flags (kein RNG, kein Event) und wird ZWISCHEN Ticks gerufen; die Tick-Reihenfolge
+  // in stepOnce bleibt der einzige Motor.
+  vectorDeposit(gx: number, gy: number, vectorId: string, intensity: number): void {
+    this.vectors.deposit(this.state, gx, gy, vectorId, intensity);
+  }
+
+  attractorSpawn(x: number, y: number, strength: number, radius: number, ttl: number): void {
+    this.attractors.spawn(this.state, x, y, strength, radius, ttl);
+  }
+
   private commandContext(): CommandContext {
     return {
       plants: this.plants, enemies: this.enemies, map: this.map, waves: this.waves,
@@ -301,12 +369,8 @@ export class SimulationRoot {
     // B16.1: die Route lebt NUR im State (Ein-Writer) — keine zweite Kopie im System.
     const route = this.map.computeRoute(state);
     state.currentRoute = route;
-    // Juggling: nach einem ROUTEN-WECHSEL mitten in der Welle werden alle Gegner an die neue
-    // Route angeknotet (nächster Knoten, deterministisch) — liegt der hinter ihrem Fortschritt,
-    // laufen sie um (die Umdreh-Wirkung). Außerhalb der Welle: No-op, keine Gegner im Feld.
-    if (state.phase === 'wave') {
-      this.enemies.remapAllToRoute(state);
-    }
+    // Wellen-Sperre: mid-Welle gibt es keinen Bau mehr ⇒ keinen mid-Wave-Routen-Wechsel;
+    // das Juggling-Remap (Gegner an neue Route anknoten) ist bewusst tot und geschnitten.
     // AP2 (M1)/Entscheidung 19.09.2026: der Payload trägt den echten LAUFWEG in Feldern
     // und den kürzesten möglichen Weg (der Abstand = Maze-Gewinn); `blocked` ist ein
     // Diagnose-Wert für Beobachter — die Sim lässt den Zustand nie zu.

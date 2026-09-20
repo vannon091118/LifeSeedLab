@@ -13,7 +13,7 @@ import type { ShinonConfig } from './config.ts';
  * Einrichtungslauf darf niemals Inhalt in ein Remote schreiben.
  */
 
-export interface InitOptions {
+interface InitOptions {
   url?: string;
   slug?: string;
   private?: boolean;
@@ -24,13 +24,13 @@ export interface InitOptions {
   quiet?: boolean;
 }
 
-export interface InitStep {
+interface InitStep {
   name: string;
   ok: boolean;
   detail: string;
 }
 
-export interface InitReport {
+interface InitReport {
   steps: InitStep[];
   hooks: HookInstallResult | null;
   pushPerformed: boolean;

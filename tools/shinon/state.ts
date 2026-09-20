@@ -19,13 +19,13 @@ export interface GateSnapshot {
   ranAt: string;
 }
 
-export interface CommitSnapshot {
+interface CommitSnapshot {
   hash: string;
   subject: string;
   at: string;
 }
 
-export interface PushSnapshot {
+interface PushSnapshot {
   ok: boolean;
   remote: string;
   branch: string;

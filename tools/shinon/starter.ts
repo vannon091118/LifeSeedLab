@@ -17,7 +17,7 @@ import type { ShinonState, ShinonStateStore } from './state.ts';
  * das Ergebnis an das Gate weiter.
  */
 
-export interface LocHotspot {
+interface LocHotspot {
   file: string;
   lines: number;
   cap: number;
@@ -25,7 +25,7 @@ export interface LocHotspot {
   ratio: number;
 }
 
-export interface ProjectStatus {
+interface ProjectStatus {
   branch: string | null;
   headHash: string | null;
   headSubject: string;
@@ -41,14 +41,14 @@ export interface ProjectStatus {
   state: ShinonState;
 }
 
-export interface ReadmeUpdate {
+interface ReadmeUpdate {
   file: string;
   updated: boolean;
   mode: 'in-place' | 'appended' | 'skipped';
   block: string;
 }
 
-export interface PrepareResult {
+interface PrepareResult {
   status: ProjectStatus;
   readme: ReadmeUpdate;
   report: GateReport | null;

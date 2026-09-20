@@ -17,6 +17,7 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 - [Rebase Slice 3] Der nächste historische Block bleibt klein; selbst Git darf heute einmal ordentlich atmen.
 - [Rebase Slice 2] Die historische Änderung bleibt in kleinen, prüfbaren Scheiben; Git darf weiter so tun, als sei ein 152-Dateien-Commit eine Persönlichkeit.
 - [B5.1] Die Belohnung reist sichtbar: echter Kill-Ort im Payload statt erfundener Rastermitte, quadratische Bahn zum neuen Nektar-Zähler im Run-HUD, Ankunfts-Puls am Zähler (visual.md B5.1, ui.md B7.4). Der dadurch tote Partikel-Profileintrag `reward_flight` ist gelöscht; die bei der Sichtprüfung gefundenen, **nicht** behobenen Punkte stehen im Register (ROADMAP P-27 `grow`/`death`-Animation, P-28 `muzzle_puff`, P-29 Wellen-Bonus ohne Senke).
+- [B5.1] Gegenprüfung der eigenen Scheibe: der Kopf-Dot landete nicht am Zähler, sondern brach bei 95,5 % der Bahn ab (`p = 1 - life/maxLife`, letzter Lebens-Tick fehlte) — live gemessen 13 px vor dem Chip, jetzt 0 px (`flightProgress`, per Test gepinnt). Gefundene, **nicht** behobene Punkte: ROADMAP P-31 (Kill-Zahl `+10` vs. Zähler-Delta `+2`), P-32 (Verifizierungspfad meldete Grün auf altem Modul-Kompilat), P-33 (Reise kappt still bei 8 Flügen).
 
 
 ### Für Spieler

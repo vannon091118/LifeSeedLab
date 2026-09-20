@@ -25,7 +25,7 @@ export interface PushOutcome {
   findings: Finding[];
 }
 
-export interface PushOptions {
+interface PushOptions {
   remote?: string;
   branch?: string;
   dryRun?: boolean;

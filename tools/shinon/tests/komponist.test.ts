@@ -8,10 +8,14 @@ function committedBody(dir: string): string {
   return gitIt(dir, ['log', '-1', '--pretty=%B']).stdout.trimEnd();
 }
 
+function longMessage(subject: string): string {
+  return `${subject}\n\n${Array.from({ length: 200 }, (_, index) => `Beleg${index + 1}`).join(' ')}`;
+}
+
 describe('ShinonCommitKomponist', () => {
   it('committet exakt den Inhalt von commit_msg.txt über `git commit -F -`', () => {
     const { dir, git, config } = initTempRepo('komponist-verbatim');
-    const message = 'feat(shinon): Komponist committet exakt diese Nachricht\n\nBody bleibt unverändert.';
+    const message = longMessage('feat(shinon): Komponist committet exakt diese Nachricht');
     write(dir, config.commit.messageFile, `${message}\n`);
     write(dir, 'src/thing.ts', 'export const thing = 1;\n');
     gitIt(dir, ['add', '-A']);
@@ -45,7 +49,7 @@ describe('ShinonCommitKomponist', () => {
 
   it('bricht bei leerem Index ab', () => {
     const { git, config } = initTempRepo('komponist-empty-index');
-    const result = new ShinonCommitKomponist(git, config, stateFor(git)).commit({ message: 'feat(x): ok' });
+    const result = new ShinonCommitKomponist(git, config, stateFor(git)).commit({ message: longMessage('feat(x): ok') });
     expect(result.ok).toBe(false);
     expect(result.findings.some((item) => item.code === 'KOM001')).toBe(true);
   });
@@ -66,14 +70,14 @@ describe('ShinonCommitKomponist', () => {
     write(dir, 'src/thing.ts', 'export const thing = 1;\n');
     gitIt(dir, ['add', '-A']);
 
-    const result = new ShinonCommitKomponist(git, config, stateFor(git)).commit({ message: 'fix(shinon): direkt' });
+    const result = new ShinonCommitKomponist(git, config, stateFor(git)).commit({ message: longMessage('fix(shinon): direkt') });
     expect(result.ok).toBe(true);
     expect(gitIt(dir, ['log', '-1', '--pretty=%s']).stdout.trim()).toBe('fix(shinon): direkt');
   });
 
   it('konsumiert die Nachrichtendatei nach dem Commit (keine alte Nachricht beim nächsten Lauf)', () => {
     const { dir, git, config } = initTempRepo('komponist-consume');
-    write(dir, config.commit.messageFile, 'feat(shinon): erste Nachricht\n');
+    write(dir, config.commit.messageFile, `${longMessage('feat(shinon): erste Nachricht')}\n`);
     write(dir, 'src/thing.ts', 'export const thing = 1;\n');
     gitIt(dir, ['add', '-A']);
 

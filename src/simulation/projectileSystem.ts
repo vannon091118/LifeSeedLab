@@ -113,7 +113,7 @@ export class ProjectileSystem {
   }
 }
 
-export interface PlantEntityRef {
+interface PlantEntityRef {
   id: string;
   gx: number;
   gy: number;
