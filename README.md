@@ -198,11 +198,11 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `fddb423` — refactor(ui): Gewaechshaus in Komponenten, Hub zeigt Pflanzenbilder |
-| Arbeitsbaum | 13 gestaged, 1 geändert, 0 neu |
-| Letztes Gate | 🛑 geschlossen (preflight, 0 Fehler, 1 Warnungen) |
+| HEAD | `436ccee` — feat(sim): Tank/Boss fressen Mauer - P-26 mit Messung Devlog 22 |
+| Arbeitsbaum | 12 gestaged, 0 geändert, 0 neu |
+| Letztes Gate | ✅ offen (preflight, 0 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `fddb423` refactor(ui): Gewaechshaus in Komponenten, Hub zeigt Pflanzenbilder |
+| Letzter Shinon-Commit | `436ccee` feat(sim): Tank/Boss fressen Mauer - P-26 mit Messung Devlog 22 |
 | Letzter Push | ✅ origin/main |
 | LOC-Hotspots | `src/meta/store.ts` 186/200 (93 %)<br>`src/simulation/enemySystem.ts` 273/300 (91 %)<br>`src/i18n/tutorial.ts` 172/200 (86 %)<br>`src/simulation/plantSystem.ts` 247/300 (82 %)<br>`src/meta/run.ts` 164/200 (82 %) |
 <!-- SHINON:STATUS:END -->

@@ -653,6 +653,10 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 - [B38] Maze-Balance-Datensatz: Kanal-Bruch-Schwellwerte für PLANT_ROUTE_COST 1/2/3 gemessen (1→4, 2→2, 3→1 Pflanzen auf der Bahn); Vertrag-Test maze_balance.test.ts pinnt das Verhalten beim Ist-Wert 2, Tuning-Basis in quality-spec.md B38 dokumentiert.
 - [B38] Nachweis: PLANT_ROUTE_COST wirkt identisch auf die Leih-Pflanze — computeRoute taxiert zellbasiert, loan_sprout bricht die Bahn wie jede andere Pflanze (Vertrag-Test maze_loan.test.ts: D2b-Platzierbarkeit x B38-Maze-Wirkung).
 - [F1/F2] Krix-Onboarding: Cue-Schritte zeigen jetzt einen Pfeil-Hinweis aufs blinkende Ziel (F1), und die Blase kollabiert automatisch auf Titel + wird pointer-durchlaessig — sie kann das gefuehrte Ziel nie wieder verdecken (F2). i18n DE/EN, Vertrag-Tests im Gate.
+### Für Entwickler
+- [UI] Hub-Navigation kompakt: Shop als Marktstand links, Brutstaette als Nest rechts, Icon-Leiste mit Dropdown, Wege 2-Layer-Papierriss, Canvas-prominente Nektar- und Sammlungschips, Loadout unter Marktstand, Post-it am Rand, Footer kursiv gezeichnet (siehe Plan `plan/feature-hub-market-nest-1.md`).
+- [Testing] Testkit kompiliert: `@vitest/coverage-v8` installiert, Baseline-Coverage erfasst (Lines 75.75%), `src/testing/testkit.ts` mit `resetTestState`, `resetFullTestState`, `makeRun`, `drainCommands` implementiert, `vitest.config.ts` Schwelle angepasst, neuer B33-Eintrag in `docs/quality/quality-spec.md`.
+- [Tooling] Typecheck-Fehler in `testkit.ts` behoben, Doc-Link in `docs/quality/quality-spec.md` korrigiert.
 
 ## Unreleased (Arbeitsstand 17.09.2026)
 

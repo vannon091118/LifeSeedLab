@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import type { CSSProperties } from 'react';
 import type { MetaSave, PlantVariant, GameMode } from '../types';
 import { createBaseVariants } from '../genome';
 import { toggleLoadout } from '../meta';
@@ -83,6 +84,7 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onNavigate, resumeWav
           title={t('menu.beetleLab')}
           desc={t('menu.beetleLabDesc')}
           onClick={() => onNavigate('beetlelab')}
+          style={{ ...styles.modeCardNest, order: 99 }}
         />
         {onResume && resumeWave ? (
           <ModeCard
@@ -180,18 +182,19 @@ function StatBox({ label, value }: { label: string; value: number }) {
   );
 }
 
-function ModeCard({ icon, title, desc, onClick, disabled, highlight, tut }: {
+function ModeCard({ icon, title, desc, onClick, disabled, highlight, tut, style }: {
   icon: React.ReactNode; title: string; desc: string;
   onClick: () => void; disabled?: boolean; highlight?: boolean;
   /** B21.3: Cue-Ziel des Onboardings (`data-tut`) — die Karte bleibt Eigentum des Hubs. */
   tut?: string;
+  style?: CSSProperties;
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       data-tut={tut}
-      style={{ ...styles.modeCard, ...(highlight ? styles.modeCardHighlight : {}), ...(disabled ? styles.modeCardDisabled : {}) }}
+      style={{ ...styles.modeCard, ...(highlight ? styles.modeCardHighlight : {}), ...(disabled ? styles.modeCardDisabled : {}), ...style }}
     >
       <div style={styles.modeIcon}>{icon}</div>
       <div style={styles.modeTitle}>{title}</div>

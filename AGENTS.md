@@ -23,6 +23,7 @@ Neue Berichte unter `qa/` lesen (Input für Task), Status der Befunde auf `in-ar
 3. `ls`/`dir`/`find` verboten, wenn `rg` verfügbar ist. Vor Änderungen bestehende Implementierungen suchen.
 4. Neue Strukturen erst nach Prüfung auf semantisch passende Existenz anlegen.
 5. **READ double or Shut up:** Keine Annahmen als Wahrheit behaupten. Jede Behauptung muss durch **Read/Grep/tsc/vitest** verifiziert sein, bevor sie als Fakt verwendet wird. Der deterministische Weg (Nachprüfen) hat Vorrang vor dem offensichtlichen (Raten).
+6. **Kein blinder `reset --hard`/`clean -fd` bei parallelen Sessions:** löscht fremde uncommittete Arbeit im selben Worktree (P-26-Verlust: Devlog 22 + `plant_defense.test.ts` nach fremdem Reset). Vorher `git status` in allen Sessions prüfen.
 
 ---
 
@@ -66,6 +67,8 @@ Neue Berichte unter `qa/` lesen (Input für Task), Status der Befunde auf `in-ar
 | React-State | `App.tsx` + Screens | UI-Komponenten |
 
 *Verboten:* Canvas/React schreibt Gameplay · Partikel beeinflussen Gameplay · Audio erzeugt RNG · System ruft System direkt (immer Bus).
+
+*Gelernt:* `enemySystem.biteTarget(state, enemy)` ist einziger Geometrie-Owner für Biss + Halten (`biteIntents` + `update` lesen gleiche `reach²=1.1025`); keine zweite Distanzrechnung. `resume.inventory:{}` überschreibt Loadout-Snapshot → `PLACE_PLANT` → `no_inventory` — immer `snapInventory` befüllen. `plantSystem.healTick` liegt absichtlich nur im `wave`-Zweig (Wunden entstehen nur im Kampf), nicht in `prep`. `ENEMY_BITE.share` + `stopsToEat: tank@6/boss@10` sind Content-Wahrheit — Audit-Misread „erst ab 10" galt für Tank+Boss-Entscheidung, Tank bleibt bei 6.
 
 ---
 
@@ -117,6 +120,9 @@ node node_modules/vite/bin/vite.js build           # Nur bei Build-Relevanz
    - Gate-Modus: `enforcement=strict` (0 Fehler, 0 Warnungen). Manuelles `git commit`/`git push` ist **verboten**.
    - Commit-Format: `type(scope): Betreff` (Conventional Commits).
    - Remote-Wahrheit: `git ls-remote origin main` gegen `git rev-parse HEAD`. Deploy-Parität beachten (Index vs. Worktree).
+   - **Staged-Satz muss kohärent sein:** Split staged/unstaged/untracked (z. B. Sim gestaged, Test untracked) ist nicht commit-fähig, auch wenn `tsc`/`test-lane` grün sind — `git diff --cached` muss den ganzen Commit zeigen.
+   - **Recovery nach `reset --hard`/`clean -fd`:** `dist/assets/*.js` überlebt (vor Reset gebaut) und enthält minifiziert die letzte Logik (`receiveBite`, `ENEMY_BITE`, `EFFECT_REFLECT`) — bit-getreue Rekonstruktionsquelle.
+   - **EPERM/Signal-Pipe:** `fatal error - couldn't create signal pipe, Win32 error 5`/`spawnSync EPERM` blockiert `git commit`/`shinon`, während `diff/add/status` noch gehen — in diesem Zustand generiert Shinon korruptes `README` (detached HEAD), nicht committen.
 
 ---
 

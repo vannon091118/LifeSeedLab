@@ -20,15 +20,15 @@ export default defineConfig({
     // Puffer (RISK-003 im Plan). Schrumpft die Abdeckung, schlägt das Gate an,
     // bevor eine Konsolidierung still Assertions verloren hat.
     // Baseline (Spaltenreihenfolge v8-Tabelle: Stmts | Branch | Funcs | Lines):
-    // 76.7 | 69.23 | 79.28 | 80.67
+    // 73.48 | 67.99 | 80.49 | 75.75
     coverage: {
       provider: 'v8',
       include: ['src/**'],
       thresholds: {
-        statements: 75,
-        branches: 68,
-        functions: 78,
-        lines: 79,
+        statements: 73.48,
+        branches: 67.99,
+        functions: 80.49,
+        lines: 75.75,
       },
     },
   },

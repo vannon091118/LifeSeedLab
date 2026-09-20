@@ -71,6 +71,16 @@ export const mainMenuStyles: Record<string, CSSProperties> = {
     boxShadow: '4px 4px 0 var(--leaf-dark)',
     transform: 'rotate(0.4deg)',
   },
+
+  modeCardNest: {
+    background: 'var(--paper-warm)',
+    border: '2.5px solid var(--ink)',
+    boxShadow: '4px 4px 0 var(--ink)',
+  },
+  modeCardNestHeader: {
+    background: 'repeating-linear-gradient(90deg, var(--bloom) 0 8px, var(--paper-dim) 8px 16px)',
+    height: '14px',
+  },
   modeCardDisabled: {
     opacity: 0.45,
     cursor: 'not-allowed',

@@ -90,12 +90,12 @@ export function makeRun(options: MakeRunOptions = {}): SimulationRoot {
   const runId = options.runId ?? Math.max(meta.runId, meta.runs) + 1;
   const seed = makeRunSeed(runId);
   // R2: ohne Welt kein Run — Tests bekommen die initiale Welt (12×12, leer),
-  // sofern `init` nichts anderes vorgibt (worldSnapshot ist Pflichtfeld).
+  // sofern `init` nichts anderes vorgibt (worldSpot is Pflichtfeld).
   const init = options.init ?? {};
   return new SimulationRoot({
     seed, runId, ...init,
     worldSnapshot: init.worldSnapshot ?? worldSnapshotOf(createInitialWorld()),
-  });
+   });
 }
 
 /**
@@ -108,9 +108,17 @@ export function drainTicks(root: SimulationRoot, n: number): number {
 }
 
 /**
+ * Führt exakt n deterministische Ticks aus, um Befehle zu verarbeiten (nach dem Muster von __ff(1)).
+ * entspricht dem Command-Drain nach `__ff(1)`-Muster.
+ */
+export function drainCommands(root: SimulationRoot, ticks: number): void {
+  drainTicks(root, ticks);
+}
+
+/**
  * Einfacher Command-Push im bewährten Testmuster: Tick 0, Lauf-Seq, Payload.
  * (Adversarial-Review P1: die makeCommand-Signatur ist vierstellig — ein Kit-Helfer
- * verhindert, dass jede konsolidierte Datei die Argumentreihenfolge neu errät.)
+ * verhindert, dass jede konsolidierte Datei die Argumentreihenweise neu errät.)
  */
 export function pushCommand<K extends Parameters<typeof makeCommand>[1]>(
   root: SimulationRoot,

@@ -1,7 +1,7 @@
 {
   "name": "lifeseedlab",
   "private": true,
-  "version": "0.0.74",
+  "version": "0.0.75",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
@@ -27,7 +27,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
-    "@vitest/coverage-v8": "^5.0.0",
+    "@vitest/coverage-v8": "^5.0.1",
     "eslint": "^9.20.0",
     "eslint-plugin-react-hooks": "^5.0.0",
     "playwright": "^1.63.0",
