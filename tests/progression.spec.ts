@@ -183,11 +183,18 @@ test.describe('Progression — Reifungs-Loop', () => {
 
     // ── Schritt 2: Keimling in einen Topf (Greenhouse) → Aussaat ──
     await page.getByRole('tab', { name: /greenhouse/i }).click();
-    // 2a: Keimling aufnehmen (Klick = Hand), 2b: freien Topf antippen (Drop-Ziel).
-    const seedlingCard = page.locator('button', { hasText: /keim|seedling|sprout \(keim/i }).first();
+    // 2a: Keimling aufnehmen (Klick = Hand) — deterministisch über data-tut (SeedlingTray).
+    // Der hasText-Anker /keim|seedling/ traf auch die Elternwahl-Karten (CHOOSE PARENTS),
+    // daher verankert über data-tut="seedling" (einzige Quelle in SeedlingTray).
+    const seedlingCard = page.locator('[data-tut="seedling"]');
+    await expect(seedlingCard).toHaveCount(1);
     await seedlingCard.click();
-    const freePot = page.locator('[data-tut^="pot-"]:not([disabled])').first();
-    await freePot.click();
+    // 2b: Freien Topf antippen (PotRow: enabled ⇔ heldSeedling !== null, 3 Slots frei).
+    // Klick-Klick-Modell bestätigt (onClick → handleDropIntoPot → plantSeedlingIntoPot),
+    // kein HTML5-Drag (dragAndDrop löst keine onClick-Aktion aus).
+    const freePots = page.locator('[data-tut^="pot-"]:not([disabled])');
+    await expect(freePots).toHaveCount(3);
+    await freePots.first().click();
     const potted = await meta(page);
     expect(potted.seedlings?.length).toBe(0);
     expect(potted.pots?.filter(Boolean).length).toBe(1);

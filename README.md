@@ -198,11 +198,11 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `8e7a088` — feat(ui, testing): kompakte Hub-Navigation, Testkit mit Coverage-Setup |
-| Arbeitsbaum | 18 gestaged, 0 geändert, 0 neu |
-| Letztes Gate | ✅ offen (preflight, 0 Fehler, 0 Warnungen) |
+| HEAD | `71e93d2` — fix: resolve TypeScript errors and test failures |
+| Arbeitsbaum | 4 gestaged, 0 geändert, 4 neu |
+| Letztes Gate | 🛑 geschlossen (preflight, 0 Fehler, 1 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `8e7a088` feat(ui, testing): kompakte Hub-Navigation, Testkit mit Coverage-Setup |
+| Letzter Shinon-Commit | `71e93d2` fix: resolve TypeScript errors and test failures |
 | Letzter Push | ✅ origin/main |
 | LOC-Hotspots | `src/meta/store.ts` 189/200 (95 %)<br>`src/simulation/enemySystem.ts` 273/300 (91 %)<br>`src/i18n/tutorial.ts` 172/200 (86 %)<br>`src/simulation/plantSystem.ts` 247/300 (82 %)<br>`src/meta/run.ts` 164/200 (82 %) |
 <!-- SHINON:STATUS:END -->

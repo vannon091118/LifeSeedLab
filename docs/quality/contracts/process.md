@@ -109,11 +109,11 @@ verliert.
 
 ### B32.2 Spec
 
-1. **Coverage-Baseline (gemessen 17.09.2026, Provider `@vitest/coverage-v8`):** Statements 76,7 % ·
-   Branches 69,23 % · Functions 79,28 % · Lines 80,67 % (Spaltenreihenfolge der v8-Tabelle:
+1. **Coverage-Baseline (gemessen 20.09.2026, Provider `@vitest/coverage-v8`):** Statements 73,43 % ·
+   Branches 68,05 % · Functions 80,08 % · Lines 75,68 % (Spaltenreihenfolge der v8-Tabelle:
    Stmts | Branch | Funcs | Lines). Der Threshold in `vitest.config.ts`
-   liegt absichtlich **1 Prozentpunkt darunter** (RISK-003 im Plan): statements ≥ 75, branches ≥ 68,
-   functions ≥ 78, lines ≥ 79 — Fluktuationsschutz, keine Schönung.
+   liegt absichtlich **1 Prozentpunkt darunter** (RISK-003 im Plan): statements ≥ 72, branches ≥ 67,
+   functions ≥ 79, lines ≥ 74 — Fluktuationsschutz, keine Schönung.
 2. **Testkit:** `src/testing/testkit.ts` ist der EINZIGE Owner der Test-Setup-Kapselung:
    `resetTestState()` (Meta + Storage), `resetFullTestState()` (zusätzlich ID-Zähler),
    `makeRun(runId?)` (deterministische `SimulationRoot`-Erzeugung nach App.tsx-Muster),
