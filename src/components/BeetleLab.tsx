@@ -74,7 +74,10 @@ export function BeetleLab({ meta, onMetaChange, onClose }: Props) {
       onClick={() => pick(a.id)}
       style={{ ...styles.specimenCard, ...(tag ? styles.specimenSelected : {}) }}
     >
-      <BeetleCanvas phenotype={beetlePhenotypeOf({ genome: a.genome, generation: a.generation })} size={64} title={a.specimenId} />
+      {/* `specimenId` mitgeben: ein Gründer trägt seine DOKUMENTIERTE Farbe (Source-Anker), nicht
+          die gestreute Zuchtfarbe — ohne den Namen gäbe es keinen Anker, und vorher trugen alle
+          drei Gründer dieselbe Farbe. */}
+      <BeetleCanvas phenotype={beetlePhenotypeOf({ genome: a.genome, generation: a.generation, specimenId: a.specimenId })} size={64} title={a.specimenId} />
       <span style={styles.specimenName}>{BEETLES_SOURCE[a.specimenId]?.label ?? a.specimenId}</span>
       <span style={styles.specimenStats}>Gen {a.generation} · {a.genome.length} Gene</span>
       {tag && <span style={styles.specimenTag}>{tag}</span>}
@@ -127,12 +130,24 @@ export function BeetleLab({ meta, onMetaChange, onClose }: Props) {
             <div style={styles.broodRow}>
               {preview.map((c, i) => {
                 const p = beetlePhenotypeOf({ genome: c.genome, generation: c.generation ?? 1 });
+                // Der Vergleich ist die Arbeit des Spielers: das stärkste Tier der Brut setzt die
+                // Messlatte, jede Karte nennt ihren Abstand dazu — statt drei Zahlen im Kopf zu
+                // vergleichen. (Nur echte Abweichungen zeigen, sonst rauscht die Zeile.)
+                const bestHp = Math.max(...preview.map(x => x.stats.hp));
+                const bestAttack = Math.max(...preview.map(x => x.stats.attack));
                 return (
                   <div key={c.id} style={styles.broodCard} data-tut="brood-candidate">
                     <BeetleCanvas phenotype={p} size={72} title={c.name} />
+                    <span style={styles.colorChip} title={`Hauptfarbe ${p.pigment.primary} · Muster ${p.pigment.accent}`}>
+                      <i style={{ ...styles.colorDot, background: p.pigment.primary }} />
+                      <i style={{ ...styles.colorDot, background: p.pigment.accent }} />
+                    </span>
                     <span style={styles.broodName}>{c.name}</span>
                     <span style={styles.traitLine}>{p.dress} · {p.bearing} · {p.carapace.form}</span>
-                    <span style={styles.broodStats}>HP {c.stats.hp} · ATK {c.stats.attack} · ×{c.stats.spawnX}</span>
+                    <span style={styles.broodStats}>
+                      HP {c.stats.hp}{c.stats.hp === bestHp ? '' : ` −${bestHp - c.stats.hp}`} · ATK {c.stats.attack}
+                      {c.stats.attack === bestAttack ? '' : ` −${bestAttack - c.stats.attack}`} · ×{c.stats.spawnX}
+                    </span>
                     <span style={styles.broodHash}>{broodGenomeHash(c).slice(0, 10)}</span>
                     <span style={styles.broodIdx}>#{i + 1}</span>
                   </div>
@@ -212,6 +227,10 @@ const styles: Record<string, React.CSSProperties> = {
   broodName: { fontSize: 11, fontWeight: 800, textAlign: 'center' as const },
   traitLine: { fontSize: 10, color: '#7c4a2c', fontWeight: 800, textTransform: 'uppercase' as const, letterSpacing: 0.5 },
   broodStats: { fontSize: 10, color: '#6b6250', fontWeight: 700 },
+  // Farbfeld: die Hauptfarbe des Panzers und die Musterfarbe nebeneinander — die Wahl "welches
+  // Tier" ist auch eine Farbwahl, und sie muss am Tier selbst ablesbar sein (Spieltest-Befund).
+  colorChip: { display: 'flex', gap: 3 },
+  colorDot: { width: 14, height: 14, borderRadius: 4, border: '1.5px solid var(--ink)', display: 'block' },
   broodHash: { fontSize: 9, fontFamily: 'ui-monospace, Menlo, monospace', color: '#8a8065' },
   broodIdx: { position: 'absolute', top: -8, left: -6, width: 20, height: 20, borderRadius: '50%', background: '#2b2b26', color: '#f5efdc', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' },
   pendingRow: { marginBottom: 10, padding: 10, background: '#fff', border: '2px solid var(--ink)', borderRadius: 8 },

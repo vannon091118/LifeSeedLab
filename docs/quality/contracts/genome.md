@@ -300,4 +300,32 @@ weiterhin Offene steht in `docs/process/ROADMAP.md` §3.
   deshalb steht das Brut-Budget bei 12 Versuchen. Wer noch mehr Vielfalt will, muss die
   Mutations-Chance mit dem Neuheitsdruck koppeln; das ist eine BALANCE-Entscheidung des
   gemeinsamen Kerns (sie bewegt auch die Pflanzenzucht) und steht als P-9 in der ROADMAP.
+- **B31 — Die Brutkandidaten sind SICHTBAR verschieden (20.09.2026, Spieltest-Befund am Preview).**
+  „Drei Wahlen" war bis hierhin eine Zusage über ZAHLEN: die Stats waren verschieden, das BILD war
+  es nicht. **Alle Messwerte dieser Regel (48 Bruten, Farbabstände, Pixelmaße, gepinnte
+  Untergrenzen, Mutationsprüfung) stehen in Devlog 21** — der Contract nennt die Regel und die
+  Belege, nicht die Zahlen noch einmal.
+  Vertrag jetzt, an EINER Stelle je Wahrheit:
+  · Der **Sichtbarkeits-Gewinn** der Formmaße lebt in `src/render/beetles` (`BEETLE_DRAW_GAIN` +
+    `beetleDrawMetrics`) — Zeichnung und Messung lesen dieselbe Formel, keine zweite Wahrheit.
+  · Die **Farbe** wird in `pigmentFor` ZULETZT abgeleitet; ihre Streuung liegt auf der Pigment-
+    Achse bzw. einem Weg um die gehegte Palette (`BEETLE_PIGMENT_SCATTER`), nie als Filter über
+    dem Ergebnis. Damit bleibt jede Farbe ein Rampen-Eintrag.
+  · Der Deskriptor gewichtet Pigment mit **0**: Farbe ist Anzeige-Wahrheit, nie Balance — die
+    Streuung verschiebt das Neuheits-Maß nicht (Mittel 0,0758 → 0,076, nachgemessen).
+  · **Gründer tragen ihre DOKUMENTIERTE Farbe**: `beetlePhenotypeOf({…, specimenId})` setzt bei
+    Generation 1 den Source-Anker als Hauptfarbe (Muster/Familie bleiben aus dem Genom, ohne
+    Streuung). Ein gezüchtetes Tier erbt die `specimenId` eines Elternteils, nie dessen Generation
+    — es streut weiter. Vorher trugen alle drei Gründer dieselbe Farbe; der Anker war faktisch tot.
+  · Die gestreute Farbe ist eine Zusage über **Anzeige**, nicht über Balance: Pigment wiegt im
+    Deskriptor 0, die Form-Distanz bleibt bitgleich.
+  Lock: `beetleVisibility.test.ts` (B31) pinnt die Brut-Aggregate, den Gründer-Anker, die
+  Untergrenze des schwächsten Gründerpaares, die Untergrenze des schwächsten Kandidatenpaares,
+  die Anker-Grenze (nur Generation 1) und Determinismus. **Mutation geprüft** (Zeichen-Gewinn
+  entfernt, Streuung entfernt, Anker entfernt) — welche Pins dabei fallen, steht in Devlog 21.
+  Ehrliche Grenze: die Fühlerzahl ist in jeder Brut gleich (fester Schwellwert), und bei rein auf
+  das Genom gestützter Farbe können zwei Geschwister dieselbe Stufe treffen — die gepinnte
+  Untergrenze des schwächsten Paares ist entsprechend dünn (Devlog 21 nennt die Zahl). Eine
+  Garantie INNERHALB der Brut bräuchte eine SICHT-Bedingung in der Brut-Suche (wie `distinct` für
+  die Stats) — bewusst nicht gebaut, sie kostet Suchbudget und ist eine Eigentümer-Entscheidung.
 

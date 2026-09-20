@@ -59,6 +59,7 @@ und korrigiert die alte Stelle, statt eine neue Wahrheit daneben zu legen.
 | 18 | 18.09.2026 | [Taktik-Session Mazing](2026-09-18_18_taktik-session-mazing.md) | T1 behoben (Diagonale/echte Geometrie); T2 überholt, T3 offen |
 | 19 | 20.09.2026 | [Spieltest-Session v0.0.71](2026-09-20_19_spieltest-session.md) | Geist sagt die Weg-Wahrheit + Tray per Tastatur bedienbar; Balance/Dimmen/Textmenge offen (P-18…P-22) |
 | 20 | 20.09.2026 | [ROADMAP-Mobile-Runde](2026-09-20_20_roadmap-mobile.md) | P-2 behoben (Top-Bar bricht um), P-24 mobil widerlegt, P-10 ohne Überlauf, P-14 gepinnt, P-25 neu; Blocker gelöst: Experimente in Quarantäne, Gate OFFEN |
+| 21 | 20.09.2026 | [Käfer-Sichtbarkeit](2026-09-20_21_kaefer-sichtbarkeit.md) | Brutkandidaten sind sichtbar verschieden (Median 15,7 % Pixel, vorher 89,6 % gleiche Farbe): Sichtbarkeits-Gewinn der Zeichenmaße + Pigment-Weg um die Palette, Karte mit Farbfeld und Stat-Deltas; Grenze und offene Balance-Frage benannt |
 
 Die frühen Runden 01–05 lagen zuletzt unter `qa/archiv/`; sie stehen hier, weil ein Archiv
 nichts ist, was man zweimal liest. Berichte der externen Spieltest-Reihe (19.09.2026,

@@ -11,6 +11,17 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ### Für Spieler
 
+- **Die Brutkandidaten sind jetzt sichtbar verschiedene Tiere — und die Gründer tragen wieder ihre
+  eigenen Farben.** Vorher trugen in den meisten Bruten alle drei Kandidaten dieselbe Hauptfarbe,
+  und die drei Gründer sahen **alle gleich** aus (dreimal dieselbe Farbe); ihre in der Source
+  dokumentierten Farben — Blatthüpfer grün, Schildkäfer olive, Hummel gold — wurden gar nicht mehr
+  gezeichnet. Beides ist behoben: die Gründer tragen ihren dokumentierten Anker, die Zucht streut
+  über die gehegte Palette, und die Formunterschiede sind sichtbar. Alle Messwerte dazu stehen in
+  Devlog 21 (`docs/process/devlog/2026-09-20_21_kaefer-sichtbarkeit.md`).
+- **Die Karte sagt dir, was das Tier wert ist.** Jeder Kandidat zeigt ein Farbfeld (Panzer- und
+  Musterfarbe) und nennt den Abstand zum stärksten Tier der Brut — `HP 107 −26 · ATK 4 · ×1`
+  gegen `HP 133 · ATK 4 · ×1` —, statt drei Zahlenreihen zum Vergleichen.
+
 - **Run-Top-Bar bricht mobil um (P-2).** Auf 390×844 ragte „Exit Run“ 29 px aus dem Bild
   (Reihe 407 px, `flexWrap: nowrap`). Die rechte Knopf-Gruppe umbricht jetzt rechtsbündig
   (Reihe 366 px, kein Knopf außerhalb); Desktop bleibt unverändert. Der DoD-Punkt „Mobile
@@ -157,6 +168,17 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
   eines Laufs.
 
 ### Intern (Technik, Verträge & Tests)
+
+- [Vertrag] **B31 — Sichtbarkeit der Brutkandidaten ist gepinnt (Devlog 21).** Der
+  **Sichtbarkeits-Gewinn** der formtragenden Maße steht in `src/render/beetles`
+  (`BEETLE_DRAW_GAIN` + `beetleDrawMetrics`, Zeichnung und Messung lesen dieselbe Formel); die
+  **Farbe** leitet `pigmentFor` zuletzt ab und streut über einen Weg um die gehegte Palette
+  (`BEETLE_PIGMENT_SCATTER`), während **dokumentierte Gründer ihren Source-Anker tragen**
+  (opt-in über `specimenId`, Generation 1). Der Deskriptor gewichtet Pigment mit 0 — Form-Distanz
+  und Neuheits-Maß bleiben bitgleich. `beetleVisibility.test.ts` pinnt die Brut-Aggregate, den
+  Gründer-Anker, das schwächste Gründerpaar, die Untergrenze des schwächsten Kandidatenpaares und
+  die Anker-Grenze; drei Mutationen geprüft. **Alle Zahlen in Devlog 21.** Suite **578/578** in
+  62 Dateien.
 
 - [Prozess] **Blocker gelöst: Gate wieder OFFEN (0 Fehler, 0 Warnungen), E2E 30/30, tsc 0.** Die
   fremden, unversionierten Agenten-Experimente (`src/lib`, `src/mcpServer` — 70 TS-Fehler, null

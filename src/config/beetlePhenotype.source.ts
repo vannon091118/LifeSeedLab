@@ -109,7 +109,11 @@ export const BEETLE_BODY_PLAN: readonly { plan: BeetlePlan; test: (a: Record<Bee
 /** Achsen, die den Plan tragen — als Daten, damit Tests/UI den Plan prüfen können statt zu raten. */
 export const BEETLE_PLAN_AXES: readonly BeetleAxis[] = ['wings', 'pelage', 'stinger', 'pronotum', 'mandibles'];
 
-/** Bernsteine/Tusche-Palette (die Brutstätte bleibt bewusst warm — kein Pflanzen-Grün). */
+/**
+ * Bernsteine/Tusche-Palette. Sie trägt GEZÜCHTETE Tiere — bewusst warm. Dokumentierte Gründer
+ * tragen dagegen ihren Source-Anker (`BEETLES_SOURCE[id].color`), der auch außerhalb dieser Palette
+ * liegen darf (der Blatthüpfer ist grün); die Begründung und die Messwerte dazu: Devlog 21.
+ */
 export const BEETLE_PIGMENT_RAMP: readonly (readonly [string, string])[] = [
   ['#8a6b3a', '#e0bd7a'], // Bernstein
   ['#6f5a49', '#cbb49a'], // Rinde
@@ -122,6 +126,25 @@ export const BEETLE_PIGMENT_RAMP: readonly (readonly [string, string])[] = [
 ] as const;
 
 export const BEETLE_PIGMENT_SHIFT = { perPigmentA: 24, perPigmentB: 16 } as const;
+
+/**
+ * Pigment-Streuung aus dem GENOMSCHLÜSSEL (gemessen 20.09.2026, Befund „die Brutkandidaten sind
+ * sich massiv ähnlich"). Die Farbe kam allein aus `bucket(pigmentA, 8 Stufen)` plus Kanalschub —
+ * Geschwister tragen fast dasselbe pigmentA, also trugen in **43 von 48** gemessenen Bruten ALLE
+ * DREI Kandidaten dieselbe Hauptfarbe (Anker Blatthüpfer×Schildkäfer: in 8 von 8 Bruten dreimal
+ * `#7a492d`).
+ *
+ * `walk` = wie oft die Pigment-Achse die Palette umrundet (Vielfalt), `axis` = Rausch-Anteil auf
+ * der Achse (löst nur fast-gleiche Geschwister), `hue`/`lightness` = kleine Drehung/Aufhellung als
+ * Restfall-Klemme.
+ *
+ * Die Palette ist ein KRANZ aus acht gehegten Farben: nur ein Weg-Index kann zwei Geschwister weit
+ * auseinander setzen, ohne die Palette zu verlassen — deshalb `walk` und nicht mehr Rauschen.
+ * Die Messreihe, die diese vier Werte festgelegt hat (vier gemessene Farbwege, kleinster Abstand im
+ * Kandidatentripel), steht in Devlog 21 — hier nur der Verweis, damit dieselbe Zahl nicht an zwei
+ * Orten lebt. Gründer tragen davon nichts: sie tragen ihren Source-Anker (s. `beetlePhenotypeOf`).
+ */
+export const BEETLE_PIGMENT_SCATTER = { walk: 5, axis: 0.06, hue: 60, lightness: 0.08 } as const;
 
 /** Interaktions-Achsen des Käfers — dieselbe Mechanik wie bei der Pflanze (Produkt der Abweichungen). */
 export type BeetleInteractionAxis = 'chitin' | 'bearing';

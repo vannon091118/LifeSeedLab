@@ -9,6 +9,14 @@
 // Anatomie statt Ikone: der Käfer hat Kopf, Halsschild, Hinterleib mit Segmenten, sechs
 // gegliederte Beine, Fühler, Mandibeln und Flügeldecken. Ein Farbpunkt war die alte Identität;
 // sie ist GESTORBEN.
+//
+// SICHTBARKEITS-GEWINN (gemessen 20.09.2026, Befund „die Brutkandidaten sind sich massiv
+// ähnlich"): Die Achsen sind zwischen Geschwistern real verschieden, gingen aber mit Faktoren
+// 0,12–0,2 in die Zeichnung — eine Achsendifferenz von 0,05 verschob die Silhouette um 0,3–0,5 px
+// (Zeichenfenster 72 px), also unter die Wahrnehmungsschwelle. Die Faktoren der formtragenden
+// Maße sind deshalb angehoben (dieselbe Genomdifferenz wird sichtbar). Geändert ist NUR die
+// Zeichnung: Phänotyp, Deskriptor und Neuheits-Maß bleiben bitgleich, weil hier nichts abgeleitet,
+// sondern nur skaliert wird.
 
 import type { BeetlePhenotype } from '../genome/beetlePhenotype';
 import { shiftChannels } from '../core/color';
@@ -20,6 +28,31 @@ import {
   beetleDarken as darken, beetleLighten as lighten,
   drawJumpLeg, drawPelage, drawPronotum, drawStinger, drawWings,
 } from './beetleOrgans';
+
+/**
+ * ZEICHEN-GEWINN der formtragenden Maße. Als Daten exportiert, weil die Sichtbarkeits-Messung und
+ * ihr Test genau die Zahlen prüfen müssen, die GEZEICHNET werden — eine zweite Wahrheit wäre der
+ * Fehler, den diese Konstanten verhindern. Gemessen: Median des größten Kandidatenunterschieds
+ * stieg von 2,82 px auf 5,96 px (Zeichenfenster 72 px), Bruten unter 2 px von 11 auf 0.
+ *
+ * Die Maße selbst stehen als Funktionen darunter: Zeichnung UND Test lesen dieselbe Formel.
+ */
+export const BEETLE_DRAW_GAIN = {
+  elytraWidth: 0.46, elytraLength: 0.85, head: 0.32, thorax: 0.38,
+  segments: 0.38, legs: 0.8, mandible: 0.44, antenna: 0.55,
+} as const;
+
+/** Die im Bild sichtbaren Maße (normierte Einheiten; der Aufrufer skaliert mit `scale`). */
+export const beetleDrawMetrics = {
+  elytraHalfWidth: (p: BeetlePhenotype) => 0.16 + p.body.width * BEETLE_DRAW_GAIN.elytraWidth,
+  elytraLength: (p: BeetlePhenotype) => 0.3 + p.body.length * BEETLE_DRAW_GAIN.elytraLength,
+  headRadius: (p: BeetlePhenotype) => 0.1 + p.head.size * BEETLE_DRAW_GAIN.head,
+  thoraxHalfWidth: (p: BeetlePhenotype) => 0.13 + p.body.width * BEETLE_DRAW_GAIN.thorax,
+  segmentHalfWidth: (p: BeetlePhenotype, i: number) => 0.16 + p.body.width * BEETLE_DRAW_GAIN.segments - i * 0.015,
+  legLength: (p: BeetlePhenotype) => p.legs.length * BEETLE_DRAW_GAIN.legs,
+  mandibleLength: (p: BeetlePhenotype) => 0.08 + p.head.mandibleLength * BEETLE_DRAW_GAIN.mandible,
+  antennaLength: (p: BeetlePhenotype) => 0.1 + p.antennae.length * BEETLE_DRAW_GAIN.antenna,
+};
 
 /**
  * Bein-Phase im Tripod-Gang: Vorder- und Hinterbein der einen Seite laufen mit dem Mittelbein
@@ -79,7 +112,7 @@ function drawLeg(
 
 /** Mandibel: Hakenkiefer mit Bezier-Krümmung — Länge und Breite aus dem Phänotyp. */
 function drawMandible(ctx: CanvasRenderingContext2D, p: BeetlePhenotype, side: number, fill: string): void {
-  const len = 0.08 + p.head.mandibleLength * 0.2;
+  const len = beetleDrawMetrics.mandibleLength(p);
   const w = 0.02 + p.head.mandibleWidth * 0.05;
   const y = -0.34 - p.head.size * 0.16;
   const x = side * (0.06 + p.head.mandibleWidth * 0.06);
@@ -97,7 +130,7 @@ function drawMandible(ctx: CanvasRenderingContext2D, p: BeetlePhenotype, side: n
 
 /** Fühler: gegliederte Schnur mit Knick (Anzahl/Länge aus dem Phänotyp). */
 function drawAntenna(ctx: CanvasRenderingContext2D, p: BeetlePhenotype, side: number, fill: string): void {
-  const len = 0.1 + p.antennae.length * 0.26;
+  const len = beetleDrawMetrics.antennaLength(p);
   const segments = p.antennae.count === 4 ? 4 : 3;
   let x = side * (0.05 + p.head.size * 0.05);
   let y = -0.42 - p.head.size * 0.18;
@@ -198,8 +231,8 @@ function drawPattern(ctx: CanvasRenderingContext2D, p: BeetlePhenotype, clip: Pa
 
 /** Panzerform der Flügeldecken: Kuppel, flach, gerippt oder bedornt. */
 function elytraPath(p: BeetlePhenotype): Path2D {
-  const halfW = 0.16 + p.body.width * 0.2;
-  const len = 0.3 + p.body.length * 0.4;
+  const halfW = beetleDrawMetrics.elytraHalfWidth(p);
+  const len = beetleDrawMetrics.elytraLength(p);
   const path = new Path2D();
   path.moveTo(0, -len * 0.55);
   const bulge = p.carapace.form === 'flat' ? 0.85 : p.carapace.form === 'dome' ? 1.12 : 1;
@@ -247,7 +280,7 @@ export function drawBeetleAnatomy(ctx: CanvasRenderingContext2D, p: BeetlePhenot
     for (const side of [-1, 1]) {
       const asym = 1 + (side > 0 ? 1 : -1) * p.asymmetry * 0.25;
       const y = row * (0.6 + p.body.length * 0.6);
-      const length = p.legs.length * 0.5 * asym;
+      const length = beetleDrawMetrics.legLength(p) * asym;
       // Beim Sprungbein übernimmt die Organ-Zeichnung den Schritt (sie kennt die eigene Form).
       if (hind && jump > 0) drawJumpLeg(ctx, y, side, p.legs.stance, length, darken(primary), jump);
       else drawLeg(ctx, y, side, p.legs.stance, length, darken(primary), legPhase(index, side, gait));
@@ -259,7 +292,7 @@ export function drawBeetleAnatomy(ctx: CanvasRenderingContext2D, p: BeetlePhenot
   for (let i = 0; i < 3; i++) {
     const y = 0.16 + i * 0.09;
     ctx.beginPath();
-    ctx.ellipse(0, y, 0.16 + p.body.width * 0.16 - i * 0.015, 0.045, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, y, beetleDrawMetrics.segmentHalfWidth(p, i), 0.045, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -271,18 +304,18 @@ export function drawBeetleAnatomy(ctx: CanvasRenderingContext2D, p: BeetlePhenot
   }
 
   // Kopf + Halsschild
-  const headR = 0.1 + p.head.size * 0.14;
+  const headR = beetleDrawMetrics.headRadius(p);
   ctx.fillStyle = shiftChannels(primary, -18, -16, -12);
   ctx.strokeStyle = OUTLINE;
   ctx.lineWidth = OUTLINE_W;
   ctx.beginPath();
-  ctx.ellipse(0, -0.44 - p.head.size * 0.1, headR, headR * 0.86, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, -0.44 - p.head.size * 0.16, headR, headR * 0.86, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
 
-  const thoraxW = 0.13 + p.body.width * 0.16;
+  const thoraxW = beetleDrawMetrics.thoraxHalfWidth(p);
   ctx.beginPath();
-  ctx.ellipse(0, -0.24 - p.body.length * 0.06, thoraxW, 0.08 + p.head.thoraxRatio * 0.08, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, -0.24 - p.body.length * 0.1, thoraxW, 0.08 + p.head.thoraxRatio * 0.08, 0, 0, Math.PI * 2);
   ctx.fillStyle = shiftChannels(primary, -8, -6, -4);
   ctx.fill();
   ctx.stroke();
@@ -306,8 +339,8 @@ export function drawBeetleAnatomy(ctx: CanvasRenderingContext2D, p: BeetlePhenot
   ctx.strokeStyle = OUTLINE;
   ctx.lineWidth = OUTLINE_W * 0.6;
   ctx.beginPath();
-  ctx.moveTo(0, -0.2 - p.body.length * 0.1);
-  ctx.lineTo(0, 0.16 + p.body.length * 0.32);
+  ctx.moveTo(0, -0.2 - p.body.length * 0.22);
+  ctx.lineTo(0, 0.16 + p.body.length * 0.62);
   ctx.stroke();
   if (p.elytra.split) {
     const spread = 0.04 + p.elytra.spread * 0.12;

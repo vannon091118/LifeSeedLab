@@ -11,13 +11,15 @@
 import type { Genome } from '../types';
 import { makeRng } from '../core/rng';
 import { fnv1a } from '../core/hash';
-import { shiftChannels } from '../core/color';
+import { darken, lighten, shiftChannels } from '../core/color';
 import {
   BEETLE_AXES_BY_GENE, BEETLE_AXIS_RANGE, BEETLE_BASELINE, BEETLE_BODY_PLAN, BEETLE_DESCRIPTOR_AXES,
-  BEETLE_DESCRIPTOR_WEIGHTS, BEETLE_FORM_THRESHOLDS, BEETLE_PIGMENT_RAMP, BEETLE_PIGMENT_SHIFT,
+  BEETLE_DESCRIPTOR_WEIGHTS, BEETLE_FORM_THRESHOLDS, BEETLE_PIGMENT_RAMP, BEETLE_PIGMENT_SCATTER,
+  BEETLE_PIGMENT_SHIFT,
   beetleInteractionOf, type BeetleAxis, type BeetleBearing, type BeetleMotion, type BeetlePlan,
   type CarapaceForm, type CarapaceStructure, type ChitinDress,
 } from '../config/beetlePhenotype.source';
+import { BEETLES_SOURCE } from '../config/beetles.source';
 import { driftFor, expressed, genomeKey, weightedDistance } from './breeding';
 
 export type BeetlePattern = (typeof BEETLE_FORM_THRESHOLDS.patternName)[number];
@@ -54,6 +56,71 @@ type Axes = Record<BeetleAxis, number>;
 
 const clamp = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
 
+/**
+ * FARBE: Pigment-Achse + Genomschlüssel-Streuung ⇒ Eintrag der gehegten Palette.
+ *
+ * Die Streuung liegt auf der ACHSE, nicht als Filter über dem Ergebnis — dadurch bleibt jede Farbe
+ * ein Rampen-Eintrag (`BEETLE_PIGMENT_RAMP`) und nie eine matschige Mischfarbe. Anlass und
+ * Messreihe stehen in Devlog 21 (`docs/process/devlog/`, „Käfer-Sichtbarkeit"); hier steht nur die
+ * Regel, damit dieselbe Zahl nicht an zwei Orten lebt.
+ *
+ * ZWEI HERKÜNFTE, EIN MASS: ein Tier aus der Zucht streut (seine Farbe soll sich von Geschwistern
+ * unterscheiden), ein GRÜNDER trägt dagegen die für ihn dokumentierte Farbe der Source (`anchor`,
+ * gesetzt vom Aufrufer, der das Specimen kennt). Vorher trugen alle drei Gründer dieselbe Farbe
+ * (`#7a492d`) — der Anker war damit faktisch tot.
+ *
+ * Der Deskriptor gewichtet Pigment mit 0 (`BEETLE_DESCRIPTOR_WEIGHTS`): Farbe ist Anzeige-Wahrheit,
+ * nie Balance — keine dieser Regeln kann das Neuheits-Maß verschieben.
+ */
+function pigmentFor(axes: Axes, rng: { next: () => number }, anchor?: string): BeetlePhenotype['pigment'] {
+  const patternIdx = bucket(axes.pattern, [0.22, 0.45, 0.72]);
+  const pattern = BEETLE_FORM_THRESHOLDS.patternName[patternIdx] ?? 'solid';
+  const strength = +clamp(0.25 + axes.pattern * 0.6, 0, 1).toFixed(3);
+
+  // ANKER: die dokumentierte Farbe des Specimens gewinnt die Hauptfarbe; Muster, Familie und
+  // Musterfarbe bleiben aus dem Genom (ohne Streuung — ein Gründer ist kein Zuchtprodukt).
+  if (anchor) {
+    const familySteps = [0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875];
+    const family = bucket(axes.pigmentA, familySteps) % BEETLE_PIGMENT_RAMP.length;
+    const family2 = (family + 1 + bucket(axes.pigmentB, [0.25, 0.5, 0.75])) % BEETLE_PIGMENT_RAMP.length;
+    const shiftB = Math.round((axes.pigmentB - 0.5) * BEETLE_PIGMENT_SHIFT.perPigmentB);
+    return {
+      primary: anchor,
+      accent: shiftChannels(BEETLE_PIGMENT_RAMP[family2]![1], shiftB, shiftB, -Math.round(shiftB * 0.35)),
+      pattern, strength, family,
+    };
+  }
+
+  const spreadA = clamp(axes.pigmentA + (rng.next() - 0.5) * 2 * BEETLE_PIGMENT_SCATTER.axis, 0, 1);
+  const spreadB = clamp(axes.pigmentB + (rng.next() - 0.5) * 2 * BEETLE_PIGMENT_SCATTER.axis * 0.6, 0, 1);
+  // WEG UM DIE PALETTE: die Achse bestimmt nicht mehr einen von acht Eimern, sondern die Position
+  // auf einem Kranz, den sie `walk`-mal umrundet — Geschwister liegen dadurch Stadien auseinander,
+  // während die Farbe weiter ein Eintrag der Palette bleibt.
+  const len = BEETLE_PIGMENT_RAMP.length;
+  const family = ((Math.round(spreadA * len * BEETLE_PIGMENT_SCATTER.walk) % len) + len) % len;
+  const family2 = (family + 1 + bucket(spreadB, [0.25, 0.5, 0.75])) % BEETLE_PIGMENT_RAMP.length;
+  const ramp = BEETLE_PIGMENT_RAMP[family]!;
+  const ramp2 = BEETLE_PIGMENT_RAMP[family2]!;
+  const shift = Math.round((spreadA - 0.5) * BEETLE_PIGMENT_SHIFT.perPigmentA);
+  const shift2 = Math.round((spreadB - 0.5) * BEETLE_PIGMENT_SHIFT.perPigmentB);
+  // Zweiter Hebel (siehe BEETLE_PIGMENT_SCATTER): Farbton-Dreh + Helligkeit aus demselben
+  // Genomschlüssel-Strom — er trennt die Fälle, in denen zwei Geschwister dieselbe Familie treffen.
+  // Die Helligkeit dreht mit dem Vorzeichen, der Dreh hebt eine Achse und senkt die andere.
+  const turn = Math.round((rng.next() - 0.5) * 2 * BEETLE_PIGMENT_SCATTER.hue);
+  const shade = (rng.next() - 0.5) * 2 * BEETLE_PIGMENT_SCATTER.lightness;
+  const farbe = (hex: string, turnAmount: number): string => {
+    // WARMER Dreh: Rot und Grün steigen gemeinsam, Blau sinkt leicht — der Farbton wandert
+    // zwischen Bernstein/Zimt/Gold statt in kühle Grautöne.
+    const gedreht = shiftChannels(hex, turnAmount, Math.round(turnAmount * 0.55), -Math.round(turnAmount * 0.15));
+    return shade >= 0 ? lighten(gedreht, shade) : darken(gedreht, -shade);
+  };
+  return {
+    primary: farbe(shiftChannels(ramp[0], shift, Math.round(shift * 0.6), -Math.round(shift * 0.5)), turn),
+    accent: farbe(shiftChannels(ramp2[1], shift2, shift2, -Math.round(shift2 * 0.35)), Math.round(turn * 0.6)),
+    pattern, strength, family,
+  };
+}
+
 function axesFor(genome: Genome): Axes {
   const axes = { ...BEETLE_BASELINE } as Axes;
   for (const g of expressed(genome)) {
@@ -86,8 +153,13 @@ function bucket(value: number, thresholds: readonly number[]): number {
  *
  *  `jitterNamespace` trennt die STREUUNG nach Herkunft: die Zucht bleibt in ihrer Domäne `brood`,
  *  Gegner-Ableitungen laufen im `visual`-Namespace (sie sind Präsentation, nicht Zuchtwirtschaft).
- *  Beide Ströme sind reine Funktionen ihres Seeds — keiner „advanced" den anderen. */
-export function beetlePhenotypeOf(input: { genome: Genome; generation: number; jitterNamespace?: 'brood' | 'visual' }): BeetlePhenotype {
+ *  Beide Ströme sind reine Funktionen ihres Seeds — keiner „advanced" den anderen.
+ *
+ *  `specimenId` ist FREIWILLIG und nur für Tiere der Source gedacht (Gründer): Generation 1 plus
+ *  bekannter Name ⇒ die dokumentierte Farbe des Specimens ist die Hauptfarbe, nichts streut. Ohne
+ *  Angabe bleibt alles wie gehabt — auch ein gezüchtetes Tier, das die `specimenId` eines Elternteils
+ *  erbt, streut weiter, weil seine Generation ≥ 2 ist. */
+export function beetlePhenotypeOf(input: { genome: Genome; generation: number; jitterNamespace?: 'brood' | 'visual'; specimenId?: string }): BeetlePhenotype {
   const base = axesFor(input.genome);
   const drift = driftFor(input.generation);
   const rng = makeRng(input.jitterNamespace ?? 'brood', spreadSeed(genomeKey(input.genome), input.generation));
@@ -113,14 +185,6 @@ export function beetlePhenotypeOf(input: { genome: Genome; generation: number; j
   const dress = BEETLE_FORM_THRESHOLDS.chitinName[bucket(chitin, [0.38, 0.6, 0.78]) % 4] ?? 'plated';
   const bearing = BEETLE_FORM_THRESHOLDS.bearingName[bucket(bearingAxis, [0.38, 0.6, 0.8]) % 4] ?? 'nimble';
 
-  const patternIdx = bucket(base.pattern, [0.22, 0.45, 0.72]);
-  const family = bucket(base.pigmentA, [0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]) % BEETLE_PIGMENT_RAMP.length;
-  const family2 = (family + 1 + bucket(base.pigmentB, [0.25, 0.5, 0.75])) % BEETLE_PIGMENT_RAMP.length;
-  const ramp = BEETLE_PIGMENT_RAMP[family]!;
-  const ramp2 = BEETLE_PIGMENT_RAMP[family2]!;
-  const shift = Math.round((base.pigmentA - 0.5) * BEETLE_PIGMENT_SHIFT.perPigmentA);
-  const shift2 = Math.round((base.pigmentB - 0.5) * BEETLE_PIGMENT_SHIFT.perPigmentB);
-
   const scaled: Record<string, number> = {
     ...base,
     bodyLength: length, bodyWidth: width, segmentation, carapaceSurface: surface,
@@ -130,7 +194,10 @@ export function beetlePhenotypeOf(input: { genome: Genome; generation: number; j
   // Der Körperplan ist die LESBARE Konsequenz der Organe (Source = Wahrheit, hier nur Auswertung).
   const plan = BEETLE_BODY_PLAN.find(rule => rule.test(scaled as Record<BeetleAxis, number>))?.plan ?? 'beetle';
 
-  return {
+  // Ohne Pigment gebaut: die Farbe wird ZULETZT abgeleitet (pigmentFor), damit ihre zwei Züge aus
+  // dem Genomschlüssel-RNG erst NACH allen Form-Achsen stattfinden — die Formwerte und damit
+  // Deskriptor und Neuheits-Maß bleiben dadurch bitgleich zu vorher.
+  const animal: Omit<BeetlePhenotype, 'pigment'> = {
     version: 1,
     scale: +(0.82 + (length * 0.22 + width * 0.12 + drift * 0.04)).toFixed(3),
     body: {
@@ -162,13 +229,6 @@ export function beetlePhenotypeOf(input: { genome: Genome; generation: number; j
       structure: BEETLE_FORM_THRESHOLDS.carapaceSurface[bucket(surface, [0.35, 0.6, 0.82]) % 4] ?? 'smooth',
       sheen: +jitter('sheen', 0.16).toFixed(3),
     },
-    pigment: {
-      primary: shiftChannels(ramp[0], shift, Math.round(shift * 0.6), -Math.round(shift * 0.5)),
-      accent: shiftChannels(ramp2[1], shift2, shift2, -Math.round(shift2 * 0.35)),
-      pattern: BEETLE_FORM_THRESHOLDS.patternName[patternIdx] ?? 'solid',
-      strength: +clamp(0.25 + base.pattern * 0.6, 0, 1).toFixed(3),
-      family,
-    },
     asymmetry: +jitter('asymmetry', 0.36).toFixed(3),
     motion: {
       // Sprungbeine zählen jetzt mit: ein Tier mit langen Hinterbeinen HÜPFT statt zu marschieren.
@@ -189,6 +249,14 @@ export function beetlePhenotypeOf(input: { genome: Genome; generation: number; j
     bearing,
     descriptor: BEETLE_DESCRIPTOR_AXES.map(axis => +clamp(scaled[axis] ?? 0, 0, 1).toFixed(4)),
   };
+
+  // Anker nur für die dokumentierten Tiere: Generation 1 UND ein Name, zu dem die Source eine Farbe
+  // führt. Ein gezüchtetes Tier erbt die `specimenId` eines Elternteils, nie aber dessen Generation.
+  const documented = input.generation === 1 && input.specimenId
+    ? BEETLES_SOURCE[input.specimenId]?.color
+    : undefined;
+
+  return { ...animal, pigment: pigmentFor(base, rng, documented) };
 }
 
 /** DAS Distanzmaß der Käfer (Gewichte aus der Source, Arithmetik aus dem Kern). */
