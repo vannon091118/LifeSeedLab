@@ -1,14 +1,11 @@
-import { useState, useMemo } from 'react';
-import type { MetaSave, PlantVariant, PendingCross } from '../types';
-import type { TranslationKey } from '../i18n';
+import { useState } from 'react';
+import type { MetaSave, PlantVariant } from '../types';
 import { useI18n } from '../i18n';
 import type { GachaRoll } from '../genome/gacha';
-import { rollGachaCross, crossPair, deriveBreedSeed, createBaseVariants } from '../genome';
+import { rollGachaCross, crossPair, deriveBreedSeed } from '../genome';
 import { consumeSeedAndEnqueueCross, keepCross, isCrossReady, plantSeedlingIntoPot, buyRearingSlot } from '../meta';
 import { wavesToUnlockFor, rearingSlotGate, REARING_SLOTS_MAX } from '../config/economy.source';
 import { helpText } from '../i18n/help';
-import { genomeToVisualInput } from '../genome/visualMap';
-import { GAME_SEED } from '../config';
 
 // Owner: UI (Greenhouse screen). LOC ≤ 400.
 // GEWÄCHSHAUS — fachlich getrennt vom SeedShop (P2): Hier wird AUSSÄT + REIFUNG +
@@ -16,7 +13,7 @@ import { GAME_SEED } from '../config';
 // gleiche Meta-Owner). Keine Dopplung: consumeSeedAndEnqueueCross/keepCross
 // bleiben die einzigen Writer in persistence/.
 
-import { useMemoOwned, pairRollFor, variantName, findVariant } from './greenhouse/greenhouseHelpers';
+import { useMemoOwned, pairRollFor } from './greenhouse/greenhouseHelpers';
 import { styles } from './greenhouse/greenhouseStyles';
 import { ParentSelection } from './greenhouse/ParentSelection';
 import { SeedlingTray } from './greenhouse/SeedlingTray';
@@ -24,8 +21,6 @@ import { PotRow } from './greenhouse/PotRow';
 import { PendingQueue } from './greenhouse/PendingQueue';
 import { SlotBuyButton } from './greenhouse/SlotBuyButton';
 import { ResultCard } from './greenhouse/ResultCard';
-
-const BASES: PlantVariant[] = createBaseVariants();
 
 type Props = {
   meta: MetaSave;
@@ -55,15 +50,6 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
     setParentA(parentB); setParentB(id);
   };
 
-  /**
-   * Trait-Tag in der Anzeige: Gen-IDs sind sprachneutral (`trait.<id>`), Alt-Saves tragen
-   * noch die früheren englischen Labels — die bleiben als Rohtext stehen (kein Datenverlust,
-   * neue Pflanzen sind übersetzt).
-   */
-  const traitTagLabel = (trait: string): string => {
-    if (trait.includes(' ')) return trait; // Alt-Save-Label (z. B. „rapid fire“)
-    return t(`trait.${trait}` as TranslationKey);
-  };
 
   const owned: PlantVariant[] = useMemoOwned(meta);
   // B18.3: Aussaat ist frei (B17.3 keimt Käufe direkt — ein Stash-Gate würde die Zucht

@@ -19,7 +19,7 @@ import { useI18n } from '../i18n';
 
 type TrayTab = 'plants' | 'build';
 
-export interface PlacementTrayProps {
+interface PlacementTrayProps {
   plantIds: string[];
   inventory: Record<string, number>;
   mode: PlaceMode;

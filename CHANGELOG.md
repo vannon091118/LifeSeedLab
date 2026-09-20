@@ -9,6 +9,9 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ## Unreleased (Arbeitsstand 19./20.09.2026)
 
+- [Rebase Slice 2] Die historische Änderung bleibt in kleinen, prüfbaren Scheiben; Git darf weiter so tun, als sei ein 152-Dateien-Commit eine Persönlichkeit.
+
+
 ### Für Spieler
 
 - **Deine Sammlung zeigt jetzt Pflanzen statt Farbpunkte.** Im Hub stand neben jedem Samen ein

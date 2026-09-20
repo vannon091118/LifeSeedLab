@@ -1,4 +1,3 @@
-import React from 'react';
 import { styles } from './greenhouseStyles';
 import type { TranslationKey } from '../../i18n';
 

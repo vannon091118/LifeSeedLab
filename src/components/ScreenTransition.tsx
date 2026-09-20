@@ -11,7 +11,7 @@ type Props = {
 };
 
 export function ScreenTransition({ screenKey, children }: Props) {
-  const [phase, setPhase] = useState<'enter' | 'idle'>('enter');
+  const [, setPhase] = useState<'enter' | 'idle'>('enter');
   const [reduce, setReduce] = useState(false);
 
   useEffect(() => {

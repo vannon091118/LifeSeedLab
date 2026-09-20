@@ -1,4 +1,3 @@
-import React from 'react';
 import type { GachaRoll } from '../../genome';
 import type { MetaSave } from '../../types';
 import { PlantVariantThumb } from '../PhenotypeCanvas';

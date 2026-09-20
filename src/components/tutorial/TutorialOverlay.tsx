@@ -14,7 +14,7 @@ import { Stickman } from './Stickman';
 import { SpeechBubble } from './SpeechBubble';
 import { prefersReducedMotion, useTypewriter } from './useTypewriter';
 
-export interface TutorialOverlayProps {
+interface TutorialOverlayProps {
   step: TutorialStep;
   index: number;
   total: number;

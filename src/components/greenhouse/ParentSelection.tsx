@@ -1,4 +1,3 @@
-import React from 'react';
 import type { MetaSave, PlantVariant } from '../../types';
 import { PlantVariantThumb } from '../PhenotypeCanvas';
 import { styles } from './greenhouseStyles';
