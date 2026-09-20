@@ -3,23 +3,32 @@
 // FNV-Hash-Chain ist die Verkettung. Keine externen Deps, kein Mining,
 // kein Token. Supabase-Spiegel via UNIQUE(genome_hash) — erste Entdeckung gewinnt.
 //
-// P2' (Plan „Seed-Identität, HMAC-Pflanzenschutz & Ghost-Map-Multiplayer" §1.2):
-// NEUE Einträge tragen `plant_hmac` statt des Klartext-Zucht-Seeds — der Seed ist der
-// PRIVATE Teil, der HMAC der ÖFFENTLICHE Identifier. Gründer-Einträge (Epoche 0, vor
+// P2' (Plan „Seed-Identität, Pflanzenschutz & Ghost-Map-Multiplayer" §1.2):
+// NEUE Einträge tragen `plant_ref` statt des Klartext-Zucht-Seeds — der Seed ist der
+// PRIVATE Teil, die Referenz der ÖFFENTLICHE Identifier. Gründer-Einträge (Epoche 0, vor
 // P2') behalten ihren historischen `seed` — das ist dokumentierte Herkunft, kein Leck:
-// ihre Wurzel ist ohnehin öffentlich. Die Ableitung des HMAC lebt NICHT hier (Single
-// Writer): gacha.ts bleibt der einzige Seed-Writer, `plantHmacOf` mixt seinen Wert.
+// ihre Wurzel ist ohnehin öffentlich. Die Ableitung der Referenz lebt NICHT hier (Single
+// Writer): gacha.ts bleibt der einzige Seed-Writer, `plantRefOf` mixt seinen Wert.
 // Der Payload bleibt ADDITIV-KONDITIONAL: ohne Feld hashen alte Einträge unverändert.
+//
+// SCHEMA v3 (Befund 20.09.2026): Das Feld hieß bis v2 `plant_hmac` und behauptete damit
+// einen HMAC, den die Funktion nie war. Da der FELDNAME Teil des gehashten Payloads ist,
+// ist die Umbenennung keine kosmetische Änderung: jede gespeicherte Kette wird beim Laden
+// EINMAL neu gehasht und neu verkettet (`codex_migration.ts#migrateToPlantRef`), genau wie
+// beim v1→v2-Schritt. Kein stiller Bruch — der Vertrag steht dort dokumentiert.
 
 import type { Genome } from '../types';
 import { fnv1aHex } from '../core/hash';
+// Kanonische Sortierung: Code-Units statt Locale — sonst hinge `genome_hash` an der
+// Browsersprache (Befund 20.09.2026, Begründung in `core/order.ts`).
+import { compareCodeUnits } from '../core/order';
 import { EPOCH_ID } from '../config';
-import { plantHmacOf } from './plantHmac';
+import { plantRefOf } from './plantRef';
 
 // ── Genome-Hash (einzige Wahrheit für eine Kreuzung) ─────────────────
 /** Kanonische Darstellung: Gene sortiert nach id, power auf 1e-4 quantisiert. */
 function canonicalGenome(genome: Genome): string {
-  const sorted = [...genome].sort((a, b) => a.id.localeCompare(b.id));
+  const sorted = [...genome].sort((a, b) => compareCodeUnits(a.id, b.id));
   return sorted.map(g => `${g.id}:${(Math.round(g.power * 10000) / 10000).toFixed(4)}:${g.dominant ? 'D' : 'r'}`).join('|');
 }
 
@@ -45,12 +54,13 @@ export interface DiscoveryEntry {
   parents: [string, string];
   /** Gacha-/Breed-Seed, der das Kind deterministisch erzeugt hat.
    *  NUR an Gründer-Einträgen (Epoche 0, vor P2') — neue Einträge tragen statt dessen
-   *  `plant_hmac` (siehe unten). Ein Seed im Entry ist Herkunfts-Dokumentation, kein
+   *  `plant_ref` (siehe unten). Ein Seed im Entry ist Herkunfts-Dokumentation, kein
    *  Share-Format: die Wurzel der Gründer-Epoche ist öffentlich, neuere nicht. */
   seed?: number;
-  /** ÖFFENTLICHER Pflanzen-Identifier (HMAC über den Zucht-Kontext) — das Share-Format
-   *  und der Codex-Beleg neuer Einträge. Nicht umkehrbar, kein Klartext-Seed. */
-  plant_hmac?: string;
+  /** ÖFFENTLICHER Pflanzen-Identifier (Mischwert über den Zucht-Kontext) — das Share-Format
+   *  und der Codex-Beleg neuer Einträge. Nicht umkehrbar, kein Klartext-Seed und — anders als
+   *  der frühere Name `plant_hmac` suggerierte — KEIN kryptografischer HMAC (s. `plantRef.ts`). */
+  plant_ref?: string;
   generation: number;
   /** Spieler-Identität — organisch sichtbar, kein Prestige-System. */
   player_id: string;
@@ -64,7 +74,7 @@ export interface DiscoveryEntry {
   /** Herkunfts-Typ des Eintrags (siehe DiscoveryEntryType). */
   type: DiscoveryEntryType;
   /** Schema-Version der EINTRAGS-Struktur (unabhängig von der Codex-Speicher-Version). */
-  schema_version: 2;
+  schema_version: 3;
   /** Hash des Vorgängers — null beim Genesis-Eintrag. */
   prev_hash: string | null;
 }
@@ -73,8 +83,9 @@ export interface DiscoveryEntry {
 interface DiscoveryInput {
   genome: Genome;
   parents: [string, string];
-  /** Der private Zucht-Seed — wird NUR zur HMAC-Ableitung genutzt, verlässt die
-   *  Entry-Bildung nie ins Share-Format. Gründer-Migration setzt ihn stattdessen direkt. */
+  /** Der private Zucht-Seed — wird NUR zur Referenz-Ableitung und für den logischen
+   *  Zeitstempel genutzt, verlässt die Entry-Bildung nie ins Share-Format. Die
+   *  Gründer-Migration setzt stattdessen den Seed direkt in den Eintrag. */
   seed: number;
   generation: number;
   player_id: string;
@@ -95,9 +106,9 @@ function entryPayload(e: Omit<DiscoveryEntry, 'entry_hash'>): string {
     genome_hash: e.genome_hash,
     parents: [...e.parents].sort(),
     // P2'-Verdichtung: genau EINE Seed-Form je Eintrag. Neue Einträge haben keinen
-    // Klartext-Seed (privat), Gründer keinen HMAC (historisch) — beides wäre eine
+    // Klartext-Seed (privat), Gründer keine Referenz (historisch) — beides wäre eine
     // zweite Wahrheit über dieselbe Herkunft.
-    ...(e.plant_hmac !== undefined ? { plant_hmac: e.plant_hmac } : { seed: e.seed }),
+    ...(e.plant_ref !== undefined ? { plant_ref: e.plant_ref } : { seed: e.seed }),
     generation: e.generation,
     player_id: e.player_id,
     timestamp: e.timestamp,
@@ -113,7 +124,7 @@ export function hashEntry(entry: Omit<DiscoveryEntry, 'entry_hash'>): string {
 }
 
 /** Erzeugt einen neuen Chain-Eintrag verkettet an `prev` — mit Epoche, Typ und Schema (P2)
- *  und dem öffentlichen `plant_hmac` statt des Klartext-Seeds (P2'). */
+ *  und dem öffentlichen `plant_ref` statt des Klartext-Seeds (P2', Schema v3). */
 export function createEntry(input: DiscoveryInput, prev: DiscoveryEntry | null): DiscoveryEntry {
   const genome_hash = hashGenome(input.genome);
   const timestamp = input.timestamp; // required, deterministic — no Date.now()
@@ -121,13 +132,13 @@ export function createEntry(input: DiscoveryInput, prev: DiscoveryEntry | null):
   const base: Omit<DiscoveryEntry, 'entry_hash'> = {
     genome_hash,
     parents,
-    plant_hmac: plantHmacOf(input.seed, parents[0]!, parents[1]!, input.generation),
+    plant_ref: plantRefOf(input.seed, parents[0]!, parents[1]!, input.generation),
     generation: input.generation,
     player_id: input.player_id,
     timestamp,
     epoch_id: input.epoch_id ?? EPOCH_ID,
     type: input.type ?? 'cross',
-    schema_version: 2,
+    schema_version: 3,
     prev_hash: prev ? prev.entry_hash : null,
   };
   return { ...base, entry_hash: hashEntry(base) };
@@ -163,14 +174,14 @@ export function verifyChain(chain: DiscoveryEntry[]): VerifyResult {
     }
     // P2'-Regel: genau EINE Seed-Form je Eintrag. Ein Eintrag mit BEIDEN wäre eine zweite
     // Wahrheit über dieselbe Herkunft; ein Eintrag mit KEINER hat keinen Identitäts-Beleg.
-    if (e.plant_hmac !== undefined && e.seed !== undefined) {
-      return { valid: false, reason: `both plant_hmac and seed at ${i}`, index: i };
+    if (e.plant_ref !== undefined && e.seed !== undefined) {
+      return { valid: false, reason: `both plant_ref and seed at ${i}`, index: i };
     }
-    if (e.plant_hmac === undefined && e.seed === undefined) {
-      return { valid: false, reason: `neither plant_hmac nor seed at ${i}`, index: i };
+    if (e.plant_ref === undefined && e.seed === undefined) {
+      return { valid: false, reason: `neither plant_ref nor seed at ${i}`, index: i };
     }
-    if (e.plant_hmac !== undefined && !/^ph-[0-9a-f]{8}$/.test(e.plant_hmac)) {
-      return { valid: false, reason: `plant_hmac malformed at ${i}`, index: i };
+    if (e.plant_ref !== undefined && !/^pr-[0-9a-f]{8}$/.test(e.plant_ref)) {
+      return { valid: false, reason: `plant_ref malformed at ${i}`, index: i };
     }
   }
   return { valid: true };

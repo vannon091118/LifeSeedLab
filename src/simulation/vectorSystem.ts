@@ -10,6 +10,9 @@ import { VECTOR_LOGIC_SOURCE, VECTOR_DRIFT_CAP, VECTOR_DRIFT_STAR_WEIGHT } from 
 import { driftFor } from '../config/phenotype.source';
 import { deriveSeed, makeRng } from '../core/rng';
 import { fnv1a } from '../core/hash';
+// Tie-Break des Leitfähigkeits-Dijkstra: Code-Units statt Locale (Befund 20.09.2026) —
+// sonst hinge der gewählte Blitzpfad an der Browsersprache.
+import { compareCodeUnits } from '../core/order';
 
 export class VectorSystem {
   /** Drift-Start aus erstem Genome-Hash (falls vorhanden) oder 0 — deterministisch. */
@@ -170,7 +173,7 @@ export class VectorSystem {
       open.sort((a, b) => {
         const da = dist[a] ?? Infinity, db = dist[b] ?? Infinity;
         if (da !== db) return da - db;
-        return a.localeCompare(b);
+        return compareCodeUnits(a, b);
       });
       const cur = open.shift()!;
       if (visited.has(cur)) continue;

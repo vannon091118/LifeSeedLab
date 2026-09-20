@@ -114,8 +114,8 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
     try {
       const { appendDiscovery } = await import('../discovery/codex');
       const { hashGenome } = await import('../discovery/chain');
-      // P2': der Breed-Seed bleibt intern (HMAC-Ableitung + Zeitstempel) — im Entry und
-      // im Share-Text steht nur der öffentliche plant_hmac, nie der Klartext-Seed.
+      // P2': der Breed-Seed bleibt intern (Referenz-Ableitung + Zeitstempel) — im Entry und
+      // im Share-Text steht nur die öffentliche plant_ref, nie der Klartext-Seed.
       const res = appendDiscovery({
         genome: roll.child.genome,
         parents: [roll.parentA.id, roll.parentB.id],
@@ -139,10 +139,10 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
       seed: deriveBreedSeed(roll.parentA.id, roll.parentB.id, roll.crossIndex),
       generation: roll.crossIndex,
     });
-    // P2': geteilt wird der ÖFFENTLICHE Identifier (plant_hmac), nie der private Seed.
-    const { plantHmacOf } = await import('../discovery/plantHmac');
+    // P2': geteilt wird der ÖFFENTLICHE Identifier (plant_ref), nie der private Seed.
+    const { plantRefOf } = await import('../discovery/plantRef');
     const shareSeed = deriveBreedSeed(roll.parentA.id, roll.parentB.id, roll.crossIndex);
-    const text = seedShareText(plantHmacOf(shareSeed, roll.parentA.id, roll.parentB.id, roll.crossIndex), roll.crossIndex, roll.child.genome);
+    const text = seedShareText(plantRefOf(shareSeed, roll.parentA.id, roll.parentB.id, roll.crossIndex), roll.crossIndex, roll.child.genome);
     try {
       await navigator.clipboard.writeText(text);
       setShareNote(t('codex.copied'));

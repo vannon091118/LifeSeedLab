@@ -3,7 +3,7 @@
 // Keine Netzwerk-Deps — Supabase ist ein reiner INSERT-Stub hinter tryAppend.
 
 import { load, save } from '../persistence/storage';
-import { migrateV1Entries } from './codex_migration';
+import { migrateToPlantRef, migrateV1Entries } from './codex_migration';
 import {
   createEntry,
   hashGenome,
@@ -16,13 +16,15 @@ import { fnv1aHex } from '../core/hash';
 import type { Genome } from '../types';
 
 const CODEX_KEY = 'lifegamelab_codex';
-const CODEX_VERSION = 2;
+// v3 (Befund 20.09.2026): Feld `plant_hmac` → `plant_ref`. Die Nummer steigt, weil der
+// Feldname im gehashten Payload steht — alte Ketten werden beim Laden EINMAL neu verkettet.
+const CODEX_VERSION = 3;
 const PLAYER_KEY = 'lifegamelab_player_id';
 const PLAYER_VERSION = 1;
 const PLAYER_SEQ_KEY = 'lifegamelab_player_seq';
 
 interface CodexSave {
-  version: 2;
+  version: 3;
   chain: DiscoveryEntry[];
 }
 
@@ -75,24 +77,40 @@ export function getPlayerId(): string {
 
 // ── Codex-Persistenz ─────────────────────────────────────────────────
 function defaultCodex(): CodexSave {
-  return { version: 2, chain: [] };
+  return { version: 3, chain: [] };
 }
 
+/**
+ * Wanderkette des CODEX-Speicherstands.
+ *
+ * Der Speicher-Owner (`persistence/storage.ts`) ruft sie bei `env.v < CODEX_VERSION` auf und
+ * schreibt das Ergebnis unter der neuen Version zurück. Sie MUSS übergeben werden: ohne
+ * `migrate` liefert `resolveVersion` den Fallback — eine leere Kette bei einem Bestandssave.
+ * Genau das war bis v2 der Fall (die Funktion `migrateV1Entries` existierte, wurde aber nie
+ * aufgerufen; ältere Ketten verschwanden still). Beide Schritte sind idempotent, deshalb
+ * laufen sie unbedingt — nicht abhängig davon, welche Version die Hülle behauptet:
+ *   v1 → v2: Gründer-Einträge anreichern (epoch_id/type/schema_version).
+ *   v2 → v3: `plant_hmac` → `plant_ref` (Neuverkettung — der Feldname steckt im Hash).
+ */
+function migrateCodexSave(raw: unknown): CodexSave | null {
+  const chain = (raw as { chain?: unknown } | null)?.chain;
+  if (!Array.isArray(chain)) return null; // unbrauchbar ⇒ Quarantäne statt stiller Leerstand
+  return { version: 3, chain: migrateToPlantRef(migrateV1Entries(chain as DiscoveryEntry[])) };
+}
+
+/** Lädt die Kette in der AKTUELLEN Struktur (v3); ältere Stände wandern durch `migrateCodexSave`. */
 export function loadCodex(): DiscoveryEntry[] {
   const saveData = load<CodexSave>(CODEX_KEY, {
     version: CODEX_VERSION,
+    migrate: migrateCodexSave,
     fallback: defaultCodex,
   });
-  if (!saveData) return [];
-  // Alte Struktur (version 1 bzw. fehlende Felder) wandert durch die Migration —
-  // der Vertrag lebt in `codex_migration.ts` (Gründer-Einträge, idempotent).
-  if ((saveData as CodexSave).version !== 2) return migrateV1Entries((saveData as CodexSave).chain ?? []);
-  if (!Array.isArray(saveData.chain)) return [];
+  if (!saveData || !Array.isArray(saveData.chain)) return [];
   return saveData.chain;
 }
 
 function saveCodex(chain: DiscoveryEntry[]): void {
-  save(CODEX_KEY, { version: 2, chain } satisfies CodexSave, CODEX_VERSION);
+  save(CODEX_KEY, { version: 3, chain } satisfies CodexSave, CODEX_VERSION);
 }
 
 // ── Append (lokal-first, UNIQUE genome_hash) ─────────────────────────
@@ -109,7 +127,7 @@ interface AppendDiscoveryInput {
   genome: Genome;
   parents: [string, string];
   /** Der PRIVATE Zucht-Seed — fließt nur in den logischen Zeitstempel und die
-   *  HMAC-Ableitung ein, taucht NIE im Entry/Share-Format auf (P2'). */
+   *  Referenz-Ableitung ein, taucht NIE im Entry/Share-Format auf (P2'). */
   seed: number;
   generation: number;
   player_id?: string;
@@ -119,7 +137,7 @@ interface AppendDiscoveryInput {
  * Deterministischer Zeitstempel für Discovery-Einträge.
  * Nutzt (generation * 1_000_000) + (seed % 1_000_000) — reproduzierbar ohne Uhr.
  * Der Seed bleibt intern: er identifiziert das Ereignis, wird aber NICHT im Entry
- * geteilt (P2' — dort steht der öffentliche plant_hmac).
+ * geteilt (P2' — dort steht die öffentliche plant_ref).
  */
 function logicalTimestamp(seed: number, generation: number): number {
   return generation * 1_000_000 + (seed % 1_000_000);
@@ -161,11 +179,11 @@ export function verifyLocalChain(chain?: DiscoveryEntry[]): ReturnType<typeof ve
   return verifyChain(chain ?? loadCodex());
 }
 
-/** Share-Format (P2'): `lifeseed:<plant_hmac>:<gen>:<genome_hash>` — der öffentliche
+/** Share-Format (P2'): `lifeseed:<plant_ref>:<gen>:<genome_hash>` — der öffentliche
  *  Beleg statt des Klartext-Seeds. Der Empfänger kann die Pflanze IM CODEX wiederfinden,
  *  aber die Zuchtableitung nicht nachrechnen (Plan §1.2). */
-export function seedShareText(plantHmac: string, generation: number, genome: Genome): string {
-  return `lifeseed:${plantHmac}:${generation}:${hashGenome(genome)}`;
+export function seedShareText(plantRef: string, generation: number, genome: Genome): string {
+  return `lifeseed:${plantRef}:${generation}:${hashGenome(genome)}`;
 }
 
 export type { DiscoveryEntry, Genome };

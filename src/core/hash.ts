@@ -3,6 +3,9 @@
 // Contract Phase 2.6: same seed + same commands = same hash.
 
 import type { ClockState } from './clock';
+// Kanonische Sortierung: Code-Unit-Vergleich statt localeCompare — die Anzeige-Sprache des
+// Spielers darf den Zustands-Hash nicht ändern (Befund 20.09.2026, s. `order.ts`).
+import { compareCodeUnits } from './order';
 
 export interface HashableState {
   seed: number;
@@ -56,19 +59,19 @@ export function hashState(s: HashableState): string {
   h = fnv1a(h, `combo:${s.combo.count}|${NUM(s.combo.multiplier)}|${NUM(s.combo.timer)}|${NUM(s.combo.highest)}`);
 
   // canonical ordering: sort by id so insertion order never affects the hash
-  const plants = [...s.plants].sort((a, b) => a.id.localeCompare(b.id));
+  const plants = [...s.plants].sort((a, b) => compareCodeUnits(a.id, b.id));
   h = fnv1a(h, `plants:${plants.length}`);
   for (const p of plants) {
     h = fnv1a(h, `${p.id}|${p.variantId}|${NUM(p.gx)},${NUM(p.gy)}|hp:${NUM(p.hp)}|ls:${NUM(p.lastShot)}`);
   }
 
-  const enemies = [...s.enemies].sort((a, b) => a.id.localeCompare(b.id));
+  const enemies = [...s.enemies].sort((a, b) => compareCodeUnits(a.id, b.id));
   h = fnv1a(h, `enemies:${enemies.length}`);
   for (const e of enemies) {
     h = fnv1a(h, `${e.id}|hp:${NUM(e.hp)}|pos:${NUM(e.px)},${NUM(e.py)}|path:${NUM(e.pathIndex)}`);
   }
 
-  const projs = [...s.projectiles].sort((a, b) => a.id.localeCompare(b.id));
+  const projs = [...s.projectiles].sort((a, b) => compareCodeUnits(a.id, b.id));
   h = fnv1a(h, `projs:${projs.length}`);
   for (const p of projs) {
     h = fnv1a(h, `${p.id}|pos:${NUM(p.px)},${NUM(p.py)}|dir:${NUM(p.dx)},${NUM(p.dy)}`);
@@ -79,14 +82,14 @@ export function hashState(s: HashableState): string {
     if (p.effects && p.effects.length > 0) h = fnv1a(h, `fx:${p.effects.join('+')}`);
   }
 
-  const vKeys = [...s.vectors].sort((a, b) => a.key.localeCompare(b.key));
+  const vKeys = [...s.vectors].sort((a, b) => compareCodeUnits(a.key, b.key));
   h = fnv1a(h, `vec:${vKeys.length}`);
   for (const v of vKeys) {
-    const cells = [...v.cells].sort((a, b) => a.vectorId.localeCompare(b.vectorId));
+    const cells = [...v.cells].sort((a, b) => compareCodeUnits(a.vectorId, b.vectorId));
     h = fnv1a(h, `${v.key}|${cells.length}`);
     for (const c of cells) h = fnv1a(h, `${c.vectorId}|${NUM(c.intensity)}|${NUM(c.ttl)}`);
   }
-  const attrs = [...s.attractors].sort((a, b) => a.id.localeCompare(b.id));
+  const attrs = [...s.attractors].sort((a, b) => compareCodeUnits(a.id, b.id));
   h = fnv1a(h, `attr:${attrs.length}`);
   for (const a of attrs) h = fnv1a(h, `${a.id}|${NUM(a.x)},${NUM(a.y)}|${NUM(a.strength)}|${NUM(a.radius)}|${NUM(a.ttl)}`);
 

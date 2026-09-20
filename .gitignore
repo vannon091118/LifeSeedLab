@@ -53,6 +53,10 @@ docs/art/
 # Register-Generator: von CI ("Register gegen Contracts prüfen") und Register-Regel 7 gerufen —
 # ein Verweis auf ein nicht getracktes Skript wäre für jeden frischen Klon tot.
 !/scripts/quality-register.mjs
+# Testzahl-Wächter: von CI ("Testzahl messen") gerufen und von docs/quality/contracts/process.md
+# referenziert — dieselbe Begründung wie oben: ein Verweis auf ein ignoriertes Skript ist für
+# jeden frischen Klon tot (Befund 20.09.2026, der Doku-Referenz-Check hat es gefunden).
+!/scripts/test-count.mjs
 # Shinon-Werkzeug: der Code liegt getrackt unter tools/, Laufzeit-Artefakte bleiben lokal.
 tools/.tmp/
 tools/.shinon-state.json

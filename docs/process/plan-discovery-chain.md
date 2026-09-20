@@ -1,6 +1,6 @@
 # Plan-Prüfung: Discovery-Chain & Ticket-Wurzel
 
-**Stand:** 19.09.2026 · **geprüft gegen:** `9824b54` · **Status:** Bewertung + Plan; **P1, P2 und P2' (`plant_hmac`) sind umgesetzt** (siehe §7).
+**Stand:** 19.09.2026 · **geprüft gegen:** `9824b54` · **Status:** Bewertung + Plan; **P1, P2 und P2' (`plant_ref`, nachgetragen als Schema v3) sind umgesetzt** (siehe §7). Der Feldname hieß bis v2 `plant_hmac`; die Umbenennung samt Migration steht im Nachtrag vom 21.09.2026.
 
 > **Umsetzungsstand:** P1 (Wurzel als Kontext), P2 (versionierte Einträge + Migration) und
 > P2' (`plant_hmac` statt Klartext-Seed) sind implementiert und gepinnt (`src/discovery/epoch.test.ts`,
@@ -156,15 +156,16 @@ NEUVERKETTET deshalb eine Kette mit v1-Gliedern als Ganzes im v2-Schema; gepinnt
 öffentlichen Beleg `plant_hmac` und keinen Seed; Gründer-Einträge behalten ihren historischen
 `seed` (Epoche-0-Wurzel ist öffentlich — dokumentierte Herkunft, kein Leck). `entryPayload`
 bleibt additiv-konditional und schreibt GENAU EINE Seed-Form je Eintrag; `verifyChain` lehnt
-Einträge mit beiden oder keinem ab. Die Ableitung lebt in `src/discovery/plantHmac.ts`
-(`plantHmacOf`) — ein READER der bestehenden Ableitung, kein zweiter Seed-Writer: `gacha.ts`
+Einträge mit beiden oder keinem ab. Die Ableitung lebt in `src/discovery/plantRef.ts`
+(`plantRefOf`; der damalige Modul- und Feldname ist im Nachtrag oben erklärt) — ein READER der
+bestehenden Ableitung, kein zweiter Seed-Writer: `gacha.ts`
 bleibt der einzige. Share-Format und Codex-Anzeige nennen den Beleg statt des Seeds.
 
 **Bewusst NICHT gebaut (Doppelungs-Verbot):** ein zweites `seedVault.ts` mit eigener
 `crossPair`-Kopie wurde verworfen — es hätte `src/genome/gacha.ts:crossPair` dupliziert
 (Verbot 1) und einen Dev-Account-Modus ohne Aufrufer eingeschleppt. Die P3-Rolle „Account-Root
 hält den geheimen Teil" braucht einen SERVER; bis dahin wäre sie eine Attrappe. Der Platz
-bleibt der Austauschpunkt `plantHmacOf` (eine Funktion, keine Parallelstruktur).
+bleibt der Austauschpunkt `plantRefOf` (eine Funktion, keine Parallelstruktur).
 
 **Schutzgrenze, ehrlich benannt:** auf Epoche 0 ist `EPOCH_ROOT` öffentlich, damit auch
 `deriveSeed(EPOCH_ROOT, 'plant', a, b, gen)`. `plant_hmac` TRENNT heute die zwei Wahrheiten
@@ -177,6 +178,19 @@ Gemessen: ~81.967 volle Kreuzungen/s, Angreiferpfad ~46.512/s (warm, diese Masch
 Constraint `discoveries_identity_singular` erzwingt genau eine der beiden Formen, plus
 `plant_hmac`-Formprüfung. Die Migration ist weiterhin NICHT angewandt — vor Aktivierung muss
 sie zu P3/P4 passen (Server-Verifikation gegen den Account-Root).
+
+**Nachtrag 21.09.2026 — das Feld heißt `plant_ref` (Schema v3):** Der Name `plant_hmac`
+versprach einen HMAC; die Funktion war und ist ein schlüsselloser FNV-Mischwert über
+öffentliche Eingaben plus Seed. Der Kommentar sagte das ehrlich, der Feldname überlebte ihn.
+Jetzt heißt die Sache, was sie ist — Modul `src/discovery/plantRef.ts` (`plantRefOf`), Feld
+`plant_ref`, Wert-Präfix `pr-` statt `ph-`. Preis, ehrlich benannt: Der Feldname steckt IM
+GEHASHTEN PAYLOAD (`entryPayload`), die Umbenennung ist also keine kosmetische Änderung,
+sondern eine Schema-Migration mit NEUVERKETTUNG (`codex_migration.ts#migrateToPlantRef`,
+Scheiben-Idempotenz in `epoch.test.ts` gepinnt). Nebenfund, der dabei aufgedeckt wurde: der
+Speicher-Owner ruft eine Migrationskette nur auf, wenn der Codex-Load sie ÜBERGIBT — die
+bestehende v1-Anreicherung wurde nie ausgeführt, ältere Ketten wären still verschwunden.
+Beides ist mit `migrateCodexSave` verdrahtet. SQL folgt additiv als `002_plant_ref.sql`
+(001 bleibt unangetastet, weil eine angewandte Migration nicht nachträglich umgeschrieben wird).
 
 **Nicht umgesetzt (bewusst):** P3 Sweep-Test, P4 Worker, P5 START-Flow, P6 Fund-Feed,
 P7 Replay-Log, P8 SHA-256-Identitäten. P5 (Ghost Map) wurde NICHT begonnen: sie braucht den
