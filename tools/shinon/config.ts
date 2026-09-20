@@ -10,7 +10,7 @@ import path from 'node:path';
  * kein Kommando ist im Code hart verdrahtet.
  */
 
-export interface LocCapRule {
+interface LocCapRule {
   /** Verzeichnis-Präfix relativ zum Repository-Root. */
   path: string;
   /** Harte Obergrenze in Zeilen. */
@@ -18,7 +18,7 @@ export interface LocCapRule {
   label: string;
 }
 
-export interface ForbiddenRule {
+interface ForbiddenRule {
   /** RegExp-Quelltext (wird ohne Flags kompiliert). */
   pattern: string;
   message: string;
@@ -42,7 +42,7 @@ export interface CommandSpec {
   enabled: boolean;
 }
 
-export interface GateChecks {
+interface GateChecks {
   locCaps: boolean;
   forbiddenPatterns: boolean;
   typecheck: boolean;
@@ -75,7 +75,7 @@ export interface GateChecks {
  */
 export type GateEnforcement = 'advisory' | 'strict';
 
-export interface GateConfig {
+interface GateConfig {
   checks: GateChecks;
   /** 'advisory' ⇒ nur Fehler blockieren · 'strict' ⇒ Warnungen blockieren mit. */
   enforcement: GateEnforcement;
@@ -92,7 +92,7 @@ export interface GateConfig {
   };
 }
 
-export interface CommitConfig {
+interface CommitConfig {
   /** Quelle der Commit-Nachricht — der Komponist liest ausschließlich diese Datei. */
   messageFile: string;
   conventional: boolean;
@@ -101,7 +101,7 @@ export interface CommitConfig {
   freeForm: boolean;
 }
 
-export interface PushConfig {
+interface PushConfig {
   remote: string;
   branch: string;
   /** Nach grünem Gate und erfolgreichem Commit automatisch pushen. */
@@ -111,7 +111,7 @@ export interface PushConfig {
   requireAuth: boolean;
 }
 
-export interface StarterConfig {
+interface StarterConfig {
   readme: string;
   /** Überschrift, falls die Marker noch nicht in der README stehen (Anhänge-Fall). */
   sectionTitle: string;
@@ -256,7 +256,7 @@ export function configPathFor(root: string): string {
     : path.join(root, CONFIG_RELATIVE_PATH);
 }
 
-export interface LoadedConfig {
+interface LoadedConfig {
   config: ShinonConfig;
   /** Pfad der benutzten Override-Datei (null ⇒ reine Defaults). */
   source: string | null;

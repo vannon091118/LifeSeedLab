@@ -20,7 +20,7 @@ export const WORLD_START_COLS = 12;
 export const WORLD_START_ROWS = 12;
 
 /** Eine Zelle der Welt: "gx,gy" → Tile-Typ (dieselbe Konvention wie der Run). */
-export type WorldTiles = Record<string, string>;
+type WorldTiles = Record<string, string>;
 
 /**
  * Die persistente Welt des Spielers. Kein Run-spezifischer Zustand (keine Gegner,

@@ -13,6 +13,8 @@ import type { PlantPhenotype } from '../genome/plantPhenotype';
 import { plantPhenotypeKey } from '../genome/plantPhenotype';
 import type { EffectId } from '../config/effects.source';
 import { EFFECTS_SOURCE } from '../config/effects.source';
+import { VECTOR_LOGIC_SOURCE, vectorForEffect } from '../config/vector_logic.source';
+import { VECTOR_VISUAL_SOURCE } from '../config/vector_visual.source';
 import { shiftChannels } from '../core/color';
 import type { PlantVariant } from '../types';
 import { genomeToVisualInput } from '../genome/visualMap';
@@ -40,15 +42,28 @@ export interface VisualInput {
   strength?: number;
 }
 
-/** Effekt-Tint über den Grundton (Gameplay-Effekt bleibt am Bild ablesbar). */
+/** Effekt/Vector-Tint über den Grundton (Gameplay-Effekt bleibt am Bild ablesbar).
+ *  Vector-Palette hat Vorrang (+18 statt +12), damit Öl/Wasser/Voxels nicht im Effect-Tint untergehen. */
 function tinted(base: string, effectIds: readonly EffectId[]): string {
   let color = base;
   for (const id of effectIds) {
+    const vid = vectorForEffect(String(id));
+    if (vid && VECTOR_VISUAL_SOURCE[vid]) {
+      color = shiftChannels(color, 18, 10, 14);
+      continue;
+    }
     const eff = EFFECTS_SOURCE[id];
     if (!eff) continue;
     color = shiftChannels(color, 12, 6, 10);
   }
   return color;
+}
+
+export function vectorTintForEffect(effectId: string): string | null {
+  const vid = vectorForEffect(effectId);
+  if (!vid) return null;
+  void VECTOR_LOGIC_SOURCE; // Source-Wahrheit gebunden (kein zweiter Wirkwert)
+  return VECTOR_VISUAL_SOURCE[vid]?.paletteModifier ?? null;
 }
 
 export function resolveVisual(input: VisualInput): ResolvedVisual {

@@ -6,7 +6,7 @@
 import { AUTO_WAVE_DELAY_TICKS, PREP_WAITS_FOR_FIRST_PLANT } from '../config/economy.source';
 import { TICK_MS } from '../core/clock';
 
-export interface WaveTimingInput {
+interface WaveTimingInput {
   phase: string;
   /** Tick, in dem die Vorbereitung begann (`null` ⇒ keine Vorbereitung läuft). */
   prepStartTick: number | null;

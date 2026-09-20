@@ -9,6 +9,7 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ## Unreleased (Arbeitsstand 19.–21.09.2026)
 
+- [Rebase Slice 6] Kernzustand und Shinon-Verkabelung werden getrennt statt als historischer Brei serviert.
 - [Rebase Slice 5] Simulations- und Renderpfade kommen in einer weiteren kontrollierten Scheibe.
 - [Rebase Slice 4] Noch ein begrenzter Block; der Commit-Riese wird Stück für Stück entzaubert.
 - [Vector-Gate] Golden-Hash-Anker fail-closed: fehlt `tools/.tmp/vector_golden_hash.txt`, ist der Test rot, statt den Ist-Wert still als Anker zu schreiben; Sichern nur noch bewusst via `GOLDEN_BOOTSTRAP=1`, CI injiziert den Wert aus dem Repo-Secret `GOLDEN_HASH` (Cross-Platform-Determinismus wird damit erstmals erzwungen statt angenommen).

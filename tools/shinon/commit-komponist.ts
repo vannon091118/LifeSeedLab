@@ -26,7 +26,7 @@ export interface CommitResult {
   detail: string;
 }
 
-export interface CommitOptions {
+interface CommitOptions {
   /** Explizite Nachricht (nur aus dem CLI-Kontext); sonst wird die Konfigurationsdatei gelesen. */
   message?: string;
   /** Pfad zur Nachrichtendatei, überschreibt `commit.messageFile`. */

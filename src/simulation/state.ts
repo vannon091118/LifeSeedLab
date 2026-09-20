@@ -5,7 +5,7 @@ import type { ClockState } from '../core/clock';
 import type { EnemyTypeId } from '../config/enemies.source';
 import type { BredStatsEntry } from '../types';
 
-export type PlantGrowthState = 'growing' | 'mature';
+type PlantGrowthState = 'growing' | 'mature';
 /** LIFESPAN removed: einmal platziert bleibt bis GameOver (user: pflanze verschwindet nicht in der runde). */
 
 export interface PlantEntity {
@@ -70,13 +70,31 @@ export interface ProjectileEntity {
   critMult: number;
 }
 
+/** Vector Engine (ElementarVector): vergängliche Flags pro Zelle, vergänglich via ttl/decay. */
+export interface VectorCell {
+  vectorId: string;
+  intensity: number;
+  ttl: number;
+}
+type VectorField = Record<string, VectorCell[]>;
+
+/** Attraktor-State (Gravity): zentral wiederverwendbar für Gegner/Projektile/Orbits. */
+export interface AttractorEntity {
+  id: string;
+  x: number;
+  y: number;
+  strength: number;
+  radius: number;
+  ttl: number;
+}
+
 /**
  * R1 (Eigentümer-Entscheid): `layout` = die Build-Sequenz VOR dem ersten Wellen-Block —
  * der Spieler baut sein Maze (Wege, Töpfe, Findlinge), ohne dass die Zeit drängt.
  * Exit: BEGIN_WAVE_PREP (sanft, „Fertig") oder START_WAVE (bewusstes Überspringen —
  * wer die Welle startet, hat gebaut, wie er wollte). Kein Auto-Start im Layout.
  */
-export type RunPhase = 'layout' | 'prep' | 'wave' | 'gameover';
+type RunPhase = 'layout' | 'prep' | 'wave' | 'gameover';
 
 /** Spieler-platzierte Map-Tiles (P5). Owner: MapSystem. Key "gx,gy". */
 export type MapTiles = Record<string, string>;
@@ -151,6 +169,10 @@ export interface SimState {
   plants: PlantEntity[];
   enemies: EnemyEntity[];
   projectiles: ProjectileEntity[];
+  /** Vector Engine: flags per cell key "gx,gy" — writer VectorSystem, volatile (TTL). */
+  vectors: VectorField;
+  /** Attraktoren (Gravity) — writer VectorAttractor, volatile. */
+  attractors: AttractorEntity[];
   score: number;
   combo: { count: number; timer: number; multiplier: number; highest: number };
   nektarEarned: number;

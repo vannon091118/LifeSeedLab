@@ -7,7 +7,7 @@ import { hashState, type HashableState } from '../core/hash';
 export const SNAPSHOT_VERSION = 1 as const;
 export const EVENT_STREAM_VERSION = 1 as const;
 
-export interface SnapshotEnvelope {
+interface SnapshotEnvelope {
   version: typeof SNAPSHOT_VERSION;
   eventStreamVersion: typeof EVENT_STREAM_VERSION;
   hash: string;
@@ -24,6 +24,12 @@ export function toHashable(state: SimState): HashableState {
     projectiles: state.projectiles.map(p => ({
       id: p.id, px: p.px, py: p.py, dx: p.dx, dy: p.dy,
       speed: p.speed, pierce: p.remainingPierce, effects: p.effectIds,
+    })),
+    vectors: Object.entries(state.vectors).map(([key, cells]) => ({
+      key, cells: cells.map(c => ({ vectorId: c.vectorId, intensity: c.intensity, ttl: c.ttl })),
+    })),
+    attractors: state.attractors.map(a => ({
+      id: a.id, x: a.x, y: a.y, strength: a.strength, radius: a.radius, ttl: a.ttl,
     })),
     score: state.score,
     combo: state.combo,

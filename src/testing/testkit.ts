@@ -73,7 +73,7 @@ export function makeRoot(
   } as RootInit);
 }
 
-export interface MakeRunOptions {
+interface MakeRunOptions {
   runId?: number;
   /** Weitere RootInit-Zusätze (loadout, beetles, resume, …) — wird 1:1 durchgereicht. */
   init?: Partial<RootInit>;
@@ -111,9 +111,6 @@ export function drainTicks(root: SimulationRoot, n: number): number {
  * Führt exakt n deterministische Ticks aus, um Befehle zu verarbeiten (nach dem Muster von __ff(1)).
  * entspricht dem Command-Drain nach `__ff(1)`-Muster.
  */
-export function drainCommands(root: SimulationRoot, ticks: number): void {
-  drainTicks(root, ticks);
-}
 
 /**
  * Einfacher Command-Push im bewährten Testmuster: Tick 0, Lauf-Seq, Payload.

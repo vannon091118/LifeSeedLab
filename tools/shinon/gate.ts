@@ -14,7 +14,7 @@ import type { GateSnapshot } from './state.ts';
  * (Typecheck/Tests/Build) übersprungen und im Bericht als übersprungen ausgewiesen.
  */
 
-export interface CheckOutcome {
+interface CheckOutcome {
   id: string;
   title: string;
   ok: boolean;
@@ -34,7 +34,7 @@ export interface GateReport {
   outcomes: CheckOutcome[];
 }
 
-export interface GateOptions {
+interface GateOptions {
   /** true ⇒ Ausgabe auf Fehler/Warnungen reduzieren. */
   quiet?: boolean;
   /** true ⇒ Bericht als JSON (maschinenlesbar). */

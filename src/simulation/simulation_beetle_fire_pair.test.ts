@@ -1,10 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 // Owner: Simulation-Tests — Sub-Domäne „Beetle, Effektpaare & Meldungen“ (B32.2/3, Phase 4).
 // Konsolidierung: simulation_beetle.test.ts + simulation_fire_pair.test.ts + gameover.test.ts + simulation_notice.test.ts.
 
-import { SimulationRoot, makeCommand } from './root';
+import { makeCommand } from './root';
 import { makeRoot } from '../testing/testkit';
-import { resetIds } from '../core/ids';
 import type { Genome, PlantVariant } from '../types';
 import { rollBrood } from '../genome/beetle';
 import { genomeToVisualInput, genomeEffectIds } from '../genome/visualMap';
@@ -216,14 +215,3 @@ describe('B26 — fire als Paar: eine Zeile, drei Kanäle', () => {
     expect(thorns(0.3)).toBeGreaterThan(0);
   });
 });
-
-const GO_SEED = 424242;
-
-/** Treibt den Run in den Game-Over-Zustand (Leak am Pfadende — nur Commands, kein Live-State). */
-function forceGameOver(root: SimulationRoot): void {
-  root.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
-  // Keine Pflanzen ⇒ jeder Gegner leakt; zwei Leaks beenden den Run (20 Leben, 10/Leak).
-  let guard = 0;
-  while (root.getSnapshot().phase !== 'gameover' && guard++ < 30000) root.stepOnce();
-  expect(root.getSnapshot().phase).toBe('gameover');
-}

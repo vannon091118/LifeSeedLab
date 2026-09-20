@@ -7,7 +7,7 @@ import type { CommandResult, SpawnOptions } from './runner.ts';
  * Fassade `ShinonGitHelfer` bleibt trotzdem der einzige Einstieg für Git und `gh` zusammen.
  */
 
-export type GhRunner = (args: string[], options?: SpawnOptions) => CommandResult;
+type GhRunner = (args: string[], options?: SpawnOptions) => CommandResult;
 
 export interface AuthStatus {
   ok: boolean;

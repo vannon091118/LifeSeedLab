@@ -190,12 +190,6 @@ export type PendingBrood = {
 // ── Game modes ───────────────────────────────────────────────
 export type GameMode = 'endless' | 'pvp';
 
-export type RunStartConfig = {
-  mode: GameMode;
-  loadout: string[];
-  runId: number;
-  runSeed: number;
-};
 
 // ── Breeding ─────────────────────────────────────────────────
 export type CrossResult = {
