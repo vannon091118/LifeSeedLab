@@ -172,8 +172,6 @@ Klassen der Befunde: `DEFECT` (kaputt/falsch) · `INCOMPLETE` (Vertrag existiert
 | `B32.3` | [process.md](./contracts/process.md) | DoD für B32 |
 | `B32.4` | [process.md](./contracts/process.md) | It-Ledger & Mutation-Stichproben-Protokoll (abschließend) |
 
-| `B33` | [docs/quality/quality-spec.md](./quality-spec.md) | Coverage-Baseline: Lines 75.75%, Statements 73.48%, Branches 67.99%, Functions 80.49% (baseline aus TASK-001 des Plans `plan/refactor-test-suite-consolidation-1.md`) |
-
 ## Regeln für dieses Register
 
 1. **Eine Wahrheit je Thema.** Ein neuer Befund oder eine neue Spezifikation wird **im Contract

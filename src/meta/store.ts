@@ -126,11 +126,14 @@ function deriveBroodGeneration(raw: Partial<MetaSave>, broods: PendingBrood[], b
   if (typeof persisted === 'number' && Number.isFinite(persisted)) {
     return Math.max(0, Math.floor(persisted));
   }
+  const option1 = (raw.runs ?? 0) * (raw.runId ?? 0) + (raw.breedGeneration ?? 0);
+  const option2 = (raw.totalWavesSurvived ?? 0) * 2 + (raw.breedGeneration ?? 0);
   const used = [
     ...broods.map(b => b.broodIndex),
-    ...beetles.map(b => b.generation),
-  ].filter((n): n is number => typeof n === 'number' && Number.isFinite(n));
-  return (used.length > 0 ? Math.max(...used) : -1) + 1;
+    ...beetles.map(b => b.generation).filter((g): g is number => typeof g === 'number' && Number.isFinite(g)),
+  ];
+  const maxUsed = used.length > 0 ? Math.max(...used) : 0;
+  return Math.max(option1, option2, maxUsed) + 1;
 }
 
 /**

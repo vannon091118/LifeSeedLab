@@ -73,12 +73,16 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onNavigate, resumeWav
           onClick={() => onNavigate('greenhouse')}
           disabled={ownedVariants.length < 2}
         />
-        <ModeCard
-          icon={<SeedIcon />}
-          title={t('menu.shop')}
-          desc={t('menu.shopDesc')}
-          onClick={() => onNavigate('seedshop')}
-        />
+        <div style={{ position: 'relative', paddingTop: '14px', display: 'inline-block' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '14px', ...styles.modeCardMarketAwning }} />
+          <ModeCard
+            icon={<SeedIcon />}
+            title={t('menu.shop')}
+            desc={t('menu.shopDesc')}
+            onClick={() => onNavigate('seedshop')}
+            style={{ ...styles.modeCard, ...styles.modeCardMarket, order: -1 }}
+          />
+        </div>
         <ModeCard
           icon={<BugIcon />}
           title={t('menu.beetleLab')}

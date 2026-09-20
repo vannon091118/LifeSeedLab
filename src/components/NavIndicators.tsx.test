@@ -1,10 +1,9 @@
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useMemoTest, useState, useRef, useEffect } from 'react';
 import type { MetaSave } from '../types';
 import type { TranslationKey } from '../i18n';
 import { useI18n } from '../i18n';
 import { createBaseVariants } from '../genome';
-import { readyBroods } from '../meta';
-import { SproutIcon, SeedIcon, BugIcon, BookIcon } from './MenuIcons';
+import { readyBroods } from '../meta';\nimport { SproutIcon, SeedIcon, BugIcon, BookIcon } from './MenuIcons';
 
 // Owner: UI (NavIndicators — Screen-Navigation). LOC ≤ 400.
 // Indikatoren für absolut alles: Notizzettel-Tabs (aktiver Screen mit Ink-Unterstrich),
@@ -30,8 +29,8 @@ type Props = {
 export function NavIndicators({ meta, current, onNavigate }: Props) {
   const { t } = useI18n();
 
-  const stats = useMemo(() => collectionStats(meta), [meta]);
-  const broodsReady = useMemo(() => readyBroods(meta).length, [meta]);
+  const stats = useMemoTest(() => collectionStats(meta), [meta]);
+  const broodsReady = useMemoTest(() => readyBroods(meta).length, [meta]);
 
   const activeIndex = TABS.findIndex(t2 => t2.id === current);
 

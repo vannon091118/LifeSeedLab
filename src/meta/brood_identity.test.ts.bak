@@ -13,11 +13,10 @@ import { ensureLocalStorage } from '../persistence/testDom';
 import { fnv1a } from '../core/hash';
 import { deriveSeed, makeRng, GAMEPLAY_NAMESPACES, VISUAL_NAMESPACES } from '../core/rng';
 import { GAME_SEED } from '../config';
-import { BROOD_SEED_NAMESPACE, BEETLES_SOURCE, BEETLE_BREED } from '../config/beetles.source';
+import { BROOD_SEED_NAMESPACE, BEETLES_SOURCE } from '../config/beetles.source';
 import { deriveBroodSeed, rollBrood, broodGenomeHash, toDeploySpec } from '../genome/beetle';
 import { loadMeta, updateMeta, resetMeta, META_KEY, META_VERSION } from './store';
 import { enqueueBrood, claimBrood } from './run';
-import { BeetleSpecimen } from '../types';
 
 const A = 'leafhopper';
 const B = 'shellbeetle';
@@ -61,7 +60,7 @@ describe('B14 — Brut-Identität', () => {
 
   it('UNBEKANNTER broodIndex ändert nichts (fail-closed, A18.1)', () => {
     const before = loadMeta();
-    const after = claimBrood(999, 0);
+    const after = claimBroot(999, 0);
     expect(after).toStrictEqual(before);
   });
 
@@ -70,7 +69,7 @@ describe('B14 — Brut-Identität', () => {
     updateMeta({ totalWavesSurvived: 99 }); // Reife erzwingen
 
     const before = loadMeta();
-    const after = claimBrood(0, 7);        // Kandidat 7 existiert nicht (nur 0–2)
+    const after = claimBroot(0, 7);        // Kandidat 7 existiert nicht (nur 0–2)
 
     expect(after).toStrictEqual(before);
     expect(loadMeta().beetles.length).toBe(0);
@@ -81,10 +80,10 @@ describe('B14 — Brut-Identität', () => {
     enqueueBrood(A, B, 1);                 // 0
     enqueueBrood(A, B, 1);                 // 1
     updateMeta({ totalWavesSurvived: 99 }); // Reife für die ersten beiden (startedWave 0)
-    claimBrood(1, 0);
+    claimBroot(1, 0);
     enqueueBrood(A, B, 1);                 // 2 (nicht 1 — das war das Recycling; startedWave 99)
     updateMeta({ totalWavesSurvived: 100 }); // und jetzt reift auch die dritte
-    claimBrood(2, 0);
+    claimBroot(2, 0);
 
     const ids = loadMeta().beetles.map(b => b.id);
 
@@ -97,25 +96,25 @@ describe('B14 — Brut-Identität', () => {
 
     expect(first.broodGeneration).toBe(1);
     expect(first.pendingBroods[0].broodIndex).toBe(0);
-    claimBrood(0, 0);
+    claimBroot(0, 0);
     expect(loadMeta().broodGeneration).toBe(1); // Zähler läuft nicht zurück
   });
 
   it('Vorschau und Enqueue verwenden dieselbe Generation (A13.2)', () => {
     const previewIds = rollBrood(A, B, loadMeta().broodGeneration).map(c => c.id);
     const created = enqueueBrood(A, B, 1);
-    const index = created.pendingBroods[created.pendingBroods.length - 1].broodIndex;
+    const index = created.pendingBroods[created.pendentBroods.length - 1].broodIndex;
 
     expect(rollBrood(A, B, index).map(c => c.id)).toEqual(previewIds);
   });
 
   it('derselbe Index ⇒ dieselbe Brut (belegt, warum die Generation stabil bleiben muss)', () => {
-    expect(rollBrood(A, B, 1).map((c: BeetleSpecimen) => c.id)).toEqual(rollBrood(A, B, 1).map((c: BeetleSpecimen) => c.id));
-    expect(rollBrood(A, B, 1).map((c: BeetleSpecimen) => c.id)).not.toEqual(rollBrood(A, B, 2).map((c: BeetleSpecimen) => c.id));
+    expect(rollBrood(A, B, 1).map(c => c.id)).toEqual(rollBrood(A, B, 1).map(c => c.id));
+    expect(rollBrood(A, B, 1).map(c => c.id)).not.toEqual(rollBroot(A, B, 2).map(c => c.id));
   });
 });
 
-// ══ B14.2 — Migration v4 → v5 ohne Identitätsverlust ═════════════════════════════════════════
+// ══ B14.2 — Migration v4 → v5 ohne Identitätsverlust ══════════════════════════════════════════
 
 describe('B14 — Migration v4 → v5', () => {
   beforeEach(() => {
@@ -187,5 +186,123 @@ describe('B39 — Brut kostet Nektar', () => {
     expect(after.pendingBroods).toHaveLength(0);
     expect(after.broodGeneration).toBe(before.broodGeneration);
     expect(after.nektar).toBe(before.nektar);
+  });
+});
+
+// ══ B30 — Brut-Domäne hat eine eigene Domäne ══════════════════════════════════════════════
+
+describe('B30 — Brut-Domäne', () => {
+  beforeEach(() => {
+    resetFullTestState();
+    // B39 (QA v0.0.53 #2): die Brut kostet Nektar — diese Tests prüfen Identität/Monotonie,
+    // nicht Wirtschaft, deshalb steht der Kontostand hier bewusst hoch.
+    updateMeta({ nektar: 5000 });
+  });
+
+  it('führt eine eigene Spiel-Domäne (FX ON/OFF darf sie nie stören)', () => {
+    expect(BROOD_SEED_NAMESPACE).toBe('brood');
+    expect(GAMEPLAY_NAMESPACES).toContain('brood');
+    expect(VISUAL_NAMESPACES).not.toContain('brood');
+  });
+
+  it('trennt Brut-, Gegner- und Pflanzen-Domäne bei identischen Eingaben', () => {
+    const brood = deriveBroodSeed(A, B, 1);
+    expect(brood).not.toBe(deriveSeed(GAME_SEED, 'enemy', A, `${B}:1`, 1));
+    expect(brood).not.toBe(deriveSeed(GAME_SEED, 'plant', A, `${B}:1`, 1));
+    // Der alte Namespace lieferte genau diesen Wert — er darf nicht mehr herauskommen.
+    expect(brood).not.toBe(2357272887);
+  });
+
+  it('friert Seed, Kandidaten-IDs und die unberührte Gegner-Domäne ein', () => {
+    // Brut-Domäne (neu). Ändert jemand Namespace oder Ableitungs-Argumente, bricht dieser Test.
+    expect(deriveBroodSeed(A, B, 1)).toBe(905729497);
+    expect(deriveBroodSeed('bumble', B, 3)).toBe(1523112797);
+
+    // R3-MIGRATION (bewusst, nicht beiläufig): die Kandidaten-Genome laufen jetzt durch den
+    // GEMEINSAMEN Zuchtkern (genome/breeding.ts, Neuheitsdruck + Dominanz-Regeln) statt durch
+    // den früheren `mergeGenomes`-Sonderweg. Die IDs (Seed-abhängig) bleiben, die Genome ändern
+    // sich EINMALIG. Der Seed-Pin oben (905729497) ist unverändert — die Ableitung selbst hat
+    // sich nicht bewegt, nur die Auswertung der Gene.
+    // POOL-ERWEITERUNG (19.09.2026, bewusster Identitätsbruch): die Gründer tragen jetzt ein
+    // ERBGUT (3–4 Gene: Blatthüpfer sprinter+jumper+winged, Schildkäfer carapace+hardshell+taunt)
+    // statt eines Einzelgens — sonst blieb `carapaceForm` bei allen auf `flat` und `dress` auf
+    // `scaled`. Die IDs (Seed-abhängig) sind unverändert; die Genome dieser Brut ändern sich
+    // EINMALIG. Kein Meta-Migration nötig: Specimen sind Daten, kein Nektar/Kontostand berührt.
+    // BRUT-VIELFALT (19.09.2026): die Neuheit der Brut prüft zusätzlich das KAMPFPROFIL
+    // (`distinct` in genome/beetle.ts) und sucht bei Zwillingen weiter (12 Versuche statt 6).
+    // Dieser Pin belegt die GRENZE des Eingriffs: diese Fachkreuzung hatte nie Zwillinge, wird
+    // also nicht anders gewürfelt — der Satz ist BITGLEICH zum Stand davor. Bewegt haben sich
+    // nur Bruten, die vorher zwei identische Profile trugen (0 von 72 statt 11 von 72;
+    // Messmenge: 3 Gründer, alle geordneten Paarungen × 8 Brut-Indizes).
+    expect(rollBrood(A, B, 1).map(c => `${c.id}|${broodGenomeHash(c)}`)).toEqual([
+      'brood_ez8xcp_0|hyb-8cd10b61',
+      'brood_ez8xcp_1|hyb-536bbdff',
+      'brood_ez8xcp_2|hyb-9c075925',
+    ]);
+
+    // Gegner-Domäne: unverändert (der Schnitt durfte hier nichts bewegen).
+    expect(makeRng('enemy', 12345).next()).toBe(0.6971246670000255);
+    // Derselbe Zahlen-Seed in der Brut-Domäne ist ein anderer Strom (Namespace-Qualifizierung).
+    expect(makeRng('brood', 12345).next()).toBe(0.6579577717930079);
+    expect(makeRng('brood', 12345).next()).not.toBe(makeRng('enemy', 12345).next());
+  });
+
+  it('Migrations-Invariante: jede persistierte Brut bleibt abholbar (3 gültige Kandidaten)', () => {
+    for (const index of STORED_BROOD_INDEXES) {
+      const brood = rollBrood(A, B, index);
+      expect(brood, `Brut ${index} liefert keine Kandidaten mehr`).toHaveLength(3);
+      expect(new Set(brood.map(c => c.id)).size).toBe(3);
+      for (const candidate of brood) {
+        expect(candidate.stats.hp).toBeGreaterThan(0);
+        expect(toDeploySpec(candidate).cost).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('Migrations-Entscheidung: die Brut speichert keine Ableitung (kein Schema-Bump)', () => {
+    // Der gespeicherte Eintrag trägt ausschließlich EINGABEN — keine Seeds, keine Namespaces,
+    // keine abgeleiteten Genome der Kinder. R3 ergänzt zwei Eingaben: die VORFAHREN (Genom +
+    // Generation je Elternteil). Ohne sie wäre ein gezüchtetes Tier nur eine ID, und die Kette
+    // fiele beim nächsten Brüten auf die Gründer zurück — genau der Befund, der behoben wurde.
+    enqueueBrood(A, B, 1);
+    const stored = loadMeta().pendingBroods[0];
+    expect(Object.keys(stored).sort()).toEqual(
+      ['broodIndex', 'chosenIndex', 'neededWaves', 'parentAAncestor', 'parentBAncestor',
+        'specimenAId', 'specimenBId', 'startedWave'],
+    );
+    // Und die Vorfahren sind wirklich die Genome der übergebenen Gründer (keine Ableitung):
+    // `leafhopper` bringt genau sein SOURCE-Genom mit, Generation 1. Die Erwartung liest die
+    // Source selbst (statt ein Literal zu pinnen), damit der Test die ABSICHT prüft und nicht
+    // bei jeder Pool-Erweiterung erneut rot wird.
+    expect(stored.parentAAncestor!.specimenId).toBe(A);
+    expect(stored.parentAAncestor!.genome.map(g => g.id)).toEqual([...BEETLES_SOURCE[A]!.genes]);
+    expect(stored.parentAAncestor!.generation).toBe(1);
+  });
+
+  describe('Abholung nach dem Schnitt (echte Meta-Operationen)', () => {
+    it('ein unveränderter Alteintrag wird ohne Migration abgeholt — Vorschau == Abholung', () => {
+      // Genau der Zustand, den ein Save vor dem Update trägt: Eingaben, kein Seed.
+      updateMeta({
+        pendingBroods: [{ broodIndex: 7, specimenAId: A, specimenBId: B, neededWaves: 1, startedWave: 0, chosenIndex: -1 }],
+        totalWavesSurvived: 5,
+        broodGeneration: 8,
+      });
+      const after = claimBroot(7, 0);
+      const claimed = after.beetles[0];
+      expect(claimed).toBeDefined();
+      expect(claimed.id).toBe(rollBrood(A, B, 7)[0].id);
+      expect(after.pendingBroods).toHaveLength(0);
+      // Der Zähler bleibt monoton — der Schnitt recycelt keinen Index.
+      expect(after.broodGeneration).toBe(8);
+    });
+
+    it('eine neu gebuchte Brut reift und wird zum Specimen der neuen Domäne', () => {
+      enqueueBrood(A, B, 1);
+      updateMeta({ totalWavesSurvived: 3 });
+      const after = claimBroot(0, 2);
+      expect(after.beetles).toHaveLength(1);
+      expect(after.beetles[0].id).toBe(rollBrood(A, B, 0)[2].id);
+      expect(after.beetles[0].id.startsWith('brood_')).toBe(true);
+    });
   });
 });
