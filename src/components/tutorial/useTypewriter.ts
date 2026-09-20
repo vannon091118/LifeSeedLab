@@ -4,7 +4,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-export interface TypewriterState {
+interface TypewriterState {
   /** Der sichtbare Textausschnitt. */
   shown: string;
   /** true ⇒ der ganze Text steht (Tipp beendet oder übersprungen). */

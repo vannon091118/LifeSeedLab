@@ -29,6 +29,15 @@ import {
   CRIT_GAIN_BP,
   CRIT_CHANCE_MAX_BP,
   CRIT_MULT,
+  RANGE_BASE_CX,
+  RANGE_PER_HEIGHT_BP,
+  RANGE_MAX_CX,
+  RANGE_MIN_CX,
+  COOLDOWN_BASE_CX,
+  COOLDOWN_PER_THICKNESS_CX,
+  COOLDOWN_FLOOR_CX,
+  WUCHS_HEIGHT,
+  WUCHS_THICKNESS,
 } from '../config/ballistics.source';
 
 /** Basispunkte: dieselbe Quantisierung wie `canonicalGenome` (genome_hash). */
@@ -47,7 +56,34 @@ function clamp(n: number, min: number, max: number): number {
 }
 
 /**
- * Ballistik einer Pflanze. Rolle-gesteuert nach D5: nur `shooter` schießt — Wand und
+ * Wuchs-Beitrag eines Genoms (bp-ganzzahlig): Σ (Gewicht × Genstärke). JEDES Pool-Gen trägt
+ * bei — sonst rechnen zwei verschieden aussehende Kreuzungen identisch (Spieltest 20.09).
+ * Deterministisch rein über die bp-Quantisierung (D5), kein Jitter, keine Optik.
+ */
+function wuchsBp(genome: Genome, table: Record<string, number>): number {
+  let sum = 0;
+  for (const gene of genome) {
+    const w = table[gene.id];
+    if (w === undefined) continue;
+    sum += w * bp(gene.power);
+  }
+  return Math.round(sum);
+}
+
+/** Reichweite (Zellen ×100): Basis + Σ-Höhe ×100 bp, gedeckelt (6.00) mit Boden (0.50). */
+export function rangeCxOf(genome: Genome): number {
+  const cx = RANGE_BASE_CX + Math.round((wuchsBp(genome, WUCHS_HEIGHT) * RANGE_PER_HEIGHT_BP) / 10000);
+  return cx < RANGE_MIN_CX ? RANGE_MIN_CX : cx > RANGE_MAX_CX ? RANGE_MAX_CX : cx;
+}
+
+/** Nachladezeit (Ticks ×100): Basis − Σ-Dicke ×450 (−15 % je voller Dicke), Boden 2100. */
+export function cooldownCxOf(genome: Genome): number {
+  const cx = COOLDOWN_BASE_CX - Math.round((wuchsBp(genome, WUCHS_THICKNESS) * COOLDOWN_PER_THICKNESS_CX) / 10000);
+  return cx < COOLDOWN_FLOOR_CX ? COOLDOWN_FLOOR_CX : cx;
+}
+
+/**
+ * Ballistik einer Pflanze. Rolle-gesteuert nach D5: nur `shooter` schießen — Wand und
  * Unterstützung erhalten das neutrale Profil, damit ein „Durchschlag" nie über einen Effekt-
  * Tag an eine Mauer gerät.
  */

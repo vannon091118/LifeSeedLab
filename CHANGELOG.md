@@ -9,10 +9,11 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ## Unreleased (Arbeitsstand 19.–21.09.2026)
 
+- [Rebase Correction] Vier übersehene historische Dateien nachgetragen; selbst der Slice-Zähler bekam einen kleinen Käfer.
 - [Rebase Slice 6] Kernzustand und Shinon-Verkabelung werden getrennt statt als historischer Brei serviert.
 - [Rebase Slice 5] Simulations- und Renderpfade kommen in einer weiteren kontrollierten Scheibe.
 - [Rebase Slice 4] Noch ein begrenzter Block; der Commit-Riese wird Stück für Stück entzaubert.
-- [Vector-Gate] Golden-Hash-Anker fail-closed: fehlt `tools/.tmp/vector_golden_hash.txt`, ist der Test rot, statt den Ist-Wert still als Anker zu schreiben; Sichern nur noch bewusst via `GOLDEN_BOOTSTRAP=1`, CI injiziert den Wert aus dem Repo-Secret `GOLDEN_HASH` (Cross-Platform-Determinismus wird damit erstmals erzwungen statt angenommen).
+- [Vector-Gate] Golden-Hash-Anker fail-closed: fehlt `tools/.tmp/vector_golden_hash.txt`, ist der Test rot, statt den Ist-Wert still als Anker zu schreiben; Sichern nur noch bewusst via `GOLDEN_BOOTSTRAP=1`, CI injiziert den Wert aus dem Repo-Secret `GOLDEN_HASH` (Cross-Platform-Determinismus wird damit erstmals erzwungen statt angenommen). Bei Drift benennt der Test die erste abweichende Feldzelle (IST-only-Diagnose, Anker-Format v2).
 
 - [Rebase Slice 3] Der nächste historische Block bleibt klein; selbst Git darf heute einmal ordentlich atmen.
 - [Rebase Slice 2] Die historische Änderung bleibt in kleinen, prüfbaren Scheiben; Git darf weiter so tun, als sei ein 152-Dateien-Commit eine Persönlichkeit.
