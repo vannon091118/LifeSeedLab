@@ -204,12 +204,25 @@ export class SimulationRoot {
       this.projectiles.update(state);
       this.enemies.applyStatusTicks(state);
 
+      // P-26: Biss → Reflex. Kein System ruft ein System: biteIntents liefert reine Absichten,
+      // receiveBite ist der Writer der Pflanzen, und der Reflex geht über applyDamage —
+      // denselben Pfad wie ein Pflanzenschuss (quelle: die beißende Pflanze).
+      for (const intent of this.enemies.biteIntents(state)) {
+        const res = this.plants.receiveBite(state, intent.plantId, intent.amount);
+        if (res.reflect > 0) {
+          this.enemies.applyDamage(state, intent.enemyId, res.reflect, false, null, intent.plantId);
+        }
+      }
+
+      // Heil-Aura wirkt im KAMPF: Wunden entstehen durch Bisse (P-26). Vorher lief sie nur
+      // im prep — wo es nie Wunden gab, deshalb „Myzel macht nichts“ (Spieltest-Befund).
+      this.plants.healTick(state);
+
       // P6: Brutling kämpft mit (gleiche Kampfpfade, ein Writer für den Slice)
       this.enemies.updateBeetle(state);
 
       // combo scoring: kills handled via ENEMY_DIED events below
     } else if (state.phase === 'prep') {
-      this.plants.healTick(state);
       this.waves.maybeAutoStart(state);
     }
 

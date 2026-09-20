@@ -174,6 +174,8 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
   eines Laufs.
 
 ### Intern (Technik, Verträge & Tests)
+- [Sim/P-26] **Drei von vier Pflanzen tun nichts — also ließ ich die Gegner fressen (Devlog 22).** Black-Box-Spieltest v0.0.71 (5 Läufe, beste Welle 5): Mauer `EFFECT_REFLECT` und Myzel `EFFECT_HEAL` als `visual-only`-Tags — 300 HP nie berührt, Heil-Aura nur im `prep` ohne Wunden. Jetzt hält die Mauer auf: **Tank und Boss bleiben stehen und fressen** (`stopsToEat` je Archetyp + `ENEMY_BITE = {damage:10, cooldownTicks:30, reach:1.05, share:0.2}` als Content in `config/enemies.source.ts` — Tank ab Welle 6, Boss ab Welle 10; Grunt/Fast/Swarm ziehen vorbei). Geometrie-Eigentümer `biteTarget` in `enemySystem.ts` (Beißen und Halten lesen denselben Ort), Pflanzen-Writer `receiveBite` in `plantSystem.ts` (einziger Ort mit `PLANT_WITHERED`, Reflex = resolved Schaden bei `EFFECT_REFLECT`), Heilung im Kampf (`root.ts`: `healTick` im `wave`-Zweig, im `prep` nicht mehr). **Alle Zahlen gemessen, EINE Quelle:** Seed `555010`, Mauer (5,1), 1200 Ticks (40 s) → Welle 1: **300→300** (0 Bisse, 0 stehende Ticks), Welle 6: **300→0 in 30 Bissen**, **472 stehende Ticks (39 %)**, Tod bei ~1168, Tank 285 HP (150×1.9) — alle Details, Sonde und Grenzen in **Devlog 22** (`docs/process/devlog/2026-09-20_22_pflanzen-und-bericht.md`). Belege: `src/simulation/plant_defense.test.ts` (8 Pins). `ENEMY_BITE.share` und `healTick`-Umzug sind beabsichtigt (kein Revert). Tank 6 / Boss 10 ist **Entscheidung des Eigentümers** (Audit-Hinweis „erst ab Welle 10" war Grunt-Fassung, die Welle 2 unspielbar machte).
+- [Tooling] Optimiere test-lane-Script (--coverage=false) und bereinige placement_map-Test (entferne unused imports und kommentierten Test)
 
 - [UI] **B27 nachgezogen: EINE Pflanzen-Kachel für alle Listen.** `PlantVariantThumb`
   (`components/PhenotypeCanvas`) baut den Phänotyp mit derselben Ableitung wie das Feld
@@ -202,6 +204,7 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
   Ignorier-Zeile für die Scratch-Ablage der Experimente. Version **0.0.71 → 0.0.74**
   (`package.json` + `src/version.ts`, Lock in `version.test.ts`).
 
+- [Sim] **P-26 Contract gepinnt.** `docs/quality/contracts/simulation.md` trägt jetzt den QA-Abgleich 20.09.2026 für P-26 (Content-Fahne, Halten+Weiterlaufen, `ENEMY_BITE`, `receiveBite`, `healTick` im Kampf) mit Verweis auf Devlog 22 als einzige Zahlenquelle; ROADMAP §3 (P-26) und §4 dokumentieren die Eigentümer-Entscheidung Tank 6 / Boss 10. Devlog-Verzeichnis: `docs/process/devlog/README.md` um Eintrag 22 erweitert.
 - [Vertrag] **B31 — Sichtbarkeit der Brutkandidaten ist gepinnt (Devlog 21).** Der
   **Sichtbarkeits-Gewinn** der formtragenden Maße steht in `src/render/beetles`
   (`BEETLE_DRAW_GAIN` + `beetleDrawMetrics`, Zeichnung und Messung lesen dieselbe Formel); die

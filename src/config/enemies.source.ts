@@ -20,17 +20,37 @@ export interface EnemySource {
   // das ist Content-Stand, keine Regel: sie dürfen sich trennen, ohne dass Code folgt.
   reward: number;
   scoreValue: number;
+  /** P-26 (Entscheidung des Eigentümers, 20.09.2026): bleibt der Gegner an einer Pflanze
+   *  stehen und frisst sie (`ENEMY_BITE`), statt weiterzuziehen. Die Wurzelmauer hält damit
+   *  auf und zahlt per EFFECT_REFLECT zurück. TRUE nur für Tank und Boss: eine erste Fassung
+   *  mit fressenden Grunts machte das Frühspiel unspielbar (Game Over in Welle 2). */
+  stopsToEat: boolean;
 }
+
+/** Der Biss der Gegner auf PFLANZEN (P-26) und der Gegenzahn auf den Brutling (P6):
+ *  ein Content-Objekt, damit Balance keine Code-Edits braucht. Gemessen (Seed 555010,
+ *  Tank an der Mauer): Devlog 22 — die EINE Zahlenquelle dieser Mechanik. */
+export const ENEMY_BITE = {
+  /** Schaden je Biss auf die Pflanze. */
+  damage: 10,
+  /** Anteil des Gegner-Schadens, den der Brutling pro Gegenzahn nimmt (P6, vorher 0.2/0.1
+   *  als Literale im Code — der Mit-Brutling nimmt die Hälfte). */
+  share: 0.2,
+  /** Biss-Kadenz in Ticks (alle 30 Ticks = 1 s). */
+  cooldownTicks: 30,
+  /** Biss-Reichweite in Zellen (Zellmitte zu Gegnerposition). */
+  reach: 1.05,
+} as const;
 
 export const ENEMIES_SOURCE: Record<EnemySource['id'], EnemySource> = {
   // Q1 (QA 2026-09-17): Welle 1 tötete Erstspieler in ~15 s. Grunt-Durchbruch war mit 10
   // = halbes Leben — zwei Durchbrüche ware Game Over, bevor der Loop vermittelbar ist.
   // 4 ist vermittelbar (5 Durchbrüche), 40 HP lassen 3 Spross-Treffer zu (15 dmg).
-  grunt: { id: 'grunt', hp: 40,  speed: 0.02,  damage: 4,   reward: 10,  scoreValue: 10 },
-  fast:  { id: 'fast',  hp: 25,  speed: 0.045, damage: 5,   reward: 15,  scoreValue: 15 },
-  tank:  { id: 'tank',  hp: 150, speed: 0.012, damage: 25,  reward: 30,  scoreValue: 30 },
-  swarm: { id: 'swarm', hp: 15,  speed: 0.035, damage: 3,   reward: 5,   scoreValue: 5 },
-  boss:  { id: 'boss',  hp: 800, speed: 0.008, damage: 100, reward: 150, scoreValue: 150 },
+  grunt: { id: 'grunt', hp: 40,  speed: 0.02,  damage: 4,   reward: 10,  scoreValue: 10,  stopsToEat: false },
+  fast:  { id: 'fast',  hp: 25,  speed: 0.045, damage: 5,   reward: 15,  scoreValue: 15,  stopsToEat: false },
+  tank:  { id: 'tank',  hp: 150, speed: 0.012, damage: 25,  reward: 30,  scoreValue: 30,  stopsToEat: true },
+  swarm: { id: 'swarm', hp: 15,  speed: 0.035, damage: 3,   reward: 5,   scoreValue: 5,   stopsToEat: false },
+  boss:  { id: 'boss',  hp: 800, speed: 0.008, damage: 100, reward: 150, scoreValue: 150, stopsToEat: true },
 };
 
 export interface WaveSpawnGroup {

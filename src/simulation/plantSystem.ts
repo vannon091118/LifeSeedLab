@@ -267,6 +267,29 @@ export class PlantSystem {
     }
   }
 
+  /**
+   * P-26: Writer der Pflanzen für BISSE — der einzige Ort, an dem ein Gegner einer Pflanze
+   * HP nimmt. Der Reflex ist keine zweite Buchung im Angreifer: eine Sorte mit
+   * EFFECT_REFLECT zahlt ihren RESOLVED-Schaden (Topf-Bonus inklusive) an den beißenden
+   * Gegner zurück — die Wurzelmauer wehrt sich also mit genau der Zahl, die sie auch als
+   * Türme tragen würden. Tod ⇒ PLANT_WITHERED (Bus-Vertrag), bevor der Zustand verlassen wird.
+   */
+  receiveBite(state: SimState, plantId: string, amount: number): { died: boolean; reflect: number } {
+    const plant = state.plants.find(p => p.id === plantId);
+    if (!plant) return { died: false, reflect: 0 };
+    const stats = plantStatsAt(state, plant.variantId, plant.gx, plant.gy);
+    plant.hp -= Math.max(1, Math.floor(amount));
+    const reflect = stats && stats.effects.includes('EFFECT_REFLECT') ? Math.max(0, stats.damage) : 0;
+    if (plant.hp <= 0) {
+      state.plants.splice(state.plants.indexOf(plant), 1);
+      this.emit(makeEvent(state.clock.tick, 'PLANT_WITHERED', plant.id, state.plants.length, {
+        plantId: plant.id, variantId: plant.variantId, gx: plant.gx, gy: plant.gy,
+      }));
+      return { died: true, reflect };
+    }
+    return { died: false, reflect };
+  }
+
   /** Support plants: heal aura. */
   healTick(state: SimState): void {
     for (const plant of state.plants) {

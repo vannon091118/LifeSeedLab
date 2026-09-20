@@ -5,7 +5,7 @@
 // dieses System hält KEINE zweite Kopie mehr (A14: drei Tode derselben Wahrheit).
 
 import type { SimState, EnemyEntity } from './state';
-import { ENEMIES_SOURCE, type EnemySource } from '../config/enemies.source';
+import { ENEMIES_SOURCE, ENEMY_BITE, type EnemySource } from '../config/enemies.source';
 import type { RoutePoint } from '../config/world.source';
 import { makeEvent, type GameEvent } from '../bus/events';
 import { nextId } from '../core/ids';
@@ -69,7 +69,10 @@ export class EnemySystem {
     return e;
   }
 
-  /** Move all enemies along the ACTIVE path; returns lives leaked this tick. */
+  /** Move all enemies along the ACTIVE path; returns lives leaked this tick.
+   *  P-26: ein Gegner mit `stopsToEat` (Tank/Boss) bleibt stehen, solange eine Pflanze
+   *  in Biss-Reichweite steht — die Bewegung wird übersprungen, der Biss landet auf der
+   *  Kadenz (biteIntents, Root bucht). Ist die Pflanze tot, läuft er weiter. */
   update(state: SimState): number {
     let leaked = 0;
     const path = this.activePath(state);
@@ -79,11 +82,12 @@ export class EnemySystem {
         e.hp = 0;
         continue;
       }
+      const src = (ENEMIES_SOURCE as Record<string, EnemySource>)[e.typeId];
+      if (src?.stopsToEat && this.biteTarget(state, e)) continue;
       const target = path[e.pathIndex + 1];
       const dx = target.x - e.px;
       const dy = target.y - e.py;
       const d = Math.sqrt(dx * dx + dy * dy) || 1;
-      const src = (ENEMIES_SOURCE as Record<string, EnemySource>)[e.typeId];
       const slowed = state.clock.tick < e.slowUntil;
       const speed = (src?.speed ?? 0.02) * (slowed ? 0.5 : 1);
       if (d < speed) {
@@ -99,6 +103,38 @@ export class EnemySystem {
 
     state.enemies = state.enemies.filter(e => e.hp > 0);
     return leaked;
+  }
+
+  /**
+   * P-26: Biss-Absichten DIESER Tick — reine Daten, kein Zustand. Die Geometrie hat EINEN
+   * Eigentümer (`biteTarget`), den Beißen (hier) und das Halten (`update`) gemeinsam lesen;
+   * sonst wären „in Reichweite“ und „hält an“ zwei Wahrheiten, die auseinanderlaufen können.
+   * Kadenz und Reichweite stehen in `ENEMY_BITE` (Content).
+   */
+  biteIntents(state: SimState): Array<{ enemyId: string; plantId: string; amount: number }> {
+    if (state.clock.tick % ENEMY_BITE.cooldownTicks !== 0) return [];
+    const intents: Array<{ enemyId: string; plantId: string; amount: number }> = [];
+    for (const e of state.enemies) {
+      const src = (ENEMIES_SOURCE as Record<string, EnemySource>)[e.typeId];
+      if (!src?.stopsToEat) continue;
+      const plantId = this.biteTarget(state, e);
+      if (plantId) intents.push({ enemyId: e.id, plantId, amount: ENEMY_BITE.damage });
+    }
+    return intents;
+  }
+
+  /** Nächste Pflanze in Biss-Reichweite (Zellmitte-Distanz, Ties: erste im Array — deterministisch). */
+  private biteTarget(state: SimState, e: EnemyEntity): string | null {
+    const reach2 = ENEMY_BITE.reach * ENEMY_BITE.reach;
+    let bestId: string | null = null;
+    let bestD = Infinity;
+    for (const p of state.plants) {
+      const dx = p.gx + 0.5 - e.px;
+      const dy = p.gy + 0.5 - e.py;
+      const d = dx * dx + dy * dy;
+      if (d <= reach2 && d < bestD) { bestD = d; bestId = p.id; }
+    }
+    return bestId;
   }
 
   /**
@@ -308,8 +344,9 @@ export class EnemySystem {
     // Gegenseitiger Schaden: Gegner beißen zurück (Brutling-HP sinkt; Splash auf Mit-Brutlinge)
     if (d <= 0.55 && state.clock.tick % 30 === 0) {
       const src = (ENEMIES_SOURCE as Record<string, EnemySource>)[target.typeId];
-      b.hp -= Math.max(1, Math.round((src?.damage ?? 5) * 0.2));
-      for (const br of b.broodlings) br.hp -= Math.max(1, Math.round((src?.damage ?? 5) * 0.1));
+      // Gegenzahn aus dem Content (ENEMY_BITE.share) statt Literale im Code.
+      b.hp -= Math.max(1, Math.round((src?.damage ?? 5) * ENEMY_BITE.share));
+      for (const br of b.broodlings) br.hp -= Math.max(1, Math.round((src?.damage ?? 5) * ENEMY_BITE.share * 0.5));
       b.broodlings = b.broodlings.filter(br => br.hp > 0);
     }
 

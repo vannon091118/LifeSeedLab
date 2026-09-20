@@ -6,8 +6,6 @@ import { SimulationRoot, makeCommand } from './root';
 import { makeRoot } from '../testing/testkit';
 import { resetIds } from '../core/ids';
 import { cellRejectReason, placementRejectReason } from './placementRules';
-import { AUTO_WAVE_DELAY_TICKS } from '../config/economy.source';
-import { autoStartTicksLeft } from './waveTiming';
 
 const SEED = 555001;
 
@@ -372,17 +370,3 @@ describe('Platzierungsregeln — Pool vor Geometrie (#4)', () => {
   });
 });
 
-// B23.1 — Der Befund beider Spielerberichte, als Messung gegen die echte Sim:
-// „Ich habe mehrfach in Welle 1 mit Score 0 verloren, weil der Kampf begann, bevor ich eine
-// Pflanze stehen hatte." Vorher startete `maybeAutoStart` die Welle nach AUTO_WAVE_DELAY_TICKS,
-// unabhängig davon, ob überhaupt etwas auf dem Feld stand.
-
-const PREP_SEED = 2447771834;
-
-function place(root: SimulationRoot, variantId: string, gx: number, gy: number, seq = 1): void {
-  root.commands.push(makeCommand(root.clock.get().tick, 'PLACE_PLANT', seq, { variantId, gx, gy }));
-}
-
-function advance(root: SimulationRoot, ticks: number): void {
-  for (let i = 0; i < ticks; i++) root.stepOnce();
-}

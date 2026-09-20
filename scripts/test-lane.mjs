@@ -64,7 +64,7 @@ if (changed.length === 0) {
   process.exit(0);
 }
 
-const related = runVitest(['related', ...changed, '--run']);
+const related = runVitest(['related', ...changed, '--run', '--coverage=false']);
 if (related.code !== 0) {
   verdict(`IMPACTED (${changed.length} berührte Dateien)`, related.ms);
   process.exit(related.code);
