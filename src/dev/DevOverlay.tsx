@@ -71,11 +71,15 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 10, padding: '8px 10px', fontSize: 11, lineHeight: 1.35,
     fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', zIndex: 4,
     maxHeight: 220, overflow: 'auto', backdropFilter: 'blur(6px)',
+    // Lesefläche, KEIN Eingabefeld: das Overlay liegt über Tray und unterem Brett — mit
+    // pointer-events:auto schluckte es jeden Tap dort (Befund 20.09.2026: im Dev-Modus ließ
+    // sich keine Tray-Karte auswählen). Nur der FX-Knopf nimmt Klicks wieder an.
+    pointerEvents: 'none' as const,
   },
   row: { display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 6 },
   k: { color: '#94a3b8', fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6 },
   v: { color: '#e2e8f0', fontWeight: 700, background: '#0f172a', border: '1px solid #1e293b', borderRadius: 6, padding: '1px 6px' },
-  btn: { padding: '4px 8px', background: '#1e293b', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' },
+  btn: { padding: '4px 8px', background: '#1e293b', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', pointerEvents: 'auto' as const },
   log: { borderTop: '1px solid #1e293b', paddingTop: 6 },
   logLines: { display: 'flex', flexDirection: 'column', gap: 2, marginTop: 4, maxHeight: 80, overflow: 'auto' },
   logLine: { color: '#cbd5e1', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },

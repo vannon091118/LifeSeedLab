@@ -11,6 +11,16 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ### Für Spieler
 
+- **Deine eigenen Pflanzen lassen sich wieder setzen.** In manchen Spielständen stand in der
+  Leiste „Spross (Keim 6) ×1" — aber egal wohin du getippt hast, es passierte nichts: der Lauf
+  kannte die Zahlen dieser Samen nicht mehr. Jetzt holt er sie beim Start aus dem Erbgut der
+  Pflanze selbst, also stimmen Anzeige und Wirkung wieder überein. Betrifft alte Spielstände;
+  neue Pflanzen waren nie betroffen.
+- **Der Entwickler-Blick verdeckt nichts mehr.** Im Dev-Modus (URL mit `?dev=1`) lag das
+  Diagnose-Fenster über der Werkzeugleiste und schluckte die Klicks: Karten ließen sich nicht
+  mehr auswählen, das untere Drittel des Feldes nahm keine Berührung mehr an. Das Fenster ist
+  jetzt reine Anzeige, nur sein FX-Schalter nimmt Klicks.
+
 - **Der Blumentopf tut jetzt, was auf ihm steht.** Vorher war er nur ein Klotz im Weg, obwohl die
   Beschreibung „Platz für Pflanzen" versprach. Jetzt verstärkt er die Pflanze, die auf ihm steht —
   und seine FARBE sagt, wie: Bernstein mehr Schaden, Violett mehr Reichweite, Moos schießt
@@ -129,6 +139,23 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
   eines Laufs.
 
 ### Intern (Technik, Verträge & Tests)
+
+- [Meta/B1.1] **Run-Stats kennen jetzt JEDE Loadout-Variante (Befund: „kann keine Pflanze auf freie
+  Plätze platzieren").** Ursache gemessen, nicht vermutet: der Run löst Zahlen über
+  `getPlantStats(variantId, bredStats)` auf, und `bredStats` wird erst seit B1 bei der Registrierung
+  geschrieben — Bestandssaves (hier: `seed_3/5/6/7` in `loadout`, `bredStats` nur `seed_13/14`)
+  hatten für ihren Bestand keinen Eintrag. Folge: `plantStatsAt` → `null`, die Vorschau lehnt jede
+  Zelle mit `unknown` ab, die Sim mit `no_inventory` — Tray zeigt ×1, nichts setzbar. BELEGT per
+  lebender Mutation: mit eingetragenem Eintrag steht dieselbe Pflanze auf derselben Zelle.
+  Reparatur an der Nachtstelle: `meta/run.ts:deriveRunStats` heilt fehlende Einträge aus dem Genom
+  über DIESELBE Funktion wie die Registrierung (`deriveBredEntry`) — vorhandene Einträge bleiben
+  bitgleich, der Leih-Anker bleibt die einzige Sonderregel. Vertrag + 7 Gates in
+  `meta/run_stats.test.ts` (inkl. Sim-Fall), Mutation geprüft: ohne Heilung 4 rot.
+- [Dev/B7.6] **Das Dev-Overlay nimmt keine Spiel-Eingabe mehr an.** Es liegt mit `left:8 right:8
+  bottom:64` über Tray und unterem Brett; `elementFromPoint` lieferte auf der Tray-Karte das
+  Overlay, der Karten-Handler lief nie (`releasePointerCapture` wurde nicht aufgerufen) — im
+  Dev-Modus war keine Karte wählbar, und Brett-Taps im unteren Drittel kamen nicht an. Jetzt
+  `pointerEvents:'none'` auf der Lesefläche, `'auto'` nur auf dem FX-Knopf (Toggle weiter belegt).
 
 - [Sim/D1] **Kein Kontostand im Run: `resources.experience` ist gestrichen.** Das Feld hatte genau
   einen Writer (`scoreSystem.onEnemyDied`, 1–5 „Erfahrung" über den loot-Strom) und KEINEN Leser —

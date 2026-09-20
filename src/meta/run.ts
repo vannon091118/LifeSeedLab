@@ -20,6 +20,30 @@ export function canonicalVariantId(id: string): string {
 }
 
 /**
+ * Stats-Map EINES Runs: jede Variante, die der Run platzieren kann, muss darin auflösbar sein.
+ *
+ * Die Sim löst Stats über `getPlantStats(variantId, bredStats)` auf (PLANTS_SOURCE kennt nur die
+ * Basis-Drei + `loan_sprout`). `bredStats` wird seit B1 bei jeder Registrierung gefüllt — Altsaves
+ * tragen für ihren Bestand aber keinen Eintrag (Befund 20.09.2026: Tray zeigt ×1, jede Zelle wird
+ * mit `unknown`/`no_inventory` abgelehnt, der Spieler kann seine Sammlung nicht setzen).
+ *
+ * Deshalb wird hier JEDER fehlende Eintrag deterministisch aus dem Genom abgeleitet — mit
+ * DERSELBEN Funktion wie bei der Registrierung (`deriveBredEntry`), also ohne zweite Wahrheit
+ * und ohne Zahlen zu erfinden. Vorhandene Einträge bleiben unangetastet (kein Balance-Drift
+ * für Bestandssaves).
+ */
+export function deriveRunStats(
+  variants: ReadonlyArray<PlantVariant>,
+  bredStats: MetaSave['bredStats'],
+): NonNullable<MetaSave['bredStats']> {
+  const stats: NonNullable<MetaSave['bredStats']> = { ...(bredStats ?? {}) };
+  for (const variant of variants) {
+    if (!(variant.id in stats)) stats[variant.id] = deriveBredEntry(variant);
+  }
+  return stats;
+}
+
+/**
  * Fortsetzen bezahlen: 25 Nektar je erreichter Welle, ohne Cap (Entscheidung 19.09.2026).
  * Ein Abbruch BEENDET den Lauf — es gibt kein kostenloses Wiedereinsteigen. Fail-closed: reicht
  * der Nektar nicht, bleibt der Save unverändert und es wird NICHT fortgesetzt.

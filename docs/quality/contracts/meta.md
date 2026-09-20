@@ -134,6 +134,23 @@ Damit ist der einzige Ort, an dem Zucht spielbar wird, unerreichbar: **jede Rund
 - `freshState`: `discoveredVariants` = source ids ∪ loadout ids; `inventory` = STARTING_INVENTORY ∪ loadout×2; `runCounter = runId`.
 - `BreedingLab` "Keep": consumes 1× of each parent count, increments `breedGeneration` (persisted), registers child.
 
+### B1.1 (behoben 20.09.2026) — Run-Stats müssen JEDE Loadout-Variante kennen
+
+Der Run löst Pflanzenzahlen über `getPlantStats(variantId, bredStats)` auf (`PLANTS_SOURCE` kennt nur die
+Basis-Drei + `loan_sprout`). `bredStats` wird seit B1 bei jeder Registrierung gefüllt — **Bestandssaves**
+(vor dieser Regel erzeugt) tragen für ihren Bestand aber keinen Eintrag. Folge im Live-Save gemessen: die
+Tray zeigt den Samen als ×1, `plantStatsAt` liefert `null`, die Vorschau lehnt **jede** Zelle mit `unknown`
+ab und die Sim mit `no_inventory` — der Spieler kann seine Sammlung nicht setzen („Ich kann keine Pflanze
+auf freie Plätze platzieren").
+
+**Regel:** Der Run-Start heilt die Map (`deriveRunStats`, `meta/run.ts`) — jede Loadout-Variante ohne Eintrag
+bekommt ihn deterministisch aus ihrem Genom über **dieselbe** Funktion wie die Registrierung
+(`deriveBredEntry`). Vorhandene Einträge bleiben unangetastet (kein Balance-Drift), der Leih-Anker
+(`PLANTS_SOURCE`-Rollen-Effekte) bleibt die einzige Sonderregel. Damit gilt: **platzierbar ⇒ auflösbar**.
+
+**Beweis:** `src/meta/run_stats.test.ts` (7 Gates: Lücke, Heilung, Bestandsschutz, Determinismus, Quelle,
+Sim-Ablehnung ohne Heilung, Sim-Annahme mit Heilung).
+
 ## B14. Lifecycle-Identität, Snapshot-Budget & Reife-Gates (Auftrag aus A13)
 
 Ziel: **jede Entitäts-Identität ist monoton und global eindeutig; jedes Gate ist fail-closed; jede Wahrheit hat genau eine Ableitung.**

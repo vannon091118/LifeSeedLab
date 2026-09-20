@@ -65,6 +65,8 @@ Gefunden bei der Sichtprüfung, nicht in der Simulation: Mit Sprache **English**
 
 **DevGate (B7.6)** — `#dev` hash or `?dev=1` reveals: state hash, tick, event log (last 20), particle count/budget, seed + runId, FX toggle, RNG draw counters, entity inspector (entity id / variantKey / visual seed / palette). Release build: zero dev surface, zero seed badge, zero counters.
 
+**Dev Overlay ist Lesefläche (20.09.2026)** — es liegt über Tray und unterem Brett; mit `pointer-events:auto` schluckte es jeden Tap dort, im Dev-Modus ließ sich keine Tray-Karte auswählen (Befund „kann keine Pflanze platzieren"). Regel: das Overlay nimmt **keine** Spiel-Eingabe an (`pointer-events:none`); nur seine eigenen Bedienelemente (FX-Knopf) schalten sich wieder scharf.
+
 ## B9. UI kit + icons (SVG, single `ui/icons.tsx`)
 
 - Icons (24×24, 2 px ink stroke, paper fill): energy-drop, heart-leaf, wave, play, pause, settings-gear, language-globe, nektar-drop, trophy, dna-helix, sword, shield, plus, x, back-arrow, volume, volume-off, bug (dev only).

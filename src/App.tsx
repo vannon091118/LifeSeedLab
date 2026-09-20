@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { MetaSave, GameMode } from './types';
-import { loadMeta, beginRun, updateMeta, deriveLoanPlant, LOAN_PLANT_ID } from './meta';
+import { loadMeta, beginRun, updateMeta, deriveLoanPlant, deriveRunStats, LOAN_PLANT_ID } from './meta';
 import { I18nProvider, detectLangFromMeta } from './i18n';
 import { deriveSeed } from './core/rng';
 import { EPOCH_ROOT, RUN_SEED_VERSION } from './config';
@@ -147,16 +147,19 @@ function AppInner() {
         const loanEffectsBase = loanVariant.type === 'wall'
           ? 'rootwall'
           : loanVariant.type === 'support' ? 'mycelia' : 'sprout';
-        const runBredStats = hasLoan
-          ? {
-              ...meta.bredStats,
-              [LOAN_PLANT_ID]: {
-                ...loanStats,
-                cost: meta.savedVariants.find(v => v.id === LOAN_PLANT_ID)?.cost ?? loanVariant.cost,
-                effects: PLANTS_SOURCE[loanEffectsBase].effects,
-              },
-            }
-          : meta.bredStats;
+        const runBredStats = deriveRunStats(
+          runVariants,
+          hasLoan
+            ? {
+                ...meta.bredStats,
+                [LOAN_PLANT_ID]: {
+                  ...loanStats,
+                  cost: meta.savedVariants.find(v => v.id === LOAN_PLANT_ID)?.cost ?? loanVariant.cost,
+                  effects: PLANTS_SOURCE[loanEffectsBase].effects,
+                },
+              }
+            : meta.bredStats,
+        );
         return (
           <GameView
             key={meta.runId}
