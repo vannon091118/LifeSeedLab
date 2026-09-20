@@ -40,9 +40,9 @@ OUTPUT:
 { "version":1, "strategy":"...", "actions":[ ... ] }` as const;
 
 /** Die drei Agent-Actions (Plan §5) — bewusst eng. */
-export type AgentActionType = 'PLACE_PLANT' | 'FERTILIZE_PLANT' | 'START_WAVE';
+type AgentActionType = 'PLACE_PLANT' | 'FERTILIZE_PLANT' | 'START_WAVE';
 
-export interface AgentAction {
+interface AgentAction {
   type: AgentActionType;
   /** PLACE_PLANT */
   variantId?: string;
@@ -54,14 +54,14 @@ export interface AgentAction {
   confidence?: number;
 }
 
-export interface AgentDecision {
+interface AgentDecision {
   version: number;
   strategy: 'defend_route' | 'stabilize' | string;
   actions: AgentAction[];
 }
 
 /** Ergebnis der Verarbeitung: Commands für die Queue + Audit-Trail. */
-export interface BridgeResult {
+interface BridgeResult {
   ok: boolean;
   /** Valide Commands (leer im Fallback — KEIN Blindflug). */
   commands: Command[];
@@ -156,6 +156,6 @@ function validateAndBuild(
 }
 
 /** Typ-Gate für den Command-Vokabular-Ausschnitt, den die Bridge erzeugen darf. */
-export type AgentCommandType = Extract<CommandType, 'PLACE_PLANT' | 'FERTILIZE_PLANT' | 'START_WAVE'>;
+type AgentCommandType = Extract<CommandType, 'PLACE_PLANT' | 'FERTILIZE_PLANT' | 'START_WAVE'>;
 export type AgentCommand = Extract<Command, { type: AgentCommandType }>;
 export type AgentCommandPayloads = Pick<CommandPayloads, AgentCommandType>;

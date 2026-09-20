@@ -174,7 +174,6 @@ describe('P-26 Verhalten am SimulationRoot', () => {
       stepN(root, 1);
       const s = root.getSnapshot();
       const wall = s.plants.find(p => p.variantId === 'rootwall');
-      const decay = wall ? lastWallHp - wall.hp : 10; // Wand weg ⇒ letzter Biss zählt
       if (wall && wall.hp < lastWallHp) {
         wallBites += (lastWallHp - wall.hp) / ENEMY_BITE.damage;
         lastWallHp = wall.hp;

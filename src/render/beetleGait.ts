@@ -58,7 +58,7 @@ export function bobAmplitudeOf(p: BeetlePhenotype): number {
   return BOB_PER_STYLE[p.motion.style];
 }
 
-export interface GaitSample {
+interface GaitSample {
   /** 0..1 innerhalb des aktuellen Zyklus. */
   phase: number;
   /** Gebackenes Bild-Index für den Sprite-Cache. */

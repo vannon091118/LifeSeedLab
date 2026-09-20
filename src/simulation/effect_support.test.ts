@@ -9,7 +9,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { EFFECT_IDS, EFFECTS_SOURCE } from '../config/effects.source';
-import { EFFECT_SIM_SUPPORT, statusForEffect, statusTicksOf } from './effectSupport';
+import { EFFECT_SIM_SUPPORT, statusForEffect, statusTicksOf, statusDotOf, STATUS_EFFECT_OF } from './effectSupport';
 
 describe('Effekt-Vertrag: Source ↔ Simulation', () => {
   it('jeder Effekt der Source ist deklariert — und nichts darüber hinaus', () => {
@@ -62,6 +62,25 @@ describe('Effekt-Vertrag: Source ↔ Simulation', () => {
     expect(statusTicksOf('EFFECT_BURN')).toBe(3);
     expect(statusTicksOf('EFFECT_POISON')).toBe(5);
     expect(statusTicksOf(null)).toBe(0);
+  });
+
+  it('DoT-Konsistenz: jeder Status mit Schaden hat Content-Zahl, Schaden-ohne-Status ist unmöglich', () => {
+    // Regel 4 (eine Wahrheit): burn 2/tick und poison 1/tick standen als Literale im Sim-Code;
+    // jetzt hängt die Zahl an den Content-Effekten und wird nur noch abgeleitet. Ein Status
+    // ohne DoT-Eintrag (slow) liefert 0 — ein Effekt mit statusDamage ohne Status wäre ein
+    // Defekt, weil die Zahl nie gerechnet würde (toter Content).
+    expect(statusDotOf('burn')).toBe(2);
+    expect(statusDotOf('poison')).toBe(1);
+    expect(statusDotOf('slow')).toBe(0);
+    for (const id of EFFECT_IDS) {
+      const dmg = EFFECTS_SOURCE[id].statusDamage;
+      const status = EFFECT_SIM_SUPPORT[id].status;
+      if (status) {
+        expect(EFFECTS_SOURCE[STATUS_EFFECT_OF[status]].statusDamage).toBe(dmg);
+      } else {
+        expect(dmg, `${id} trägt DoT-Schaden ohne Status — toter Content`).toBeNull();
+      }
+    }
   });
 
   it('die offenen Effekte sind GEZÄHLT, nicht vergessen', () => {

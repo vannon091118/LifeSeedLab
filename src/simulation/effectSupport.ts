@@ -19,16 +19,16 @@ import type { EffectId } from '../config/effects.source';
 import { EFFECTS_SOURCE } from '../config/effects.source';
 
 /** `sim` = die Simulation rechnet den Effekt · `visual-only` = bewusst noch Optik (P3/P4/P5). */
-export type EffectSupport = 'sim' | 'visual-only';
+type EffectSupport = 'sim' | 'visual-only';
 
 /**
  * Status-Wirkung eines Effekts auf einen Gegner. `null` = kein Status.
  * `enemySystem` liest NUR diese Ableitung — es gibt keine zweite `if`-Kette mehr, die
  * festlegt, welcher Effekt welchen Status setzt.
  */
-export type StatusKind = 'slow' | 'burn' | 'poison';
+type StatusKind = 'slow' | 'burn' | 'poison';
 
-export interface EffectEntry {
+interface EffectEntry {
   support: EffectSupport;
   /** Status, den ein Treffer setzt (nur relevant, wenn `support === 'sim'`). */
   status?: StatusKind;
@@ -80,3 +80,20 @@ export function statusTicksOf(effectId: string | null): number {
   if (!effectId) return 0;
   return EFFECTS_SOURCE[effectId as EffectId]?.statusTicks ?? 0;
 }
+
+/**
+ * Schaden pro Tick, den der STATUS anrichtet (DoT) — gelesen aus der Content-Wahrheit
+ * (`effects.source.statusDamage`), nicht hier gepflegt. Die Literale 2 (burn) und 1 (poison)
+ * standen vorher mitten in `enemySystem.applyStatusTicks`; gerechnet wird sie vom StatusSystem
+ * (eigenes Modul, Regel-1-Split vor der Vector-Feld-Integration).
+ */
+export function statusDotOf(status: StatusKind): number {
+  return EFFECTS_SOURCE[STATUS_EFFECT_OF[status]]?.statusDamage ?? 0;
+}
+
+/** Der repräsentative Content-Effekt je Status — Lesepfad für die DoT-Ableitung (Gate-pinned). */
+export const STATUS_EFFECT_OF: Record<StatusKind, EffectId> = {
+  slow: 'EFFECT_SLOW',
+  burn: 'EFFECT_BURN',
+  poison: 'EFFECT_POISON',
+};

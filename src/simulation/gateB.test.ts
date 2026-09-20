@@ -9,7 +9,6 @@ import { Camera } from '../render/camera';
 import { resolvePlantStats } from './plantSystem';
 import { ScoreSystem } from './scoreSystem';
 import { ComboSystem } from './comboSystem';
-import { makeRng } from '../core/rng';
 import type { GameEvent } from '../bus/events';
 
 const SEED = 771123;

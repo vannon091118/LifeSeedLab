@@ -354,8 +354,3 @@ export function drawPlantAnatomy(ctx: CanvasRenderingContext2D, p: PlantPhenotyp
 }
 
 /** Idle-Bewegung: Amplitude aus dem Phänotyp (Wiegen/Wippen/Puls) — reine Präsentation. */
-export function plantSway(p: PlantPhenotype, timeMs: number): number {
-  if (p.motion.style === 'still') return 0;
-  const freq = p.motion.style === 'pulse' ? 0.0016 : p.motion.style === 'whip' ? 0.0026 : 0.0011;
-  return Math.sin(timeMs * freq) * (0.02 + p.motion.sway * 0.07);
-}

@@ -11,11 +11,15 @@
 // allein die Sim fährt) — die Ablehnung kommt als rote Welle + Grund-Text an.
 
 import { isInsideWorld } from '../config/world.source';
+import type { PlacementRejectReason } from '../bus/events';
 
-export type PlacementRejectReason = 'occupied' | 'on_path' | 'no_inventory';
+// Regel 3 (Kollisionsfreiheit): die Grund-Union lebt EINMAL in bus/events.ts — die frühere
+// Kopie hier driftete still auseinander (bus kannte 'wave_active', diese Kopie nicht).
+// Import für den eigenen Gebrauch + Re-Export hält alle bestehenden Importe stabil.
+export type { PlacementRejectReason };
 
 /** Read-only Sicht auf das Brett — genügt für die Geometrie (kein SimState-Zugriff nötig). */
-export interface PlacementBoard {
+interface PlacementBoard {
   gx: number;
   gy: number;
   /** Zellkoordinaten aller stehenden Pflanzen. */
