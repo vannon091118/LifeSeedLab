@@ -27,7 +27,6 @@ import { ParticlePool } from '../observers/particles';
 import type { ResolvedVisual } from '../visual/generator';
 import { resolveBredVisuals, resolveVisual } from '../visual/generator';
 import { resolveBeetleVisuals, type ResolvedBeetleVisual } from '../visual/beetleGenerator';
-import { strHash } from '../core/rng';
 import { basePlantVisualInput } from '../genome/visualMap';
 import { makePlacementRejected } from '../bus/commands';
 import type { GameEvent } from '../bus/events';
@@ -35,7 +34,7 @@ import { FX_EVENT_TYPES, NOTICE_EVENT_TYPES, OBSERVED_EVENT_TYPES } from '../bus
 import { noticeFromEvent, type FieldNotice } from '../components/fieldNotice';
 import { plantStatsAt } from '../simulation/plantSystem';
 import { PlacementController, type PlacementState, type UiRejectReason } from '../components/placementController';
-import { MAP_TILES_SOURCE, type MapTileType } from '../config/map.source';
+import type { MapTileType } from '../config/map.source';
 import { recordRunEnd, advanceCrossMaturation, updateMeta } from '../meta';
 import type { MetaSave, BeetleSpecimen } from '../types';
 import type { WorldState } from '../world/world_state';
@@ -46,7 +45,7 @@ import { hudOf } from '../components/hudSnapshot';
 
 const IDLE: PlacementState = { mode: 'plant', variantId: null, ghost: null, rejection: null };
 
-export interface RunRuntimeCallbacks {
+interface RunRuntimeCallbacks {
   onPlacement(next: PlacementState): void;
   onHud(h: HudSnapshot): void;
   /** Ablehnung, die der Spieler sehen muss — einzige Quelle für den Feld-Toast (B29). */
@@ -58,7 +57,7 @@ export interface RunRuntimeCallbacks {
   onDevTick(): void;
 }
 
-export interface RunRuntimeInput {
+interface RunRuntimeInput {
   canvas: HTMLCanvasElement;
   seed: number; runId: number;
   loadout: string[]; savedVariants: MetaSave['savedVariants'];

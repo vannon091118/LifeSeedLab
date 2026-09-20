@@ -8,7 +8,7 @@ import type { ShinonGitHelfer } from './git-helfer.ts';
  * dieselbe Sicht auf Index, Arbeitsbaum und Nachricht haben.
  */
 
-export interface ContextOptions {
+interface ContextOptions {
   phase?: ShinonPhase;
   message?: string;
   quiet?: boolean;

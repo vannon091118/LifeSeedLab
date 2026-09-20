@@ -114,16 +114,6 @@ export function consumeSeedAndEnqueueCross(gachaSeed: number, crossIndex: number
   });
 }
 
-export function enqueueCross(seed: number, crossIndex: number, currentWave: number): MetaSave {
-  const meta = loadMeta();
-  const entry: PendingCross = {
-    crossIndex,
-    seed,
-    neededWaves: wavesToUnlockFor(crossIndex),
-    startedWave: currentWave,
-  };
-  return updateMeta({ pendingCrosses: capped([...meta.pendingCrosses, entry]), breedGeneration: meta.breedGeneration + 1 });
-}
 
 /**
  * B17.3: Die Keim-Variante aus einem Samen-Index — deterministisch, weltweit reproduzierbar.
@@ -173,11 +163,6 @@ export function isCrossReady(meta: MetaSave, crossIndex: number): boolean {
   return isMatured(entry.startedWave, entry.neededWaves, meta.totalWavesSurvived);
 }
 
-export function consumeSeed(): MetaSave | null {
-  const meta = loadMeta();
-  if (meta.seedStash <= 0) return null;
-  return updateMeta({ seedStash: meta.seedStash - 1 });
-}
 
 /**
  * Einstiegs-Loop: Ein Kauf landet als KEIMLING in der Warteschlange (seedlings), nicht direkt
@@ -216,6 +201,3 @@ export function plantSeedlingIntoPot(seedlingId: string, potIndex: number): Meta
   });
 }
 
-export function addNektar(amount: number): MetaSave {
-  return updateMeta({ nektar: Math.max(0, loadMeta().nektar + amount) });
-}

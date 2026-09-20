@@ -1,6 +1,6 @@
 // Owner: ClockSystem. Game time authority. LOC ≤ 300.
 // performance.now is the ONLY permitted wall-clock read (frame timing, not gameplay logic).
-export type ClockPhase = 'day' | 'night';
+type ClockPhase = 'day' | 'night';
 
 export interface ClockState {
   tick: number;            // simulation ticks since run start
@@ -19,7 +19,6 @@ export const TICK_MS = 1000 / 30; // 30 sim ticks/sec (contract Phase 2.1)
 export const SPEED_STEPS: readonly number[] = [1, 2, 3, 4];
 /** Day/night cycle length in ticks (2400 = 80s per phase at 30tps). ONE source. */
 export const CYCLE_TICKS = 2400;
-const NIGHT_THRESHOLD = 0.5;      // phase flips at half-cycle in v1 (wave-bound later via events)
 
 export class GameClock {
   private s: ClockState = {

@@ -17,16 +17,16 @@ import { BREEDING, driftFor } from '../config/phenotype.source';
 export { driftFor };
 
 /** Gen-Pool-Eintrag: Dominanz + Gacha-Gewicht (Pflanzen: GENE_POOL, Käfer: BEETLE_GENE_POOL). */
-export interface PoolEntry {
+interface PoolEntry {
   dominant: boolean;
   weight: number;
 }
-export type GenePool = Record<string, PoolEntry>;
+type GenePool = Record<string, PoolEntry>;
 
 /** Vergleichsvektor eines Phänotyps (0..1 je Achse) — Grundlage der Neuheitsprüfung. */
 export type Descriptor = readonly number[];
 /** Distanzmaß zweier Deskriptoren (Domänen liefern ihre Gewichtung, Kern bleibt neutral). */
-export type Measure = (a: Descriptor, b: Descriptor) => number;
+type Measure = (a: Descriptor, b: Descriptor) => number;
 
 function clamp01(v: number): number {
   return v < 0 ? 0 : v > 1 ? 1 : v;

@@ -20,16 +20,17 @@ import {
   interactionOf, type PlantAxis, type PlantHabit,
 } from '../config/phenotype.source';
 import { driftFor, expressed, genomeKey, weightedDistance } from './breeding';
+import { bucket, clamp } from './phenotypeShared';
 
 export type LeafShape = 'lance' | 'oval' | 'round' | 'frond';
-export type FlowerForm = 'none' | 'star' | 'bell' | 'puff' | 'spike';
-export type SurfaceName = 'smooth' | 'ribbed' | 'hairy' | 'warty';
-export type PatternName = 'solid' | 'gradient' | 'striped' | 'speckled';
-export type MotionStyle = 'still' | 'sway' | 'whip' | 'pulse';
+type FlowerForm = 'none' | 'star' | 'bell' | 'puff' | 'spike';
+type SurfaceName = 'smooth' | 'ribbed' | 'hairy' | 'warty';
+type PatternName = 'solid' | 'gradient' | 'striped' | 'speckled';
+type MotionStyle = 'still' | 'sway' | 'whip' | 'pulse';
 /** Blattstellung — die sichtbare Folge der Interaktions-Achse `rhythm`. */
-export type LeafArrangement = 'alternate' | 'opposite' | 'whorled';
+type LeafArrangement = 'alternate' | 'opposite' | 'whorled';
 /** Dornenkleid — die sichtbare Folge der Interaktions-Achse `guard`. */
-export type ThornDress = 'sparse' | 'prickly' | 'thicket' | 'armour';
+type ThornDress = 'sparse' | 'prickly' | 'thicket' | 'armour';
 
 export interface PlantPhenotype {
   version: 1;
@@ -53,7 +54,6 @@ export interface PlantPhenotype {
 
 type Axes = Record<PlantAxis, number>;
 
-const clamp = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
 const unit = (v: number): number => clamp((v + 1) / 2, 0, 1);
 
 /** Genom ⇒ Achsen: Ruhelage der Rolle plus dominanz-gewichteter Beitrag jedes Gens. */
@@ -90,12 +90,6 @@ function axesFor(genome: Genome, role: PlantType): Axes {
  */
 function spreadSeed(genomeKeyValue: string, role: PlantType, generation: number): number {
   return fnv1a(0x811c9dc5, `${genomeKeyValue}#${role}#${generation}`) >>> 0;
-}
-
-function bucket(value: number, thresholds: readonly number[]): number {
-  let i = 0;
-  for (const t of thresholds) if (value >= t) i++;
-  return i;
 }
 
 /**

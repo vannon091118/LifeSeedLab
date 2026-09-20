@@ -17,7 +17,7 @@ import { routeWalkTiles, routeIdealTiles } from './routeMetrics';
 
 export const OBSERVATION_VERSION = 1 as const;
 
-export interface ObservationTile {
+interface ObservationTile {
   gx: number;
   gy: number;
   /** Tile-Typ oder null für unbebaut (Papier-Wiese). */
@@ -26,7 +26,7 @@ export interface ObservationTile {
   occupied: boolean;
 }
 
-export interface Observation {
+interface Observation {
   version: typeof OBSERVATION_VERSION;
   tick: number;
   phase: SimState['phase'];
@@ -42,7 +42,7 @@ export interface Observation {
 }
 
 /** Events, die der Agent als Lern-Kanal bekommt (Ablehnungen + Meilensteine). */
-export type EventTypeForAgent =
+type EventTypeForAgent =
   | 'PLACEMENT_REJECTED' | 'TILE_REJECTED' | 'FERTILIZE_REJECTED' | 'PROPAGATE_REJECTED'
   | 'BEETLE_REJECTED' | 'ROUTE_CHANGED' | 'WAVE_STARTED' | 'WAVE_COMPLETED'
   | 'GAME_OVER';

@@ -11,7 +11,6 @@ import {
   verifyChain,
   syncEntryStub,
   type DiscoveryEntry,
-  type DiscoveryInput,
 } from './chain';
 import { fnv1aHex } from '../core/hash';
 import type { Genome } from '../types';
@@ -97,7 +96,7 @@ function saveCodex(chain: DiscoveryEntry[]): void {
 }
 
 // ── Append (lokal-first, UNIQUE genome_hash) ─────────────────────────
-export interface AppendResult {
+interface AppendResult {
   entry: DiscoveryEntry | null;
   appended: boolean;
   reason?: string;
@@ -106,7 +105,7 @@ export interface AppendResult {
 }
 
 /** Input für appendDiscovery — timestamp wird intern deterministisch erzeugt. */
-export interface AppendDiscoveryInput {
+interface AppendDiscoveryInput {
   genome: Genome;
   parents: [string, string];
   /** Der PRIVATE Zucht-Seed — fließt nur in den logischen Zeitstempel und die

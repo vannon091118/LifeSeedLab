@@ -1,4 +1,3 @@
-import React from 'react';
 import type { MetaSave } from '../../types';
 import { PlantVariantThumb } from '../PhenotypeCanvas';
 import { styles } from './greenhouseStyles';
@@ -18,7 +17,6 @@ export function PotRow({ pots, heldSeedling, onDropIntoPot, meta, t }: Props) {
     <div style={styles.potsRow}>
       {pots.map((occupant, i) => {
         const isOccupied = occupant !== null;
-        const isFree = !isOccupied && heldSeedling !== null;
         return (
           <button
             key={i}

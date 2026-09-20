@@ -11,7 +11,7 @@ import { APP_VERSION } from '../version';
 const WORLD_KEY = 'world';
 const WORLD_VERSION = 1;
 
-export interface WorldSave {
+interface WorldSave {
   version: 1;
   appVersion: string;
   world: WorldState;

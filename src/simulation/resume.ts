@@ -38,9 +38,11 @@ export function applyResume(state: SimState, snapshot: ResumeSnapshot): void {
   state.discoveredVariants = [...snapshot.discoveredVariants];
   state.nektarEarned = snapshot.nektarEarned;
 
-  // Vertrag: keine Wiederherstellung laufender Entitäten.
+  // Vertrag: keine Wiederherstellung laufender Entitäten — Vectors/Attraktoren sterben mit (TTL, vergänglich).
   state.enemies = [];
   state.projectiles = [];
+  state.vectors = {};
+  state.attractors = [];
   state.currentRoute = null;
   state.deployedBeetle = null;
   // R2: mapTiles wird hier BEWUSST NICHT angefasst — die Run-Kopie der Welt kommt

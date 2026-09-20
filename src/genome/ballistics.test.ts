@@ -9,8 +9,15 @@
 //     still zu verändern.
 
 import { describe, it, expect } from 'vitest';
-import { ballisticsOf, bp, legacyProfileFromEffects } from './ballistics';
-import { BALLISTICS_VERSION } from '../config/ballistics.source';
+import { ballisticsOf, bp, legacyProfileFromEffects, rangeCxOf, cooldownCxOf } from './ballistics';
+import { deriveStats } from './cross';
+import { deriveBredEntry } from '../meta/store';
+import { GENE_POOL } from './pool';
+import type { PlantVariant } from '../types';
+import {
+  BALLISTICS_VERSION, RANGE_BASE_CX, RANGE_PER_HEIGHT_BP, RANGE_MAX_CX, RANGE_MIN_CX,
+  COOLDOWN_BASE_CX, COOLDOWN_PER_THICKNESS_CX, COOLDOWN_FLOOR_CX,
+} from '../config/ballistics.source';
 import type { Genome, PlantType } from '../types';
 
 const g = (id: string, power: number, dominant = true) => ({ id, power, dominant });
@@ -131,5 +138,90 @@ describe('Ballistik-Adapter — Genom ⇒ Schuss', () => {
   it('Profil ist rein: zweimal dieselben Gene ⇒ dasselbe Profil, ohne RNG', () => {
     const genome: Genome = [g('swift', 0.37), g('pierce', 0.61), g('crit', 0.42)];
     expect(ballisticsOf(genome, 'shooter')).toEqual(ballisticsOf(genome, 'shooter'));
+  });
+
+  // ── Wuchs ⇒ Schuss: Groß = weit, Breite = Schussrate (Eigentümer 20.09.2026) ──────────
+  // JEDES Pool-Gen trägt gewichtet bei (WUCHS_HEIGHT/WUCHS_THICKNESS) — der Spieltest-Befund
+  // „5 Runden gezüchtet, nichts gespürt" kam daher, dass nur 5 Gene mapiert waren.
+
+  it('Wuchs: Basis-Reichweite ohne Gene ist genau die Source-Basis', () => {
+    expect(rangeCxOf([])).toBe(RANGE_BASE_CX);
+  });
+
+  it('Wuchs: Höhe trägt Reichweite — gewichtet je Genstärke, gedeckelt', () => {
+    // titan 0.5 × Gewicht 1.0 = 5000 bp → +50 (ganzzahlig)
+    expect(rangeCxOf([g('titan', 0.5)])).toBe(RANGE_BASE_CX + 50);
+    // rapid 0.5 × Gewicht 0.6 = 3000 bp → +30
+    expect(rangeCxOf([g('rapid', 0.5)])).toBe(RANGE_BASE_CX + 30);
+    // Deckel: titan(1.0)+rapid(0.6)+swift(0.5)+echo(0.3)+vortex(0.3)+spore(0.2)+fire/crit/acid(0.3)
+    // = 3.2 → 620 CX → Deckel 600 greift
+    expect(rangeCxOf([g('titan', 1), g('rapid', 1), g('swift', 1), g('echo', 1), g('vortex', 1), g('spore', 1), g('fire', 1), g('crit', 1), g('acid', 1)])).toBe(RANGE_MAX_CX);
+    // bp-Genauigkeit: gleicher Hash ⇒ gleiches Verhalten
+    expect(rangeCxOf([g('titan', 0.74996)])).toBe(rangeCxOf([g('titan', 0.75004)]));
+  });
+
+  it('Wuchs: breite Gene ziehen AB (bis auf den Boden 0.50)', () => {
+    expect(rangeCxOf([g('heavy', 1)])).toBe(RANGE_BASE_CX - 60);   // −0.6
+    expect(rangeCxOf([g('lure', 1)])).toBe(RANGE_BASE_CX - 35);    // −0.35
+    // Boden: heavy(−0.6)+ice(−0.4)+venom(−0.4)+gravity(−0.5)+splash(−0.3)+pierce(−0.3)+vortex(−0.3)
+    // = −2.8 → 20 CX → Boden 50 greift — hier PLUS prismatic/bloom/shield/thorns/regen (−1.1)
+    expect(rangeCxOf([g('heavy', 1), g('ice', 1), g('venom', 1), g('gravity', 1), g('splash', 1), g('pierce', 1), g('vortex', 1), g('prismatic', 1), g('bloom', 1), g('shield', 1), g('thorns', 1), g('regen', 1)])).toBe(RANGE_MIN_CX);
+  });
+
+  it('Wuchs: Dicke kürzt die Nachladezeit — gewichtet, mit Boden', () => {
+    expect(cooldownCxOf([])).toBe(COOLDOWN_BASE_CX);
+    // heavy 0.5 × 1.0 = 5000 bp → −225 (5 %)
+    expect(cooldownCxOf([g('heavy', 0.5)])).toBe(COOLDOWN_BASE_CX - 225);
+    // Voll-Stack über den Boden: 2100
+    expect(cooldownCxOf([g('heavy', 1), g('titan', 1), g('shield', 1), g('thorns', 1)])).toBe(COOLDOWN_FLOOR_CX);
+    // Gegenläufig: pierce ist SCHLANCK (−0.3) und VERLÄNGERT die Nachladezeit
+    expect(cooldownCxOf([g('pierce', 1)])).toBe(COOLDOWN_BASE_CX + 135);
+  });
+
+  it('JEDE Kreuzung rechnet anders: kein zwei Pool-Gene teilen ein Wuchs-Profil', () => {
+    // Der Spieltest-Befund: verschieden gezüchtet, identisch gespürt. Der Pin: JEDES Gen
+    // des Pools hat sein EIGENES (range, cooldown)-Paar bei voller Stärke — ein neues Gen
+    // mit doppelter Zeile macht diesen Test rot (passierte mit ice/venom, aura/heal,
+    // lure/splash — in der Source differenziert, nicht im Test geschönt).
+    const pool = Object.keys(GENE_POOL);
+    const seen = new Map<string, string>();
+    for (const id of pool) {
+      const key = `${rangeCxOf([g(id, 1)])}:${cooldownCxOf([g(id, 1)])}`;
+      const prev = seen.get(key);
+      expect(prev, `${id} und ${prev} rechnen identisch (range+cooldown) — Wuchs-Tabellen differenzieren`).toBeUndefined();
+      seen.set(key, id);
+    }
+  });
+
+  it('deriveStats verdrahtet die Wuchs-Regel: Höhe schießt weiter, Dicke lädt schneller', () => {
+    const tall = deriveStats('shooter', [g('titan', 1)]);
+    const wide = deriveStats('shooter', [g('heavy', 1)]);
+    const plain = deriveStats('shooter', []);
+    expect(tall.range, 'titan 1.0 = +1.00 Zelle').toBeCloseTo(plain.range + 1.0, 2);
+    expect(wide.range, 'heavy 1.0 = −0.60 Zelle').toBeCloseTo(plain.range - 0.6, 2);
+    expect(wide.cooldown, 'heavy 1.0 = −450 CX = −4.5 Ticks').toBe(plain.cooldown - 4);
+    // Die alten Inline-Hebel sind tot: `rapid` wirkt nur über die Wuchs-Tabelle (0.6 → −135 CX)
+    expect(deriveStats('shooter', [g('rapid', 1)]).cooldown).toBe(plain.cooldown - 1);
+    // Rollen-Versatz bleibt: Wand schießt kürzer und langsamer als der Schütze
+    const wallPlain = deriveStats('wall', []);
+    expect(wallPlain.range).toBeCloseTo(plain.range - 2.5, 2);
+    expect(wallPlain.cooldown).toBeGreaterThan(plain.cooldown);
+  });
+
+  it('Zucht-Eintrag friert die Wuchs-Regel am Genom ein (deriveBredEntry-Pfad der Sim)', () => {
+    // Der Pfad, den die Sim wirklich liest (bredStats — ohne Genom im Run). Stats kommen
+    // über deriveStats (dieselbe Wuchs-Tabelle) — kein hardcodetes Fixture, sonst täte der
+    // Test die zweite Wahrheit testen, die wir abgeschafft haben.
+    const v = (genome: PlantVariant['genome'], id: string): PlantVariant => ({
+      id, name: id, type: 'shooter', genome, traits: [], cost: 10, color: '#fff', discovered: false,
+      stats: { ...deriveStats('shooter', genome), special: null },
+    });
+    const tall = deriveBredEntry(v([g('titan', 1)], 'e2e_tall'));
+    const wide = deriveBredEntry(v([g('heavy', 1)], 'e2e_wide'));
+    expect(tall.range).toBeGreaterThan(wide.range);
+    expect(wide.cooldown).toBeLessThan(tall.cooldown);
+    // Und die Einträge tragen EXAKT die bp-Ableitung (Tick-Rundung ×100 eingerechnet):
+    expect(tall.range * 100).toBe(rangeCxOf([g('titan', 1)]));
+    expect(wide.cooldown * 100).toBe(Math.round(cooldownCxOf([g('heavy', 1)]) / 100) * 100);
   });
 });

@@ -3,7 +3,7 @@ import { loadMeta, updateMeta, persistMeta, deriveBredEntry } from './store';
 import { isCrossReady, isMatured } from './economy';
 import { rollBrood, resolveAncestor, type BeetleParentRef } from '../genome/beetle';
 import { BEETLE_BREED } from '../config/beetles.source';
-import { deriveLoanPlant, LOAN_PLANT_ID } from './loan';
+import { LOAN_PLANT_ID } from './loan';
 import { resumeCostFor } from '../config/economy.source';
 import { POOL_KEYS } from '../config/map.source';
 
@@ -48,12 +48,6 @@ export function deriveRunStats(
  * Ein Abbruch BEENDET den Lauf — es gibt kein kostenloses Wiedereinsteigen. Fail-closed: reicht
  * der Nektar nicht, bleibt der Save unverändert und es wird NICHT fortgesetzt.
  */
-export function payRunResume(waveNumber: number): MetaSave | null {
-  const meta = loadMeta();
-  const cost = resumeCostFor(waveNumber);
-  if (meta.nektar < cost) return null;
-  return updateMeta({ nektar: meta.nektar - cost });
-}
 
 export function reserveRunId(meta: MetaSave): MetaSave {
   const runId = Math.max(meta.runId, meta.runs) + 1;

@@ -6,7 +6,7 @@
 
 import type { StickmanPose } from './script';
 
-export interface StickmanProps {
+interface StickmanProps {
   pose: StickmanPose;
   /** Richtung des Zeigearms in Grad (0 = nach rechts, -90 = nach oben); null = keine Zielrichtung. */
   aim?: number | null;

@@ -21,8 +21,9 @@ import {
 } from '../config/beetlePhenotype.source';
 import { BEETLES_SOURCE } from '../config/beetles.source';
 import { driftFor, expressed, genomeKey, weightedDistance } from './breeding';
+import { bucket, clamp } from './phenotypeShared';
 
-export type BeetlePattern = (typeof BEETLE_FORM_THRESHOLDS.patternName)[number];
+type BeetlePattern = (typeof BEETLE_FORM_THRESHOLDS.patternName)[number];
 
 export interface BeetlePhenotype {
   version: 1;
@@ -53,8 +54,6 @@ export interface BeetlePhenotype {
 }
 
 type Axes = Record<BeetleAxis, number>;
-
-const clamp = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
 
 /**
  * FARBE: Pigment-Achse + Genomschlüssel-Streuung ⇒ Eintrag der gehegten Palette.
@@ -141,12 +140,6 @@ function axesFor(genome: Genome): Axes {
 /** Streu-Seed aus dem GENOM (nicht aus der ID) — identisches Erbgut ⇒ identisches Tier. */
 function spreadSeed(genomeKeyValue: string, generation: number): number {
   return fnv1a(0x811c9dc5, `${genomeKeyValue}#beetle#${generation}`) >>> 0;
-}
-
-function bucket(value: number, thresholds: readonly number[]): number {
-  let i = 0;
-  for (const t of thresholds) if (value >= t) i++;
-  return i;
 }
 
 /** Genom + Generation ⇒ Käfer-Phänotyp (reine Funktion, deterministisch).

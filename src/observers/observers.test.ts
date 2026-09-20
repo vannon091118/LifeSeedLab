@@ -3,7 +3,7 @@ import { VisualObserver } from './visualObserver';
 import { ParticlePool } from './particles';
 import { Camera } from '../render/camera';
 import { makeEvent } from '../bus/events';
-import { SimulationRoot, makeCommand } from '../simulation/root';
+import { makeCommand } from '../simulation/root';
 import { makeRoot } from '../testing/testkit';
 import { executeVisualCommand } from './visualExecutor';
 import { FeedbackLayer } from '../render/layers/feedback';

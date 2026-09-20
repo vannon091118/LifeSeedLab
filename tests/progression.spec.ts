@@ -78,7 +78,13 @@ test.describe('Progression — Spielverlust', () => {
     await startRun(page);
     expect(await placeOnePlant(page, 'loan_sprout', 'loan_sprout'), 'Leih-Spross konnte nicht platziert werden').toBe(true);
     await page.getByRole('button', { name: /start wave/i }).click();
-    await ffUntil(page, { maxChunks: 80 });
+    // Der Leih-Spross hält die Front lange: gemessen am 20.09.2026 endet dieser Lauf erst bei
+    // Tick ~21 200 (der Spross tötet immer den vordersten Gegner — der Rest leakt nie, solange
+    // er steht, und fällt erst, wenn Tank/Boss ihn fressen). Die frühere 16 000-Tick-Marge war
+    // auf eine schwächere Pflanze getaktet. Deshalb dieselbe Nachlege-Stufe wie der Schwester-Test
+    // („Leak-getriebenes Game-Over") — fein takten, dann grob, statt die Marge zu raten.
+    const reached = await ffUntil(page, { maxChunks: 80 });
+    if (!reached.reached) await ffUntil(page, { chunk: 400, maxChunks: 60 });
 
     // Platzierung hinter dem Overlay ist GEBOCKT (das Overlay schluckt den Pointer —
     // genau das ist der Freeze-Vertrag aus Usersicht): die Sim nimmt nichts an.

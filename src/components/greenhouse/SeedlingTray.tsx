@@ -1,4 +1,3 @@
-import React from 'react';
 import type { MetaSave } from '../../types';
 import { styles } from './greenhouseStyles';
 import { variantName } from './greenhouseHelpers';

@@ -6,7 +6,7 @@ import {
   processDecision,
   AGENT_SYSTEM_PROMPT,
 } from './llmBridge';
-import { resetTestState, makeRun, pushCommand } from '../testing/testkit';
+import { makeRun, pushCommand } from '../testing/testkit';
 import type { SimulationRoot } from './root';
 
 function freshRoot() {

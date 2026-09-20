@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SimulationRoot, makeCommand } from '../simulation/root';
+import { makeCommand } from '../simulation/root';
 import { makeRoot } from '../testing/testkit';
 import { hudOf } from './hudSnapshot';
 

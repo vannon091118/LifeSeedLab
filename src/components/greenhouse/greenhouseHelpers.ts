@@ -1,13 +1,7 @@
 // Helper functions extracted from Greenhouse.tsx
 import type { MetaSave, PlantVariant, PendingCross } from '../../types';
 import type { GachaRoll } from '../../genome';
-import { rollGachaCross, crossPair, deriveBreedSeed, createBaseVariants } from '../../genome';
-import { consumeSeedAndEnqueueCross, keepCross, isCrossReady, plantSeedlingIntoPot, buyRearingSlot } from '../../meta';
-import { wavesToUnlockFor, rearingSlotGate, REARING_SLOTS_MAX } from '../../config/economy.source';
-import { helpText } from '../../i18n/help';
-import { genomeToVisualInput } from '../../genome/visualMap';
-import { GAME_SEED } from '../../config';
-import type { TranslationKey } from '../../i18n';
+import { crossPair, createBaseVariants } from '../../genome';
 
 const BASES: PlantVariant[] = createBaseVariants();
 

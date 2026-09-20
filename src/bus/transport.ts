@@ -7,7 +7,7 @@ import type { Command } from './commands';
 
 export const TRANSPORT_VERSION = 1 as const;
 
-export interface TransportEnvelope {
+interface TransportEnvelope {
   version: typeof TRANSPORT_VERSION;
   tick: number;
   actorId: string;
@@ -15,7 +15,7 @@ export interface TransportEnvelope {
   command: Command;
 }
 
-export interface CommandTransport {
+interface CommandTransport {
   /** Protokollversion — Gate E verifiziert Kompatibilität. */
   readonly version: typeof TRANSPORT_VERSION;
   /** Queue-Eingang der Simulation (SimulationRoot.commands). */

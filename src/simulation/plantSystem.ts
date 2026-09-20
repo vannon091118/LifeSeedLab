@@ -5,10 +5,10 @@
 import type { SimState, PlantEntity, EnemyEntity } from './state';
 import type { BallisticProfile, BredStatsEntry } from '../types';
 import { ballisticsOf, legacyProfileFromEffects } from '../genome/ballistics';
-import { makeEvent, type GameEvent } from '../bus/events';
+import { makeEvent, type GameEvent, type FertilizeRejectReason, type PropagateRejectReason } from '../bus/events';
 import { PLANTS_SOURCE, type PlantSource } from '../config/plants.source';
 import { isInsideWorld, dist } from '../config/world.source';
-import { placementRejectReason } from './placementRules';
+import { placementRejectReason, type PlacementRejectReason } from './placementRules';
 import { applyPotBoost, potBoostAt } from './potBoost';
 import { nextId } from '../core/ids';
 import {
@@ -18,8 +18,9 @@ import {
   SEEDLING_GROWTH_FACTOR,
   rarityForCost,
 } from '../config/economy.source';
+import { VECTOR_LOGIC_SOURCE, vectorForEffect } from '../config/vector_logic.source';
 
-export interface PlantStats {
+interface PlantStats {
   hp: number;
   damage: number;
   range: number;
@@ -35,9 +36,10 @@ export interface PlantStats {
   ballistics: BallisticProfile;
 }
 
-export type PlaceResult =
+type PlaceResult =
   | { ok: true; plant: PlantEntity }
-  | { ok: false; reason: 'occupied' | 'on_path' | 'no_inventory' };
+  // Regel 4: die Grund-Union kommt aus bus/events.ts (via placementRules) — keine zweite Kopie.
+  | { ok: false; reason: PlacementRejectReason };
 
 export function resolvePlantStats(state: SimState, variantId: string): PlantStats | null {
   return getPlantStats(variantId, state.bredStats);
@@ -138,7 +140,7 @@ export class PlantSystem {
   }
 
   /** Düngen: nur während Wachstum, boostet Werte und verlängert Haltbarkeit, erhöht Cooldown. */
-  fertilize(state: SimState, plantId: string): { ok: true } | { ok: false; reason: 'not_growing' | 'max_reached' | 'not_found' } {
+  fertilize(state: SimState, plantId: string): { ok: true } | { ok: false; reason: FertilizeRejectReason } {
     const plant = state.plants.find(p => p.id === plantId);
     if (!plant) return { ok: false, reason: 'not_found' };
     if (plant.growthState !== 'growing') return { ok: false, reason: 'not_growing' };
@@ -158,7 +160,7 @@ export class PlantSystem {
   }
 
   /** Setzling ziehen: reife Pflanze erzeugt Nachkommen mit halber Wachstumszeit. */
-  propagate(state: SimState, plantId: string): { ok: true; plant: PlantEntity } | { ok: false; reason: 'not_mature' | 'not_found' | 'on_path' | 'occupied' } {
+  propagate(state: SimState, plantId: string): { ok: true; plant: PlantEntity } | { ok: false; reason: PropagateRejectReason } {
     const source = state.plants.find(p => p.id === plantId);
     if (!source) return { ok: false, reason: 'not_found' };
     if (source.growthState !== 'mature') return { ok: false, reason: 'not_mature' };
@@ -235,7 +237,7 @@ export class PlantSystem {
     }
   }
 
-  /** Shooters acquire targets and request projectile spawns via callback. */
+  /** Shooters acquire targets and request projectile spawns via callback. Donut für CHARGE (Blitz): Nahkreis 2.5 tot. */
   update(
     state: SimState,
     fire: (plant: PlantEntity, target: EnemyEntity, damage: number) => void
@@ -245,12 +247,15 @@ export class PlantSystem {
       if (!stats || stats.damage <= 0) continue;
       const effectiveCooldown = stats.cooldown + plant.extraCooldown;
       if (state.clock.tick - plant.lastShot < effectiveCooldown) continue;
+      const hasCharge = stats.effects.some(id => vectorForEffect(id) === 'VECTOR_CHARGE');
 
       let target: EnemyEntity | null = null;
       let best = Infinity;
       for (const e of state.enemies) {
         const d = dist(plant.gx + 0.5, plant.gy + 0.5, e.px, e.py);
-        if (d <= stats.range && d < best) { target = e; best = d; }
+        if (d > stats.range) continue;
+        if (hasCharge && d < 2.5) continue;
+        if (d < best) { target = e; best = d; }
       }
       if (!target) continue;
 
@@ -290,8 +295,23 @@ export class PlantSystem {
     return { died: false, reflect };
   }
 
-  /** Support plants: heal aura. */
+  /**
+   * Support plants: heal aura + WET-Pfützen heilen die PFLANZE im Feld.
+   * WET tickDelta (−3) stand in der Source als „Schaden/Heilung" — aber StatusSystem
+   * heilte damit den GEGNER (kein sichtbarer Nutzen, sogar Schadwirkung). „Wasser heilt"
+   * meint die Pflanze; negatives tickDelta wird am Gegner geklemmt und landet HIER.
+   */
   healTick(state: SimState): void {
+    const wetHeal = Math.abs(VECTOR_LOGIC_SOURCE.VECTOR_WET.tickDelta);
+    for (const plant of state.plants) {
+      const key = `${plant.gx},${plant.gy}`;
+      const hasWet = state.vectors[key]?.some(c => c.vectorId === 'VECTOR_WET');
+      if (hasWet && plant.hp > 0) {
+        const maxHp = plantStatsAt(state, plant.variantId, plant.gx, plant.gy)?.hp ?? plant.maxHp;
+        const heal = Math.round(wetHeal) || 1;
+        plant.hp = plant.hp >= maxHp ? maxHp : Math.min(maxHp, plant.hp + heal);
+      }
+    }
     for (const plant of state.plants) {
       const stats = plantStatsAt(state, plant.variantId, plant.gx, plant.gy);
       if (!stats || stats.damage > 0) continue;

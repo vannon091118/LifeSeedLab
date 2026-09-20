@@ -11,7 +11,7 @@ function fnv1a(str: string): number {
   return h >>> 0;
 }
 
-export interface StoreOptions<T> {
+interface StoreOptions<T> {
   version: number;
   /** Ordered migration chain: (oldRaw, oldVersion) → new shape. Ascending applied. */
   migrate?: (raw: unknown, fromVersion: number) => T | null;

@@ -43,7 +43,7 @@ Execution Prompt nennt das Ziel **`LifegamePlant`**, das Repository heißt **`Li
 | `src/visual/generator.ts` | VisualGenerator | **Pipeline §14**: base→mutation→palette→effect→geometry→layer→animation→ResolvedVisual; `genomeToVisualInput` einzige Genome→Visual-Eingabe | `config/*` + `core/rng` | 295 | **REUSE** — nur `visual`-Namespace, deterministisch |
 | `src/render/renderer.ts` | RenderSystem | Layer 0–8, Terrain-bake, `plantVisual` (Bred-Cache zuerst), DPR cap 2, shake translate | `visual/generator` + `simulation/state` (read) | 219 | **REUSE** — Drawing Only, ≤400 |
 | `src/render/layers/terrain.ts` | RenderSystem | Paper-Grain + Ink-Terrain, pre-baked (0 Kosten/Frame) | `core/rng` (visual) | 166 | **REUSE** |
-| `src/render/layers/primitives.ts` | RenderSystem | Silhouetten-Primitive (B10) | — | 117 | **REUSE** |
+| `src/render/plants.ts` | RenderSystem | Pflanzen-Silhouetten und Muster (B10) | `visual/generator` | 297 | **REUSE** |
 | `src/render/layers/enemies.ts` | RenderSystem | 5 Enemy-Bodies (distinct) | — | 78 | **REUSE** |
 | `src/render/layers/particlesDraw.ts` | RenderSystem | Partikel-Zeichen (10 Kinds §33) | `observers/particles` (read) | 81 | **REUSE** |
 | `src/render/layers/feedback.ts` | RenderSystem | Layer 7/8: Floating Numbers + Flash + Manga | — | 122 | **REUSE** |

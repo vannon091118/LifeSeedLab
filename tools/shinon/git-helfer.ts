@@ -16,32 +16,32 @@ export type { CommandResult, SpawnOptions } from './runner.ts';
  * `github-helfer.ts` — die Fassade bleibt trotzdem diese Klasse.
  */
 
-export interface RemoteRef {
+interface RemoteRef {
   name: string;
   url: string;
 }
 
-export interface GitStatus {
+interface GitStatus {
   staged: string[];
   modified: string[];
   untracked: string[];
   clean: boolean;
 }
 
-export interface AheadBehind {
+interface AheadBehind {
   ahead: number;
   behind: number;
   upstream: string | null;
 }
 
-export interface PushOptions {
+interface PushOptions {
   remote?: string;
   branch?: string;
   dryRun?: boolean;
   setUpstream?: boolean;
 }
 
-export interface PushResult {
+interface PushResult {
   ok: boolean;
   pushed: boolean;
   label: string;

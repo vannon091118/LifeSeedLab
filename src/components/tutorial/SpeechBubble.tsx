@@ -20,7 +20,7 @@
 import { useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
-export interface SpeechBubbleProps {
+interface SpeechBubbleProps {
   speaker: string;
   role: string;
   note: string;

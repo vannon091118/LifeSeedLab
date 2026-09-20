@@ -16,7 +16,7 @@
 export type StickmanPose = 'arrive' | 'point' | 'cheer' | 'think' | 'thumbsUp' | 'panic';
 
 /** Wo ein Schritt spielt. Menü-Unterseiten zählen als `menu` (Rang), sichtbar ist nur der Hub. */
-export type TutorialScreen = 'start' | 'menu' | 'run';
+type TutorialScreen = 'start' | 'menu' | 'run';
 
 /** Ziel der blinkenden Handlungsanweisung. `none` ⇒ nur der Knopf an der Sprechblase. */
 export type TutorialCue = 'none' | 'language' | 'begin' | 'endless' | 'card' | 'board' | 'build' | 'wave' | 'pause' | 'hud';
@@ -29,11 +29,11 @@ export type TutorialCue = 'none' | 'language' | 'begin' | 'endless' | 'card' | '
  *  `waveStarted` = es läuft WIRKLICH eine Welle (`phase === 'wave'`). Vorher hieß es
  *  `phase !== 'prep'`: seit der Run in `layout` beginnt, war das SOFORT wahr — der Wellen-Schritt
  *  erfüllte sich, bevor der Spieler irgendetwas getan hatte. */
-export type TutorialSignal =
+type TutorialSignal =
   | 'press' | 'langChosen' | 'screenLeft' | 'cardSelected' | 'placed' | 'layoutDone' | 'waveStarted' | 'paused' | 'running';
 
-export type BubbleAnchor = 'top' | 'center' | 'bottom';
-export type StickAnchor = 'bottomLeft' | 'bottomRight';
+type BubbleAnchor = 'top' | 'center' | 'bottom';
+type StickAnchor = 'bottomLeft' | 'bottomRight';
 
 export interface TutorialStep {
   /** Zugleich i18n-Schlüssel (`tut.<id>.title`, `tut.<id>.text`). */

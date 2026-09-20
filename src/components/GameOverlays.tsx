@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import type { RunEndReason } from '../bus/events';
 import { useI18n } from '../i18n';
 import { formatScore } from './numberFormat';
 import { APP_VERSION_LABEL } from '../version';
@@ -7,10 +8,10 @@ import { APP_VERSION_LABEL } from '../version';
 // B2: „Tippen zum Fortsetzen" nach App-Wechsel. B7: Game-Over-Karte mit Ergebnis und Ausstieg.
 // Beide Overlays sind reine Präsentation — Meta-Banking passiert in GameView genau einmal.
 
-export interface GameOverlaysProps {
+interface GameOverlaysProps {
   gameOver: boolean;
-  /** B36: Warum endete der Lauf — wird auf dem Screen genannt. */
-  reason?: 'lives_depleted';
+  /** B36: Warum endete der Lauf — wird auf dem Screen genannt (Bus-Wort, B39). */
+  reason?: RunEndReason;
   suspended: boolean;
   wave: number;
   score: number;

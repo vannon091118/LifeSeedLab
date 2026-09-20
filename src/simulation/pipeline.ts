@@ -70,6 +70,8 @@ export function freshState(
     plants: [],
     enemies: [],
     projectiles: [],
+    vectors: {},
+    attractors: [],
     score: 0,
     combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
     nektarEarned: 0,

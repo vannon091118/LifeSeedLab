@@ -13,7 +13,7 @@
 // neuer Kampfwert, keine Sonderregel: der Topf verschiebt nur, was eine Pflanze ohnehin hat.
 
 /** Wirk-Achsen eines Topfes — exakt die Achsen, die `PlantStats` schon trägt. */
-export type PotAxis = 'damage' | 'range' | 'cooldown' | 'hp';
+type PotAxis = 'damage' | 'range' | 'cooldown' | 'hp';
 
 export interface PotBoost {
   axis: PotAxis;

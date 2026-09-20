@@ -56,6 +56,12 @@ export function executeCommand(ctx: CommandContext, state: SimState, cmd: Comman
       // (PLANT_ROUTE_COST), blockiert sie aber NIE — der Weg kann durch den Umweg-Druck
       // nie ganz verschwinden. Die Regel greift deshalb nur bei BLOCKIERENDEN Zügen
       // (placeTile), hier genügt die Sim-Geometrie + sofortige Route-Nachführung.
+      // Wellen-Sperre (Spieler-Entscheid 20.09.2026): gebaut wird NUR zwischen Wellen —
+      // in 'wave' ist das Brett committet; Juggling (mid-Wave-Route-Kipp) ist geschnitten.
+      if (state.phase === 'wave') {
+        ctx.publish(makePlacementRejected(state.clock.tick, ctx.nextSeq(), cmd.payload.gx, cmd.payload.gy, 'wave_active'));
+        break;
+      }
       const r = ctx.plants.place(state, cmd.payload.variantId, cmd.payload.gx, cmd.payload.gy);
       if (!r.ok) {
         // Rejections are EVENTS, not silence (Defect: stilles Scheitern — UI/FX hängen am Bus)
@@ -68,11 +74,18 @@ export function executeCommand(ctx: CommandContext, state: SimState, cmd: Comman
       }
       break;
     }
-    case 'REMOVE_PLANT':
+    case 'REMOVE_PLANT': {
+      if (state.phase === 'wave') {
+        // Die Zelle des Plants liegt im State — das Event nennt sie, statt 0/0 zu behaupten.
+        const victim = state.plants.find(p => p.id === cmd.payload.plantId);
+        ctx.publish(makePlacementRejected(state.clock.tick, ctx.nextSeq(), victim?.gx ?? 0, victim?.gy ?? 0, 'wave_active'));
+        break;
+      }
       if (ctx.plants.remove(state, cmd.payload.plantId)) {
         ctx.recomputeRoute(state); // D1: Weg zieht nach — auch beim Entfernen
       }
       break;
+    }
     case 'START_WAVE':
       ctx.waves.startWave(state);
       // P5: Route bei JEDEM Wave-Start aus dem Tile-Grid neu ableiten —
@@ -80,6 +93,18 @@ export function executeCommand(ctx: CommandContext, state: SimState, cmd: Comman
       ctx.recomputeRoute(state);
       break;
     case 'PLACE_TILE': {
+      // Wellen-Sperre: mid-Welle wird nicht gebaut (Brett committet).
+      if (state.phase === 'wave') {
+        ctx.publish({
+          eventId: `${state.clock.tick}:system:map:TILE_REJECTED:${ctx.nextSeq()}`,
+          tick: state.clock.tick,
+          type: 'TILE_REJECTED',
+          sourceId: 'system:map',
+          version: 1,
+          payload: { gx: cmd.payload.gx, gy: cmd.payload.gy, tile: cmd.payload.tile, reason: 'wave_active' },
+        });
+        break;
+      }
       const r = ctx.map.placeTile(state, cmd.payload.gx, cmd.payload.gy, cmd.payload.tile as MapTileType);
       if (!r.ok) {
         ctx.publish({
@@ -98,8 +123,19 @@ export function executeCommand(ctx: CommandContext, state: SimState, cmd: Comman
       break;
     }
     case 'REMOVE_TILE': {
-      // Juggling: Tile verkaufen (Refund 50%) — die Route kippt mid-Welle, Gegner
-      // auf der alten Route drehen um (EnemySystem erkennt den Routen-Wechsel).
+      // Historisch Juggling (mid-Wave-Verkauf, Route-Kipp) — mit der Wellen-Sperre
+      // geschnitten: der Verkauf bleibt Werkzeug der Bauphasen (layout/prep).
+      if (state.phase === 'wave') {
+        ctx.publish({
+          eventId: `${state.clock.tick}:system:map:TILE_REJECTED:${ctx.nextSeq()}`,
+          tick: state.clock.tick,
+          type: 'TILE_REJECTED',
+          sourceId: 'system:map',
+          version: 1,
+          payload: { gx: cmd.payload.gx, gy: cmd.payload.gy, tile: 'boulder', reason: 'wave_active' },
+        });
+        break;
+      }
       const r = ctx.map.removeTile(state, cmd.payload.gx, cmd.payload.gy);
       if (!r.ok) {
         ctx.publish({

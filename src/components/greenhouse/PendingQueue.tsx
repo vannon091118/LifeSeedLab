@@ -1,9 +1,8 @@
-import React from 'react';
 import type { MetaSave, PendingCross, PlantVariant } from '../../types';
 import type { GachaRoll } from '../../genome';
 import { PlantVariantThumb } from '../PhenotypeCanvas';
 import { styles } from './greenhouseStyles';
-import { variantName, findVariant } from './greenhouseHelpers';
+import { findVariant } from './greenhouseHelpers';
 import type { TranslationKey } from '../../i18n';
 
 interface Props {

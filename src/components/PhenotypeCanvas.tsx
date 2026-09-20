@@ -40,7 +40,7 @@ function useAnatomyCanvas(
 }
 
 /** EINE Pflanze als Bild — Silhouette, Blattstellung, Dornenkleid, Muster inklusive. */
-export function PlantCanvas({ phenotype, size = 72, className, title }: Props & { phenotype: PlantPhenotype }) {
+function PlantCanvas({ phenotype, size = 72, className, title }: Props & { phenotype: PlantPhenotype }) {
   const ref = useAnatomyCanvas(
     (ctx, span) => drawPlantAnatomy(ctx, phenotype, span),
     size,

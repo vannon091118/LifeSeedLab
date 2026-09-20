@@ -12,14 +12,15 @@
 // Die Menge der Events ist `bus/eventAudience.NOTICE_EVENT_TYPES` (dort mit Begründung); die
 // Zuweisung unten ist per `switch` über den `EventType` erschöpfungsgeprüft gepflegt.
 
-import type { GameEvent, RejectReason } from '../bus/events';
+import type { GameEvent, RejectReason, NoticeReason } from '../bus/events';
+
+export type { NoticeReason };
 
 /**
  * Grund einer Meldung. `unknown` ist kein Ablehnungsgrund der Sim, sondern der Restfall der
  * UI-Vorprüfung („hier geht gerade nichts, und ich weiß nicht, warum") — er muss trotzdem einen
  * Text haben, deshalb steht er im selben Vokabular.
  */
-export type NoticeReason = RejectReason | 'unknown';
 
 export interface FieldNotice {
   reason: NoticeReason;

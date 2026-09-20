@@ -18,7 +18,6 @@ import {
   buySeed,
   buySeedAndGerminate,
   germinateSeed,
-  germinateVariant,
   consumeSeedAndEnqueueCross,
   advanceCrossMaturation,
   isCrossReady,

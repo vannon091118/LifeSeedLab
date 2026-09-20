@@ -4,7 +4,7 @@
 
 import { makeRng } from '../core/rng';
 
-export interface CameraState {
+interface CameraState {
   x: number;        // world coords (cells)
   y: number;
   zoom: number;

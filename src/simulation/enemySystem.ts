@@ -10,7 +10,7 @@ import type { RoutePoint } from '../config/world.source';
 import { makeEvent, type GameEvent } from '../bus/events';
 import { nextId } from '../core/ids';
 import { makeRng } from '../core/rng';
-import { statusForEffect, statusTicksOf } from './effectSupport';
+import { StatusSystem } from './statusSystem';
 
 /** Deploy-Spezifikation (Root leitet sie aus dem Meta-Brutling ab — P6). */
 export interface BeetleDeploySpec {
@@ -29,6 +29,10 @@ export interface BeetleDeploySpec {
 
 export class EnemySystem {
   private seq = 0;
+  /** Status-Writer als eigenes Modul (Regel-1-Split): dieses System bleibt Fassade,
+   *  der Schreiber der drei Status-Felder ist der StatusSystem. Der Direkt-Schaden (DoT)
+   *  läuft über `damageDirect` — EIN DAMAGE_DEALT-Schreiber, Reihenfolge unverändert. */
+  readonly status = new StatusSystem({ damage: (s, e, amt, crit) => this.damageDirect(s, e, amt, crit) });
 
   constructor(private readonly emit: (e: GameEvent) => void) {}
 
@@ -137,42 +141,10 @@ export class EnemySystem {
     return bestId;
   }
 
-  /**
-   * Juggling-Mapping (nur bei ROUTEN-WECHSEL, nie pro Tick): je Gegner der Routen-Knoten
-   * mit minimaler Distanz zur Position (Ties: kleinster Index — deterministisch). Liegt
-   * er vor dem alten Fortschritt, läuft der Gegner rückwärts — die Umdreh-Wirkung, die
-   * Time-on-Target erzeugt. Nach dem Wechsel läuft jeder Gegner ECHT auf der neuen Route.
-   */
-  remapAllToRoute(state: SimState): void {
-    const path = this.activePath(state);
-    for (const e of state.enemies) {
-      let bestIdx = 0;
-      let bestD = Infinity;
-      for (let i = 0; i < path.length; i++) {
-        const dx = path[i].x - e.px;
-        const dy = path[i].y - e.py;
-        const d = dx * dx + dy * dy;
-        if (d < bestD) { bestD = d; bestIdx = i; }
-      }
-      e.pathIndex = bestIdx;
-      e.px = path[bestIdx].x;
-      e.py = path[bestIdx].y;
-    }
-  }
-
-  /** Damage-over-time + expiry for statuses (deterministic — no per-enemy streams). */
+  /** Damage-over-time + expiry — delegiert an den Status-Writer (Regel-1-Split).
+   *  root.ts ruft weiterhin DIESE Methode (Fassade); die Rechnung wohnt im StatusSystem. */
   applyStatusTicks(state: SimState): void {
-    for (const e of state.enemies) {
-      if (e.burnTicks > 0) {
-        e.burnTicks--;
-        this.damage(state, e, 2, false);
-      }
-      if (e.poisonTicks > 0) {
-        e.poisonTicks--;
-        this.damage(state, e, 1, false);
-      }
-    }
-    state.enemies = state.enemies.filter(e => e.hp > 0);
+    this.status.tickStatusesOf(state);
   }
 
   /** Chain effect (B6): 50% damage arc to the nearest other enemy within range cells. */
@@ -185,7 +157,7 @@ export class EnemySystem {
       const d = Math.sqrt(dx * dx + dy * dy);
       if (d <= range && d < bestD) { best = e; bestD = d; }
     }
-    if (best) this.damage(state, best, amount, false);
+    if (best) this.damageDirect(state, best, amount, false);
     state.enemies = state.enemies.filter(e => e.hp > 0);
   }
 
@@ -230,22 +202,18 @@ export class EnemySystem {
   }
 
   /**
-   * Status setzen — die EINE Stelle. WELCHER Effekt welchen Status setzt, steht in
-   * `effectSupport.ts` (Sim-Vertrag); WIE LANGE er wirkt, in `config/effects.source.ts`
+   * Status setzen — delegiert an den Status-Writer. WELCHER Effekt welchen Status setzt,
+   * steht in `effectSupport.ts` (Sim-Vertrag); WIE LANGE er wirkt, in `config/effects.source.ts`
    * (Content). Vorher stand hier eine `if`-Kette mit den Literalen 90/3/5, die jeden neuen
    * Effekt still fallen ließ — genau der Grund, warum die acht Gene der zweiten Gruppe
    * unsichtbar gewirkt hätten.
    */
   private setStatus(state: SimState, e: EnemyEntity, effectId: string | null): void {
-    const status = statusForEffect(effectId);
-    if (!status) return;
-    const ticks = statusTicksOf(effectId);
-    if (status === 'slow') e.slowUntil = state.clock.tick + ticks;
-    else if (status === 'burn') e.burnTicks = ticks;
-    else if (status === 'poison') e.poisonTicks = ticks;
+    this.status.setStatusOf(state, e, effectId);
   }
 
-  private damage(state: SimState, e: EnemyEntity, amount: number, critical: boolean): void {
+  /** Direkt-Schaden ohne Status-Wirkung (DoT-Pfad des StatusSystem; ein Emit-Punkt). */
+  damageDirect(state: SimState, e: EnemyEntity, amount: number, critical: boolean): void {
     e.hp -= amount;
     this.emit(makeEvent(state.clock.tick, 'DAMAGE_DEALT', e.id, ++this.seq, {
       enemyId: e.id, amount, critical, hp: Math.max(0, e.hp), px: e.px, py: e.py,

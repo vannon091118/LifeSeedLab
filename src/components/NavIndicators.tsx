@@ -1,10 +1,9 @@
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useMemo } from 'react';
 import type { MetaSave } from '../types';
 import type { TranslationKey } from '../i18n';
 import { useI18n } from '../i18n';
-import { createBaseVariants } from '../genome';
 import { readyBroods } from '../meta';
-import { SproutIcon, SeedIcon, BugIcon, BookIcon } from './MenuIcons';
+import { createBaseVariants } from '../genome';
 
 // Owner: UI (NavIndicators — Screen-Navigation). LOC ≤ 400.
 // Indikatoren für absolut alles: Notizzettel-Tabs (aktiver Screen mit Ink-Unterstrich),

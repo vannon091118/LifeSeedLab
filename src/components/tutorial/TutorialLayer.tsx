@@ -16,7 +16,7 @@ import { TUTORIAL_VERSION, type TutorialStep } from './script';
 import { isOnboardingAutoStart } from '../../dev/gate';
 import { TutorialOverlay } from './TutorialOverlay';
 
-export interface TutorialApi {
+interface TutorialApi {
   /** Onboarding darf laufen (Fassung nicht gesehen + nicht hinter dem DevGate abgeschaltet). */
   enabled: boolean;
   view: TutorialView;
@@ -38,11 +38,11 @@ const DISABLED: TutorialApi = {
 
 const TutorialContext = createContext<TutorialApi>(DISABLED);
 
-export function useTutorial(): TutorialApi {
+function useTutorial(): TutorialApi {
   return useContext(TutorialContext);
 }
 
-export interface TutorialProviderProps {
+interface TutorialProviderProps {
   /** Aktueller Screen des Routers (`start` | `menu` | `greenhouse` | … | `run`). */
   screen: string;
   /** Gesehene Tour-Fassung aus dem Meta-Save (0 = nie gesehen). */
@@ -100,14 +100,14 @@ export function TutorialProvider({ screen, seenVersion, onDone, children }: Tuto
 }
 
 /** Signale des Feld-Screens (Sim-Phase, Pause) und der Auswahl (UI-Wahrheit). */
-export interface TutorialRunSignals {
+interface TutorialRunSignals {
   selectedVariant: string | null;
   placements: number;
   phase: string;
   paused: boolean;
 }
 
-export interface TutorialLayerProps {
+interface TutorialLayerProps {
   /** Nur der Feld-Screen meldet diese Signale. */
   run?: TutorialRunSignals;
   /** Nur der Start-Screen: hat der Spieler in dieser Sitzung eine Sprache gewählt? */

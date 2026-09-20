@@ -21,7 +21,7 @@ import { fnv1aHex } from '../core/hash';
 import { EPOCH_ROOT } from '../config';
 
 /** Der öffentliche Identifier einer Pflanze — fixer Präfix + Mischwert. */
-export type PlantHmac = string;
+type PlantHmac = string;
 
 /**
  * Mischt den privaten Zucht-Seed mit dem öffentlichen Kreuzungs-Kontext zu einem Beleg.

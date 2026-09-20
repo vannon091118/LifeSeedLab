@@ -12,7 +12,7 @@ import { useI18n } from '../i18n';
 import { gameViewStyles as styles } from './gameViewStyles';
 import { waveButtonState } from './waveButton';
 
-export interface GameTopBarProps {
+interface GameTopBarProps {
   wave: number;
   paused: boolean;
   /** Sim-Phase (`prep` | `wave` | `gameover`) — Wahrheit für den Knopf-Zustand (B23.2). */

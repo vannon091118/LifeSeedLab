@@ -20,20 +20,19 @@
 import type { MapTileType } from '../config/map.source';
 import type { ResolvedVisual } from '../visual/generator';
 import { placementRejectReason, type PlacementRejectReason } from '../simulation/placementRules';
+// B39: das UI-Ablehnungsvokabular lebt EINMAL im Bus (`bus/events.ts`) — dieser Adapter
+// importiert es nur und reicht es für bestehende Importeure re-exportiert durch.
+import type { UiRejectReason } from '../bus/events';
+export type { UiRejectReason };
 
 export type PlaceMode = 'plant' | 'sell' | MapTileType;
 
-/** Ablehnungsgrund in der UI. Die Pool-Vorprüfung spricht dieselbe Sprache wie die Sim
- *  (`no_inventory`): Pflanze UND Feld kommen aus demselben Pool (`inventory`, #4).
- *  `route_blocked` kommt aus der Weg-Integritäts-Probe (Sim-Vokabular, s. Dateikopf). */
-export type UiRejectReason = PlacementRejectReason | 'route_blocked' | 'unknown';
-
-export interface Cell {
+interface Cell {
   gx: number;
   gy: number;
 }
 
-export interface GhostCell extends Cell {
+interface GhostCell extends Cell {
   visual: ResolvedVisual;
   /** false ⇒ Zelle ist ungültig (roter Footprint, Ablehnung beim Loslassen). */
   valid: boolean;
@@ -42,7 +41,7 @@ export interface GhostCell extends Cell {
   range: number | null;
 }
 
-export interface Rejection extends Cell {
+interface Rejection extends Cell {
   reason: UiRejectReason;
   /** Determinismus: Zeitbasis ist der Sim-Tick, nicht die Wanduhr. */
   tick: number;

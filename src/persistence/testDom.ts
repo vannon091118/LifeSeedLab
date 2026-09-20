@@ -2,7 +2,7 @@
 // Node-Umgebung (kein jsdom). Einziger erlaubter Ort außerhalb von storage.ts,
 // der das Wort „localStorage" berührt — Tests außerhalb persistence/ importieren DIES.
 
-export interface TestStoragePolyfill {
+interface TestStoragePolyfill {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
   removeItem(key: string): void;

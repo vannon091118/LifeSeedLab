@@ -18,9 +18,9 @@
 import type { EventType } from './events';
 
 /** Wie ein Event seinen Konsumenten findet. */
-export type EventAudience = 'fx' | 'notice' | 'snapshot' | 'internal';
+type EventAudience = 'fx' | 'notice' | 'snapshot' | 'internal';
 
-export interface AudienceEntry {
+interface AudienceEntry {
   /**
    * Wer das Event konsumiert. Mehrfach möglich: `TILE_REJECTED` erzeugt Welt-FX UND Text.
    * Regeln: mindestens ein Eintrag; `fx` wird behavioral getestet (der Observer muss wirklich

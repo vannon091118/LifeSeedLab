@@ -50,19 +50,34 @@ export type EventType =
 // Text ist deshalb ein Compile-Fehler, kein stiller `field.reject.unknown` (B29).
 
 /** Sim-Ablehnung einer Pflanzen-Platzierung (`PLACEMENT_REJECTED`). */
-export type PlacementRejectReason = 'occupied' | 'on_path' | 'no_inventory';
+export type PlacementRejectReason = 'occupied' | 'on_path' | 'no_inventory' | 'wave_active';
 /** Pflanzen-Aktionen: Düngen/Vermehrung (`FERTILIZE_REJECTED`/`PROPAGATE_REJECTED`). */
 export type PlantRejectReason = 'not_growing' | 'max_reached' | 'not_found' | 'not_mature' | 'on_path' | 'occupied';
+/** Teilunion für Düngen (`FERTILIZE_REJECTED`) — abgeleitet, niemals neu deklariert. */
+export type FertilizeRejectReason = Extract<PlantRejectReason, 'not_growing' | 'max_reached' | 'not_found'>;
+/** Teilunion für Vermehren (`PROPAGATE_REJECTED`) — abgeleitet, niemals neu deklariert. */
+export type PropagateRejectReason = Extract<PlantRejectReason, 'not_mature' | 'not_found' | 'on_path' | 'occupied'>;
 /** Karten-Bau (`TILE_REJECTED`) — alle Gründe kommen aus `simulation/mapSystem.ts`.
  *  R2-Neubau: `spawn_corridor` ist gestorben (kein geschützter Korridor mehr); neu sind
  *  `out_of_world` (außerhalb der freigeschalteten Fläche) und `max_size` (Wachstumsgrenze).
  *  #4: `no_energy` ist mit dem Energiesystem gestorben — der POOL entscheidet (`no_material`),
  *  und die Integritätsregel meldet `route_blocked`: der letzte freie Weg bleibt immer offen. */
-export type TileRejectReason = 'unknown_tile' | 'no_material' | 'max_count' | 'occupied_plant' | 'not_expandable' | 'already_buildable' | 'on_path' | 'out_of_world' | 'max_size' | 'route_blocked';
+export type TileRejectReason = 'unknown_tile' | 'no_material' | 'max_count' | 'occupied_plant' | 'not_expandable' | 'already_buildable' | 'on_path' | 'out_of_world' | 'max_size' | 'route_blocked' | 'wave_active';
 /** Brutling-Einsatz (`BEETLE_REJECTED`). */
 export type BeetleRejectReason = 'already_deployed' | 'none_available';
 /** M5 (Sprint AP2): zugebauter Laufweg — der Default-Pfad greift, und das muss sichtbar sein. */
 export type RouteRejectReason = 'route_blocked';
+/** UI-Adapter-Vokabular (`components/placementController`, Pool-Vorprüfung B39): Komposition
+ *  aus Sim-Wörtern plus `unknown` — `unknown` wird NIE von der Sim emittiert, es markiert nur
+ *  den UI-Zustand „noch keine Auswahl". Lebt hier, damit jedes Ablehnungswort genau ein
+ *  Zuhause hat (B39); siehe auch B29 für die i18n-Erschöpfung der Anzeigetexte. */
+export type UiRejectReason = PlacementRejectReason | RouteRejectReason | 'unknown';
+/** Warum ein Lauf endet (`GAME_OVER`-Payload) — B39: benannt im Bus, nie inline. */
+export type RunEndReason = 'lives_depleted';
+/** Feldmeldung (`components/fieldNotice` → `FieldToast`): komplettes Sim-Vokabular plus
+ *  `unknown` (Restfall der UI-Vorprüfung, nie von der Sim emittiert; Text-Pflicht via B29).
+ *  B39: Kompositionen leben im Bus, die UI importiert. */
+export type NoticeReason = RejectReason | 'unknown';
 /** Alles, was dem Spieler als Ablehnungsgrund gezeigt werden kann. */
 export type RejectReason = PlacementRejectReason | PlantRejectReason | TileRejectReason | BeetleRejectReason | RouteRejectReason;
 
@@ -76,7 +91,7 @@ export interface EventPayloads {
   WAVE_STARTED: { wave: number; enemyCount: number };
   WAVE_COMPLETED: { wave: number; reward: number };
   /** B36: Ursache im Payload — der Spieler soll sehen, WARUM der Lauf endete (Playtest R2 #1). */
-  GAME_OVER: { wave: number; score: number; reason: 'lives_depleted' };
+  GAME_OVER: { wave: number; score: number; reason: RunEndReason };
   /** B36: Nachkauf im Lauf (Playtest R2 #2) — Erfolg und Ablehnung kommen als Events. */
   PLANT_PLACED: { plantId: string; variantId: string; gx: number; gy: number };
   PLANT_REMOVED: { plantId: string };

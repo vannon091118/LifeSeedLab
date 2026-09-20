@@ -9,7 +9,7 @@ import { Inspector } from '../dev/Inspector';
 // Partikel/DPR/FX) und Inspector. `active` entscheidet — im Release bleibt der Baum leer,
 // damit keine Dev-Fläche im Spielerbild landet.
 
-export interface GameDevPanelProps {
+interface GameDevPanelProps {
   active: boolean;
   revision: number;
   dpr: number;

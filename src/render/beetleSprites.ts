@@ -41,17 +41,8 @@ export function beetleFrameFor(visual: ResolvedBeetleVisual, cell: number, dpr: 
 }
 
 /** Ein-Rahmen-Sprite (Vorschau, Idle) — Phase 0, das ist der Ruhe-Stand. */
-export function beetleSpriteFor(visual: ResolvedBeetleVisual, cell: number, dpr: number): HTMLCanvasElement {
-  return beetleFrameFor(visual, cell, dpr, 0);
-}
 
-export function beetleSpriteCacheSize(): number {
-  return cache.size;
-}
 
-export function clearBeetleSpriteCache(): void {
-  cache.clear();
-}
 
 /** Zeichnet das Käfer-Sprite zentriert auf (x, y) — Größe steckt in der Anatomie. */
 export function drawBeetleSprite(

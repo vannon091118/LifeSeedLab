@@ -2,14 +2,13 @@
 // ALL GRAPHICS = OBSERVERS: reads state, never writes gameplay (contract Phase 7).
 // Renderer entscheidet NICHTS über Extras/Farben — er zeichnet nur ResolvedVisual.
 
-import type { SimState, PlantEntity, Route } from '../simulation/state';
+import type { SimState, PlantEntity } from '../simulation/state';
 import type { ParticlePool } from '../observers/particles';
 import type { FeedbackLayer } from './layers/feedback';
 import { WEAKENED_THRESHOLD } from '../config/economy.source';
 import { resolveVisual, type ResolvedVisual } from '../visual/generator';
 import { basePlantVisualInput } from '../genome/visualMap';
 import { plantStatsAt } from '../simulation/plantSystem';
-import { strHash } from '../core/rng';
 import { drawSprite } from './spriteCache';
 import { drawBeetleSprite } from './beetleSprites';
 import { beetleBob } from './beetles';
@@ -20,6 +19,7 @@ import { drawMapTile } from './layers/mapTiles';
 import { drawEnemyBody } from './layers/enemies';
 import { drawParticle } from './layers/particlesDraw';
 import { bakeTerrain as bake } from './layers/terrain';
+import { drawVectorField } from './layers/vectorField';
 
 const INK = '#2b2b26';
 const PAPER = '#f5efdc';
@@ -159,6 +159,9 @@ export class Renderer {
       const [gx, gy] = key.split(',').map(Number);
       drawMapTile(ctx, tile, gx, gy, cell, state.mapTiles);
     }
+
+    // Vector-Feld: 30% Alpha Decals je Vector + Attraktor-Pulse (read-only, gebatcht)
+    drawVectorField(ctx, state, cell, ox, oy);
 
     if (ghost) this.drawGhost(ctx, ghost, cell);
 

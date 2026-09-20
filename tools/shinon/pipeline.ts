@@ -20,7 +20,7 @@ import type { PushOutcome } from './push-executor.ts';
  * --no-push), damit derselbe Executor auch nur lokal arbeiten kann.
  */
 
-export interface PipelineOptions {
+interface PipelineOptions {
   /** false ⇒ ohne Starter/README-Aktualisierung direkt ins Gate. */
   prepare?: boolean;
   /** 'all' ⇒ `git add -A` vor dem Commit; 'none' ⇒ ausschließlich bereits Gestagtes committen. */
@@ -33,13 +33,13 @@ export interface PipelineOptions {
   messageFile?: string;
 }
 
-export interface PipelineStep {
+interface PipelineStep {
   name: string;
   ok: boolean;
   detail: string;
 }
 
-export interface PipelineResult {
+interface PipelineResult {
   ok: boolean;
   steps: PipelineStep[];
   report: GateReport | null;

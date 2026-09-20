@@ -1,4 +1,3 @@
-import type { SimState } from '../simulation/state';
 import { saveRun, clearRun } from './runSave';
 
 // Owner: PersistenceSystem (Run-Autor). LOC ≤ 200.

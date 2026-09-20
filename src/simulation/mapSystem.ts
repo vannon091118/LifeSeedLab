@@ -22,12 +22,12 @@ import { routeWalkTiles, routeIdealTiles } from './routeMetrics';
 // Serializer, Tests) importieren sie über den Map-Owner (eine Import-Quelle).
 export { routeWalkTiles, routeIdealTiles };
 
-export type PlaceTileResult =
+type PlaceTileResult =
   | { ok: true }
   | { ok: false; reason: 'unknown_tile' | 'no_material' | 'max_count' | 'occupied_plant' | 'out_of_world' | 'route_blocked' };
 
 /** REMOVE_TILE (Juggling): Verkauf eines Tiles — Ergebnis mit Refund oder Ablehnung. */
-export type RemoveTileResult =
+type RemoveTileResult =
   | { ok: true; tile: MapTileType }
   | { ok: false; reason: 'empty_cell' | 'occupied_plant' };
 
@@ -69,7 +69,7 @@ export function inWorldBounds(state: Pick<SimState, 'cols' | 'rows'>, gx: number
 }
 
 /** Hypothetische Belegung einer Zelle für die Integritäts-Probe (null = Tile entfernen). */
-export interface TileOverride { gx: number; gy: number; tile: string | null }
+interface TileOverride { gx: number; gy: number; tile: string | null }
 
 export class MapSystem {
   private seq = 0;
@@ -304,9 +304,6 @@ export const MAX_WORLD_COLS = 64;
 export const MAX_WORLD_ROWS = 64;
 
 /** Alle Tile-IDs (UI-Tray). */
-export function mapTileChoices(): MapTileType[] {
-  return [...MAP_TILE_IDS];
-}
 
 /** Prüft ob eine Zelle im aktuellen Baubereich liegt (für UI-Validierung). */
 export function canBuildAt(gx: number, gy: number, tiles: MapTiles): boolean {

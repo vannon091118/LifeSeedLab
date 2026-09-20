@@ -153,6 +153,8 @@ describe('Phase 2.6 State hash', () => {
       { id: 'enemy-0001', hp: 12, px: 3.25, py: 3.5, pathIndex: 1 },
     ],
     projectiles: [],
+    vectors: [],
+    attractors: [],
     score: 470,
     combo: { count: 3, multiplier: 1.5, timer: 120, highest: 8 },
   });

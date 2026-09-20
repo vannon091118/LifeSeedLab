@@ -7,6 +7,8 @@
 import type { GameEvent } from '../bus/events';
 import type { Camera } from '../render/camera';
 import { EFFECTS_SOURCE } from '../config/effects.source';
+import { VECTOR_VISUAL_SOURCE } from '../config/vector_visual.source';
+import { vectorForEffect } from '../config/vector_logic.source';
 
 // ── Visual Commands (Phase 8.1) ─────────────────────────────
 export type VisualCommand =
@@ -22,7 +24,15 @@ const INK = '#2b2b26';
 
 function effectColor(effectId: string | null): string {
   if (!effectId) return '#d9c9a3'; // neutral paper dust
+  const vid = vectorForEffect(effectId);
+  if (vid && VECTOR_VISUAL_SOURCE[vid as keyof typeof VECTOR_VISUAL_SOURCE]) return VECTOR_VISUAL_SOURCE[vid as keyof typeof VECTOR_VISUAL_SOURCE].paletteModifier;
   return EFFECTS_SOURCE[effectId as keyof typeof EFFECTS_SOURCE]?.paletteModifier ?? '#d9c9a3';
+}
+function effectProfile(effectId: string | null): string | null {
+  if (!effectId) return null;
+  const vid = vectorForEffect(effectId);
+  if (vid && VECTOR_VISUAL_SOURCE[vid as keyof typeof VECTOR_VISUAL_SOURCE]) return VECTOR_VISUAL_SOURCE[vid as keyof typeof VECTOR_VISUAL_SOURCE].particleProfile;
+  return null;
 }
 
 export class VisualObserver {
@@ -57,11 +67,12 @@ export class VisualObserver {
 
       case 'PROJECTILE_HIT': {
         const color = effectColor(e.payload.effectId);
-        const profile = e.payload.effectId === 'EFFECT_BURN' ? 'ember_burst'
+        const vecProfile = effectProfile(e.payload.effectId);
+        const profile = vecProfile ?? (e.payload.effectId === 'EFFECT_BURN' ? 'ember_burst'
           : e.payload.effectId === 'EFFECT_SLOW' ? 'frost_mist'
           : e.payload.effectId === 'EFFECT_POISON' ? 'bubble_pop'
           : e.payload.effectId === 'EFFECT_CHAIN' ? 'chain_arc'
-          : 'impact_ring';
+          : 'impact_ring');
         this.push({ type: 'SpawnParticleBurst', profile, x: e.payload.px, y: e.payload.py, seed: (e.tick * 17 + this.seq * 3) | 0, intensity: e.payload.critical ? 1.5 : 1, color });
         break;
       }

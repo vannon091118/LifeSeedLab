@@ -14,7 +14,7 @@
 import type { EnemyTypeId } from './enemies.source';
 export type { EnemyTypeId };
 
-export interface EnemyGenomeSource {
+interface EnemyGenomeSource {
   /** Gene (BEETLE_GENES_SOURCE-Ids) — sie bestimmen die SICHTBARE Anatomie, nicht die Werte. */
   genes: readonly string[];
   /** Generation der Ableitung: höhere Generation = mehr Eigenständigkeit im Phänotyp. */
