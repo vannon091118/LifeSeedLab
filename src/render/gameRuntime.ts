@@ -93,6 +93,8 @@ export class RunRuntime {
   private readonly pausedRef: { current: boolean };
   private readonly holdRef: { current: boolean };
   private placementMirror: PlacementState = IDLE;
+  /** B5.1: Anker der Belohnungsreise (Nektar-Zähler) in Canvas-Pixeln — von der UI gemessen. */
+  private rewardAnchor: { x: number; y: number } | null = null;
   private runEnded = false;
   private cmdSeq = 0;
   private raf = 0;
@@ -216,7 +218,9 @@ export class RunRuntime {
         const next = recordRunEnd(e.payload.wave, root.getSnapshot().nektarEarned, root.getSnapshot().inventory);
         input.onMetaChange(next);
         // B35: clearRun gehört dem Save-Autor (GAME_OVER-Subscription in persistence/).
-      } catch { /* meta persist must never break the run screen */ }
+      } catch (err) {
+        if (isDevActive()) console.warn('[gameRuntime] recordRunEnd failed:', err);
+      }
       this.cbs.onGameOver(e.payload.reason);
     });
 
@@ -266,6 +270,7 @@ export class RunRuntime {
         snap, this.particles, this.feedback,
         cs.shakeOffset.x, cs.shakeOffset.y,
         ghostForRender(this.placementMirror, snap.clock.tick),
+        this.rewardAnchor,
       );
       this.saveAccum += dt; this.hudAccum += dt;
       // B35: Der 10-s-Autosave-Tick sitzt im RunSaveAutor (persistence/), nicht hier.
@@ -280,6 +285,13 @@ export class RunRuntime {
   }
 
   // ── Eingänge aus GameView (Pointer/Buttons) ──────────────────────────────
+
+  /**
+   * B5.1: Das Ziel der Belohnungsreise ist der Nektar-Zähler des HUD. Seine Lage misst die UI
+   * (Mount + Layout-Wechsel) und reicht sie hier durch — der Renderer liest kein DOM und hält
+   * keine zweite Layout-Wahrheit. `null` = noch nicht gemessen ⇒ kein Flug statt geratenem Ziel.
+   */
+  setRewardAnchor(anchor: { x: number; y: number } | null): void { this.rewardAnchor = anchor; }
 
   /** Der Mirror hält den Render-Loop aktuell, ohne einen React-Render auszulösen. */
   setPlacement(next: PlacementState): void {

@@ -27,7 +27,7 @@ export function ResultCard({
 
   const traitTagLabel = (trait: string): string => {
     if (trait.includes(' ')) return trait; // Alt-Save-Label (z. B. „rapid fire“)
-    return t(`trait.${trait}` as any);
+    return t(`trait.${trait}` as TranslationKey);
   };
 
   return (

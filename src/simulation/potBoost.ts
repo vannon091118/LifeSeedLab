@@ -24,7 +24,7 @@ export function potColorAt(gx: number, gy: number): PotColor {
   return POT_COLORS[seed % POT_COLORS.length]!;
 }
 
-/** Wirkung dieser Zelle — `null`, wenn dort kein Topf steht (Wiese, Weg, Findling, Deko). */
+/** Wirkung dieser Zelle — `null`, wenn dort kein Topf steht (Wiese, Deko, Alt-Typ). */
 export function potBoostAt(tiles: MapTiles, gx: number, gy: number): PotBoost | null {
   if (tiles[`${gx},${gy}`] !== POT_TILE) return null;
   return POT_BOOSTS[potColorAt(gx, gy)];

@@ -14,6 +14,7 @@ import { fnv1a } from '../core/hash';
 // sonst hinge der gewählte Blitzpfad an der Browsersprache.
 import { compareCodeUnits } from '../core/order';
 
+
 export class VectorSystem {
   /** Drift-Start aus erstem Genome-Hash (falls vorhanden) oder 0 — deterministisch. */
   private starNorm(state: SimState): number {

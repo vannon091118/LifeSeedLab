@@ -167,7 +167,7 @@ export function defaultConfig(root: string): ShinonConfig {
         commitSize: true,
       },
       failFast: true,
-      enforcement: 'advisory',
+      enforcement: 'strict',
       fileExtensions: ['.ts', '.tsx'],
       locCaps: [
         { path: 'src/simulation/', cap: 300, label: 'Simulationssystem' },
@@ -234,6 +234,18 @@ export function defaultConfig(root: string): ShinonConfig {
           message:
             'Verboten im Spielcode: String.prototype.localeCompare — deterministisch mit compareCodeUnits (core/order.ts) sortieren',
           exclude: ['tools/', 'src/components/', 'src/render/', 'src/observers/', 'src/i18n.tsx', 'src/i18n/'],
+        },
+        {
+          pattern: 'JSON\\.parse\\s*\\([^)]*\\)\\s*as\\s+[A-Z]',
+          message: 'Verboten: Boundary Laundering via JSON.parse(...) as Type Assertion — nutze Laufzeit-Narrowing oder Schema-Validation',
+          include: ['src/'],
+          exclude: ['tools/', 'tests/'],
+        },
+        {
+          pattern: '\\.innerHTML\\s*=\\s*',
+          message: 'Verboten: Unsanitierte innerHTML-Zuweisung — nutze DOM-Methoden oder escapeHtml() sanitization',
+          include: ['src/'],
+          exclude: ['tools/', 'tests/'],
         },
       ],
       commands: {

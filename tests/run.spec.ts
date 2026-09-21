@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import {
-  startRun, devValue, metaWaves, sim, placePlant, plantCard,
+  startRun, devValue, metaWaves, sim, placePlant, plantCard, placeOnePlant,
 } from './helpers/harness';
 
 /**
@@ -47,9 +47,13 @@ test.describe('Run', () => {
 
     expect(cell, 'Keine erreichbare Zelle wurde von der Sim angenommen').not.toBeNull();
     expect(await devValue(page, 'PLANTS')).toBe(1);
-    // Der Bestand sinkt UND die Auswahl löst sich (Q17: letzte Einheit ⇒ kein Zombie-Zustand).
-    await expect(plantCard(page, 'loan_sprout')).toHaveAttribute('aria-pressed', 'false');
-    await expect(plantCard(page, 'loan_sprout')).toHaveAttribute('aria-disabled', 'true');
+    // NEUER Tray-Vertrag („leere Felder ausblenden"): mit der letzten Einheit ist die Karte WEG —
+    // sie ist kein deaktiviertes Werkzeug mehr. Damit ist die alte pressed/aria-disabled-Probe
+    // (Q17) nicht mehr messbar; ihr eigentlicher Inhalt bleibt aber geprüft: die Auswahl ist
+    // beendet, ein zweiter Platzierungsversuch hat keine Karte mehr zum Drücken und pflanzt
+    // nichts (`placeOnePlant` prüft Karte + Zählung und liefert hier `false`).
+    await expect(plantCard(page, 'loan_sprout')).toHaveCount(0);
+    expect(await placeOnePlant(page, 'loan_sprout', 'loan_sprout')).toBe(false);
   });
 
   test('Pause friert die Sim ein, Fortsetzen startet sie wieder', async ({ page }) => {

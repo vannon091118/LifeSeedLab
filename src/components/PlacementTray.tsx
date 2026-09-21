@@ -57,9 +57,17 @@ export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPl
     const key = tileLabelKey(tile);
     return key ? t(key) : tileLabelFallback(tile);
   };
+  // LEERE KARTEN VERSCHWINDEN (Playtest-Befund „Wurzelmauer ×0"): ein Kartenplatz ohne Bestand
+  // ist kein Werkzeug, sondern Rauschen — er ist nicht wählbar (`aria-disabled`), belegt aber
+  // Platz und sieht wie eine Option aus. Beide Kästen folgen derselben Regel: im Kasten steht,
+  // was man HAT. Dass dabei kein Zombie-Zustand entsteht, garantiert der Controller, nicht die
+  // Tray: er bricht die Auswahl selbst ab, sobald der Bestand auf 0 fällt
+  // (`placementController.ts`, Q17 — nach der letzten Einheit ist `variantId` null).
+  const plantCards = cardsWithStock(plantIds, inventory);
+  const tileCards = cardsWithStock(Object.keys(MAP_TILES_SOURCE) as MapTileType[], inventory);
   // B21: Die ERSTE Karte mit Bestand ist das Cue-Ziel des Onboardings (`data-tut="card"`) — genau
   // ein Element, damit der blinkende Ring eindeutig ist. Kein State, keine Auswahl-Logik.
-  const firstPlayable = plantIds.find(id => (inventory[id] ?? 0) > 0) ?? null;
+  const firstPlayable = plantCards[0] ?? null;
   return (
     <div style={styles.tray} role="toolbar" aria-label="Pflanzenauswahl">
       {/* Mapbuilder-Tabs: zwei Werkzeugkästen, genau EINER sichtbar. aria-pressed statt
@@ -85,14 +93,14 @@ export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPl
         </button>
       </div>
 
-      {/* PFLANZEN-Kasten (Kampf) — nur im Pflanzen-Tab sichtbar */}
-      {active === 'plants' && (
+      {/* PFLANZEN-Kasten (Kampf) — nur im Pflanzen-Tab sichtbar, und nur mit Bestand: ein leeres
+          Rasterfeld wird nicht als Karte gezeigt (Befund „Wurzelmauer ×0"). */}
+      {active === 'plants' && plantCards.length > 0 && (
         <div style={styles.traySection} aria-label={trayPlantsLabel}>
           <div style={styles.sectionRow}>
-          {plantIds.map(id => {
+          {plantCards.map(id => {
           const count = inventory[id] ?? 0;
           const isSelected = variantId === id && mode === 'plant';
-          const disabled = count <= 0;
           const label = plantLabel(id);
           return (
             <Fragment key={id}>
@@ -100,8 +108,8 @@ export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPl
               {...cardPress(() => { onSelectPlant(id, count); setManualTab(null); })}
               data-tut={id === firstPlayable ? 'card' : undefined}
               data-plant={id}
-              style={{ ...styles.trayItem, ...(isSelected ? styles.trayItemSelected : {}), ...(disabled ? styles.trayItemDisabled : {}) }}
-              aria-pressed={isSelected} aria-disabled={disabled} title={label}
+              style={{ ...styles.trayItem, ...(isSelected ? styles.trayItemSelected : {}) }}
+              aria-pressed={isSelected} title={label}
             >
               <span style={styles.trayDot} aria-hidden/>
               <span style={styles.trayName}>{label}</span>
@@ -133,20 +141,18 @@ export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPl
       )}
 
       {/* BAU-Kasten (Mapbuilder) — Tiles + Verkauf, nur im Bau-Tab sichtbar.
-          Wege lenken Gegner, Töpfe tragen Pflanzen, Findlinge blockieren. */}
-      {active === 'build' && (
+          Töpfe tragen Pflanzen und blockieren — der Weg kommt aus dem Pathfinding. */}
+      {active === 'build' && tileCards.length > 0 && (
         <div style={styles.traySection} aria-label={trayFieldLabel}>
           <div style={styles.sectionRow}>
-          {(Object.keys(MAP_TILES_SOURCE) as MapTileType[]).map(tile => {
+          {tileCards.map(tile => {
           const isSelected = mode === tile;
-          // #4: bezahlbar = im POOL vorhanden (kein Energie-Guthaben mehr).
-          const affordable = (inventory[tile] ?? 0) > 0;
           return (
             <button
               key={tile}
               {...cardPress(() => onSelectTile(tile))}
-              style={{ ...styles.trayItem, ...(isSelected ? styles.trayItemSelected : {}), ...(affordable ? {} : styles.trayItemDisabled) }}
-              aria-pressed={isSelected} aria-disabled={!affordable}
+              style={{ ...styles.trayItem, ...(isSelected ? styles.trayItemSelected : {}) }}
+              aria-pressed={isSelected}
               // Der Topf erklärt seine vier Farben dort, wo man ihn auswählt (der Titel nennt
               // die Wirkung; keine schwebende Blase, die die Karten verdecken würde).
               title={tile === 'pot'
@@ -164,6 +170,16 @@ export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPl
       )}
     </div>
   );
+}
+
+/**
+ * Die Karten EINES Kastens, die Bestand haben — leere Felder sind kein Werkzeug (Playtest-Befund
+ * „Wurzelmauer ×0"): sie sind nicht wählbar, belegen aber Platz und sehen wie eine Option aus.
+ * EINE Regel für beide Kästen (Pflanzen und Bau), damit die Tray nicht zwei Wahrheiten über
+ * „leer" trägt. Der Zustand kommt aus dem Run-Inventar, nicht aus einer zweiten Kopie.
+ */
+export function cardsWithStock<T extends string>(ids: readonly T[], inventory: Record<string, number>): T[] {
+  return ids.filter(id => (inventory[id] ?? 0) > 0);
 }
 
 /**
@@ -203,9 +219,7 @@ const POT_LEGEND_KEYS = ['pot.amber', 'pot.violet', 'pot.moss', 'pot.rust'] as c
 /** Tile-Farben der Tray-Punkte (Präsentation der Auswahl, nicht der Welt). */
 function tileSwatch(tile: MapTileType): string {
   switch (tile) {
-    case 'path': return '#d9c9a3';
     case 'pot': return POT_SWATCH;
-    case 'boulder': return '#9a948a';
     default: return '#c96f8e';
   }
 }
@@ -221,7 +235,6 @@ const styles: Record<string, CSSProperties> = {
   // gestohlen werden; releasePointerCapture im Handler lässt die Pointer-Events zum Canvas.
   trayItem: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px 12px', background: '#fff', borderWidth: '2px', borderStyle: 'solid', borderColor: 'var(--ink)', borderRadius: 10, cursor: 'pointer', color: 'var(--ink)', fontSize: 12, fontWeight: 700, boxShadow: '2px 2px 0 var(--ink)', minWidth: 76, flexShrink: 0, lineHeight: 1.1, minHeight: 64, touchAction: 'none' as const },
   trayItemSelected: { background: '#f0fdf4', borderColor: 'var(--leaf)', boxShadow: '2px 2px 0 var(--leaf-dark)' },
-  trayItemDisabled: { opacity: 0.45, cursor: 'not-allowed' },
   trayDot: { width: 10, height: 10, borderRadius: '50%', background: 'var(--leaf)', border: '1.5px solid var(--ink)', flexShrink: 0 },
   trayName: { fontSize: 11, color: 'var(--ink)', textAlign: 'center', wordBreak: 'break-word', maxWidth: 72 },
   trayCount: { fontSize: 11, color: '#6b6250', fontWeight: 800 },

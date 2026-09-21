@@ -55,7 +55,7 @@ export function tileWeight(tiles: MapTiles, gx: number, gy: number): number {
   return MAP_TILES_SOURCE[t as MapTileType]?.weight ?? MAP_DEFAULT_WEIGHT;
 }
 
-/** Ist die Zelle durch ein Tile blockiert (pot/boulder)? */
+/** Ist die Zelle durch ein Tile blockiert (Topf)? Deko ist begehbar. */
 export function tileBlocked(tiles: MapTiles, gx: number, gy: number): boolean {
   const t = tiles[tileKey(gx, gy)];
   if (!t) return false;

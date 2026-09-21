@@ -3,11 +3,14 @@
 // Leih-Pflanze ist nach D2b eine normale PlantEntity, also ohne Sonderbehandlung im
 // Cost-Field. Dieser Test pinnt die Naht: D2b-Platzierbarkeit × B38-Maze-Wirkung.
 //
-// Diagonal-Modell (Spawn oben rechts → Ausgang unten links): die Weg-Bahn ist eine
-// SENKRECHTE Spalte gx=6 (gy 1..9), die die Diagonale kreuzt. Gemessene Auslenk-Stufen
-// (Sonde 2026-09-19, Seed 2447771834, Pflanzen ab gy=2 auf der Bahn):
-//   n=0: Route reitet die Bahn voll · n=1: Ausweich-Kanal gx=7, Rückkehr auf die Bahn
-//   n=7: totale Auslenkung (identisch mit maze_balance.test.ts).
+// NEU GEMESSEN (Sonde 21.09.2026, nach dem Weg-Schnitt): Die leere Welt läuft über die
+// RAND-ECKEN (Reihe 0 nach links, dann Spalte 0 hinunter — 22 Felder, 23 Wegpunkte). Die
+// Bezugszelle ist der ZWEITE Wegpunkt (10,0). Die alte Fassung maß eine „Weg-Bahn" auf
+// Spalte 6 — die gab es nur mit Weg-Tiles (Gewicht 0,6), und die sind seit der Entscheidung
+// „der Weg ist das Pathfinding-Ergebnis" kein Baumaterial mehr.
+//
+// Der schärfste Teil ist der IDENTITÄTS-Vergleich: dieselbe Zelle, dieselbe Route. Eine
+// Leih-Pflanze darf keinen eigenen Weg-Pfad haben (D2b).
 import { describe, it, expect, beforeEach } from 'vitest';
 import { SimulationRoot } from './root';
 import { makeRoot } from '../testing/testkit';
@@ -16,10 +19,22 @@ import { makeCommand } from '../bus/commands';
 import { deriveLoanPlant, LOAN_PLANT_ID } from '../meta/loan';
 import { deriveSeed } from '../core/rng';
 import { GAME_SEED } from '../config';
+import { routeWalkTiles } from './mapSystem';
+
+/** Die leere Welt (Rand-Ecken-Route) — Bezugspunkt aller Vergleiche (gemessen). */
+const EMPTY_ROUTE = '11,0>10,0>9,0>8,0>7,0>6,0>5,0>4,0>3,0>2,0>1,0>0,0'
+  + '>0,1>0,2>0,3>0,4>0,5>0,6>0,7>0,8>0,9>0,10>0,11';
+
+/** Bezugszelle des Datensatzes: der zweite Wegpunkt der Rand-Route (gemessen: 10,0). */
+const ANCHOR: readonly [number, number] = [10, 0];
 
 function routeKey(root: SimulationRoot): string {
   const r = root.getSnapshot().currentRoute ?? [];
   return r.map(p => `${Math.round(p.x - 0.5)},${Math.round(p.y - 0.5)}`).join('>');
+}
+
+function onRoute(root: SimulationRoot, gx: number, gy: number): boolean {
+  return (root.getSnapshot().currentRoute ?? []).some(p => Math.floor(p.x) === gx && Math.floor(p.y) === gy);
 }
 
 /** Root wie App.tsx (D2/D2b): Run-Loadout trägt die Leih-ID, Run-bredStats die Stats. */
@@ -27,59 +42,71 @@ function loanRoot(): SimulationRoot {
   const runId = 1;
   const loan = deriveLoanPlant(runId);
   const runSeed = deriveSeed(GAME_SEED, 'world', 'run', runId, 1);
-  const root = makeRoot({
+  // ENTFERNT (19.09.2026): hier stand `state.resources.energy = 9999` — ein Rest des
+  // Energiesystems. Das Feld existiert seit dessen Streichung nicht mehr; die Zuweisung lief
+  // ins Leere und ist mit dem Erfahrungstopf endgültig gefallen (der Run hat keinen Kontostand).
+  return makeRoot({
     seed: runSeed, runId,
     loadout: ['sprout', LOAN_PLANT_ID], loadoutStock: 99,
     bredStats: { [LOAN_PLANT_ID]: { ...loan.stats, cost: loan.cost, effects: [] } },
   });
-  // ENTFERNT (19.09.2026): hier stand `state.resources.energy = 9999` — ein Rest des
-  // Energiesystems. Das Feld existiert seit dessen Streichung nicht mehr; die Zuweisung lief
-  // ins Leere und ist mit dem Erfahrungstopf endgültig gefallen (der Run hat keinen Kontostand).
-  // Weg-Bahn wie im B38-Datensatz: senkrechte Spalte gx=6, gy 1..9 (kreuzt die Diagonale)
-  let seq = 1;
-  for (let gy = 1; gy <= 9; gy++) root.commands.push(makeCommand(0, 'PLACE_TILE', seq++, { gx: 6, gy, tile: 'path' }));
-  root.stepOnce();
-  return root;
 }
 
-/** Zellen der Route auf der Bahn-Spalte (gx=6). */
-function onBahn(root: SimulationRoot): number {
-  const r = root.getSnapshot().currentRoute ?? [];
-  return r.filter(p => Math.round(p.x - 0.5) === 6).length;
+/** Dieselbe Welt, dieselbe Aktion — nur die Variante unterscheidet sich (Identitätsprobe). */
+function rootWithPlant(variantId: string, gx: number, gy: number): SimulationRoot {
+  const root = loanRoot();
+  root.stepOnce(); // die leere Route steht (Run-Start-Vertrag)
+  root.commands.push(makeCommand(0, 'PLACE_PLANT', 100, { variantId, gx, gy }));
+  root.stepOnce();
+  return root;
 }
 
 describe('Maze × Leih-Pflanze: PLANT_ROUTE_COST greift auf loan_sprout', () => {
   beforeEach(() => resetIds());
 
-  it('Leih-Pflanze ist auf der Weg-Bahn platzierbar und landet im Cost-Field (D2b-Naht)', () => {
+  it('Leih-Pflanze ist auf der Route platzierbar und landet im Cost-Field (D2b-Naht)', () => {
     const root = loanRoot();
-    root.commands.push(makeCommand(0, 'PLACE_PLANT', 100, { variantId: LOAN_PLANT_ID, gx: 6, gy: 2 }));
     root.stepOnce();
-    const plants = root.getSnapshot().plants;
-    expect(plants.some(p => p.variantId === LOAN_PLANT_ID && p.gx === 6 && p.gy === 2)).toBe(true);
+    expect(routeKey(root)).toBe(EMPTY_ROUTE); // Vorbedingung: die Bezugsroute steht
+    const [gx, gy] = ANCHOR;
+    root.commands.push(makeCommand(0, 'PLACE_PLANT', 100, { variantId: LOAN_PLANT_ID, gx, gy }));
+    root.stepOnce();
+    expect(root.getSnapshot().plants.some(p => p.variantId === LOAN_PLANT_ID && p.gx === gx && p.gy === gy)).toBe(true);
   });
 
-  it('Leih-Pflanze allein drückt die Route in den Ausweich-Kanal (identisch zu sprout, n=1)', () => {
-    const base = routeKey(loanRoot());
-    const root = loanRoot();
-    root.commands.push(makeCommand(0, 'PLACE_PLANT', 100, { variantId: LOAN_PLANT_ID, gx: 6, gy: 2 }));
-    root.stepOnce();
-    // Identische Wirkung wie jede Einzelpflanze: Route knickt auf gx=7 aus und kehrt
-    // unterhalb auf die Bahn zurück (maze_balance-Datensatz, n=1).
-    expect(routeKey(root)).not.toBe(base);
-    const r = root.getSnapshot().currentRoute!;
-    expect(r.some(p => Math.round(p.x - 0.5) === 7)).toBe(true); // Ausweich-Kanal
-    expect(onBahn(root)).toBeGreaterThanOrEqual(5); // Rückkehr auf die Bahn
+  it('Leih-Pflanze verlegt die Route EXAKT wie ein Spross — kein eigener Weg-Pfad (D2b)', () => {
+    const loan = rootWithPlant(LOAN_PLANT_ID, ANCHOR[0], ANCHOR[1]);
+    const sprout = rootWithPlant('sprout', ANCHOR[0], ANCHOR[1]);
+
+    // Die Kern-Aussage: identische Zelle ⇒ identische Route, egal welche der beiden Pflanzen.
+    expect(routeKey(loan)).toBe(routeKey(sprout));
+    // … und die Route ist wirklich verlegt worden (nicht der Zufall eines No-ops):
+    expect(routeKey(loan)).not.toBe(EMPTY_ROUTE);
+    expect(onRoute(loan, ANCHOR[0], ANCHOR[1])).toBe(false); // die Pflanze wird UMGANGEN
+    // Länge unverändert: die Pflanze verschiebt den ORT, nicht die Strecke.
+    expect(routeWalkTiles(loan.getSnapshot().currentRoute!)).toBe(22);
   });
 
-  it('Leih-Pflanze + normale Pflanze drücken die Kreuzung weiter hinunter (B38-Stufenform)', () => {
-    const root = loanRoot();
-    root.commands.push(makeCommand(0, 'PLACE_PLANT', 100, { variantId: LOAN_PLANT_ID, gx: 6, gy: 2 }));
-    root.commands.push(makeCommand(0, 'PLACE_PLANT', 101, { variantId: 'sprout', gx: 6, gy: 3 }));
-    root.stepOnce();
-    const r = root.getSnapshot().currentRoute!;
-    // n=2: die Kreuzung wandert nach unten — Ausweich-Kanal gx=7 bis gy=4, dann Bahn.
-    expect(r.some(p => Math.round(p.x - 0.5) === 7)).toBe(true);
-    expect(onBahn(root)).toBeGreaterThan(0);
+  it('Leih-Pflanze + normale Pflanze: die Gasse wandert weiter, beide Zellen bleiben frei', () => {
+    // Gemessen (Sonde 21.09.2026): Die Leih-Pflanze auf (10,0) schiebt die Route auf die Gasse
+    // gy=1. Eine ZWEITE Pflanze wirkt deshalb nur, wenn sie AUF dieser neuen Route steht:
+    // (9,1) verlegt sie weiter (Route auf gy=2) — (9,0) täte NICHTS, weil dort niemand mehr läuft.
+    // Der Test pinnt genau diese Naht: Wirkung hängt am Ort auf der AKTUELLEN Route.
+    const loanOnly = rootWithPlant(LOAN_PLANT_ID, ANCHOR[0], ANCHOR[1]);
+    const loanOnlyKey = routeKey(loanOnly);
+    const SECOND: readonly [number, number] = [9, 1]; // der nächste Wegpunkt der neuen Gasse
+
+    const both = loanRoot();
+    both.stepOnce();
+    both.commands.push(makeCommand(0, 'PLACE_PLANT', 100, { variantId: LOAN_PLANT_ID, gx: ANCHOR[0], gy: ANCHOR[1] }));
+    both.commands.push(makeCommand(0, 'PLACE_PLANT', 101, { variantId: 'sprout', gx: SECOND[0], gy: SECOND[1] }));
+    both.stepOnce();
+
+    expect(routeKey(both)).not.toBe(EMPTY_ROUTE);
+    expect(routeKey(both)).not.toBe(loanOnlyKey); // die zweite Pflanze verschiebt weiter
+    expect(onRoute(both, ANCHOR[0], ANCHOR[1])).toBe(false);
+    expect(onRoute(both, SECOND[0], SECOND[1])).toBe(false);
+    expect(onRoute(loanOnly, SECOND[0], SECOND[1])).toBe(true); // Vorbedingung: sie lag WIRKLICH auf der Route
+    expect(routeWalkTiles(both.getSnapshot().currentRoute!)).toBe(22);
   });
 });

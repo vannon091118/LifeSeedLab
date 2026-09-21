@@ -131,3 +131,66 @@ describe('variantPower (Gacha-Gewichtung)', () => {
 });
 
 type PlantVariantLike = ReturnType<typeof createBaseVariants>[number];
+
+describe('Gacha-Gewichtung als Regel (B15.4)', () => {
+  it('schwächere Pflanzen werden als Eltern bevorzugt — die Gewichtung ist kein Dekor', () => {
+    // BLINDER FLECK (Mutations-Drill, Genom-Runde): Wer `w: 1 / (1 + variantPower(v))` auf
+    // `w: 1` dreht, verliert keine einzige bestehende Assertion — der Wurf war damit
+    // gleichverteilt, obwohl die Regel „schwache Eltern bevorzugen“ (B15.4) die Zucht trägt.
+    // Gepinnt wird die Richtung über feste Seeds, keine Zufallszahl: die schwache Pflanze
+    // muss deutlich häufiger als Elternteil auftreten als die stärkste im Besitz.
+    // DREI Pflanzen im Besitz — nicht zwei: mit genau zwei erzwingt der Eltern-Ausschluss
+    // ohnehin beide, und die Gewichtung wäre per Konstruktion unsichtbar (erste Fassung
+    // dieses Vertrags lieferte exakt 120/120 und war damit selbst der Fehler).
+    const schwach: PlantVariantLike = {
+      ...BASES[1],
+      id: 'contract_schwach',
+      genome: [{ id: 'fire', power: 0.05, dominant: true }],
+    };
+    const mittel: PlantVariantLike = {
+      ...BASES[2],
+      id: 'contract_mittel',
+      genome: [{ id: 'fire', power: 0.3, dominant: true }],
+    };
+    const stark: PlantVariantLike = {
+      ...BASES[0],
+      id: 'contract_stark',
+      genome: [{ id: 'fire', power: 1, dominant: true }, { id: 'crit', power: 1, dominant: true }],
+    };
+    let schwacheWahl = 0, starkeWahl = 0;
+    for (let i = 0; i < 120; i++) {
+      const roll = rollGachaCross([stark, schwach, mittel], 5000 + i, i);
+      expect(roll, `Seed ${5000 + i}`).not.toBeNull();
+      for (const p of [roll!.parentA, roll!.parentB]) {
+        if (p.id === schwach.id) schwacheWahl++;
+        else if (p.id === stark.id) starkeWahl++;
+      }
+    }
+    expect(schwacheWahl + starkeWahl).toBeLessThanOrEqual(240);
+    expect(schwacheWahl, 'schwache Pflanze wird nicht bevorzugt — Gewicht wirkungslos')
+      .toBeGreaterThan(starkeWahl * 1.5);
+  });
+
+  it('Rollen-Vererbung: 70 % Elterntyp / 30 % Schütze — die Verteilung ist gepinnt', () => {
+    // BLINDER FLECK (Mutations-Drilly, Genom-Runde): Die Typ-Vererbung (40/30/30 über die
+    // beiden Eltern-Slots) war ungepinnt — wer die Schwellen still auf 0.5/0.8 dreht,
+    // verschiebt die Rollen-Ausbeute der Zucht, ohne einen roten Test zu erzeugen.
+    // Der Vertrag benutzt EINEN Elterntyp auf beiden Seiten: dann fällt der Eltern-Anteil
+    // zusammen (0.4 + 0.3 = 0.7) und die Verteilung ist ohne Slot-Zuordnung messbar.
+    const wand: PlantVariantLike = { ...BASES[0], id: 'contract_wand', type: 'wall' };
+    const wand2: PlantVariantLike = { ...BASES[1], id: 'contract_wand2', type: 'wall' };
+    let wandKinder = 0, schuetzenKinder = 0;
+    for (let i = 0; i < 120; i++) {
+      const roll = rollGachaCross([wand, wand2], 7000 + i, i);
+      expect(roll, `Seed ${7000 + i}`).not.toBeNull();
+      if (roll!.child.type === 'wall') wandKinder++;
+      else if (roll!.child.type === 'shooter') schuetzenKinder++;
+      else throw new Error(`Kind erbt einen Typ außerhalb der Eltern/Schützen: ${roll!.child.type}`);
+    }
+    expect(wandKinder + schuetzenKinder).toBe(120);
+    const anteil = wandKinder / 120;
+    expect(anteil, `Elternanteil ${anteil.toFixed(3)} — erwartet die Source-Verteilung 0.7`)
+      .toBeGreaterThan(0.6);
+    expect(anteil).toBeLessThan(0.78);
+  });
+});

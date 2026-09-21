@@ -24,6 +24,7 @@ Commit-Historie. Dieses Dokument ist die Arbeitsliste dieser Domäne: Befund →
 ## A7. `src/observers/*` — INCOMPLETE
 
 - `visualObserver.ts`: emits `PunchScale` **never**; no `DAMAGE_DEALT` handler (damage numbers missing = biggest juice gap); `REWARD_GRANTED` unsubscribed (`reward_flight` profile dead); `WAVE_STARTED` unsubscribed (no warning FX); `NIGHT_STARTED`/`DAY_STARTED` unsubscribed; `CRITICAL_HIT` branch draws at world origin `(0,0)` — latent bug.
+  **Stand 21.09.2026 (nachgemessen, nicht aus dieser Zeile geschlossen):** Die Matrix ist gebaut — `DAMAGE_DEALT`/`CRITICAL_HIT`/`PROJECTILE_HIT`/`ENEMY_DIED`/`WAVE_STARTED`/`WAVE_COMPLETED`/`NIGHT`/`DAY` haben Handler und erzeugen Kommandos; der `CRITICAL_HIT`-Zweig nutzt `payload.px/py`. Der `reward_flight`-Partikel-*Profil*-Eintrag ist gelöscht (die Reise zeichnet der FeedbackLayer, s. B5.1) — die Zeile bleibt als Historie stehen.
 - `particles.ts`: `EFFECTS_SOURCE` references **8 particle profiles that do not exist** (`spark_line`, `ring_metal`, `glow_rise`, `bubble_pop`, `ring_soft`, `trail_fast`, `burst_star`, `arc_jump`) → `burst()` silently returns. Test D validates IDs, not cross-file keys — extend gate (A11).
 - `INTENSITY_PARTICLES` exported, unused.
 - REPAIR: observer covers full event→command matrix (B5 table); profiles completed (B5/FX); color decision moves from GameView into observer payloads.
@@ -52,7 +53,7 @@ Belege: `src/render/layers/terrain.ts:171-232`, `src/render/renderer.ts:77-81`, 
 6. **No:** emoji as final art, random gradients, stock icons, photo textures, mixed styles, particle floods replacing animation.
 7. **Paper + Pop (LifeSeedLab-Identität):** Die Welt ist haptisch papercraft — Hintergrund/Wege als aufgeklebte Papierstreifen mit Drop-Shadow, Fineliner-Raster, ausgefransten Kanten, Papierkorn (einmal gebacken, `visual`-Namespace). UI sind Notizzettel/Post-its/Pappschilder mit Büroklammern (Tokens `--paper`/`--paper-dim`/`--ink`, kein Blur-Glass). Pflanzen/Gegner brechen bewusst aus der matten Welt aus: satt, plastisch, mit Farbverläufen + Specular-Highlights à la Nintendo — wie aufgeklebte, lebendig gewordene Figuren. Squash & Stretch, Konfetti aus Papierschnipseln, Idle-Atmen. Diese Sprache ist verbindlich; generische Mobile-TD-Kompositionen mit dunkler HUD-Leiste + leerer Canvas + Kartenmeer sind damit ausgeschlossen.
 8. **Keine zweite Wahrheit:** Visuelle Identität entsteht ausschließlich aus der Pipeline `SOURCE → GENOME → TRAITS → GAMEPLAY PHENOTYPE → VISUAL PHENOTYPE → SIMULATION → EVENT → OBSERVER → RENDER`. Screenshots dürfen nicht „hübsch erfunden" sein; jede Silhouette/Palette/Tint ist aus dem Genom ableitbar (`genomeToVisualInput` → `ResolvedVisual` → `variantKey`). Ein Menücontainer ohne Domänenbedeutung (Gewächshaus = Genom/Breeding, Archiv = Herbarium, Run = Schlachtfeld, Chronik = Feldnotizen) ist ein Defect.
-9. **Kästchenblock-CGI („Papier trifft CGI", bindend — Manifest: `../architecture/papier-trifft-cgi.md`, Styleframe: `../art/styleframe.html` — das Styleframe liegt bewusst außerhalb des Tracks, siehe A13.4):** Bühne = Schul-Mathe-Collageblock (blaues Raster exakt auf `CELL_SIZE`, Blockrand + Lochung, Bleistift-Kritzeleien Alpha ≈ 0.09, Collage-Fetzen/Klebestreifen — alles gebacken, `visual`-Namespace). Kachel = EIN rastersynchroner Kasten; Inhalte (pot/boulder/decor/path) wohnen im Kasten. Pflanzen/Käfer = CGI-Kontrast (2-Stopp-Verlauf + Specular oben-links + 2.5-px-Ink-Kontur) auf matten Papier. **Skala ist Genom-Aussage:** `ResolvedVisual.scale` = 0.85 + strength·0.3 ± 0.05, geklemmt 0.85–1.25, strength = Ø Gene-Power — deterministisch, test-locked (generator.test.ts).
+9. **Kästchenblock-CGI („Papier trifft CGI", bindend — Manifest: `../architecture/papier-trifft-cgi.md`, Styleframe: `../art/styleframe.html` — das Styleframe liegt bewusst außerhalb des Tracks, siehe A13.4):** Bühne = Schul-Mathe-Collageblock (blaues Raster exakt auf `CELL_SIZE`, Blockrand + Lochung, Bleistift-Kritzeleien Alpha ≈ 0.09, Collage-Fetzen/Klebestreifen — alles gebacken, `visual`-Namespace). Kachel = EIN rastersynchroner Kasten; Inhalte (pot/decor — Weg und Findling sind am 21.09.2026 gestrichen, s. `ui.md` B3) wohnen im Kasten. Pflanzen/Käfer = CGI-Kontrast (2-Stopp-Verlauf + Specular oben-links + 2.5-px-Ink-Kontur) auf matten Papier. **Skala ist Genom-Aussage:** `ResolvedVisual.scale` = 0.85 + strength·0.3 ± 0.05, geklemmt 0.85–1.25, strength = Ø Gene-Power — deterministisch, test-locked (generator.test.ts).
 10. **Screen-System (bindend):** JEDER Menübereich ist ein eigener Top-Level-Screen (`App.tsx`-Router: start | menu | greenhouse | seedshop | beetlelab | codex | run) mit Papier-Übergang (`ScreenTransition`, `prefers-reduced-motion` = harter Schnitt) und Indikatoren für alles (`NavIndicators`: Notizzettel-Tabs mit `aria-current`, Status-Chips Nektar/Samen/Sammlung/bestes Wave/Brutling, Page-Dots). Keine Modal-Verschachtelung mehr.
 
 ## B4. Plant visual identity from genome (renderer + generator)
@@ -73,7 +74,7 @@ All seven command types get an executor. Damage numbers, screen flash, manga tex
 | `DAMAGE_DEALT` | `SpawnFloatingNumber{amount}` · `PunchScale{enemyId, 0.15}` · `SpawnParticleBurst{impactProfile}` |
 | `CRITICAL_HIT` | floating number (large, accent) · `ShowMangaText{'CRIT'}` · `CameraShake 3` · `ScreenFlash{white,0.12,3}` · star burst |
 | `ENEMY_DIED` | death burst (per enemy-type color) · `+reward` number · reward flight (B5.1) · `PunchScale` |
-| `REWARD_GRANTED` | `reward_flight` particles from world pos → HUD energy icon (curved path, cosmetic namespace) |
+| `REWARD_GRANTED` | Belohnungsreise: `SpawnRewardFlight` von der **Kill-Position** (Payload) → Nektar-Zähler des HUD (quadratische Bahn, Ankunfts-Puls). Ohne Ort (`px/py = null`, Wellen-Bonus) bewusst **kein** Flug — s. B5.1. |
 | `PROJECTILE_FIRED` | muzzle puff on plant · `PlayAnimation{attack}` |
 | `PROJECTILE_HIT` | impact ring + effect-specific burst (from `effectId`, B6) |
 | `WAVE_STARTED` | `ShowMangaText{'WAVE N'}` · ground warning pulse along path · horn |
@@ -89,6 +90,35 @@ Observer payloads now carry `color`/`accent` resolved from effect source — UI 
 ## B5.1 Reward flight
 
 `REWARD_GRANTED` + world position → 3–5 GLOW particles; quadratic curve to HUD anchor (screen-space target = energy icon position passed in from HUD once per resize); on arrival HUD energy counter punches (scale 1→1.25→1). Resource is already authoritative — flight is display-only.
+
+### B5.1 Umsetzung (21.09.2026) — **UMGESETZT**, mit einer ehrlichen Korrektur
+
+Der Befund war schärfer als der Vertragstext: die Belohnung hatte **keine Reise, kein Ziel und einen erfundenen Ursprung**.
+
+1. **Quelle ist jetzt eine Sim-Tatsache.** `REWARD_GRANTED` trägt `px/py: number | null`; der Kill-Pfad füllt den Ort, den `ScoreSystem.onEnemyDied` schon bekam (vorher `void px; void py`), der Wellen-Bonus trägt `null`. Die früheren `reward_flight`-Partikel starteten in der **Rastermitte (6/4)** — eine Behauptung über die Welt, die niemand geprüft hat.
+2. **Bahn statt Burst.** Neues Präsentations-Kommando `SpawnRewardFlight { x, y, color }` → `FeedbackLayer` (Flüge + Ankunfts-Puls) → `Renderer.drawFlights` **im Screen-Raum** (Quelle aus dem Welt-Transform gerechnet, Ziel als Canvas-Pixel). Drei ink-konturierte Gold-Dots mit Versatz, quadratische Kurve; Ankunft = expandierender Ring **am Zähler**. Kein Blur, keine Cascade, keine per-Frame-Kurven-Berechnung außerhalb der laufenden Flüge (max. 8).
+3. **Ziel gibt es jetzt sichtbar.** `B7.4` verlangte einen Währungszähler mit „punch on gain", den der Spieler nie hatte: der Energie-Zähler ist mit dem Energiesystem gestorben, und der im Lauf verdiente Nektar war bis zum Run-Ende unsichtbar. Der Run-HUD führt deshalb **Nektar** als ersten Chip (Wahrheit: `state.nektarEarned` über `hudOf`); seine Lage misst die UI (Mount + Layout-Wechsel) und reicht sie als `setRewardAnchor` an die Runtime — der Renderer liest kein DOM.
+4. **Abweichung vom Vertragstext, bewusst:** die Ankunft pulsiert als Canvas-Puls **am** Chip, nicht als CSS-Scale-Transform des Chips. Grund: ein `setState` pro Kill wäre React-Churn im RAF-Takt (B12) — die Ankunft ist auch so am Ziel sichtbar.
+5. **Ankunft heißt Ankunft (Gegenprüfung 21.09.2026):** `p = 1 - life/maxLife` endete beim letzten Lebens-Tick bei 95,5 % — der Kopf-Dot brach sichtbar vor dem Zähler ab. Pixelprobe im Browser (goldene Pixel um den Chip, `getImageData`): kleinster Abstand zum Chip-Mittelpunkt **13 px** (letzter Flug-Frame 18 px). Mit `flightProgress` (letzter Lebens-Tick ⇒ `p = 1`) landet der Kopf-Dot **auf** dem Chip-Mittelpunkt (gemessen **0 px**, DPR 1; Test `observers.test.ts`).
+6. **Grenze der Anker-Messung, bewusst:** die UI misst die Chip-Mitte bei Mount, Phasenwechsel und Fenster-Resize — nicht pro Frame (ein Layout-Lesen im RAF-Takt wäre teurer als die Genauigkeit wert). Gemessen ist die *relative* Lage stabil, weil Chip und Canvas im selben Rahmen liegen (Zettel ein-/ausblenden ⇒ Anker unverändert 33,1/22,3 px, Canvas-Box unverändert). Drift entsteht nur, wenn der Zähler selbst breiter wird (3 Stellen ≈ +7 px, halbe Breitenänderung) — der Ankunftsring (r 8→24 px) deckt das ab. Bei Bedarf an die bestehende HUD-Abbildung (`onHud`, ~10 Hz) hängen, nie an einen Frame-Hook.
+
+**Belege:** `observers.test.ts` (Start am Kill-Ort statt Rastermitte · kein Flug bei `null` · Dots wandern näher zum Anker · Ankunft am Anker · **Kopf-Dot LANDET exakt am Anker** · ohne Anker kein Flug), `gateB.test.ts` (Payload trägt den Kill-Ort, Wellen-Bonus `null`), `hudSnapshot.test.ts` (Zähler spiegelt `state.nektarEarned`).
+**Sichtprüfung 21.09.2026:** Desktop (Flight im eingefrorenen Frame, Dots zwischen Kill und Chip) und 390×844 via Playwright — Pixelprobe: Gold-Centroid wandert über aufeinanderfolgende Frames von der Quelle Richtung Anker (314→240 px bei Anker 36.8/22.3), kein horizontaler Überlauf (`scrollWidth 390 = clientWidth 390`), Chip sichtbar bei (22/210, 45 px breit).
+**Offen (Register):** P-27 (`grow`/`death`-Animationen werden emittiert, aber nicht gezeichnet), P-28 (`muzzle_puff` tot), P-29 (Wellen-Bonus hat weder Senke noch Ort), P-31 (Kill-Zahl `+10` vs. Zähler-Delta `+2`), P-33 (Reise kappt still bei 8 Flügen).
+
+### B5.2 Pixelbelege (21.09.2026) — die Behauptung ist jetzt messbar
+
+`tests/helpers/canvasProbe.ts` (Schwarzbox) liefert Frame-Freeze (`freeze`/`stepFrame`/`resume`), Farb-Centroid (Modus `exact` für deckende Zeichen, `hue` für halbtransparente Effekte) und Regionen-Vergleich (`capture`/`delta`, optional farbgefiltert). `tests/visual_probe.spec.ts` belegt damit je einen Kernmoment **mit Negativ-Kontrolle** — eine Messung ohne Gegenprobe beweist nichts:
+
+| Moment | Behauptung | Messung (21.09.2026) |
+|---|---|---|
+| Belohnungsreise | Die Dots wandern zum Zähler und LANDEN auf ihm | letzter Flug-Frame ≤ 3 px vom Anker; ohne Weltursprung (`px/py = null`) 0 Gold-Pixel |
+| Treffer | Die Welt antwortet AM gemeldeten Punkt | im Einschlags-Frame **50–60 neue Tinten-Pixel** (`#2b2b26` = Schadenszahl, 18×15 px Glyphe) am Punkt; 5 Frames später Ruheniveau (Verhältnis > 5) |
+| Ablehnung | Der Tap wird dort beantwortet, wo der Finger war | roter Puls (`#a94438`) an der getippten Zelle (Zelle war vorher nicht rot), Zustand und Bestand unverändert |
+
+**Regel für künftige visuelle Abnahmen:** „Sichtbar" ist eine Pixelaussage, keine Handler-Aussage — ein Handler, der läuft, und ein Kommando, das entsteht, sind kein Beleg dafür, dass der Spieler etwas sieht (B5: Silence is not feedback). Zwei Fallen sind dabei belegt und dokumentiert: der Farbvergleich muss zum Zeichenmodus passen (ein transparenter Effekt über Papier hat **kein** Pixel der reinen Effektfarbe — exakt ±24 ergab 0 in 28 von 28 Frames), und die Baseline des Regionen-Vergleichs muss VOR dem gezeichneten Frame liegen.
+
+**Offen (Register):** P-34 (der Einschlag ist in der Effektfarbe messbar unsichtbar: `impact_ring` in Papierfarbe, `spawn_spore` zu klein/blass — sichtbar ist nur die Zahl).
 
 ## B8. Audio (new `observers/audioObserver.ts` ≤ 250 LOC)
 

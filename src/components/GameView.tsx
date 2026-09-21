@@ -22,7 +22,7 @@ import { TutorialLayer } from './tutorial/TutorialLayer';
 import { FieldToast } from './FieldToast';
 import type { FieldNotice } from './fieldNotice';
 import { countsAsPlacement } from './placementSignal';
-import { LivesChipIcon, WaveChipIcon } from './GameIcons';
+import { LivesChipIcon, NektarChipIcon, WaveChipIcon } from './GameIcons';
 import { gameViewStyles as styles } from './gameViewStyles';
 import type { HudSnapshot } from './hudSnapshot';
 import { hudOf } from './hudSnapshot';
@@ -51,6 +51,7 @@ const IDLE: PlacementState = { mode: 'plant', variantId: null, ghost: null, reje
 
 export function GameView({ seed, runId, loadout, savedVariants, bredStats, ownedCounts, beetles, audioOn, resume, world, onWorldChange, onMetaChange, onExit }: Props){
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const nektarChipRef = useRef<HTMLSpanElement>(null);
   const runtimeRef = useRef<RunRuntime | null>(null);
   const pausedRef = useRef(false);
   const holdRef = useRef(false); // B21: Tutorial-Hold (Präsentation)
@@ -92,6 +93,28 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
 
   /** Einzige Brücke vom Runtime/Controller in den React-Render. */
   const applyPlacement = useCallback((next: PlacementState) => setPlacement(next), []);
+
+  /**
+   * B5.1: Das Ziel der Belohnungsreise ist der Nektar-Zähler. Seine Lage wird HIER gemessen
+   * (einmal beim Mount und bei jedem Layout-Wechsel) und als Canvas-Pixel an die Runtime
+   * gereicht — der Renderer liest kein DOM und kennt keine zweite Layout-Wahrheit. Gemessen
+   * wird CSS-Pixel relativ zur Leinwand, also genau das Koordinatensystem, in dem gezeichnet wird.
+   */
+  const measureRewardAnchor = useCallback(() => {
+    const chip = nektarChipRef.current, canvas = canvasRef.current, runtime = runtimeRef.current;
+    if (!chip || !canvas || !runtime) return;
+    const c = canvas.getBoundingClientRect(), b = chip.getBoundingClientRect();
+    runtime.setRewardAnchor({ x: b.left + b.width / 2 - c.left, y: b.top + b.height / 2 - c.top });
+  }, []);
+
+  // Der Chip erscheint mit dem ersten HUD-Abbild; `hud !== null` und der Phasenwechsel (ein paar
+  // Mal pro Lauf) sind die einzigen Momente, in denen sich die Chip-Lage ohne Fenster-Resize
+  // ändern kann. Kein Frame-Takt, kein Layout-Lesen pro Bild.
+  useEffect(() => {
+    measureRewardAnchor();
+    window.addEventListener('resize', measureRewardAnchor);
+    return () => window.removeEventListener('resize', measureRewardAnchor);
+  }, [measureRewardAnchor, hud !== null, hud?.phase]);
 
   const toggleFx = useCallback(() => {
     setFxOn(v => {
@@ -273,6 +296,12 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
           />
           {hud && (
             <div style={styles.hud} aria-label={t('game.status')} data-tut="hud">
+              {/* B5.1/B7.4: der Währungs-Zähler steht VORN — seine Lage ist damit stabil (die
+                  späteren Chips wachsen mit Combo/Laufweg nach rechts) und die Belohnungsreise
+                  trifft genau das Element, das sie meint. */}
+              <span ref={nektarChipRef} style={{ ...styles.hudChip, ...styles.hudChipNektar }} title={t('menu.nektar')} data-reward-anchor>
+                <NektarChipIcon/> {hud.nektarEarned}
+              </span>
               <span style={styles.hudChip}><LivesChipIcon/> {hud.lives}</span>
               <span style={styles.hudChip}><WaveChipIcon/> {t('game.wave')} {hud.wave}</span>
               {hud.combo > 1 && <span style={{ ...styles.hudChip, ...styles.hudChipCombo }}>×{hud.combo}</span>}

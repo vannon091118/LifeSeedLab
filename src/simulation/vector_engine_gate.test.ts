@@ -13,15 +13,23 @@
 //
 // GOLDEN-HASH-ANKER (privat): das Anchorszenario unten ist reproduzierbar gepinnt. Der
 // Hashwert lebt AUSSCHLIESSLICH in `tools/.tmp/vector_golden_hash.txt` (gitignored) —
-// er wird nie committet, nie gepusht, nie in Logs/Ausgaben geschrieben. Erster Lauf
-// sichert still (Bootstrap), jeder weitere vergleicht streng: Engine-Drift = roter Test.
-// `toHashable` liest vectors+attractors — der Anker deckt die Engine-Zustände ab.
+// er wird nie committet, nie gepusht, nie in Logs/Ausgaben geschrieben. FAIL-CLOSED:
+// fehlt der Anker, ist der Test ROT — kein stiller Bootstrap mehr (auf frischem Klon,
+// neuem Worktree, in CI und nach `git clean -fdx` würde der Istwert sonst still als
+// Sollwert geschrieben und der Test wäre ein Häkchen ohne Prüfung). Sichern nur bewusst:
+// GOLDEN_BOOTSTRAP=1 lokal (legt die Datei an) — in CI injiziert der Workflow den Wert
+// aus dem Repo-Secret GOLDEN_HASH. Erneuern = Datei löschen + GOLDEN_BOOTSTRAP=1.
+// Anker-Format v2: Zeile 1 = State-Hash, Zeile 2 = Feld-Projektion (JSON, Zellen kanonisch
+// sortiert). Bei Drift benennt der Test die ERSTE abweichende Zelle — ausschließlich mit
+// IST-Werten; der Sollwert wird nie gedruckt (sonst wäre die Maske ein Sieb). v1 (nur
+// Hash) bleibt gültig, diagnosefrei. `toHashable` liest vectors+attractors — der Anker
+// deckt die Engine-Zustände ab.
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { makeCommand } from '../bus/commands';
-import { makeRoot, resetFullTestState, hashOfRoot } from '../testing/testkit';
+import { makeRoot, resetFullTestState, hashOfRoot, vectorFieldCellsOf, describeFirstFieldDeviation, type VectorCellView } from '../testing/testkit';
 import type { SimulationRoot } from './root';
 import type { SimState } from './state';
 import { VECTOR_IDS, VECTOR_LOGIC_SOURCE, VECTOR_DIR_TABLE, VECTOR_ATTRACTOR_CONFIG } from '../config/vector_logic.source';
@@ -238,28 +246,35 @@ describe('Gate (d) — TTL: alles fällt, nichts bleibt', () => {
   });
 
   // ══ Performance: 12×12 und 64×64 sparse, drawcall-Batches verträglich ═══════════════════
-  it('Performance sparse: 12×12 und 64×64 Felder bleiben nach 20 Ticks stabil (< 100ms je 20 Ticks)', () => {
-    // 12×12: realistisches kleines Brett
-    const tiny = vectorRoot();
-    for (let gx = 0; gx < 12; gx++) for (let gy = 0; gy < 12; gy++) if ((gx + gy) % 4 === 0) tiny.vectorDeposit(gx, gy, 'VECTOR_HEAT', 1.0);
-    // Ein kurzer Warm-up trennt JIT/Modul-Initialisierung vom gemessenen Engine-Lauf.
-    for (let i = 0; i < 5; i++) tiny.stepOnce();
-    const t0 = process.hrtime.bigint();
-    for (let i = 0; i < 20; i++) tiny.stepOnce();
-    const ms12 = Number(process.hrtime.bigint() - t0) / 1_000_000;
-    expect(ms12, '12×12 sparse: Tick zu langsam für Batching-Schwelle').toBeLessThan(200);
-    expect(Object.keys(tiny.getSnapshot().vectors).length).toBeGreaterThan(0);
+  it('Performance-Vertrag: das Feld bleibt SPARSE — Zellzahl ≤ Fußabdruck + Diffusionsring (deterministisch statt Wanduhr)', () => {
+    // Der frühere Wanduhr-Vergleich (< 200 ms je 20 Ticks) maß die Maschine, nicht die
+    // Engine — unter Parallellast schlug er bei gesundem Code zu (256 ms gemessen). Die
+    // echte Garantie ist der Kausalitäts-Kleber in VectorSystem.update: Diffusion ist
+    // schwächer als der Zerfall, und Diffusions-Ring 1 (0.12) liegt unter der Zünd-
+    // schwelle, stirbt also vor Ring 2 — die Zellzahl bleibt durch den Fußabdruck aller
+    // Deposits plus GENAU EINEN Diffusionsring beschränkt: D × (2r+3)². Nie exponentiell
+    // (Historie: 34270-Zellen-Explosion). Genau das sperrt dieser Test — lastunabhängig,
+    // auf jeder Maschine dasselbe Urteil; die Zellzahl ist zugleich die Batching-Garantie.
+    const radius = VECTOR_LOGIC_SOURCE.VECTOR_HEAT.radius; // Content-Wahrheit, kein Hardcode
+    const fussabdruck = (deposits: number): number => deposits * (2 * radius + 3) * (2 * radius + 3);
 
-    // 64×64 sparse: Briefing-Grenze, aber noch sparse — nur ~activeCells ticken
+    // 12×12: 36 sparse Deposits, 20 Ticks — gesund beobachtet: 512 von 1764 (0.29)
+    const tiny = vectorRoot();
+    let d = 0;
+    for (let gx = 0; gx < 12; gx++) for (let gy = 0; gy < 12; gy++) if ((gx + gy) % 4 === 0) { tiny.vectorDeposit(gx, gy, 'VECTOR_HEAT', 1.0); d++; }
+    for (let i = 0; i < 20; i++) tiny.stepOnce();
+    const cTiny = Object.keys(tiny.getSnapshot().vectors).length;
+    expect(cTiny, `12×12: ${cTiny} Zellen > Fußabdruck ${fussabdruck(d)} — Feld akkumuliert oder explodiert`).toBeLessThanOrEqual(fussabdruck(d));
+    expect(cTiny).toBeGreaterThan(0);
+
+    // 64×64 sprawling: aktives Regime — je Tick ein frisches Deposit (in-world via % 64),
+    // Zellzahl bleibt am Fußabdruck (gesund beobachtet: max 555 von 980)
     const large = vectorRoot();
-    // Dieselbe Besetzung, aber größere Welt via Snapshot.cols/rows wäre ein Resize;
-    // wir messen stattdessen nur die Vector-Skaliere (10 Felder à Radius 2 → ~50 Zellen)
-    for (let k = 0; k < 10; k++) large.vectorDeposit(k * 6, k * 6, 'VECTOR_HEAT', 1.0);
-    for (let i = 0; i < 5; i++) large.stepOnce();
-    const t1 = process.hrtime.bigint();
-    for (let i = 0; i < 20; i++) large.stepOnce();
-    const ms64 = Number(process.hrtime.bigint() - t1) / 1_000_000;
-    expect(ms64).toBeLessThan(200);
+    let dLarge = 0;
+    let lmax = 0;
+    for (let t = 0; t < 20; t++) { large.vectorDeposit((t * 6) % 64, (t * 6) % 64, 'VECTOR_HEAT', 1.0); dLarge++; large.stepOnce(); lmax = Math.max(lmax, Object.keys(large.getSnapshot().vectors).length); }
+    expect(lmax, `64×64 aktiv: ${lmax} Zellen > Fußabdruck ${fussabdruck(dLarge)} — Feld akkumuliert oder explodiert`).toBeLessThanOrEqual(fussabdruck(dLarge));
+    expect(lmax).toBeGreaterThan(0);
   });
 });
 
@@ -368,18 +383,42 @@ describe('Determinismus — gleicher Seed, gleiche Deposits, gleiche Welt', () =
     expect(fieldOf(r1)).toBe(fieldOf(r2));
   });
 
-  it('GOLDENER HASH: Szenario ist gegen den privaten Anker gepinnt (tools/.tmp, gitignored)', () => {
+  it('GOLDENER HASH: Szenario ist gegen den privaten Anker gepinnt (fail-closed, Drift-Diagnose IST-only)', () => {
     const root = vectorRoot();
     anchorScene(root);
     const hash = hashOfRoot(root);
+    const cells = vectorFieldCellsOf(root);
     // Der Wert wird bewusst NICHT in Erwartungs-Meldungen oder Logs geschrieben (Privatvertrag).
-    if (existsSync(GOLDEN_FILE)) {
-      const golden = readFileSync(GOLDEN_FILE, 'utf8').trim();
-      expect(golden.length, 'Goldener Anker ist leer — Szenario neu sichern').toBeGreaterThan(0);
-      expect(hash === golden, 'GOLDEN-HASH-DRIFT: Vector-Engine oder Anchorszenario hat sich geändert — bewusst? Dann Anker lokal erneuern (niemals committen).').toBe(true);
-    } else {
-      mkdirSync(join(process.cwd(), 'tools', '.tmp'), { recursive: true });
-      writeFileSync(GOLDEN_FILE, hash, 'utf8'); // Bootstrap: still, lokal, gitignored
+    if (!existsSync(GOLDEN_FILE)) {
+      // Fail-closed: ohne Anker wird NICHTS still gesichert — sonst schreibt ein frischer
+      // Klon/CI-Lauf den Istwert als Sollwert und der Test prüft nichts.
+      if (process.env.GOLDEN_BOOTSTRAP === '1') {
+        mkdirSync(join(process.cwd(), 'tools', '.tmp'), { recursive: true });
+        // Format v2: Hash + Feld-Projektion (Diagnose-Basis für künftige Drifts).
+        writeFileSync(GOLDEN_FILE, `${hash}\n${JSON.stringify(vectorFieldCellsOf(root))}`, 'utf8');
+        return;
+      }
+      throw new Error(
+        'ANKER-FEHLT: tools/.tmp/vector_golden_hash.txt existiert nicht. ' +
+          'Bewusst sichern: GOLDEN_BOOTSTRAP=1 (lokal) — in CI injiziert der Workflow das Repo-Secret GOLDEN_HASH.',
+      );
+    }
+    const raw = readFileSync(GOLDEN_FILE, 'utf8').trim();
+    const goldenHash = raw.split('\n')[0].trim();
+    expect(goldenHash.length, 'Goldener Anker ist leer — Szenario neu sichern (Datei löschen + GOLDEN_BOOTSTRAP=1)').toBeGreaterThan(0);
+    if (hash !== goldenHash) {
+      // Diagnose stattblindem Rot: v2 (Zeile 2 = Feld-Projektion) benennt die erste
+      // abweichende Zelle — IST-only (Privatvertrag: der Sollwert wird nie gedruckt).
+      const hasField = raw.includes('\n');
+      const goldenCells: VectorCellView[] = hasField ? (JSON.parse(raw.slice(raw.indexOf('\n') + 1)) as VectorCellView[]) : [];
+      const diag = hasField ? describeFirstFieldDeviation(cells, goldenCells) : '';
+      const hint = diag
+        ? `Erste Abweichung: ${diag}`
+        : 'Anker im alten Format (nur Hash) — bei bewusstem Erneuern sichert v2 zusätzlich die Feld-Projektion für die Diagnose.';
+      throw new Error(
+        `GOLDEN-HASH-DRIFT: Vector-Engine oder Anchorszenario hat sich geändert. ${hint}\n` +
+          'Bewusst? Anker lokal erneuern (Datei löschen + GOLDEN_BOOTSTRAP=1, niemals committen).',
+      );
     }
   });
 });

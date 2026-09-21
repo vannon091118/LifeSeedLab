@@ -21,6 +21,8 @@ describe('HudSnapshot — Bestand ab dem ersten Bild', () => {
     expect(hud.inventory.cross_seedling).toBe(2);
     expect(hud.inventory.sprout).toBeGreaterThan(0);
     expect('energy' in hud).toBe(false); // #4: kein Energie-Kanal mehr im HUD
+    // B5.1: Nektar ist die Währung des Laufs — der Zähler ist der Anker der Belohnungsreise.
+    expect(hud.nektarEarned).toBe(root.getSnapshot().nektarEarned);
     expect(hud.lives).toBeGreaterThan(0);
     expect(hud.wave).toBe(0);
     expect(hud.phase).toBe('layout'); // R1: der Run beginnt mit der Build-Sequenz
@@ -67,9 +69,9 @@ describe('HudSnapshot — Bestand ab dem ersten Bild', () => {
     expect(open.routeTiles!).toBeGreaterThan(0);
     expect(open.routeTiles).toBe(open.routeIdealTiles);
 
-    // Mit Weg-Tile: die Route existiert weiter und bleibt lesbar (Felder, ganzzahlig).
+    // Mit gesetztem Tile: die Route existiert weiter und bleibt lesbar (Felder, ganzzahlig).
     const root = makeRoot({ seed: SEED, runId: 1, loadout: ['sprout'] });
-    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 6, gy: 5, tile: 'path' }));
+    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 6, gy: 5, tile: 'decor' }));
     root.stepOnce();
     const hud = hudOf(root.getSnapshot(), false);
     expect(hud.routeTiles).not.toBeNull();

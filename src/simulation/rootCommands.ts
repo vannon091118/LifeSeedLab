@@ -125,6 +125,13 @@ export function executeCommand(ctx: CommandContext, state: SimState, cmd: Comman
     case 'REMOVE_TILE': {
       // Historisch Juggling (mid-Wave-Verkauf, Route-Kipp) — mit der Wellen-Sperre
       // geschnitten: der Verkauf bleibt Werkzeug der Bauphasen (layout/prep).
+      //
+      // `tile` im TILE_REJECTED-Payload ist ein TRÄGER (Konvention seit dem Weg-Schnitt
+      // 21.09.2026): beim Verkauf steht dort die Kachel, die WIRKLICH auf der Zelle liegt —
+      // `''` heißt „keine". Vorher stand hier ein fest verdrahteter Kachel-Name, der nach dem
+      // Streichen von Weg und Findling eine Kachel behauptet hätte, die es nicht mehr gibt.
+      const cellKey = `${cmd.payload.gx},${cmd.payload.gy}`;
+      const cellTile = state.mapTiles[cellKey] ?? '';
       if (state.phase === 'wave') {
         ctx.publish({
           eventId: `${state.clock.tick}:system:map:TILE_REJECTED:${ctx.nextSeq()}`,
@@ -132,7 +139,7 @@ export function executeCommand(ctx: CommandContext, state: SimState, cmd: Comman
           type: 'TILE_REJECTED',
           sourceId: 'system:map',
           version: 1,
-          payload: { gx: cmd.payload.gx, gy: cmd.payload.gy, tile: 'boulder', reason: 'wave_active' },
+          payload: { gx: cmd.payload.gx, gy: cmd.payload.gy, tile: cellTile, reason: 'wave_active' },
         });
         break;
       }
@@ -144,7 +151,7 @@ export function executeCommand(ctx: CommandContext, state: SimState, cmd: Comman
           type: 'TILE_REJECTED',
           sourceId: 'system:map',
           version: 1,
-          payload: { gx: cmd.payload.gx, gy: cmd.payload.gy, tile: 'boulder', reason: r.reason === 'occupied_plant' ? 'occupied_plant' : 'out_of_world' },
+          payload: { gx: cmd.payload.gx, gy: cmd.payload.gy, tile: cellTile, reason: r.reason === 'occupied_plant' ? 'occupied_plant' : 'out_of_world' },
         });
       } else {
         ctx.recomputeRoute(state); // Route kippt SOFORT — das ist der Sinn des Jugglings
@@ -212,7 +219,9 @@ export function executeCommand(ctx: CommandContext, state: SimState, cmd: Comman
           type: 'TILE_REJECTED',
           sourceId: 'system:map',
           version: 1,
-          payload: { gx: state.cols, gy: state.rows, tile: 'boulder', reason: r.reason === 'no_fields' ? 'no_material' : (r.reason ?? 'not_expandable') },
+          // Feld-Kauf: hier ist KEIN Tile beteiligt — der Träger bleibt leer, statt eine
+          // erfundene Kachel zu benennen (Konsumenten lesen ausschließlich `reason`).
+          payload: { gx: state.cols, gy: state.rows, tile: '', reason: r.reason === 'no_fields' ? 'no_material' : (r.reason ?? 'not_expandable') },
         });
       }
       break;

@@ -22,10 +22,10 @@ describe('Welt-Autor — Besitzer-Sicht (B40)', () => {
     let owner: WorldState = start;
     const autor = new WorldAutor(start, bus, w => { owner = w; });
 
-    place(bus, 3, 4, 'path');
+    place(bus, 3, 4, 'decor');
     autor.destroy(); // destroy flusht synchron — kein Timer-Timing im Test
 
-    expect(owner.tiles['3,4']).toBe('path');
+    expect(owner.tiles['3,4']).toBe('decor');
     expect(owner).not.toBe(start); // neues Objekt: der Besitzer zieht mit, statt alt zu bleiben
   });
 
@@ -36,9 +36,9 @@ describe('Welt-Autor — Besitzer-Sicht (B40)', () => {
     const autor = new WorldAutor(start, bus, w => { owner = w; });
 
     // Run 1: der Spieler baut Umgebung.
-    place(bus, 2, 2, 'path');
-    place(bus, 2, 3, 'path');
-    place(bus, 5, 5, 'decor');
+    place(bus, 2, 2, 'decor');
+    place(bus, 2, 3, 'decor');
+    place(bus, 5, 5, 'pot');
     autor.destroy();
 
     // Run 2 startet auf der gemeldeten Welt (das ist genau, was `freshState` bekommt).
@@ -76,8 +76,8 @@ describe('Welt-Autor — Besitzer-Sicht (B40)', () => {
     let owner: WorldState = start;
     const autor = new WorldAutor(start, bus, w => { owner = w; });
 
-    place(bus, 1, 1, 'path');
-    bus.publish(makeEvent(2, 'TILE_REMOVED', 'system:test', 2, { gx: 1, gy: 1, tile: 'path' }));
+    place(bus, 1, 1, 'decor');
+    bus.publish(makeEvent(2, 'TILE_REMOVED', 'system:test', 2, { gx: 1, gy: 1, tile: 'decor' }));
     autor.destroy();
 
     expect(owner.tiles['1,1']).toBeUndefined();
@@ -85,7 +85,7 @@ describe('Welt-Autor — Besitzer-Sicht (B40)', () => {
 
   it('die Ops selbst sind rein: gleiche Ausgangswelt + gleiche Ops ⇒ gleiches Ergebnis', () => {
     const w = createInitialWorld();
-    const ops = [{ type: 'PLACE_TILE' as const, gx: 1, gy: 1, tile: 'path' }];
+    const ops = [{ type: 'PLACE_TILE' as const, gx: 1, gy: 1, tile: 'decor' }];
     const a = applyWorldOps(w, ops);
     const b = applyWorldOps(w, ops);
     expect(a).toEqual(b);

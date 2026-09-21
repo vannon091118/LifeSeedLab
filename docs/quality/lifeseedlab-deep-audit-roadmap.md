@@ -140,7 +140,7 @@ src/simulation/plantSystem.ts            264/300
 | M1 | **Flow Field statt Waypoint-Route:** `computeRoute` → Integration Field (144 Zellen), `state.currentRoute` wird `Int16Array(144)`. Gegner lesen pro Tick den besten Nachbarn aus ihrer Zelle. Recompute nur bei Tile-Change. | Red Blob; Erkenbrach („constant time regardless of units") |
 | M2 | **Cost Field aus Pflanzen (optional):** Thorn-Pflanzen verlangsamen (cost 2), Rootwall verteuert (cost 3) statt blockiert — das Zucht-Layout wird zum Maze-Bauwerk. | Erkenbrach Cost-Skala 1–255 |
 | M3 | **Ziel-Priorität als Gen:** `targeting: 'first'\|'closest'\|'strongest'` in `PlantStats`, Gen-Mapping nach B6-Muster. Default „first" (TD-Standard). | C1 + Utility-AI |
-| M4 | **Drei Weg-Gewichte:** `path 0.45` → `{ paved: 0.3, path: 0.6, stepping: 0.85 }`. Source-only (Regel 6). | B3 |
+| M4 | **Drei Weg-Gewichte:** `path 0.45` → `{ paved: 0.3, path: 0.6, stepping: 0.85 }`. Source-only (Regel 6). **Hinfällig seit 21.09.2026** — der Weg ist kein Tile mehr (Laufweg = Pathfinding-Ergebnis); Gewichtsspreizung hätte nichts mehr zu lenken. S. `contracts/simulation.md` B38. | B3 |
 | M5 | **Sichtbarer Fallback:** Bei `ROUTE_CHANGED { waypoints: 0 }` → Terrain-Warnung + Toast. | B1.3 |
 | M6 | **Gegner-Separation (Boids-light):** Separations-Radius 0.3 Zellen, nur Positionskorrektur. O(n²) bei n≤60 ok, später Spatial Hash. | Boids (Reynolds) |
 | M7 | **ortho4/ortho8 entscheiden:** toten Branch löschen ODER ortho8 für `diagonal: true`-Gegner. | B2 |

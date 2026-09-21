@@ -138,6 +138,9 @@ export class Renderer {
     feedback?: FeedbackLayer,
     shakeX = 0, shakeY = 0,
     ghost?: RenderGhost | null,
+    /** B5.1: Ziel der Belohnungsreise (Nektar-Zähler) in Canvas-Pixeln — von der UI gemessen,
+     *  hier nur gelesen. Ohne Anker zeichnet der FeedbackLayer keinen Flug (kein geratenes Ziel). */
+    rewardAnchor?: { x: number; y: number } | null,
   ): void {
     const ctx = this.ctx;
     // R2: die Weltgröße kommt ausschließlich aus dem Sim-State (Run-Kopie der Welt).
@@ -157,7 +160,7 @@ export class Renderer {
     // P5: Spieler-Tiles unter allem Gameplay zeichnen (read-only aus dem State)
     for (const [key, tile] of Object.entries(state.mapTiles)) {
       const [gx, gy] = key.split(',').map(Number);
-      drawMapTile(ctx, tile, gx, gy, cell, state.mapTiles);
+      drawMapTile(ctx, tile, gx, gy, cell);
     }
 
     // Vector-Feld: 30% Alpha Decals je Vector + Attraktor-Pulse (read-only, gebatcht)
@@ -214,6 +217,13 @@ export class Renderer {
     this.nightAlpha += (this.nightTarget - this.nightAlpha) * 0.04;
     if (this.nightAlpha > 0.005) {
       ctx.globalAlpha = this.nightAlpha; ctx.fillStyle = NIGHT; ctx.fillRect(0, 0, this.w, this.h); ctx.globalAlpha = 1;
+    }
+    // B5.1: die Belohnungsreise gehört in den SCREEN-Raum — ihre Quelle liegt im Feldgitter,
+    // ihr Ziel im HUD. Deshalb nach dem Nacht-Grade (sie ist Licht/Material, keine Verdunklung)
+    // und unter den Blitzen: dieselben CSS-Pixel wie der Chip, dieselbe Zelle wie das Feld.
+    if (feedback && rewardAnchor) {
+      const sx = ox + shakeX, sy = oy + shakeY;
+      feedback.drawFlights(ctx, (wx, wy) => ({ x: sx + wx * cell, y: sy + wy * cell }), rewardAnchor);
     }
     feedback?.drawFlashes(ctx, this.w, this.h);
   }

@@ -7,6 +7,10 @@
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
+    // `allowJs`: die Tooling-Tests importieren die echte Lane (`scripts/test-lane-verdict.mjs`).
+    // Ohne das meldete `tsc -p tools` TS7016 („keine Deklaration“) für einen Pfad, der zur
+    // Laufzeit längst grün war. Kein `checkJs` — die Datei wird nur aufgelöst, nicht bewertet.
+    "allowJs": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
     "strict": true,

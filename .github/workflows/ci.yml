@@ -38,11 +38,32 @@ jobs:
       - name: Dependencies installieren
         run: npm install --no-audit --no-fund
 
+      # Golden-Hash-Anker für das Vector-Gate: fail-closed auch hier — fehlt das Secret,
+      # bricht der Job ab, statt dass die Suite ohne Anker läuft (der Test selbst ist
+      # bei fehlendem Anker längst rot; der Secret-Check macht die Ursache sofort lesbar).
+      # Der Wert liegt AUSSCHLIESSLICH im Secret — nie committet, nie in Logs ausgegeben.
+      - name: Golden-Hash-Anker aus Repo-Secret injizieren
+        env:
+          GOLDEN_HASH: ${{ secrets.GOLDEN_HASH }}
+        run: |
+          if [ -z "$GOLDEN_HASH" ]; then
+            echo "::error::Repo-Secret GOLDEN_HASH ist nicht gesetzt — Vector-Gate kann ohne Anker nicht pruefen."
+            exit 1
+          fi
+          mkdir -p tools/.tmp
+          printf '%s' "$GOLDEN_HASH" > tools/.tmp/vector_golden_hash.txt
+
       - name: Typecheck (tsc -b --noEmit)
         run: node node_modules/typescript/bin/tsc -b --noEmit
 
       - name: Test-Suite
         run: node scripts/test-lane.mjs --full
+
+      # Die Testzahl wird GEMESSEN und veroeffentlicht, nie abgeschrieben (Befund 20.09.2026:
+      # README nannte 570/570 in 61 Dateien, die Lane mass 662 in 66). Der Schritt scheitert,
+      # sobald eine Doku wieder eine hartkodierte Testzahl traegt.
+      - name: Testzahl messen und abgeschriebene Zahlen abweisen
+        run: node scripts/test-count.mjs
 
       # Tooling-eigene Tests: das Gate prüft sich selbst (Fixtures unter tools/.tmp).
       - name: Shinon-Tooling-Suite

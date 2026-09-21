@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cardPress } from './PlacementTray';
+import { cardPress, cardsWithStock } from './PlacementTray';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 
 // Owner: UI-Test (PlacementTray). Befund der Spieltestsession v0.0.71: „Karten mit onPointerDown
@@ -46,5 +46,22 @@ describe('PlacementTray — cardPress: Pointer UND Klick bedienen die Karte', ()
     const calls: number[] = [];
     cardPress(() => calls.push(1)).onClick({ detail: 0 });
     expect(calls).toHaveLength(1);
+  });
+});
+
+// ── Leere Karten verschwinden (Playtest-Befund „Wurzelmauer ×0“) ──────────────
+describe('PlacementTray — cardsWithStock: leere Felder werden nicht gezeigt', () => {
+  const inventory = { sprout: 2, rootwall: 0, mycel: 1 };
+
+  it('behält nur Karten mit Bestand und erhält ihre Reihenfolge', () => {
+    expect(cardsWithStock(['sprout', 'rootwall', 'mycel'], inventory)).toEqual(['sprout', 'mycel']);
+  });
+
+  it('behandelt fehlende Einträge wie 0 (kein `undefined`-Leck in die Tray)', () => {
+    expect(cardsWithStock(['sprout', 'unbekannt'], inventory)).toEqual(['sprout']);
+  });
+
+  it('ein leerer Bestand lässt den Kasten leer — kein Platzhalter, keine Karte', () => {
+    expect(cardsWithStock(['sprout', 'rootwall'], { sprout: 0, rootwall: 0 })).toEqual([]);
   });
 });

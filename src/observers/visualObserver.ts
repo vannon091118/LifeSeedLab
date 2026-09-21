@@ -17,6 +17,7 @@ export type VisualCommand =
   | { type: 'PunchScale'; entityId: string; strength: number }
   | { type: 'CameraShake'; intensity: number }
   | { type: 'ScreenFlash'; color: string; alpha: number; ticks: number }
+  | { type: 'SpawnRewardFlight'; x: number; y: number; color: string }
   | { type: 'ShowMangaText'; text: string; x: number; y: number; intensity: number }
   | { type: 'PlayAnimation'; entityId: string; anim: 'attack' | 'hit' | 'recoil' | 'death' | 'grow' | 'placement'; ticks: number };
 
@@ -88,7 +89,12 @@ export class VisualObserver {
         break;
 
       case 'REWARD_GRANTED':
-        this.push({ type: 'SpawnParticleBurst', profile: 'reward_flight', x: 6, y: 4, seed: (e.tick * 11 + this.seq) | 0, intensity: 1, color: '#d9a441' });
+        // B5.1: die Belohnung REIST — vom Ort ihrer Ursache zum Zähler im HUD. Der Ort kommt aus
+        // dem Payload, nie aus einer Annahme: hier stand früher ein Burst in der Rastermitte
+        // (`x: 6, y: 4`), also eine Behauptung über die Welt, die niemand geprüft hat. Fehlt der
+        // Ort (Wellen-Bonus), unterbleibt die Reise statt zu erfinden, wo sie begann.
+        if (e.payload.px === null || e.payload.py === null) break;
+        this.push({ type: 'SpawnRewardFlight', x: e.payload.px, y: e.payload.py, color: '#d9a441' });
         break;
 
       case 'WAVE_STARTED':

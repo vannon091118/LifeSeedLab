@@ -63,6 +63,28 @@ gesetzte Auswahl sofort wieder umschalten. Beleg: `placementTray.test.ts` (4 Fä
 Browser-Gegenprobe 6/6, und die Mutation (Klick-Zweig entfernt) macht genau die Tastatur- und
 Synthetik-Strecke rot.
 
+**Leere Karten verschwinden (21.09.2026, Playtest-Befund „Wurzelmauer ×0").** Der Tray-Kasten
+zeigte JEDE bekannte Pflanze bzw. jedes Tile, auch mit Bestand 0 — als `aria-disabled`-Karte, die
+aussah wie eine Option, aber keine war. Regel: ein Kasten zeigt nur, was der Spieler HAT
+(`cardsWithStock`, `components/PlacementTray.tsx` — dieselbe Regel für Pflanzen- und Bau-Kasten,
+kein zweiter Leer-Begriff); ein Kasten ohne Bestand rendert gar keine Sektion statt eines leeren
+Rahmens. Kein Zombie-Zustand: die Auswahl bricht der Controller weiterhin selbst ab, sobald der
+Bestand auf 0 fällt (`placementController.ts`, Q17) — die Tray ist dafür NICHT zuständig.
+Beleg: `placementTray.test.ts` (3 Fälle: Filter, `undefined`-Eintrag, leerer Kasten), E2E-Vertrag
+in `run.spec.ts` (Karte WEG nach der letzten Einheit, zweiter Platzierungsversuch pflanzt nichts),
+Browser-Gegenprobe in beiden Kästen (nur Karten mit Bestand sichtbar, keine Konsolefehler).
+
+**Der Weg ist keine Tray-Karte mehr (21.09.2026).** Der FELD-Kasten trägt **zwei** Kacheln —
+Topf und Deko; auch der Findling ist gestrichen (zweiter reiner Blocker, redundant zum Topf —
+E2E-Vertrag in `mobile.spec.ts` zieht deshalb auf die Topf-Karte). Die Weg-Karte ist gestrichen:
+Der Laufweg ist das ERGEBNIS des Pathfindings
+(B16.1/R2), er wird berechnet, nicht gebaut. Eine Kachel, die den Weg nur ANZIEHT (Gewicht 0,6),
+hätte die Route wieder zur Eingabe gemacht und ein zweites Weg-Bild neben die gezeichnete Strecke
+gestellt. Die Tray leitet ihre Karten aus `MAP_TILES_SOURCE` ab — es gibt keine zweite
+Karten-Liste, die man nachziehen müsste. Beleg: `qa_befunde.test.ts` (genau drei IDs, `path`
+nicht dabei), `sources.test.ts` (kein `path` in der Quelle), `placement_map.test.ts`
+(`PLACE_TILE` mit `path` ⇒ `unknown_tile`, ohne Material-Abzug).
+
 ## B7. Screen specifications
 
 **Title (B7.1)** — full-bleed canvas scene behind minimal DOM: layered paper hills + swaying grass silhouettes drifting (cosmetic namespace, 3 depths, parallax on device tilt later); 2–3 ambient LEAF/SPORE particles/s; logo = custom SVG wordmark (B9) with 600 ms draw-on + settle; big ink-styled PLAY button (min 56 px target); language pills bottom; first pointer = audio unlock + soft chime. Sequence: paint → logo draws → button fades up. Never a bare div flash.
@@ -71,7 +93,7 @@ Synthetik-Strecke rot.
 
 **Greenhouse / Breeding ceremony (B7.3)** — replaces `<select>`: two parent slots (tap → collection sheet of `PlantThumb` cards, owned counts shown); center stage 240×240 canvas runs the breeding animation when KREUZEN is pressed (~1.6 s, deterministic from breed seed): parents slide in → genome markers (gene glyphs) orbit between them → dominant genes flare (accent, not glow) → mutation glitch: 2-frame ink-slash → seed drops to soil → offspring grows (scale + unfurl) → traits list staggers in → 3 result cards below. `SKIP` on tap. Cancel = back always safe.
 
-**HUD (B7.4)** — top-left: energy (drop icon + count, punch on gain), lives (leaf-heart), wave chip `W 3`; top-right: pause icon + menu icon. Nothing else. Combo appears center-bottom of canvas as manga burst `×N` when ≥ 2. Phase is communicated by world (lighting), never a text label.
+**HUD (B7.4)** — top-left: **Nektar-Zähler (Tropfen-Icon + Zahl, Puls bei Zugang; korrigiert 21.09.2026)** — der Energie-Zähler dieser Zeile ist mit dem Energiesystem gestorben (#4), und Nektar ist die Währung des Laufs: er wird im Run verdient (`state.nektarEarned`) und beim Run-Ende gebucht. Er ist zugleich der **Zielpunkt der Belohnungsreise** (B5.1) und steht deshalb VORN (stabile Lage), dann lives (leaf-heart), wave chip `W 3`; top-right: pause icon + menu icon. Nothing else. Gemessen 21.09.2026 bei 390×844: Chip bei (22/210), 45 px breit, kein horizontaler Überlauf (`scrollWidth 390 = clientWidth 390`); Desktop identisch aufgebaut. Combo appears center-bottom of canvas as manga burst `×N` when ≥ 2. Phase is communicated by world (lighting), never a text label.
 
 **Pause & Game Over (B7.5)** — pause: dim + resume/restart/exit + volume toggles. Game over: ink panel slides up, `WAVE N` large, score + combo highest + **nektar earned with flight-to-counter animation**, buttons New Run / Menu. `recordRunEnd()` fires exactly once here (guard flag).
 

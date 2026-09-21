@@ -42,7 +42,7 @@ describe('ShinonStarter', () => {
     expect(content).toContain('## Ende');
     expect(content).toContain('| Letztes Gate |');
     expect(content).toContain('| Gate-Modus |');
-    expect(content).toContain('advisory');
+    expect(content).toContain('Enforcement');
     expect(content).not.toContain('veraltet');
     expect(content.indexOf('## Ende')).toBeGreaterThan(content.indexOf(config.starter.endMarker));
   });

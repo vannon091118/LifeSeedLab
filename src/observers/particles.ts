@@ -39,7 +39,6 @@ const PARTICLE_PROFILES: Record<string, ParticleProfile> = {
   dust_puff:    { kind: 'DUST',    count: 6,  lifetime: 20, size: [0.10, 0.20], velocity: [0.01, 0.03], gravity: -0.001,rotationSpeed: 0.1, alphaCurve: 'fadeInOut', spawnShape: 'point' },
   frost_mist:   { kind: 'SMOKE',   count: 8,  lifetime: 30, size: [0.08, 0.18], velocity: [0.01, 0.04], gravity: -0.002,rotationSpeed: 0.05, alphaCurve: 'fadeInOut', spawnShape: 'ring' },
   ember_burst:  { kind: 'GLOW',    count: 10, lifetime: 22, size: [0.05, 0.12], velocity: [0.03, 0.09], gravity: -0.003,rotationSpeed: 0.3, alphaCurve: 'easeOut',   spawnShape: 'ring' },
-  reward_flight:{ kind: 'GLOW',    count: 5,  lifetime: 26, size: [0.05, 0.10], velocity: [0.02, 0.05], gravity: -0.004,rotationSpeed: 0,   alphaCurve: 'easeOut',   spawnShape: 'point' },
   burst_star:   { kind: 'SPARK',   count: 16, lifetime: 20, size: [0.06, 0.15], velocity: [0.05, 0.12], gravity: 0.002, rotationSpeed: 0.35,alphaCurve: 'easeOut',   spawnShape: 'ring' },
   spawn_spore:  { kind: 'SPORE',   count: 6,  lifetime: 34, size: [0.04, 0.09], velocity: [0.005, 0.02],gravity: -0.002,rotationSpeed: 0.05,alphaCurve: 'fadeInOut', spawnShape: 'ring' },
   warn_pulse:   { kind: 'RING',    count: 4,  lifetime: 26, size: [0.10, 0.22], velocity: [0.01, 0.03], gravity: 0,     rotationSpeed: 0,   alphaCurve: 'fadeInOut', spawnShape: 'ring' },

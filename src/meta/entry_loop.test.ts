@@ -70,7 +70,7 @@ describe('Einstieg — Leih-Spross: deterministisch, kein Dauerbesitz', () => {
   });
 
   it('Bau-Material verdrängt die Leihe nicht', () => {
-    updateMeta({ variantCounts: { path: 20, pot: 6, boulder: 3, decor: 6, plot: 1 } });
+    updateMeta({ variantCounts: { pot: 6, decor: 6, plot: 1 } });
     expect(beginRun().variantCounts[LOAN_PLANT_ID]).toBe(1);
   });
 

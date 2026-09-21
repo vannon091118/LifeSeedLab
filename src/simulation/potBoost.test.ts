@@ -31,7 +31,10 @@ describe('Blumentopf — Farbe ist Zell-Wahrheit (deterministisch, ohne Zustand)
     expect(new Set(colors).size).toBeGreaterThanOrEqual(2);
   });
 
-  it('ohne Topf-Tile gibt es KEINE Wirkung (Wiese, Weg, Findling, Deko, leere Zelle)', () => {
+  it('ohne Topf-Tile gibt es KEINE Wirkung (Wiese, Deko, Alt-Typ, leere Zelle)', () => {
+    // `path` und `boulder` sind keine gültigen Tile-Typen mehr (21.09.2026) — als ALTE
+    // Save-Einträge bleiben sie hier absichtlich stehen: die Ableitung darf an einem
+    // unbekannten Typ nichts erfinden.
     const scenes: Record<string, string>[] = [{}, { '2,3': 'path' }, { '2,3': 'boulder' }, { '2,3': 'decor' }];
     for (const tiles of scenes) {
       expect(potBoostAt(tiles, 2, 3)).toBeNull();

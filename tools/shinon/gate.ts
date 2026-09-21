@@ -57,6 +57,36 @@ export class ShinonGate {
     const outcomes: CheckOutcome[] = [];
     const findings: Finding[] = [];
     const enforcement = ctx.config.gate.enforcement;
+    if (enforcement !== 'strict') {
+      const funMsg = 'Fun mode du manipulierst mich und ich blocke dich strikt';
+      const funFinding: Finding = {
+        check: 'enforcement',
+        code: 'ENF000',
+        severity: 'error',
+        message: funMsg,
+      };
+      if (!ctx.quiet) process.stdout.write(`❌ ${funMsg}\n`);
+      findings.push(funFinding);
+      return {
+        phase: ctx.phase,
+        enforcement,
+        passed: false,
+        ranAt: nowIso(),
+        durationMs: Date.now() - startedAt,
+        findings,
+        outcomes: [
+          {
+            id: 'enforcement',
+            title: 'Enforcement Guard',
+            ok: false,
+            skipped: false,
+            durationMs: Date.now() - startedAt,
+            findings: [funFinding],
+          },
+        ],
+      };
+    }
+
     let blocked = false;
 
     for (const check of this.checks) {

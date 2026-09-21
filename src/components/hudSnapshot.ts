@@ -22,6 +22,9 @@ export interface HudSnapshot {
   routeTiles: number | null;
   /** Kürzester möglicher Weg — der Abstand zu `routeTiles` IST der Maze-Gewinn. */
   routeIdealTiles: number | null;
+  /** B5.1: im Lauf verdienter Nektar — die Wahrheit steht in der Sim (`state.nektarEarned`),
+   *  das HUD spiegelt sie; der Betrag wird beim Run-Ende gebucht (recordRunEnd). */
+  nektarEarned: number;
 }
 
 /** Sim-Stand + Pause-Flag ⇒ HUD-Abbild. Reine Ableitung (read-only, kein Sim-Schreibzugriff). */
@@ -39,6 +42,8 @@ export function hudOf(state: SimState, paused: boolean): HudSnapshot {
     // sichtbar statt nur emittiert; keine zweite Formel im HUD.
     routeTiles: routeWalkTiles(state.currentRoute),
     routeIdealTiles: routeIdealTiles(state.currentRoute),
+    // B5.1: eine Quelle — der Zähler ist der Anker der Belohnungsreise, kein Schätzwert des UI.
+    nektarEarned: state.nektarEarned,
     // Dieselbe Regel wie im WaveSystem (B23.1) — nicht nachgebaut, sondern dieselbe Funktion.
     prepTicksLeft: autoStartTicksLeft({
       phase: state.phase,

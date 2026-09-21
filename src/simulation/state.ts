@@ -90,7 +90,7 @@ export interface AttractorEntity {
 
 /**
  * R1 (Eigentümer-Entscheid): `layout` = die Build-Sequenz VOR dem ersten Wellen-Block —
- * der Spieler baut sein Maze (Wege, Töpfe, Findlinge), ohne dass die Zeit drängt.
+ * der Spieler baut sein Maze (Töpfe, Deko), ohne dass die Zeit drängt.
  * Exit: BEGIN_WAVE_PREP (sanft, „Fertig") oder START_WAVE (bewusstes Überspringen —
  * wer die Welle startet, hat gebaut, wie er wollte). Kein Auto-Start im Layout.
  */

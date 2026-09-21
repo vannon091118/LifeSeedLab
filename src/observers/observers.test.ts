@@ -46,7 +46,7 @@ describe('Phase 8: Visual Observer purity', () => {
     const cmds = obs.drain();
     expect(cmds.length).toBeGreaterThan(0);
     for (const c of cmds) {
-      expect(['SpawnParticleBurst', 'SpawnFloatingNumber', 'PunchScale', 'CameraShake', 'ScreenFlash', 'ShowMangaText', 'PlayAnimation']).toContain(c.type);
+      expect(['SpawnParticleBurst', 'SpawnFloatingNumber', 'PunchScale', 'CameraShake', 'ScreenFlash', 'ShowMangaText', 'PlayAnimation', 'SpawnRewardFlight']).toContain(c.type);
     }
   });
 
@@ -73,6 +73,94 @@ describe('Phase 8: Visual Observer purity', () => {
       expect(pool.activeCount).toBeGreaterThan(0);
       pool.clear();
     }
+  });
+});
+
+/**
+ * Zeichnet auf ein Aufnahme-Objekt statt auf Canvas: die EINZIGE Art, wie ein Test beweisen kann,
+ * dass sich etwas BEWEGT (statt nur zu behaupten, ein Handler sei gelaufen).
+ */
+function arcRecorder(): { ctx: CanvasRenderingContext2D; arcs: Array<{ x: number; y: number; r: number; alpha: number }> } {
+  const arcs: Array<{ x: number; y: number; r: number; alpha: number }> = [];
+  let alpha = 1;
+  const ctx = {
+    get globalAlpha() { return alpha; },
+    set globalAlpha(v: number) { alpha = v; },
+    beginPath() { /* noop */ },
+    arc(x: number, y: number, r: number) { arcs.push({ x, y, r, alpha }); },
+    fill() { /* noop */ },
+    stroke() { /* noop */ },
+    fillStyle: '', strokeStyle: '', lineWidth: 0,
+  } as unknown as CanvasRenderingContext2D;
+  return { ctx, arcs };
+}
+
+describe('B5.1: Belohnungsreise — Quelle → Bewegung → Ziel → Ankunft', () => {
+  const TO_SCREEN = (x: number, y: number) => ({ x: x * 10, y: y * 10 });
+
+  it('die Reise startet am ECHTEN Kill-Ort — nicht in der Rastermitte', () => {
+    const obs = new VisualObserver(new Camera(), true);
+    obs.observe(makeEvent(30, 'REWARD_GRANTED', 'system:score', 1, { reward: 12, sourceId: 'enemy-0001', px: 2, py: 8 }));
+    const cmds = obs.drain();
+    const flights = cmds.filter(c => c.type === 'SpawnRewardFlight') as Extract<typeof cmds[number], { type: 'SpawnRewardFlight' }>[];
+    expect(flights).toHaveLength(1);
+    expect(flights[0].x).toBe(2);
+    expect(flights[0].y).toBe(8);
+    // Der alte Burst in der Rastermitte (6/4) ist gestrichen: er war eine Behauptung über die
+    // Welt, die niemand verifiziert hat.
+    expect(cmds.filter(c => c.type === 'SpawnParticleBurst')).toHaveLength(0);
+  });
+
+  it('ohne Weltursprung (Wellen-Bonus) wird keine Reise erfunden', () => {
+    const obs = new VisualObserver(new Camera(), true);
+    obs.observe(makeEvent(40, 'REWARD_GRANTED', 'system:wave:2', 1, { reward: 25, sourceId: 'wave-2', px: null, py: null }));
+    expect(obs.drain()).toHaveLength(0);
+  });
+
+  it('die Dots wandern zum Anker und die Ankunft pulsiert AM Zähler', () => {
+    const obs = new VisualObserver(new Camera(), true);
+    obs.observe(makeEvent(31, 'REWARD_GRANTED', 'system:score', 1, { reward: 12, sourceId: 'enemy-0001', px: 2, py: 8 }));
+    const fb = new FeedbackLayer();
+    for (const c of obs.drain()) fb.exec(c);
+
+    const anchor = { x: 40, y: 20 };
+    const head = () => { const rec = arcRecorder(); fb.drawFlights(rec.ctx, TO_SCREEN, anchor); return rec.arcs[0]; };
+    const start = head();
+    expect(start.x).toBe(20); expect(start.y).toBe(80);   // Quelle: der Kill-Ort
+
+    for (let i = 0; i < 12; i++) fb.update();
+    const mid = head();
+    const dist = (p: { x: number; y: number }) => Math.sqrt((p.x - anchor.x) ** 2 + (p.y - anchor.y) ** 2);
+    expect(dist(mid)).toBeLessThan(dist(start));          // sie kommt näher
+
+    for (let i = 0; i < 10; i++) fb.update();              // Flug abgelaufen (22 Ticks)
+    const rec = arcRecorder();
+    fb.drawFlights(rec.ctx, TO_SCREEN, anchor);
+    expect(rec.arcs).toHaveLength(1);                      // nur noch der Ankunfts-Puls
+    expect(rec.arcs[0].x).toBe(anchor.x);
+    expect(rec.arcs[0].y).toBe(anchor.y);
+    expect(rec.arcs[0].r).toBeGreaterThan(8);              // und er expandiert an Ort und Stelle
+  });
+
+  it('der Kopf-Dot LANDET auf dem Anker (letzter Lebens-Tick = Ankunft, kein Abbruch bei 95 %)', () => {
+    // Live gemessener Defekt (21.09.2026): mit `p = 1 - life/maxLife` brach der Kopf-Dot bei
+    // 95,5 % der Bahn ab — 13 px vor dem Chip-Mittelpunkt, gemessen per Pixelprobe im Browser.
+    const fb = new FeedbackLayer();
+    fb.exec({ type: 'SpawnRewardFlight', x: 2, y: 8, color: '#d9a441' });
+    const anchor = { x: 40, y: 20 };
+    for (let i = 0; i < 21; i++) fb.update();   // letzter Lebens-Tick vor der Ankunft (FLIGHT_TICKS 22)
+    const rec = arcRecorder();
+    fb.drawFlights(rec.ctx, TO_SCREEN, anchor);
+    expect(rec.arcs[0].x).toBe(anchor.x);        // exakt, nicht „nahe"
+    expect(rec.arcs[0].y).toBe(anchor.y);
+  });
+
+  it('ohne gemessenen Anker wird kein Flug gezeichnet (kein geratenes Ziel)', () => {
+    const fb = new FeedbackLayer();
+    fb.exec({ type: 'SpawnRewardFlight', x: 2, y: 8, color: '#d9a441' });
+    const rec = arcRecorder();
+    fb.drawFlights(rec.ctx, TO_SCREEN, null);
+    expect(rec.arcs).toHaveLength(0);
   });
 });
 

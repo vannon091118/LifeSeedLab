@@ -45,8 +45,6 @@ export const shopTexts = {
     'plant.mycelia': 'Myzel',
     'plant.loanSprout': 'Leih-Spross',
     'map.pot': 'Blumentopf',
-    'map.path': 'Weg',
-    'map.boulder': 'Findling',
     'map.decor': 'Deko',
     'map.plot': 'Feld-Erweiterung',
     // Topf-Booster (19.09.2026): die Farbe der ZELLE entscheidet die Wirkung auf die Pflanze
@@ -97,8 +95,6 @@ export const shopTexts = {
     'plant.mycelia': 'Mycelium',
     'plant.loanSprout': 'Loan Sprout',
     'map.pot': 'Flower Pot',
-    'map.path': 'Path',
-    'map.boulder': 'Boulder',
     'map.decor': 'Decor',
     'map.plot': 'Field expansion',
     // Pot booster (19.09.2026): the CELL's colour decides the effect on the plant standing on it.

@@ -97,6 +97,33 @@ Stellen gleichzeitig landen — eine vergessene Stelle prüfte still eine andere
 - [x] Playwright erkennt dieselbe Testanzahl wie vorher (27)
 - [x] Suite grün; Progression-Laufzeit von ~5 min auf ~31 s gesenkt (kein reales Wellen-Warten mehr)
 
+### B24.4 Visuelle Belege — die dritte Stufe des Sprint-Abschlusses (21.09.2026)
+
+`tests/helpers/canvasProbe.ts` ist das Instrument für „Silence is not feedback": Frame-Freeze,
+Farb-Centroid, Regionen-Vergleich (Details und Messwerte in `contracts/visual.md` B5.2,
+Spec: `tests/visual_probe.spec.ts`). Regeln, die daraus für jeden weiteren Beleg gelten:
+
+1. **Eine visuelle Behauptung ist eine Pixelaussage.** Handler-Aufruf, Event und Kommando sind kein
+   Beleg; erst eine Messung im gezeichneten Bild ist einer.
+2. **Keine Messung ohne Gegenprobe.** Jeder Moment prüft eine Negativ-Kontrolle (ohne Ursprung kein
+   Flug, vor dem Treffer keine Antwort, die Zelle war vorher nicht rot) — sonst kann die Messung
+   immer dasselbe zeigen und beweist nichts.
+3. **Zeichenmodus und Farbmodus müssen zusammenpassen.** Deckende Zeichen (Gold-Dot, roter Puls)
+   werden exakt verglichen; halbtransparente Effekte über Papier nur über den Farbton, sonst misst
+   man die Einblendkurve bzw. den Untergrund (belegt: exakt ±24 ⇒ 0 Pixel in 28/28 Frames).
+4. **Die Baseline des Regionen-Vergleichs liegt VOR dem gezeichneten Frame.** Bei pausierter Sim
+   heißt das: Ereignis lesen → `capture` → `stepFrame`. Umgekehrt vergleicht man zwei Bilder nach
+   dem Ereignis und misst die Gegnerbewegung.
+5. **Das Messfenster wird am gemeldeten Punkt gebaut**, nicht über `cellWindow(cellRect(…))` —
+   letzteres bläht ein Zellenrechteck auf und liegt eine halbe Zelle daneben.
+6. **Ein Test, den der Runner nicht ausführt, ist kein Beleg** (P-32: `fsModuleCache` führte nach
+   Edits das vorherige Kompilat aus — ein neuer Fall fehlte still). Vor einem „grün" auf geändertem
+   Code: `rm -rf node_modules/.vitest-cache`.
+7. **Laufzeit-Budget:** die drei Momente brauchen ~20–35 s zusammen. Das ist für einen Pixelbeleg
+   in Ordnung; für alles Weitere (Perf-Panel, weitere Effekte) braucht es eine Last-Vorbedingung
+   statt längerer Timeouts (P-35: unter paralleler Last meldeten 20-s-Specs Timeouts, die isoliert
+   verschwinden).
+
 ## B32. Test-Suite-Konsolidierung — Baseline, Testkit und Abdeckungswache (Plan: `plan/refactor-test-suite-consolidation-1.md`)
 
 ### B32.1 Befund

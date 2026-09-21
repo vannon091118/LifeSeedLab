@@ -206,6 +206,28 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
     expect((s as unknown as Record<string, unknown>).resources).toBeUndefined();
   });
 
+  it('B5.1: REWARD_GRANTED trägt den Kill-Ort — die Belohnungsreise hat eine echte Quelle', () => {
+    // Vorher verwarf der ScoreSystem die durchgereichten Koordinaten (`void px; void py`) und
+    // der Observer erfand den Startpunkt (Rastermitte 6/4). Die Quelle der Belohnung ist aber
+    // eine Sim-Tatsache: der Ort, an dem der Kill passierte.
+    const seen: GameEvent[] = [];
+    const score = new ScoreSystem(e => seen.push(e));
+    const s = {
+      clock: { tick: 7 }, seed: SEED, score: 0, nektarEarned: 0,
+      combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
+    } as unknown as import('./state').SimState;
+    score.onEnemyDied(s, 'enemy-0001', 10, 10, 4.5, 9.25);
+    const reward = seen.find(e => e.type === 'REWARD_GRANTED');
+    expect(reward).toBeDefined();
+    expect(reward!.payload).toMatchObject({ reward: 10, sourceId: 'enemy-0001', px: 4.5, py: 9.25 });
+
+    // Der Wellen-Bonus hat keinen Ort im Feld — `null` statt eines geratenen Startpunkts.
+    const waveSeen: GameEvent[] = [];
+    const score2 = new ScoreSystem(e => waveSeen.push(e));
+    score2.grantWaveReward(s, 3, 25);
+    expect(waveSeen[0].payload).toMatchObject({ reward: 25, px: null, py: null });
+  });
+
   it('EFFECT_CHAIN: Kill springt zu nächstem Gegner', () => {
     const root = makeRoot({
       seed: SEED,

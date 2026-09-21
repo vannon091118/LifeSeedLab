@@ -1,13 +1,27 @@
 // D1-Beweis (Maze-Drift): Pflanzen biegen den Laufweg SOFORT und auch OHNE gekaufte Tiles.
 // Der Plan-Satz „das Zucht-Layout wirkt als Maze-Bauwerk" ist hier als Sim-Vertrag gepinnt.
+//
+// NEU GEMESSEN (Sonde 21.09.2026, Seed 2447771834, nach dem Weg-Schnitt): Die leere Welt läuft
+// über die RAND-ECKEN — Reihe 0 nach links, dann Spalte 0 hinunter (22 Felder, 23 Wegpunkte).
+// Die alte Fassung legte zuerst einen Weg-Korridor (Gewicht 0,6) und schob dann eine Pflanzenwand
+// hindurch — diesen Griff gibt es nicht mehr: der Weg ist das Pathfinding-Ergebnis. Gemessen ist
+// eine Pflanzenwand auf Spalte 5 heute WIRKUNGSLOS (die Route läuft dort nicht), eine Pflanze AUF
+// der Route dagegen sofort wirksam. Genau das prüfen die beiden Fälle unten.
 import { describe, it, expect, beforeEach } from 'vitest';
 import { SimulationRoot } from './root';
 import { makeRoot } from '../testing/testkit';
-import { routeWalkTiles, routeIdealTiles } from './mapSystem';
 import { resetIds } from '../core/ids';
 import { makeCommand } from '../bus/commands';
+import { routeWalkTiles, routeIdealTiles } from './mapSystem';
 
 const SEED = 2447771834;
+
+/** Die leere Welt (Rand-Ecken-Route) — Bezugspunkt aller Vergleiche (gemessen). */
+const EMPTY_ROUTE = '11,0>10,0>9,0>8,0>7,0>6,0>5,0>4,0>3,0>2,0>1,0>0,0'
+  + '>0,1>0,2>0,3>0,4>0,5>0,6>0,7>0,8>0,9>0,10>0,11';
+
+/** Zelle des zweiten Wegpunkts der leeren Route (gemessen). */
+const ANCHOR: readonly [number, number] = [10, 0];
 
 function routeOf(root: SimulationRoot): readonly { x: number; y: number }[] | null {
   return root.getSnapshot().currentRoute;
@@ -18,72 +32,67 @@ function routeKey(route: readonly { x: number; y: number }[] | null): string {
   return (route ?? []).map(p => `${Math.round(p.x - 0.5)},${Math.round(p.y - 0.5)}`).join('>');
 }
 
-/**
- * Weg-Bahn senkrecht bei gx=5 (Quell-Gewicht 0.6) — beide Vergleichsläufe teilen dieselbe
- * Grundroute, dann entscheidet NUR die Pflanzenwand über den Unterschied.
- */
-function layPathTileCorridor(root: SimulationRoot): void {
-  for (let gy = 2; gy <= 9; gy++) {
-    root.commands.push(makeCommand(0, 'PLACE_TILE', gy - 1, { gx: 5, gy, tile: 'path' }));
-  }
+function onRoute(route: readonly { x: number; y: number }[], gx: number, gy: number): boolean {
+  return route.some(p => Math.floor(p.x) === gx && Math.floor(p.y) === gy);
+}
+
+function fresh(): SimulationRoot {
+  return makeRoot({ seed: SEED, runId: 1, loadout: ['sprout'], loadoutStock: 99 });
 }
 
 describe('D1 — Pflanzen sind Maze-Bauwerk (auch ohne Tiles)', () => {
   beforeEach(() => { resetIds(); });
 
-  it('PLACE_PLANT biegt die Route SOFORT: die Route nach der ersten Pflanze weicht vom geraden Weg ab', () => {
-    // Loadout ⇒ B1-Fallback-Bestand (wie in gameover_notice/gateB) — die Pflanze muss
-    // platzierbar sein, sonst prüft der Test die Leihe mit, nicht D1.
-    const root = makeRoot({ seed: SEED, runId: 1, loadout: ['sprout'], loadoutStock: 99 });
+  it('PLACE_PLANT biegt die Route SOFORT: EINE Pflanze auf dem Weg verlegt ihn', () => {
+    const root = fresh();
     // R2: ohne Platzierung ist die Route der GERADE Weg (Pathfinding-Ergebnis der leeren Welt)
     // — sie wird im ROOT-KONSTRUKTOR abgeleitet (Run-Start-Vertrag).
     root.stepOnce();
     const before = routeKey(routeOf(root));
-    expect(before.length).toBeGreaterThan(0);
+    expect(before).toBe(EMPTY_ROUTE);
 
-    // Pflanzenreihe quer durch die Route-Reihe (gy=0, gx 2..9): der Dijkstra löst Kosten-
-    // Ties über die oberste Reihe — die REIHE dort erzwingt den Biege-Beweis
-    // (PLANT_ROUTE_COST verteuert jede Zelle, der Weg weicht auf gy=1 aus).
+    // EINE Pflanze auf dem zweiten Wegpunkt (10,0) — mehr braucht der Beweis nicht.
+    root.commands.push(makeCommand(0, 'PLACE_PLANT', 1, { variantId: 'sprout', gx: ANCHOR[0], gy: ANCHOR[1] }));
+    root.stepOnce();
+
+    // D1-Kern: SOFORT nach der Platzierung biegt die berechnete Route um —
+    // die Pflanze verteuert ihre Zelle (PLANT_ROUTE_COST) und drückt den Weg davon.
+    expect(routeOf(root)).not.toBeNull();
+    expect(routeOf(root)!.length).toBeGreaterThan(1);
+    expect(routeKey(routeOf(root))).not.toBe(before);
+    // Präzise: der ORT ändert sich, die LÄNGE nicht (Pflanzen blockieren nicht).
+    expect(routeWalkTiles(routeOf(root))).toBe(22);
+  });
+
+  it('Pflanzenreihe AUF der Route verlegt sie eine Gasse weiter — kein Wegpunkt auf einer Pflanze', () => {
+    const root = fresh();
+    root.stepOnce();
+    const before = routeKey(routeOf(root));
+
+    // Reihe auf gy=0 (gx 2..9) — die Pflanzenwand liegt quer über dem waagerechten Teil der Route.
     let seq = 1;
     for (const gx of [2, 3, 4, 5, 6, 7, 8, 9]) {
       root.commands.push(makeCommand(0, 'PLACE_PLANT', seq++, { variantId: 'sprout', gx, gy: 0 }));
     }
     root.stepOnce();
+    const after = routeOf(root);
 
-    // D1-Kern: SOFORT nach der Platzierung biegt die berechnete Route um —
-    // die Pflanzen verteuern ihre Zellen (PLANT_ROUTE_COST) und drücken den Weg davon.
-    expect(routeOf(root)).not.toBeNull();
-    expect(routeOf(root)!.length).toBeGreaterThan(1);
-    expect(routeKey(routeOf(root))).not.toBe(before);
-  });
-
-  it('Pflanzenwand vor der Route zwingt den Laufweg in einen anderen Kanal (vorher/nachher am selben Root)', () => {
-    // Am SELBEN Root messen — der offene Vergleich zweier Roots scheitert an der
-    // Gleichwertigkeit freier Korridore (mehrere Optimalrouten, gleiche Kosten).
-    const root = makeRoot({ seed: SEED, runId: 1, loadout: ['sprout'], loadoutStock: 99 });
-    layPathTileCorridor(root);
-    root.stepOnce();
-    const before = routeKey(routeOf(root));
-    expect(before.length).toBeGreaterThan(0);
-
-    // Wand quer DURCH den bestehenden Korridor (Spalte gx=5, Route läuft dort hinunter):
-    // gx=5 mit einer Lücke bei gy=5 — die Route muss auf Spalte 6 ausweichen.
-    for (const gy of [2, 3, 4, 6, 7, 8, 9]) {
-      root.commands.push(makeCommand(0, 'PLACE_PLANT', 20 + gy, { variantId: 'sprout', gx: 5, gy }));
+    expect(after).not.toBeNull();
+    expect(routeKey(after)).not.toBe(before); // die Pflanzenwand hat den Lauf REAL verlegt
+    // Die Wand wird UMGANGEN, nicht durchquert — die Route weicht auf die Gasse darunter aus.
+    for (const gx of [2, 3, 4, 5, 6, 7, 8, 9]) {
+      expect(onRoute(after!, gx, 0), `Wegpunkt auf Pflanze ${gx},0`).toBe(false);
     }
-    root.stepOnce();
-    const after = routeKey(routeOf(root));
-
-    expect(after.length).toBeGreaterThan(0);
-    expect(after).not.toBe(before); // die Pflanzenwand hat den Lauf REAL verlegt
+    expect(after!.some(p => Math.round(p.y - 0.5) === 1)).toBe(true);
+    expect(routeWalkTiles(after)).toBe(22); // gemessen: kein Längen-Gewinn aus Pflanzen
   });
 
   it('REMOVE_PLANT zieht nach: Route kehrt zur freien Geometrie zurück', () => {
-    const root = makeRoot({ seed: SEED, runId: 1, loadout: ['sprout'], loadoutStock: 99 });
+    const root = fresh();
     root.stepOnce();
     const straight = routeKey(routeOf(root)); // R2: der gerade Weg der leeren Welt
 
-    // Dieselbe Pflanzenreihe wie im Biege-Test (gy=0, auf der Route-Reihe) — sie verlegt den Weg REAL.
+    // Dieselbe Pflanzenreihe wie oben (gy=0, auf der Route) — sie verlegt den Weg REAL.
     let seq = 1;
     const placed: string[] = [];
     for (const gx of [2, 3, 4, 5, 6, 7, 8, 9]) {
@@ -106,10 +115,8 @@ describe('D1 — Pflanzen sind Maze-Bauwerk (auch ohne Tiles)', () => {
   });
 
   it('Laufweg-Messung: gerade = kürzestmöglich, Baffle = länger als der kürzeste Weg', () => {
-    // Warum Unit statt Integration: PLACEMENT_PATH_MARGIN (B33) hält den Design-Korridor
-    // IMMER begehbar und Rand-Reihen sind nie baubar — nicht-monotone Routen (echte
-    // Rückläufe) entstehen im Feld nur über Baffle-Kosten, nie durch Blockade. Die Messung
-    // selbst ist hier gepinnt; die Maze-Lebendigkeit decken die Tests oben.
+    // Warum Unit statt Integration: Die Messung selbst wird hier gepinnt; die Maze-Lebendigkeit
+    // decken die Tests oben und `maze_balance.test.ts` (Blocker-Gewinn) ab.
     //
     // VERTRAG (Entscheidung 19.09.2026): Statt einer Prozent-Quote, die „gerade" nicht von
     // „monoton gebogen" unterscheiden konnte, misst der HUD den LAUFWEG in Feldern. Der

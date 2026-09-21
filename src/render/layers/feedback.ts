@@ -5,11 +5,31 @@
 
 import type { VisualCommand } from '../../observers/visualObserver';
 
+const INK = '#2b2b26';
+
 interface FloatNum { text: string; x: number; y: number; color: string; life: number; maxLife: number; crit: boolean; }
 interface MangaTxt { text: string; x: number; y: number; life: number; maxLife: number; intensity: number; }
 interface Flash { color: string; alpha: number; life: number; maxLife: number; }
 interface Punch { entityId: string; t: number; strength: number; }
 interface AnimState { anim: string; t: number; total: number; }
+/** B5.1: Belohnungsreise — Quelle in der WELT, Ziel im HUD (Screen-Raum). Reine Darstellung. */
+interface RewardFlight { x: number; y: number; color: string; life: number; maxLife: number; }
+/** Ankunft am Zähler: kurzer Papier-Puls. Lebt AM Anker, nicht an der Quelle. */
+interface ArrivalPop { color: string; life: number; maxLife: number; }
+
+const FLIGHT_TICKS = 22;
+const ARRIVAL_TICKS = 9;
+
+/**
+ * Fortschritt der Reise (0 = Quelle, 1 = Ankunft am Zähler). Der LETZTE Lebens-Tick IST die
+ * Ankunft: die naive Form `1 - life/maxLife` endet bei `1 - 1/22 = 95,5 %` — der Kopf-Dot brach
+ * also sichtbar vor dem Zähler ab (gemessen 13 px Abstand zum Chip-Mittelpunkt), obwohl der
+ * Vertrag „Ankunft am Zähler" sagt. Reine Präsentations-Mathematik, per Test gepinnt.
+ */
+export function flightProgress(life: number, maxLife: number): number {
+  if (life <= 1) return 1;
+  return 1 - life / maxLife;
+}
 
 export class FeedbackLayer {
   private numbers: FloatNum[] = [];
@@ -17,6 +37,8 @@ export class FeedbackLayer {
   private flashes: Flash[] = [];
   private punches = new Map<string, Punch>();
   private anims = new Map<string, AnimState>();
+  private flights: RewardFlight[] = [];
+  private arrivals: ArrivalPop[] = [];
 
   /** Execute one drained visual command. */
   exec(c: VisualCommand): void {
@@ -31,6 +53,10 @@ export class FeedbackLayer {
         break;
       case 'ScreenFlash':
         this.flashes.push({ color: c.color, alpha: c.alpha, life: c.ticks, maxLife: c.ticks });
+        break;
+      case 'SpawnRewardFlight':
+        this.flights.push({ x: c.x, y: c.y, color: c.color, life: FLIGHT_TICKS, maxLife: FLIGHT_TICKS });
+        if (this.flights.length > 8) this.flights.shift();
         break;
       case 'PunchScale':
         this.punches.set(c.entityId, { entityId: c.entityId, t: 8, strength: c.strength });
@@ -48,6 +74,14 @@ export class FeedbackLayer {
     this.numbers = this.numbers.filter(n => --n.life > 0);
     this.mangas = this.mangas.filter(m => --m.life > 0);
     this.flashes = this.flashes.filter(f => --f.life > 0);
+    // Angekommen ⇒ der Zähler pulst (das Ziel, nicht die Quelle: die Reise ist beendet).
+    this.flights = this.flights.filter(f => {
+      if (--f.life > 0) return true;
+      this.arrivals.push({ color: f.color, life: ARRIVAL_TICKS, maxLife: ARRIVAL_TICKS });
+      if (this.arrivals.length > 4) this.arrivals.shift();
+      return false;
+    });
+    this.arrivals = this.arrivals.filter(a => --a.life > 0);
     for (const [id, p] of this.punches) {
       if (--p.t <= 0) this.punches.delete(id); else this.punches.set(id, p);
     }
@@ -105,6 +139,46 @@ export class FeedbackLayer {
     ctx.globalAlpha = 1;
   }
 
+  /**
+   * B5.1 — die Reise: Quelle (Welt) → Anker (HUD-Zähler, Canvas-Pixel). Quadratische Kurve, drei
+   * Dots mit Versatz (Zug hinter dem Kopf), Ankunft als Papier-Puls am Zähler. Alles billige
+   * Primitiven (Kreis + Linie), keine Cascade, kein Blur, kein Pfad-Cache nötig.
+   * Ohne Anker wird nichts gezeichnet: einen Flug ohne Ziel zu zeichnen hieße, das Ziel zu raten.
+   */
+  drawFlights(
+    ctx: CanvasRenderingContext2D,
+    toScreen: (x: number, y: number) => { x: number; y: number },
+    anchor: { x: number; y: number } | null,
+  ): void {
+    if (!anchor) return;
+    for (const f of this.flights) {
+      const p = flightProgress(f.life, f.maxLife);   // 0 → 1 (letzter Tick = Ankunft)
+      const src = toScreen(f.x, f.y);
+      // Kontrollpunkt: über der Mitte der Strecke, damit der Bogen sichtbar über dem Feld liegt.
+      const cx = (src.x + anchor.x) / 2;
+      const cy = (src.y + anchor.y) / 2 - 40 - Math.abs(anchor.x - src.x) * 0.12;
+      for (let i = 0; i < 3; i++) {
+        const t = Math.max(0, Math.min(1, p - i * 0.09));
+        const u = 1 - t;
+        const x = u * u * src.x + 2 * u * t * cx + t * t * anchor.x;
+        const y = u * u * src.y + 2 * u * t * cy + t * t * anchor.y;
+        ctx.globalAlpha = i === 0 ? 1 : 0.5 - i * 0.15;
+        ctx.beginPath();
+        ctx.arc(x, y, i === 0 ? 5 : 4 - i, 0, Math.PI * 2);
+        ctx.fillStyle = f.color; ctx.fill();
+        ctx.lineWidth = 1.6; ctx.strokeStyle = INK; ctx.stroke();
+      }
+    }
+    for (const a of this.arrivals) {
+      const k = a.life / a.maxLife;               // 1 → 0
+      const r = 8 + (1 - k) * 18;
+      ctx.globalAlpha = k * 0.9;
+      ctx.beginPath(); ctx.arc(anchor.x, anchor.y, r, 0, Math.PI * 2);
+      ctx.lineWidth = 2.5; ctx.strokeStyle = a.color; ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
   /** Full-screen flashes (call in screen space, after world transform is reset). */
   drawFlashes(ctx: CanvasRenderingContext2D, w: number, h: number): void {
     for (const f of this.flashes) {
@@ -118,5 +192,6 @@ export class FeedbackLayer {
   clear(): void {
     this.numbers = []; this.mangas = []; this.flashes = [];
     this.punches.clear(); this.anims.clear();
+    this.flights = []; this.arrivals = [];
   }
 }

@@ -57,11 +57,12 @@ test.describe('Mobile 390×844 (DoD)', () => {
 
   test('Geist zeigt ROT auf der wegschließenden Zelle (Integrität vorab, mobile)', async ({ page }) => {
     await startRun(page);
-    // Boulder-Karte per SYNTHETISCHEM Klick wählen (prüft cardPress im selben Lauf)
-    const boulder = page.locator('button').filter({ hasText: /Boulder/i }).first();
+    // Blocker-Karte per SYNTHETISCHEM Klick wählen (prüft cardPress im selben Lauf).
+    // Seit dem Findling-Schnitt (21.09.2026) ist der TOPF der einzige blockierende Tile.
+    const blocker = page.locator('button').filter({ hasText: /Flower Pot|Blumentopf/i }).first();
     await page.getByRole('button', { name: /FIELD/i }).first().click();
-    await boulder.click();
-    await expect(boulder).toHaveAttribute('aria-pressed', 'true');
+    await blocker.click();
+    await expect(blocker).toHaveAttribute('aria-pressed', 'true');
 
     // Der Geist zeichnet rot: wir fangen den strokeRect-Aufruf mit #a94438 ab
     // (drawGhost, src/render/renderer.ts). WICHTIG (gemessen): drawGhost zeichnet NACH
@@ -82,7 +83,7 @@ test.describe('Mobile 390×844 (DoD)', () => {
       const closers: Array<{ gx: number; gy: number }> = [];
       for (const p of snap.currentRoute ?? []) {
         const gx = Math.floor(p.x), gy = Math.floor(p.y);
-        if (root.wouldClosePath(gx, gy, 'boulder')) {
+        if (root.wouldClosePath(gx, gy, 'pot')) {
           const unten = r.top + oy + (gy + 1) * cell;
           if (unten < tray.top + 4) closers.push({ gx, gy });
         }
@@ -115,15 +116,17 @@ test.describe('Mobile 390×844 (DoD)', () => {
   test('Tray-Karte reagiert auf synthetischen Klick (detail 0) — Auswahl genau einmal', async ({ page }) => {
     await startRun(page);
     await page.getByRole('button', { name: /FIELD/i }).first().click();
-    const path = page.locator('button').filter({ hasText: /^Path/ }).first();
-    await path.click(); // echter Klick (trusted)
-    await expect(path).toHaveAttribute('aria-pressed', 'true');
+    // Der Weg ist keine Tray-Karte mehr (21.09.2026 — der Laufweg ist das Pathfinding-Ergebnis);
+    // dieselbe Mechanik wird jetzt an der Deko geprüft.
+    const decor = page.locator('button').filter({ hasText: /^Decor/ }).first();
+    await decor.click(); // echter Klick (trusted)
+    await expect(decor).toHaveAttribute('aria-pressed', 'true');
 
     // synthetischer Klick auf dieselbe Karte: cardPress sendet KEINEN zweiten Toggle,
     // aber ein synthetischer Klick auf eine ANDERE Karte wählt diese aus.
-    const boulder = page.locator('button').filter({ hasText: /^Boulder/ }).first();
-    await boulder.evaluate(el => (el as HTMLElement).click());
-    await expect(boulder).toHaveAttribute('aria-pressed', 'true');
-    await expect(path).toHaveAttribute('aria-pressed', 'false');
+    const pot = page.locator('button').filter({ hasText: /^Flower Pot/ }).first();
+    await pot.evaluate(el => (el as HTMLElement).click());
+    await expect(pot).toHaveAttribute('aria-pressed', 'true');
+    await expect(decor).toHaveAttribute('aria-pressed', 'false');
   });
 });

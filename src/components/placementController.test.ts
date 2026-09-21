@@ -33,7 +33,7 @@ function makeEnv(): PlacementEnvironment {
 describe('PlacementController (B3)', () => {
   beforeEach(() => {
     // #4: EIN Pool für Pflanzen UND Feld-Material (`inventory`) — Energie existiert nicht mehr.
-    board = { plants: [], inventory: { sprout: 2, path: 3, pot: 1, boulder: 2 }, mapTiles: {}, cols: 12, rows: 12 };
+    board = { plants: [], inventory: { sprout: 2, decor: 3, pot: 2 }, mapTiles: {}, cols: 12, rows: 12 };
     closesPath = new Set();
     controller = new PlacementController(makeEnv());
   });
@@ -117,17 +117,17 @@ describe('PlacementController (B3)', () => {
 
   it('leerer Feld-Pool: der Tile-Modus lehnt lokal mit no_inventory ab (#4)', () => {
     board.inventory = { sprout: 2 }; // kein Material für dieses Feld
-    controller.selectTile('path');
+    controller.selectTile('decor');
     expect(controller.hover(FREE).ghost?.reason).toBe('no_inventory');
     expect(controller.drop(FREE)).toEqual({ kind: 'reject', reason: 'no_inventory', gx: 11, gy: 10 });
   });
 
   it('Tile-Modus: Auswahl, Pool-Vorprüfung und PLACE_TILE-Auftrag', () => {
-    const state = controller.selectTile('path');
-    expect(state.mode).toBe('path');
+    const state = controller.selectTile('decor');
+    expect(state.mode).toBe('decor');
     expect(state.variantId).toBeNull();
     expect(controller.hover(FREE).ghost?.valid).toBe(true);
-    expect(controller.drop(FREE)).toEqual({ kind: 'tile', tile: 'path', gx: 11, gy: 10 });
+    expect(controller.drop(FREE)).toEqual({ kind: 'tile', tile: 'decor', gx: 11, gy: 10 });
   });
 
   // Spieltest v0.0.71 („Stilles Bauversagen"): vorher stand der Geist auf der letzten Wegzelle
@@ -143,8 +143,8 @@ describe('PlacementController (B3)', () => {
     });
 
     it('schließende Bau-Zelle: der Tap lehnt lokal ab (kein Command, kein stiller Bau)', () => {
-      closesPath.add('11,10:boulder');
-      controller.selectTile('boulder');
+      closesPath.add('11,10:pot');
+      controller.selectTile('pot');
       expect(controller.drop(FREE)).toEqual({ kind: 'reject', reason: 'route_blocked', gx: 11, gy: 10 });
       expect(controller.getState().rejection).toEqual({ gx: 11, gy: 10, reason: 'route_blocked', tick: 42 });
     });
@@ -181,7 +181,7 @@ describe('PlacementController (B3)', () => {
   });
 
   it('cancel setzt alles auf idle zurück', () => {
-    controller.selectTile('boulder');
+    controller.selectTile('pot');
     controller.hover(FREE);
     const state = controller.cancel();
     expect(state).toEqual({ mode: 'plant', variantId: null, ghost: null, rejection: null });

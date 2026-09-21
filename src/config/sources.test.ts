@@ -95,18 +95,27 @@ describe('Phase 5 gate: source validation', () => {
     expect(typeof world.isInsideWorld).toBe('function');
   });
 
-  it('M4 (Sprint AP2): Weg-Gewicht ist source-only und bleibt unter der Wiese — 0.6 statt 0.45', async () => {
-    const { MAP_TILES_SOURCE } = await import('./map.source');
-    expect(MAP_TILES_SOURCE.path.weight).toBe(0.6);
-    expect(MAP_TILES_SOURCE.path.weight).toBeLessThan(1);
-    expect(MAP_TILES_SOURCE.decor.weight).toBe(1);
+  it('zwei Kacheln bleiben: Topf (Blocker) und Deko (kosmetisch) — Weg und Findling sind gestrichen', async () => {
+    // Entscheidung (21.09.2026): Der Laufweg ist das Ergebnis des Pathfindings. Ein Element, das
+    // den Weg nur ANZIEHT, machte die Route wieder zur Eingabe — und ein zweites Weg-Bild
+    // (Kachel-Sprite) wäre die zweite Wahrheit neben der gezeichneten Strecke. Der FINDLING fiel
+    // im selben Zug: Blockieren ist eine Aussage, und der Topf macht sie bereits (Redundanz raus).
+    const { MAP_TILES_SOURCE, MAP_TILE_IDS, MAP_DEFAULT_WEIGHT } = await import('./map.source');
+    expect(MAP_TILE_IDS).toEqual(['pot', 'decor']);
+    const raw = MAP_TILES_SOURCE as Record<string, unknown>;
+    expect(raw.path).toBeUndefined();
+    expect(raw.boulder).toBeUndefined();
+    // Begehbarkeit ist die einzige Routing-Aussage eines Tiles, die noch trägt:
+    expect(MAP_TILES_SOURCE.pot.walkable).toBe(false);
+    expect(MAP_TILES_SOURCE.decor.walkable).toBe(true);
+    expect(MAP_TILES_SOURCE.decor.weight).toBe(MAP_DEFAULT_WEIGHT);
   });
 
   it('D4: PLANT_ROUTE_COST ist source-driven und Sim-Semantik passend (> DEFAULT_WEIGHT)', async () => {
     const { PLANT_ROUTE_COST, MAP_DEFAULT_WEIGHT, MAP_TILES_SOURCE } = await import('./map.source');
     expect(PLANT_ROUTE_COST).toBe(2);
     expect(PLANT_ROUTE_COST).toBeGreaterThan(MAP_DEFAULT_WEIGHT);
-    expect(PLANT_ROUTE_COST).toBeLessThan(MAP_TILES_SOURCE.boulder.weight);
+    expect(PLANT_ROUTE_COST).toBeLessThan(MAP_TILES_SOURCE.pot.weight);
   });
 
   // ── Vector-Engine Quellen-Gates (Phase 7) ───────────────────────────────────────────

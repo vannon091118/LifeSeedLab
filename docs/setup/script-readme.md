@@ -124,6 +124,56 @@ ID→Contract-Zuordnung aus den Überschriften der Contracts, und bricht ab bei 
 vergessenem Contract oder rohem `|` in einer Zelle. Die Prüfung gehört in CI, weil ein Register,
 das nur auf dieser Maschine stimmt, für einen frischen Klon keine Aussage hat.
 
+## Mutations-Drill (Red-Team der Suite)
+
+```bash
+node tools/shinon/mutate.ts                                     # ganze Registry
+node tools/shinon/mutate.ts --klasse vererbung,gacha            # eine Domäne
+node tools/shinon/mutate.ts --id N1-dominanz-gewicht-im-kraft-index,N3-typ-vererbung-verschoben
+```
+
+Der Drill bringt eine chirurgische Falschheit in eine Wahrheit ein und misst, welche Tests sie
+fangen — „600+ grün" ist erst ein Beweis, wenn die Suite beißt. Klassen: `logik`, `oekonomie`,
+`spawn`, `persistenz`, `vererbung`, `phaenotyp`, `gacha`, `werte` (18 Mutationen).
+
+**Struktur — ein Einstieg, drei Zuständigkeiten:** `tools/shinon/mutate.ts` ist nur der Ablauf
+(auswählen → Sandkasten → Baseline → je Mutation anwenden/laufen/zurücknehmen) samt CLI und
+Exit-Codes; daneben liegen `drill/registry.ts` (**was** mutiert wird: Daten, Registry-Selbstcheck,
+fail-closed-Auswahl), `drill/worktree.ts` (**wo** es läuft: isolierter Worktree, Spiegelung,
+Verknüpfung, Anwenden/Zurücknehmen/Abbau) und `drill/verdict.ts` (**wie** gelesen wird:
+Vitest-Ausgabe, Baseline-Wache, Verdikt). `verdict.ts` ist reine Textarbeit ohne Prozess und ohne
+Datei — genau deshalb liegt die Verdikt-Leiter dort und nicht im Ablauf, und genau deshalb ist
+sie ohne Worktree testbar. Datenfluss: `mutate.ts` liest Registry und Worktree, reicht die
+Ausgabe an `verdict.ts` und schreibt nichts zurück, was nicht über `git checkout` heilbar wäre.
+
+**Bilanz je Mutation:** `GEFANGEN` (mit den Wächter-Tests namentlich) · `UEBERLEBT` (blinder
+Fleck: kein Test reagiert) · `FEHLGESCHLAGEN` (Ersetzung griff nicht — fail-closed). Exit 1,
+sobald etwas überlebt.
+
+**Roter Ausgangsstand = NICHT BEWERTBAR (Exit 2).** Ist schon VOR der ersten Mutation ein Test
+rot (typisch: uncommitteter Regel-0-Zwischenstand einer Parallelsession), bricht der Drill ab und
+nennt die betroffenen Tests. Grund: „kein Test reagiert“ wäre dann nicht von „lag schon vorher
+rot“ zu trennen — in der Genom-Runde tarnte genau das vier ungedeckte Hebel (N1/N2/N4/N5) als
+Rauschen. Bei grüner Baseline heißt `UEBERLEBT` dagegen beweisbar: kein Test reagiert.
+
+**Isolation (P-26):** je Lauf ein eigener Worktree; der Arbeitsstand wird gespiegelt
+(uncommittete Diffs per `git apply`, untracked UND ignorierte Tooling-Dateien unter `scripts/`
+und `tools/` kopiert — sonst startet `test-lane` im Worktree in einen `MODULE_NOT_FOUND`).
+Der Hauptbaum wird nur lesend angefasst; die Mutation wird per `git checkout` zurückgenommen.
+
+**Fünf Befunde, die das Werkzeug selbst betrafen** (Genom-Runde 21.09.2026):
+1. Ein Lauf, der **nur** die vorher schon roten Tests zeigt, ist kein Flake, sondern
+   `UEBERLEBT` — als „FLAKY" getarnt sah ein blinder Fleck wie Rauschen aus (N1/N2/N4/N5).
+2. Frische Worktrees checken unter `core.autocrlf` mit **CRLF** aus: mehrzeilige Anker griffen
+   nicht, obwohl der Selbstcheck (normalisiert) grün war — jetzt lesen Prüfung und Ersetzung
+   dieselbe normalisierte Wahrheit.
+3. Die `node_modules`-Verknüpfung wird **nur als Link** gelöst, bevor der Worktree fällt: ein
+   rekursives `rm -rf` folgt der Junction und würde das echte `node_modules` löschen.
+4. Auswahl (`--klasse`/`--id`) ist fail-closed: unbekannter Name oder leere Auswahl bricht ab,
+   statt eine makellose „0/0"-Bilanz zu melden.
+5. Eine **rote Baseline** war ein stiller Filter: Mutationen wirkten dann wie „unauffällig".
+   Jetzt ist sie ein benannter, nicht bewertbarer Ausnahmezustand (Exit 2, siehe oben).
+
 ## Tests des Toolings
 
 ```bash

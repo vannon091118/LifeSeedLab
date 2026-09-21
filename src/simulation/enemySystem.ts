@@ -212,12 +212,25 @@ export class EnemySystem {
     this.status.setStatusOf(state, e, effectId);
   }
 
-  /** Direkt-Schaden ohne Status-Wirkung (DoT-Pfad des StatusSystem; ein Emit-Punkt). */
+  /** Direkt-Schaden ohne Status-Wirkung (DoT-Pfad des StatusSystem; ein Emit-Punkt).
+   *  Ein Tod wird HIER genauso gemeldet wie in `applyDamage` — vorher fehlte das:
+   *  Gift/Brand/Vektor töteten lautlos (HP 0, `statusSystem` filterte den Gegner weg),
+   *  also ohne `ENEMY_DIED` und damit ohne Score, Nektar, Kill-Zähler und Todes-FX.
+   *  Gemessen 21.09.2026 (Balance-Lauf, ein Leih-Spross): 107 Gegner gestartet,
+   *  42 `ENEMY_DIED`, **63 stille Abgänge** — der DoT-Pfad meldete keinen einzigen Tod.
+   *  Der Guard oben hält die Invariante „ein toter Gegner stirbt genau einmal" (ein Tick
+   *  kann Brand UND Gift ticken; ohne ihn käme der zweite Tod auf denselben Gegner). */
   damageDirect(state: SimState, e: EnemyEntity, amount: number, critical: boolean): void {
+    if (e.hp <= 0) return;
     e.hp -= amount;
     this.emit(makeEvent(state.clock.tick, 'DAMAGE_DEALT', e.id, ++this.seq, {
       enemyId: e.id, amount, critical, hp: Math.max(0, e.hp), px: e.px, py: e.py,
     }));
+    if (e.hp <= 0) {
+      this.emit(makeEvent(state.clock.tick, 'ENEMY_DIED', e.id, ++this.seq, {
+        enemyId: e.id, px: e.px, py: e.py, reward: e.reward, killerPlantId: e.lastHitByPlantId,
+      }));
+    }
   }
 
   // ── P6: Eingesetzter Brutling (allierter Kämpfer) ────────────────

@@ -75,9 +75,11 @@ const MAX_ACTIONS = 3;
 /** Parser: LLM-Text → Decision oder null (strukturiert, kein Throw). */
 export function parseDecision(raw: string): AgentDecision | null {
   try {
-    const d = JSON.parse(raw) as AgentDecision;
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null) return null;
+    const d = parsed as Partial<AgentDecision>;
     if (d.version !== 1 || typeof d.strategy !== 'string' || !Array.isArray(d.actions)) return null;
-    return d;
+    return d as AgentDecision;
   } catch {
     return null;
   }
@@ -87,7 +89,7 @@ export function parseDecision(raw: string): AgentDecision | null {
 function placementGeometricallyOk(state: SimState, gx: number, gy: number): boolean {
   if (!Number.isInteger(gx) || !Number.isInteger(gy)) return false;
   if (gx < 0 || gy < 0 || gx >= state.cols || gy >= state.rows) return false; // R2: dynamische Weltfläche
-  if (tileBlocked(state.mapTiles, gx, gy)) return false; // boulder o. ä.
+  if (tileBlocked(state.mapTiles, gx, gy)) return false; // Topf (der einzige Blocker)
   if (!canBuildAt(gx, gy, state.mapTiles)) return false; // nur pot-Tiles (leer = Papier-Wiese)
   // Dieselbe Geometrie-Regel wie PlantSystem.place (occupied) — eine Wahrheit.
   if (cellRejectReason({ gx, gy, plants: state.plants, cols: state.cols, rows: state.rows })) return false;

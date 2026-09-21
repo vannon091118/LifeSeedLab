@@ -51,6 +51,43 @@ export function hashOfRoot(root: SimulationRoot): string {
   return hashState(stateToHashable(root.getSnapshot()));
 }
 
+/** Zell-Ansicht des Vektor-Felds (kanonisch sortiert) — dieselbe Projektion wie die
+ *  Feld-Serialisierung der Vector-Gate-Suite, nur als Objekte statt String: So kann
+ *  ein Golden-Hash-Drift die ERSTE abweichende Zelle benennen statt nur rot zu leuchten.
+ *  Reine Leseprojektion (kein Schreiben, keine Simulation) — Test-Infrastruktur. */
+export interface VectorCellView {
+  key: string;
+  vectorId: string;
+  intensity: number;
+  ttl: number;
+}
+
+export function vectorFieldCellsOf(root: SimulationRoot): VectorCellView[] {
+  const s: Pick<SimState, 'vectors'> = root.getSnapshot();
+  return Object.entries(s.vectors)
+    .sort(([a], [b]) => (a < b ? -1 : 1))
+    .flatMap(([key, cells]) => cells.map(c => ({ key, vectorId: c.vectorId, intensity: c.intensity, ttl: c.ttl })));
+}
+
+/** Erste Abweichung zwischen IST-Feld und SOLL-Feld (Golden-Anker) als Diagnose-Text.
+ *  PRIVATVERTRAG: die Meldung enthält ausschließlich IST-Werte und Soll-Metrik
+ *  (Zellanzahl) — der Sollwert selbst wird nie gedruckt, sonst ist die Maske ein Sieb
+ *  (CI-Logs wären das Tuning-Futter, gegen das der private Anker existiert). */
+export function describeFirstFieldDeviation(actual: VectorCellView[], expected: VectorCellView[]): string {
+  const n = Math.max(actual.length, expected.length);
+  for (let i = 0; i < n; i++) {
+    const a = actual[i];
+    const e = expected[i];
+    const differs = !a || !e || a.key !== e.key || a.vectorId !== e.vectorId || a.intensity !== e.intensity || a.ttl !== e.ttl;
+    if (differs) {
+      const aStr = a ? `${a.key} ${a.vectorId} i=${a.intensity} ttl=${a.ttl}` : '— (fehlt im IST-Feld)';
+      const local = actual.slice(Math.max(0, i - 2), i + 3).map(c => `${c.key} ${c.vectorId} i=${c.intensity} ttl=${c.ttl}`);
+      return `erste abweichende Zelle @Index ${i} (IST): ${aStr} | Ist-Umfeld: [${local.join(' ; ')}] | Soll-Feld trägt ${expected.length} Zellen`;
+    }
+  }
+  return '';
+}
+
 /**
  * Reserviert die nächste Run-Identität auf der Meta-Wahrheit (Muster aus
  * meta/run.ts#reserveRunId) und liefert daraus den Run-Seed nach App.tsx-Muster.

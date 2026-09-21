@@ -8,6 +8,7 @@ import { makeRoot } from '../testing/testkit';
 import { resetIds } from '../core/ids';
 import { AUTO_WAVE_DELAY_TICKS } from '../config/economy.source';
 import { autoStartTicksLeft } from './waveTiming';
+import { generateWaveSchedule, waveEnemyCount } from '../config/enemies.source';
 
 const PREP_SEED = 2447771834;
 const SEED = 555001;
@@ -19,6 +20,49 @@ function advance(root: SimulationRoot, ticks: number): void {
 function place(root: SimulationRoot, variantId: string, gx: number, gy: number, seq = 1): void {
   root.commands.push(makeCommand(0, 'PLACE_PLANT', seq, { variantId, gx, gy }));
 }
+
+// ══ M3-Vertrag — Spawn-Pacing: die Queue zahlt JEDE Konsumption mit einem echten Gegner ══
+// Red-Team-Befund (2026-09-21): `shift` → `splice(0, 2)` (stilles Ausdünnen der Queue)
+// überlebte die komplette Suite — die Wellen-Tests prüfen Buchhaltungs-Endzustände, nie
+// das Pacing. Dieser Vertrag sperrt die Bilanz JEDES Ticks: jede Verringerung der
+// spawnQueue muss gleichzeitig einen Gegner erzeugen (und umgekehrt). Ohne Pflanzen
+// stirbt im Fenster nichts (Gegner verschwinden nur über hp≤0-Filter), also ist ΔGegner
+// exakt die Spawn-Bilanz.
+describe('M3-Vertrag — Spawn-Pacing: Queue-Konsumption = echter Gegner', () => {
+  const PACING_SEED = 777101;
+
+  function runWave1(): SimulationRoot {
+    const root = makeRoot({ seed: PACING_SEED });
+    root.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
+    root.stepOnce(); // → phase 'wave': Queue befüllt, lastSpawnTick gesetzt
+    return root;
+  }
+
+  it('je Tick: ΔQueue = ΔGegner — nichts wird still konsumiert, nichts ohne Konsum erzeugt', () => {
+    const root = runWave1();
+    const total = waveEnemyCount(generateWaveSchedule(PACING_SEED, 1));
+    expect(total).toBe(3); // Q1: Welle 1 ist das Onboarding-Fenster
+
+    let consumed = 0;
+    let prevQ = root.getSnapshot().wave.spawnQueue.length;
+    let prevE = root.getSnapshot().enemies.length;
+    for (let guard = 0; consumed < total && guard < 2000; guard++) {
+      root.stepOnce();
+      const s = root.getSnapshot();
+      const q = s.wave.spawnQueue.length;
+      const e = s.enemies.length;
+      const dQ = prevQ - q;
+      const dE = e - prevE;
+      expect(dE, `Tick ${s.clock.tick}: Queue -${dQ}, Gegner +${dE} — die Queue zahlt jede Konsumption mit einem Gegner`).toBe(dQ);
+      consumed += dQ;
+      prevQ = q;
+      prevE = e;
+    }
+    expect(consumed, 'Queue muss die ganze Welle ausspielen').toBe(total);
+    expect(root.getSnapshot().wave.spawnQueue).toHaveLength(0);
+    expect(root.getSnapshot().enemies.length).toBe(total); // Endbilanz: jeder Gegner lebt noch
+  });
+});
 
 describe('B23.1 — Aufbauphase ohne Beschuss', () => {
   beforeEach(() => resetIds());

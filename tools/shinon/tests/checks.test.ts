@@ -162,4 +162,12 @@ describe('Architektur-Constraints', () => {
     expect(findings.some((item) => item.file === 'src/simulation/touch.ts')).toBe(true);
     expect(findings.some((item) => item.file === 'tests/run.spec.ts')).toBe(false);
   });
+
+  it('erkennt Slop-Muster wie Boundary Laundering (JSON.parse as Type)', () => {
+    const dir = tempDir('slop-patterns');
+    const badCode = 'const data = JSON.parse(raw) as SaveGame;\n';
+    write(dir, 'src/simulation/bad_slop.ts', badCode);
+    const findings = new ForbiddenPatternCheck().run(contextIn(dir, ['src/simulation/bad_slop.ts']));
+    expect(findings.some((item) => item.file === 'src/simulation/bad_slop.ts' && item.message.includes('Boundary Laundering'))).toBe(true);
+  });
 });

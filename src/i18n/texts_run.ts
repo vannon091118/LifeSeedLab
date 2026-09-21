@@ -37,7 +37,7 @@ export const runTexts = {
     // Hinweis: 'trait.*' wird dynamisch gebaut (`t(`trait.${id}`)`), daher nie literal auffindbar.
     'game.hint': 'Tippe eine Pflanze unten, ziehe den Geist übers Feld — Tap platziert, ✕ bricht ab. Welt ist Papier, Pflanzen sind lebendig.',
     // R1: Build-Sequenz — der Feld-Hinweis der Layout-Phase.
-    'game.hintLayout': 'Bau dein Labyrinth: Wege lenken, Töpfe tragen Pflanzen, Findlinge blockieren. „Fertig gebaut" startet die erste Welle.',
+    'game.hintLayout': 'Jeder Topf blockiert die Gegner — sie suchen sich den Weg selbst und müssen um deinen Bau herum. „Fertig gebaut" startet die erste Welle.',
     'hud.journal': 'Forschungsbuch',
     'game.startWave': 'Welle starten',
     'game.exitRun': 'Run beenden',
@@ -109,7 +109,7 @@ export const runTexts = {
     'game.resumeTap': 'Tap to Resume',
     'game.hint': 'Tap a plant below, drag the ghost over the field — tap places, ✕ cancels. World is paper, plants are alive.',
     // R1: build sequence — the layout-phase field hint.
-    'game.hintLayout': 'Build your maze: paths steer, pots carry plants, boulders block. "Done building" starts the first wave.',
+    'game.hintLayout': 'Every pot blocks the critters — they find their own way and have to walk around what you build. "Done building" starts the first wave.',
     'hud.journal': 'Research Journal',
     'game.startWave': 'Start Wave',
     'game.exitRun': 'Exit Run',

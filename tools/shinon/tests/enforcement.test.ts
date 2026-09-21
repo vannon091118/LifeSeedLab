@@ -21,14 +21,20 @@ function check(id: string, findings: Finding[], expensive = false): ShinonCheck 
 const warning = finding('warn-check', 'W1', 'nur eine Warnung', { severity: 'warn' });
 
 describe('Enforcement-Modus', () => {
-  it('advisory (Default): Warnungen lassen das Gate offen', async () => {
-    const { git, config } = initTempRepo('enforce-advisory');
-    expect(config.gate.enforcement).toBe('advisory');
+  it('default: enforcement ist strict', () => {
+    const { config } = initTempRepo('enforce-default');
+    expect(config.gate.enforcement).toBe('strict');
+  });
+
+  it('advisory / non-strict: blockiert sofort mit Fun mode Echo', async () => {
+    const { git, config } = initTempRepo('enforce-advisory-blocked');
+    config.gate.enforcement = 'advisory';
 
     const report = await new ShinonGate([check('warn-check', [warning])]).run(contextFor(git, config, { quiet: true }));
 
     expect(report.enforcement).toBe('advisory');
-    expect(report.passed).toBe(true);
+    expect(report.passed).toBe(false);
+    expect(report.findings[0]?.message).toContain('Fun mode du manipulierst mich und ich blocke dich strikt');
   });
 
   it('strict: Warnungen schließen das Gate und tragen den Modus im Bericht', async () => {

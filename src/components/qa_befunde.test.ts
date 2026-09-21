@@ -45,9 +45,14 @@ describe('F5 — Blase im cueMode durchlässig (Backdrop-Passthrough, Skip bleib
 // ── F6: Tray-Geometrie — Sektionen und Auswahlinstrument ────────────────────────────────
 
 describe('F6 — Tray-Reihen (PFLANZEN / FELD): Auswahlinstrument, keine Verwechslungs-Käufe', () => {
-  it('jede MapTileId rendert eine eigene Karte (vier Quell-Karten, keine ausgelassene)', () => {
+  it('jede MapTileId rendert eine eigene Karte (zwei Quell-Karten, keine ausgelassene)', () => {
+    // Zwei seit den Schnitten 21.09.2026: Topf, Deko. Der Weg ist kein Werkzeug mehr (er ist
+    // das Pathfinding-Ergebnis), der Findling fiel als redundanter zweiter Blocker weg —
+    // beide dürfen hier nicht als Karte auftauchen.
     expect(MAP_TILE_IDS).toEqual(Object.keys(MAP_TILES_SOURCE));
-    expect(MAP_TILE_IDS.length).toBe(4);
+    expect(MAP_TILE_IDS.length).toBe(2);
+    expect(MAP_TILE_IDS).not.toContain('path');
+    expect(MAP_TILE_IDS).not.toContain('boulder');
   });
 
   it('die Leiste (N4-Position) liegt ÜBER der Tray-Kante (bottom 84 → 190)', () => {

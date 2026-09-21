@@ -109,7 +109,9 @@ export interface EventPayloads {
   ENEMY_DIED: { enemyId: string; px: number; py: number; reward: number; killerPlantId: string | null };
   SCORE_CHANGED: { score: number; delta: number };
   COMBO_CHANGED: { count: number; multiplier: number };
-  REWARD_GRANTED: { reward: number; sourceId: string };
+  /** B5.1: Der Ursprung der Belohnung ist Teil des Faktums — die Reise (Quelle → Zähler) darf
+   *  ihn nicht raten. Kill ⇒ Weltposition des Kills; Quelle ohne Ort (Wellen-Bonus) ⇒ null. */
+  REWARD_GRANTED: { reward: number; sourceId: string; px: number | null; py: number | null };
   PLACEMENT_REJECTED: { reason: PlacementRejectReason; gx: number; gy: number };
   FERTILIZE_REJECTED: { plantId: string; reason: Exclude<PlantRejectReason, 'not_mature'> };
   PROPAGATE_REJECTED: { plantId: string; reason: Exclude<PlantRejectReason, 'not_growing' | 'max_reached'> };
@@ -145,7 +147,7 @@ export type GameEvent = {
 // ScoreSystem         → DAMAGE_DEALT/CRITICAL/ENEMY_DIED(handled) → visual, ui
 // ScoreSystem         → SCORE_CHANGED       → —                 → ui
 // ComboSystem         → COMBO_CHANGED       → —                 → visual, ui
-// ScoreSystem         → REWARD_GRANTED      → —                 → visual (reward flight)
+// ScoreSystem         → REWARD_GRANTED      → —                 → visual (reward flight, Quelle aus dem Payload)
 // InventorySystem     → PLACEMENT_REJECTED  → —                 → visual (Zelle) + Notice
 // SimulationRoot      → TILE_REJECTED       → —                 → visual (Zelle) + Notice
 // SimulationRoot      → BEETLE_REJECTED     → —                 → Notice (HUD-Ursache, kein Welt-FX)

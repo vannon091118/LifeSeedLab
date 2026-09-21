@@ -1,6 +1,8 @@
 // Owner: SimulationRoot. LOC ≤ 300.
 // The deterministic step function: drain commands → advance clock → run systems → emit events.
-// This is the ONLY place systems are wired together.
+// This is the ONLY place systems are wired together. Die SCHUSS-Auflösung (Blitz-Ableiter,
+// Projektilstart, Vector-Deposit) wohnt in plantShot.ts (Regel-1-Split) — hier bleibt allein die
+// Verdrahtung und ihre Reihenfolge.
 
 import type { SimState } from './state';
 import { GameClock, TICK_MS } from '../core/clock';
@@ -8,13 +10,12 @@ import { EventBus } from '../bus/bus';
 import { CommandQueue, makeCommand, type Command } from '../bus/commands';
 import type { GameEvent } from '../bus/events';
 import { resetIds } from '../core/ids';
-import { PlantSystem, resolvePlantStats } from './plantSystem';
+import { PlantSystem } from './plantSystem';
 import { EnemySystem } from './enemySystem';
 import { ProjectileSystem } from './projectileSystem';
 import { VectorSystem } from './vectorSystem';
 import { VectorAttractor } from './vectorAttractor';
-import { potBoostAt } from './potBoost';
-import { vectorForEffect, VECTOR_ATTRACTOR_CONFIG } from '../config/vector_logic.source';
+import { resolvePlantShot, type ShotPorts } from './plantShot';
 import { ScoreSystem } from './scoreSystem';
 import { ComboSystem } from './comboSystem';
 import { WaveSystem } from './waveSystem';
@@ -73,6 +74,8 @@ export class SimulationRoot {
   private combo: ComboSystem;
   private waves: WaveSystem;
   private map: MapSystem;
+  /** Die Writer, die ein Pflanzenschuss braucht — einmal gebaut, nie pro Schuss allokiert. */
+  private readonly shotPorts: ShotPorts;
   private eventLog: GameEvent[] = [];
   /** Kill-Verwertung separat vom (öffentlichen) Event-Log — Reihenfolge-stabil, kein Log-Scraping. */
   private pendingKills: Extract<GameEvent, { type: 'ENEMY_DIED' }>[] = [];
@@ -107,6 +110,7 @@ export class SimulationRoot {
     this.combo = new ComboSystem(e => this.publish(e));
     this.waves = new WaveSystem(e => this.publish(e));
     this.map = new MapSystem(e => this.publish(e));
+    this.shotPorts = { vectors: this.vectors, attractors: this.attractors, projectiles: this.projectiles, enemies };
     // R2: RUN-START — die erste Route wird aus dem Welt-Snapshot abgeleitet (Vertrag:
     // Neuberechnung bei Run-Start, jedem Bau und jedem Wellenbeginn). Die UI/Terrain
     // sehen damit ab dem ersten Bild das echte Pathfinding-Ergebnis, nie einen Default.
@@ -202,67 +206,11 @@ export class SimulationRoot {
         state.lives = Math.max(0, state.lives - leaked);
       }
 
-      this.plants.update(state, (plant, target, damage) => {
-        const stats = resolvePlantStats(state, plant.variantId);
-        if (!stats) return;
-        const hasCharge = stats.effects.some(id => vectorForEffect(id) === 'VECTOR_CHARGE');
-        // Blitz-Trace: Dijkstra cost=1/conductivity — Wasser leitet, Ableiter emergent
-        if (hasCharge) {
-          const plantGx = plant.gx;
-          const plantGy = plant.gy;
-          const targetGx = Math.floor(target.px);
-          const targetGy = Math.floor(target.py);
-          const trace = this.vectors.traceCharge(state, plantGx, plantGy, targetGx, targetGy);
-          if (trace && trace.path.length > 1) {
-            let divert: { x: number; y: number } | null = null;
-            for (let i = 1; i < trace.path.length - 1; i++) {
-              const p = trace.path[i]!;
-              const flags = state.vectors[`${p.x},${p.y}`];
-              if (flags?.some(c => c.vectorId === 'VECTOR_WET')) { divert = p; break; }
-            }
-            if (divert) {
-              const extra = potBoostAt(state.mapTiles, plant.gx, plant.gy) ? 1 : 0;
-              this.vectors.deposit(state, divert.x, divert.y, 'VECTOR_CHARGE', 1.5, extra);
-              return;
-            }
-            for (const pt of trace.path) {
-              const extra = potBoostAt(state.mapTiles, plant.gx, plant.gy) ? 1 : 0;
-              this.vectors.deposit(state, pt.x, pt.y, 'VECTOR_CHARGE', 1.0, extra);
-            }
-            this.enemies.applyDamage(state, target.id, damage, false, stats.effects[0] ?? null, plant.id);
-            if (stats.effects[1]) this.enemies.applyEffect(state, target.id, stats.effects[1]);
-            return;
-          }
-        }
-        // B6/Ballistik: Durchschlag, Krit und Geschwindigkeit kommen aus dem GENOM
-        // (`stats.ballistics`), nicht mehr aus Konstanten hier. ALLE Effekte des Genoms
-        // reisen mit (bis EFFECT_SLOTS) — vorher war `effects[1]` toter Content.
-        this.projectiles.fire(state, plant, target, damage, stats.ballistics, stats.effects);
-        // Vector-Deposit per Schuss: Topf->Radius, Größe implizit via stats.range/ballistics
-        const tgx = Math.floor(target.px);
-        const tgy = Math.floor(target.py);
-        const extra = potBoostAt(state.mapTiles, plant.gx, plant.gy) ? 1 : 0;
-        for (const eff of stats.effects) {
-          const vid = vectorForEffect(eff);
-          if (!vid) continue;
-          if (vid === 'VECTOR_ATTRACTOR') {
-            const sp = VECTOR_ATTRACTOR_CONFIG.spawn;
-            this.attractors.spawn(state, plant.gx + 0.5, plant.gy + 0.5, sp.strength, sp.radius, sp.ttl);
-          } else if (vid === 'VECTOR_CHARGE') {
-            this.vectors.deposit(state, tgx, tgy, vid, 1.0, extra);
-          } else {
-            this.vectors.deposit(state, tgx, tgy, vid, 1.0, extra);
-            if (vid === 'VECTOR_OIL' || vid === 'VECTOR_WET' || vid === 'VECTOR_TOX') {
-              const dx = tgx - plant.gx;
-              const dy = tgy - plant.gy;
-              const len = Math.sqrt(dx * dx + dy * dy) || 1;
-              const frontGx = plant.gx + Math.round(dx / len);
-              const frontGy = plant.gy + Math.round(dy / len);
-              if (frontGx !== tgx || frontGy !== tgy) this.vectors.deposit(state, frontGx, frontGy, vid, 1.0, extra);
-            }
-          }
-        }
-      });
+      // Schuss-Auflösung: ein Aufruf je Schuss in einem eigenen Modul (plantShot.ts) — die
+      // Reihenfolge im Inneren ist dort vertraglich festgehalten und bit-identisch zur alten
+      // Pipeline (Blitz-Ableiter → Projektile/Deposits).
+      this.plants.update(state, (plant, target, damage) =>
+        resolvePlantShot(state, this.shotPorts, plant, target, damage));
       this.projectiles.update(state);
       this.vectors.update(state);
       this.attractors.update(state);

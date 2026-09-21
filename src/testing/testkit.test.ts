@@ -12,6 +12,8 @@ import {
   makeRunSeed,
   drainTicks,
   pushCommand,
+  vectorFieldCellsOf,
+  describeFirstFieldDeviation,
 } from './testkit';
 
 describe('TestKit — Kontrakt (B32.2)', () => {
@@ -91,5 +93,33 @@ describe('TestKit — Kontrakt (B32.2)', () => {
     expect(drained[0].tick).toBe(0);
     // seq ist keine eigene Property — sie lebt in der commandId (cmd:{tick}:{type}:{seq}).
     expect(drained[0].commandId).toBe('cmd:0:PLACE_PLANT:1');
+  });
+
+  it('vectorFieldCellsOf + describeFirstFieldDeviation: erste Abweichung benannt, Meldung IST-only (Privatvertrag)', () => {
+    const root = makeRun({ runId: 1 });
+    pushCommand(root, 'START_WAVE', {});
+    root.stepOnce(); // → phase 'wave' (Muster der Vector-Gate-Suite)
+    root.vectorDeposit(4, 6, 'VECTOR_HEAT', 1.0);
+    drainTicks(root, 1); // Deposit verarbeiten
+    const cells = vectorFieldCellsOf(root);
+    expect(cells.length).toBeGreaterThan(0);
+
+    // Identische Felder ⇒ keine Diagnose.
+    expect(describeFirstFieldDeviation(cells, [...cells])).toBe('');
+
+    // Drift: der IST-Ableger trägt 0.42 — die Meldung zeigt den IST-Wert und die
+    // Soll-Metrik (Zellanzahl), nie den Sollwert der abweichenden Zelle selbst.
+    const driftedIst = cells.map((c, i) => (i === 0 ? { ...c, intensity: 0.42 } : { ...c }));
+    const msg = describeFirstFieldDeviation(driftedIst, cells);
+    expect(msg).toContain('@Index 0');
+    expect(msg).toContain('0.42');
+    expect(msg).toContain('VECTOR_HEAT');
+    expect(msg).toContain(`Soll-Feld trägt ${cells.length} Zellen`);
+
+    // Fehlende Seite: beide Richtungen werden benannt, ohne Soll-Inhalt zu drucken.
+    expect(describeFirstFieldDeviation(cells, [])).toContain('Soll-Feld trägt 0 Zellen');
+    const fehlt = describeFirstFieldDeviation([], cells);
+    expect(fehlt).toContain('(fehlt im IST-Feld)');
+    expect(fehlt).toContain(`Soll-Feld trägt ${cells.length} Zellen`);
   });
 });

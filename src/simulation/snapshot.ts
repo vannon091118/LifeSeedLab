@@ -50,8 +50,25 @@ export function serializeSnapshot(state: SimState): string {
   return JSON.stringify(env);
 }
 
+function parseSnapshotEnvelope(raw: string): SnapshotEnvelope {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error('Snapshot unparseable: invalid JSON');
+  }
+  if (typeof parsed !== 'object' || parsed === null) {
+    throw new Error('Snapshot invalid: root is not an object');
+  }
+  const env = parsed as Partial<SnapshotEnvelope>;
+  if (typeof env.version !== 'number' || typeof env.eventStreamVersion !== 'number' || typeof env.hash !== 'string' || !env.state || typeof env.state !== 'object') {
+    throw new Error('Snapshot invalid: missing envelope fields');
+  }
+  return env as SnapshotEnvelope;
+}
+
 export function deserializeSnapshot(raw: string): SimState {
-  const env = JSON.parse(raw) as SnapshotEnvelope;
+  const env = parseSnapshotEnvelope(raw);
   if (env.version !== SNAPSHOT_VERSION) throw new Error(`Snapshot version mismatch: ${env.version} ≠ ${SNAPSHOT_VERSION}`);
   if (env.eventStreamVersion !== EVENT_STREAM_VERSION) throw new Error(`Event stream version mismatch: ${env.eventStreamVersion} ≠ ${EVENT_STREAM_VERSION}`);
   const h = snapshotHash(env.state);

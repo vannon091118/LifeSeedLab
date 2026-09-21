@@ -31,26 +31,26 @@ describe('Besitz-Modell — faires Startmaterial für JEDES Profil', () => {
   it('Altsave (v8, kein Flag) wird auf den Boden aufgefüllt — höherer Bestand bleibt', () => {
     writeLegacyEnvelope(META_KEY, {
       version: 8, nektar: 120, bestWave: 4, runs: 2, runId: 2,
-      variantCounts: { path: 2, decor: 30 },
+      variantCounts: { pot: 2, decor: 30 },
     }, 8);
 
     const meta = loadMeta();
     expect(meta.version).toBe(META_VERSION);
     expect(meta.materialGranted).toBe(true);
-    expect(meta.variantCounts.path).toBe(STARTING_MATERIAL.path);   // 2 ⇒ Boden
+    expect(meta.variantCounts.pot).toBe(STARTING_MATERIAL.pot);     // 2 ⇒ Boden
     expect(meta.variantCounts.decor).toBe(30);                      // mehr bleibt mehr
     expect(meta.variantCounts.plot).toBe(STARTING_MATERIAL.plot);
     expect(meta.nektar).toBe(120);                                  // Heilung ist keine Rücksetzung
   });
 
   it('die Gabe ist EINMALIG: ein leergebautes Profil bekommt nichts zurück', () => {
-    updateMeta({ variantCounts: { path: 0, plot: 0 }, materialGranted: true });
+    updateMeta({ variantCounts: { pot: 0, plot: 0 }, materialGranted: true });
     const meta = loadMeta();
-    expect(meta.variantCounts.path ?? 0).toBe(0);
+    expect(meta.variantCounts.pot ?? 0).toBe(0);
     expect(meta.variantCounts.plot ?? 0).toBe(0);
     // kein Nachschub, auch nicht nach weiteren Loads (verbautes Material ist in der Karte)
     updateMeta({ nektar: meta.nektar });
-    expect(loadMeta().variantCounts.path ?? 0).toBe(0);
+    expect(loadMeta().variantCounts.pot ?? 0).toBe(0);
   });
 
   it('gleiche Envelope-Version ohne Flag (Q6-Fall) heilt beim Load', () => {
@@ -58,7 +58,7 @@ describe('Besitz-Modell — faires Startmaterial für JEDES Profil', () => {
     writeLegacyEnvelope(META_KEY, { nektar: 7, variantCounts: {} }, META_VERSION);
     const meta = loadMeta();
     expect(meta.materialGranted).toBe(true);
-    expect(meta.variantCounts.path).toBe(STARTING_MATERIAL.path);
+    expect(meta.variantCounts.pot).toBe(STARTING_MATERIAL.pot);
     expect(meta.nektar).toBe(7);
   });
 });
@@ -68,7 +68,8 @@ describe('Shop — drei getrennte kaufbare Pools', () => {
 
   it('Samen, Tiles und Deko sind eigene Pools (Reihenfolge + Gegenstände aus der Source)', () => {
     expect(SHOP_POOL_IDS).toEqual(['seed', 'tile', 'decor']);
-    expect(SHOP_POOLS_SOURCE.tile.members).toContain('path');
+    expect(SHOP_POOLS_SOURCE.tile.members).toContain('pot');
+    expect(SHOP_POOLS_SOURCE.tile.members).not.toContain('path'); // der Weg ist kein Kaufposten mehr
     expect(SHOP_POOLS_SOURCE.tile.members).not.toContain('decor');  // Deko hat einen eigenen Pool
     expect(SHOP_POOLS_SOURCE.decor.members).toEqual(['decor']);
     expect(SHOP_POOLS_SOURCE.seed.members).toEqual([SEED_POOL_ITEM]);
@@ -81,12 +82,12 @@ describe('Shop — drei getrennte kaufbare Pools', () => {
   });
 
   it('Karten-Besitz kommt aus der Source (Preis und gezählte Stücke)', () => {
-    updateMeta({ variantCounts: { path: 4, decor: 2 }, nektar: 500 });
+    updateMeta({ variantCounts: { pot: 4, decor: 2 }, nektar: 500 });
     const meta = loadMeta();
     const tiles = poolOffers('tile', meta);
-    const path = tiles.find(o => o.key === 'path')!;
-    expect(path.price).toBe(poolPriceOf('path'));
-    expect(path.owned).toBe(4);
+    const pot = tiles.find(o => o.key === 'pot')!;
+    expect(pot.price).toBe(poolPriceOf('pot'));
+    expect(pot.owned).toBe(4);
     expect(poolOffers('decor', meta)[0]).toMatchObject({ key: 'decor', owned: 2 });
 
     const seed = poolOffers('seed', meta)[0];
@@ -98,16 +99,16 @@ describe('Shop — der Kauf erhöht den Besitz (ein Writer, Source-Preise)', () 
   beforeEach(() => { resetFullTestState(); });
 
   it('Tile-Kauf: Nektar runter, Besitz hoch — fail-closed ohne Nektar', () => {
-    const price = poolPriceOf('path');
+    const price = poolPriceOf('pot');
     updateMeta({ nektar: price * 2 });
-    const after = buyPoolItem('path', 2)!;
+    const after = buyPoolItem('pot', 2)!;
     expect(after).not.toBeNull();
-    expect(after.variantCounts.path).toBe(STARTING_MATERIAL.path + 2);
+    expect(after.variantCounts.pot).toBe(STARTING_MATERIAL.pot + 2);
     expect(after.nektar).toBe(0);
 
     updateMeta({ nektar: price - 1 });            // ein Nektar zu wenig
-    expect(buyPoolItem('path')).toBeNull();       // kein Schuldenkauf
-    expect(loadMeta().variantCounts.path).toBe(after.variantCounts.path);
+    expect(buyPoolItem('pot')).toBeNull();        // kein Schuldenkauf
+    expect(loadMeta().variantCounts.pot).toBe(after.variantCounts.pot);
   });
 
   it('Samen-Kauf: Preis aus der Source, Besitz ist der Keimling', () => {

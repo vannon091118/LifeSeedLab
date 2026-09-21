@@ -27,6 +27,10 @@ export const gameViewStyles: Record<string, CSSProperties> = {
   // der Blick soll zuerst auf die Ressourcen fallen, ohne mit klickbaren Karten zu konkurrieren.
   hudChip: { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px', background: '#fff', border: '1.5px solid var(--ink)', borderRadius: 10, boxShadow: '1px 1px 0 var(--ink)', fontSize: 13, fontWeight: 700, color: 'var(--ink)', lineHeight: 1 },
   hudChipCombo: { background: 'var(--paper-warm)', borderColor: 'var(--ink)', color: 'var(--ink)' },
+  // B5.1: der Währungs-Zähler ist der Zielpunkt der Belohnungsreise (B7.4-Slot „resource
+  // counter" — der Energie-Zähler ist mit dem Energiesystem gestorben, Nektar ist die Währung
+  // des Laufs). Leicht bernstein hinterlegt, damit er als Ziel lesbar bleibt.
+  hudChipNektar: { background: '#fdf4e0' },
   // D5: Quality-Chip — der Maze-Fortschritt ist eine zweite Combo-artige Ausnahme (nur sichtbar, wenn eine berechnete Route existiert)
   hudChipQuality: { background: '#eef7e6', borderColor: 'var(--leaf-dark)', color: 'var(--leaf-dark)' },
   // Der Vergleichswert („min 22") ist Nebensatz, nicht Hauptwert — kleiner und leiser.

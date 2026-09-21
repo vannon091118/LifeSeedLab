@@ -5,7 +5,7 @@ import { GENE_POOL } from './pool';
 import { BREEDING, driftFor } from '../config/phenotype.source';
 import {
   breedGenome, carriedGenes, candidateRng, descriptorDistance, expressed, genomeKey,
-  nearestDistance, parentSimilarityOk, rollCandidates, type Descriptor,
+  genomePower, nearestDistance, parentSimilarityOk, rollCandidates, type Descriptor,
 } from './breeding';
 
 // Der gemeinsame Kern: Vererbung · Dominanz · rezessive Trägerschaft · stetige Drift ·
@@ -120,6 +120,20 @@ describe('Zuchtkern: Vererbung und Dominanz', () => {
     const child = breedGenome(A, B, makeRng('plant', 5), 2, GENE_POOL);
     expect(genomeKey(child)).toBe(genomeKey(child.map(g => ({ ...g }))));
     expect(genomeKey(child)).not.toBe(genomeKey(child.map(g => ({ ...g, power: g.power + 0.01 }))));
+  });
+
+  it('Dominanz wiegt im Kraft-Index (1.3) — der Balance-Anker ist keine reine Summe', () => {
+    // BLINDER FLECK (Mutations-Drill, Genom-Runde): `genomePower` ist der Balance-Anker
+    // (Käfer-Vorschau, Ökonomie) — wer die Dominanz-Gewichtung 1.3 still entfernt, verlor
+    // keine bestehende Assertion (die Tests prüften nur `> 0`). Gepinnt wird die Gewichtung
+    // selbst, damit ein Tuning sie nicht unbemerkt zu einer Summe macht.
+    const dominant = [{ id: 'fire', power: 1, dominant: true }];
+    const recessive = [{ id: 'fire', power: 1, dominant: false }];
+    expect(genomePower(dominant)).toBeCloseTo(1.3, 6);
+    expect(genomePower(recessive)).toBeCloseTo(1, 6);
+    // Beide zusammen: 1.3 + 1 — die Dominanz bleibt unterscheidbar, auch gemischt.
+    expect(genomePower([...dominant, ...recessive])).toBeCloseTo(2.3, 6);
+    expect(genomePower([])).toBe(0);
   });
 });
 

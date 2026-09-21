@@ -20,12 +20,28 @@ describe('Map-System (P5) — Laufweg reagiert REAL auf Platzierungen', () => {
 
   it('PLACE_TILE nimmt Material aus dem POOL und schreibt das Tile in den State (#4)', () => {
     const root = makeRoot({ seed: SEED });
-    const materialBefore = root.getSnapshot().inventory.path ?? 0;
-    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 6, gy: 3, tile: 'path' }));
+    const materialBefore = root.getSnapshot().inventory.decor ?? 0;
+    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 6, gy: 3, tile: 'decor' }));
     root.stepOnce();
     const s = root.getSnapshot();
-    expect(s.mapTiles['6,3']).toBe('path');
-    expect(s.inventory.path).toBe(materialBefore - 1); // jedes Tile kostet genau 1 Material
+    expect(s.mapTiles['6,3']).toBe('decor');
+    expect(s.inventory.decor).toBe(materialBefore - 1); // jedes Tile kostet genau 1 Material
+  });
+
+  it('der WEG ist kein Tile mehr: PLACE_TILE lehnt ihn als unknown_tile ab (Entscheidung 21.09.2026)', () => {
+    // Der Weg ist das Pathfinding-ERGEBNIS — er wird gebaut, nicht gesetzt. Ein alter Save oder
+    // ein alter UI-Aufruf darf keinen Zustand schreiben: die Quelle ist der einzige Türhüter
+    // (`MAP_TILES_SOURCE[tile]` fehlt ⇒ Ablehnung, kein Material-Abzug, kein Karten-Write).
+    const root = makeRoot({ seed: SEED });
+    const before = root.getSnapshot();
+    const reasons: string[] = [];
+    root.bus.subscribe('TILE_REJECTED', (e) => reasons.push((e as unknown as { payload: { reason: string } }).payload.reason));
+    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 6, gy: 3, tile: 'path' }));
+    root.stepOnce();
+
+    expect(reasons).toEqual(['unknown_tile']);
+    expect(root.getSnapshot().mapTiles['6,3']).toBeUndefined();
+    expect(root.getSnapshot().inventory).toEqual(before.inventory); // kein Material-Abzug
   });
 
   it('R2: ohne Spieler-Tiles ist die Route DAS PATHFINDING-ERGEBNIS (Diagonale Spawn→Ausgang)', () => {
@@ -39,17 +55,19 @@ describe('Map-System (P5) — Laufweg reagiert REAL auf Platzierungen', () => {
     expect(route!.length).toBe(12 + 12 - 1); // 23 Zellen: 11 links + 11 runter + Start
   });
 
-  it('Weg-Tiles verlängern die Route (Gegner laufen REAL länger — Umweg wird begehbar)', () => {
-    // Findlings-Mauer im Baubereich (gx 4, gy 2-7 = 6 Zellen, maxCount 6)
-    // #4: 6 Findlinge kosten 6 Material — der Vorrat kommt aus der Source plus Zukauf
-    // (`materialStock`), nicht aus einem Budget.
-    const root = makeRoot({ seed: SEED, materialStock: { boulder: 6 } });
-    const walls: [number, number][] = [
-      [4, 2], [4, 3], [4, 4], [4, 5], [4, 6], [4, 7],
-    ];
+  it('Blocker AUF der Route verlegen sie — kein Wegpunkt steht auf einer Mauer', () => {
+    // NEU AUSGERICHTET (21.09.2026, nachgemessen): Der Laufweg kommt aus dem Pathfinding und
+    // läuft über die RAND-ECKEN (Reihe 0 nach links, dann Spalte 0 hinunter). Eine Mauer
+    // ABSEITS dieser Route — etwa Spalte 4, Zeilen 2–7, wie in der alten Fassung — berührt ihn
+    // gar nicht; der Test behauptete damit eine Verlängerung, die es nie gab. Geprüft wird
+    // jetzt, was wirklich passiert: die Mauer LIEGT auf der Route und wird UMGANGEN.
+    // (Der LÄNGEN-Gewinn steht gemessen in `maze_balance.test.ts` — er braucht zwei versetzte
+    // Wände, nicht eine.)
+    const root = makeRoot({ seed: SEED, materialStock: { pot: 10 } });
+    const wall: [number, number][] = [[2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0], [8, 0], [9, 0]];
     let seq = 1;
-    for (const [gx, gy] of walls) {
-      root.commands.push(makeCommand(0, 'PLACE_TILE', seq++, { gx, gy, tile: 'boulder' }));
+    for (const [gx, gy] of wall) {
+      root.commands.push(makeCommand(0, 'PLACE_TILE', seq++, { gx, gy, tile: 'pot' }));
     }
     root.stepOnce();
     root.commands.push(makeCommand(1, 'START_WAVE', seq++, {}));
@@ -58,22 +76,17 @@ describe('Map-System (P5) — Laufweg reagiert REAL auf Platzierungen', () => {
     const route = routeOf(root);
     expect(route).not.toBeNull();
     expect(route!.length).toBeGreaterThan(8);
-    // Kein Wegpunkt in einer MAUER-Zelle (Spalte 4, Zeilen 2–7) …
-    for (const wp of route!) {
-      const cellX = Math.round(wp.x - 0.5);
-      const cellY = Math.round(wp.y - 0.5);
-      const isWallCell = cellX === 4 && cellY >= 2 && cellY <= 7;
-      expect(isWallCell).toBe(false);
+    // Kein Wegpunkt in einer Mauer-Zelle …
+    for (const [gx, gy] of wall) {
+      expect(route!.some(p => Math.floor(p.x) === gx && Math.floor(p.y) === gy), `Wegpunkt auf Topf ${gx},${gy}`).toBe(false);
     }
-    // … und die Route läuft oberhalb (y<2) oder unterhalb (y>7) der Mauer vorbei
-    const goesAbove = route!.some(wp => Math.round(wp.y - 0.5) < 2);
-    const goesBelow = route!.some(wp => Math.round(wp.y - 0.5) > 7);
-    expect(goesAbove || goesBelow).toBe(true);
+    // … und die Route weicht auf die Gasse darunter aus (Reihe 1).
+    expect(route!.some(p => Math.round(p.y - 0.5) === 1)).toBe(true);
   });
 
   it('B16.1-Vertrag: EnemySystem liest dieselbe aktive Route wie Rendering/UI (keine zweite Kopie)', () => {
     const root = makeRoot({ seed: SEED });
-    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 6, gy: 3, tile: 'path' }));
+    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 6, gy: 3, tile: 'decor' }));
     root.stepOnce();
     root.commands.push(makeCommand(1, 'START_WAVE', 2, {}));
     root.stepOnce();
@@ -87,16 +100,21 @@ describe('Map-System (P5) — Laufweg reagiert REAL auf Platzierungen', () => {
     expect(enemies.activePath(snap)).toBe(stateRoute);
   });
 
-  it('TILE_REJECTED bei max_count (Boulder-Limit 6 schützt vor Weg-Mauern)', () => {
-    const root = makeRoot({ seed: SEED, materialStock: { boulder: 10 } });
+  it('TILE_REJECTED bei max_count (Deko-Deckel 20) — der Vorrat macht das Limit zur Grenze', () => {
+    // Seit dem Findling-Schnitt (21.09.2026) hat nur noch die Deko einen kleinen Deckel
+    // (maxCount 20) und ist dabei BEGEHBAR — so bleibt `max_count` ohne `route_blocked` prüfbar.
+    const root = makeRoot({ seed: SEED, materialStock: { decor: 25 } });
     let rejected = 0;
     let lastReason = '';
     root.bus.subscribe('TILE_REJECTED', (e) => { rejected++; lastReason = (e as unknown as { payload: { reason: string } }).payload.reason; });
-    // 7 unterscheidliche Zellen im Baubereich (Reihe gy 8 trägt keine Pflanze und liegt
-    // abseits der Diagonal-Bahn) — der Vorrat (10) macht MAX_COUNT zur Grenze, nicht Material.
+    // 21 unterscheidliche Zellen (Reihen gy 8 und 9 tragen keine Pflanze) — der Vorrat (25)
+    // macht MAX_COUNT zur Grenze, nicht das Material.
+    const cells: [number, number][] = [];
+    for (let gx = 0; gx < 12; gx++) cells.push([gx, 8]);
+    for (let gx = 0; gx < 9; gx++) cells.push([gx, 9]);
     let seq = 1;
-    for (let i = 0; i < 7; i++) {
-      root.commands.push(makeCommand(0, 'PLACE_TILE', seq++, { gx: 2 + i, gy: 8, tile: 'boulder' }));
+    for (const [gx, gy] of cells) {
+      root.commands.push(makeCommand(0, 'PLACE_TILE', seq++, { gx, gy, tile: 'decor' }));
     }
     root.stepOnce();
     expect(rejected).toBe(1);
@@ -107,11 +125,11 @@ describe('Map-System (P5) — Laufweg reagiert REAL auf Platzierungen', () => {
     const root = makeRoot({ seed: SEED });
     let rejected = 0;
     root.bus.subscribe('TILE_REJECTED', () => { rejected++; });
-    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 0, gy: 3, tile: 'path' }));
+    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 0, gy: 3, tile: 'decor' }));
     root.stepOnce();
     expect(rejected).toBe(0);
     // Kein geschützter Korridor mehr — die Gegner umgehen Tiles, das Verbot existiert nicht
-    expect(root.getSnapshot().mapTiles['0,3']).toBe('path');
+    expect(root.getSnapshot().mapTiles['0,3']).toBe('decor');
   });
 });
 // B33 → R2: Der alte Pfad-Korridor-Verbot ist GELÖSCHT — die EINZIGE Schranke ist die
@@ -161,11 +179,11 @@ describe('B33 → R2 — Integritätsregel statt Korridor-Verbot', () => {
     expect(root.getSnapshot().mapTiles['6,8']).toBe('pot');
   });
 
-  it('Weg-Tile NÄCHST am Spawn bleibt erlaubt — Lenkung ist ihr Sinn (Zelle (6,2))', () => {
+  it('Deko NÄCHST am Spawn bleibt erlaubt — keine Marge mehr (Zelle (6,2))', () => {
     const root = makeRoot({ seed: SEED });
-    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 6, gy: 2, tile: 'path' }));
+    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 6, gy: 2, tile: 'decor' }));
     root.stepOnce();
-    expect(root.getSnapshot().mapTiles['6,2']).toBe('path');
+    expect(root.getSnapshot().mapTiles['6,2']).toBe('decor');
   });
 
   /** Spalte 5 als Mauer: nach 11 Töpfen ist genau die letzte Zelle (gy 11) der schließende Zug. */
@@ -193,10 +211,9 @@ describe('B33 → R2 — Integritätsregel statt Korridor-Verbot', () => {
     expect(rejects).toEqual(['route_blocked']);
   });
 
-  it('wouldClosePath: begehbares Tile schließt nie (Weg und Deko sind keine Wände)', () => {
+  it('wouldClosePath: begehbares Tile schließt nie (Deko ist keine Wand)', () => {
     const root = makeRoot({ seed: SEED, materialStock: { pot: 12 } });
     wallColumn(root, 11); // die Spalte ist bis auf gy 11 zu
-    expect(root.wouldClosePath(5, 11, 'path')).toBe(false);
     expect(root.wouldClosePath(5, 11, 'decor')).toBe(false);
   });
 
@@ -212,7 +229,7 @@ describe('B33 → R2 — Integritätsregel statt Korridor-Verbot', () => {
   // die Naht-Locks — ohne sie könnte ein vergessener `mapRev++` eine ALTE Antwort ausliefern und
   // dem Spieler einen legalen Bau als „letzter Weg" verkaufen (oder umgekehrt).
   it('die Probe antwortet nach einem BAU neu (Cache hängt an der Kartenrevision)', () => {
-    const root = makeRoot({ seed: SEED, materialStock: { boulder: 4 } });
+    const root = makeRoot({ seed: SEED, materialStock: { pot: 4 } });
     // Das ZWEITE Wegefeld ist per Konstruktion auf dem Laufweg — nur dort läuft die echte Probe,
     // und nur dort kann überhaupt etwas gecacht worden sein (Vorprüfung antwortet sonst früh).
     const second = routeOf(root)![1];
@@ -220,28 +237,30 @@ describe('B33 → R2 — Integritätsregel statt Korridor-Verbot', () => {
     // Der ANDERE Nachbar der Spawn-Ecke (11,0) — genau einer der beiden ist X.
     const Y = X.gx === 11 ? { gx: 10, gy: 0 } : { gx: 11, gy: 1 };
 
-    expect(root.wouldClosePath(X.gx, X.gy, 'boulder')).toBe(false); // Weg bleibt über Y offen
-    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { ...Y, tile: 'boulder' }));
+    expect(root.wouldClosePath(X.gx, X.gy, 'pot')).toBe(false); // Weg bleibt über Y offen
+    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { ...Y, tile: 'pot' }));
     root.stepOnce();
-    expect(root.getSnapshot().mapTiles[`${Y.gx},${Y.gy}`]).toBe('boulder');
+    expect(root.getSnapshot().mapTiles[`${Y.gx},${Y.gy}`]).toBe('pot');
 
     // Dieselbe Zelle, neue Welt: X ist jetzt die EINZIGE Ausfahrt der Spawn-Ecke.
     const onRoute = (gx: number, gy: number) =>
       routeOf(root)!.some(p => Math.floor(p.x) === gx && Math.floor(p.y) === gy);
     expect(onRoute(X.gx, X.gy)).toBe(true); // Vorbedingung: die Frage läuft wirklich durch die Regel
-    expect(root.wouldClosePath(X.gx, X.gy, 'boulder')).toBe(true);
+    expect(root.wouldClosePath(X.gx, X.gy, 'pot')).toBe(true);
   });
 
   it('die Probe antwortet nach einem VERKAUF neu (Entfernen öffnet Wege)', () => {
-    const root = makeRoot({ seed: SEED, materialStock: { pot: 12 } });
-    // Die Querung bei (5,0) wird als WEG gebaut (Gewicht 0.6 < Wiese 1). Das ist Absicht: nach
-    // dem Verkauf entsteht bei (5,11) eine ZWEITE Querung, aber eine teurere — die Route bleibt
-    // deshalb bei (5,0). Ohne diesen Kunstgriff wandert der Laufweg nach dem Öffnen zur anderen
-    // Querung (im ersten Anlauf gemessen: die Zelle war dann nicht mehr Wegefeld und der Fall
-    // hätte nur die Vorprüfung geprüft statt der Revision).
-    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 5, gy: 0, tile: 'path' }));
+    // AUFBAU NACH DEM WEG-SCHNITT (21.09.2026): Die alte Fassung hielt die Route mit einem
+    // WEG-Tile bei (5,0) fest (Gewicht 0,6 < Wiese 1) — diesen Griff gibt es nicht mehr. Statt
+    // eines Preises benutzt der Fall jetzt eine PFLANZE: sie kostet `PLANT_ROUTE_COST` (2) und
+    // macht die zweite Querung damit STRIKT teurer als die erste. Ohne diesen Griff wären beide
+    // Querungen gleich teuer (Tie) — die Route könnte wandern, die Zelle (5,0) wäre nicht mehr
+    // Wegefeld, und der Fall hätte nur die VORPRÜFUNG geprüft statt der Revision.
+    //
+    // Spalte 5 ist bis auf (5,0) zu: EINE Querung ⇒ die Route MUSS dort durch.
+    const root = makeRoot({ seed: SEED, materialStock: { pot: 12 }, loadout: ['sprout'], loadoutStock: 99 });
     for (let gy = 1; gy < 12; gy++) {
-      root.commands.push(makeCommand(0, 'PLACE_TILE', gy + 1, { gx: 5, gy, tile: 'pot' }));
+      root.commands.push(makeCommand(0, 'PLACE_TILE', gy, { gx: 5, gy, tile: 'pot' }));
     }
     root.stepOnce();
     expect(root.getSnapshot().mapTiles['5,11']).toBe('pot'); // Spalte 5 ist bis auf (5,0) zu
@@ -250,9 +269,13 @@ describe('B33 → R2 — Integritätsregel statt Korridor-Verbot', () => {
     expect(onRoute(5, 0)).toBe(true); // Vorbedingung: die Frage läuft durch die Regel, nicht die Vorprüfung
     expect(root.wouldClosePath(5, 0, 'pot')).toBe(true);
 
+    // VERKAUF (5,11) + Pflanze dort: die zweite Querung ist offen, aber teurer (1 + 2) — die
+    // Route bleibt bei (5,0), und der Verkauf darf die gecachte Antwort trotzdem verwerfen.
     root.commands.push(makeCommand(0, 'REMOVE_TILE', 99, { gx: 5, gy: 11 }));
+    root.commands.push(makeCommand(0, 'PLACE_PLANT', 100, { variantId: 'sprout', gx: 5, gy: 11 }));
     root.stepOnce();
     expect(root.getSnapshot().mapTiles['5,11']).toBeUndefined();
+    expect(onRoute(5, 11)).toBe(false);
     expect(onRoute(5, 0)).toBe(true); // dieselbe Vorbedingung, auch nach dem Verkauf
     expect(root.wouldClosePath(5, 0, 'pot')).toBe(false);
   });
@@ -262,7 +285,7 @@ describe('B33 → R2 — Integritätsregel statt Korridor-Verbot', () => {
     const before = root.getSnapshot();
     const logBefore = root.getEventLog().length;
     root.wouldClosePath(5, 10, 'pot');
-    root.wouldClosePath(0, 0, 'boulder');
+    root.wouldClosePath(0, 0, 'pot');
     expect(root.getSnapshot()).toEqual(before);
     expect(root.getEventLog().length).toBe(logBefore);
   });

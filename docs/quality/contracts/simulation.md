@@ -33,63 +33,62 @@ Commit-Historie. Dieses Dokument ist die Arbeitsliste dieser Domäne: Befund →
 - Statuses v1 (deterministic, no per-enemy RNG streams): `EFFECT_SLOW` → `e.slowUntil = tick+90`, speed×0.5, frost tint via observer; `EFFECT_BURN` → 3×(damage/3) ticks poison-style DoT, ember tint; `EFFECT_POISON` → 5 ticks DoT; `EFFECT_CHAIN` → on kill, jump to nearest enemy ≤ 2 cells for 50% damage (arc FX between positions); `EFFECT_HEAL`/`SHIELD`/`HASTE`/`REFLECT` remain support/wall tags (heal aura exists; reflect = thorns contact damage when enemies touch walls — contact combat arrives with walls being hittable, tracked for Phase D).
 - `PROJECTILE_HIT`/`PROJECTILE_FIRED` payloads gain `effectId` → observer picks profile/palette/sound from `EFFECTS_SOURCE` (the coupling point the contract already declares).
 
-## B38. Maze-Balance-Datensatz — PLANT_ROUTE_COST als Tuning-Basis (Messung 2026-09-18)
+## B38. Maze-Balance-Datensatz — PLANT_ROUTE_COST als Tuning-Basis (Neumessung 2026-09-21)
 
-**Frage:** Wie stark beugt das Zucht-Layout den Laufweg je Wert der Maze-Schraube
-`PLANT_ROUTE_COST` (Source: `config/map.source.ts`, D4)? Die Antwort ist die
-Tuning-Basis für jede künftige Balance-Änderung.
+**Entscheidung (21.09.2026): Der Weg ist kein Tile mehr.** Der Laufweg ist das ERGEBNIS des
+Pathfindings (R2/B16.1) — er wird berechnet, nicht gebaut. Eine Kachel, die den Weg nur ANZIEHT
+(Gewicht 0,6), machte die Route wieder zur Eingabe und stellte ein zweites Weg-Bild neben die
+gezeichnete Strecke; sie ist aus `config/map.source.ts` gestrichen (**Nachtrag 21.09.2026:** `MapTileType`
+= pot | decor — auch der FINDLING fiel, weil Blockieren eine Aussage ist und der Topf sie bereits
+macht), samt Startbestand, Shop-Posten, Tray-Karte und Sprite. Damit ist der ANKER der alten
+Messung verschwunden: die frühere Weg-Bahn (Spalte 6/7, Gewicht 0,6) existiert nicht mehr, ihre
+Zahlen sind keine Vertrags-Basis. Die folgenden Werte sind neu gemessen.
 
-**Messaufbau (deterministisch, Seed 2447771834, `simulation/maze_balance.test.ts` als
-dauerhafter Vertrag beim Ist-Wert, Probe-Artefakt für die 1/3-Vergleiche):**
-Weg-Bahn aus 8 Weg-Tiles in Reihe 7 (gx 2..9, Gewicht 0.6), Pflanzen ab gx=4
-AUF der Bahn auffüllend (gx 4..7). Gemessen wird die Kanal-Bruch-Schwelle n —
-die kleinste Pflanzenzahl, bei der die Dijkstra-Route die Bahn verlässt.
+**Frage:** Was tut `PLANT_ROUTE_COST` (Source: `config/map.source.ts`, D4) noch, wenn es keine
+Weg-Kacheln gibt — und was verlängert den Laufweg dann überhaupt?
+
+**Messaufbau (deterministisch, Seed 2447771834, Vertrag in `simulation/maze_balance.test.ts`):**
+leere Welt; Bezugszelle ist der ZWEITE Wegpunkt der Rand-Route (10,0).
 
 **Messwerte:**
 
-| PLANT_ROUTE_COST | Kanal-Bruch bei n Pflanzen auf der Bahn | Lesart |
+| Größe | Wert | Lesart |
 |---|---|---|
-| 1 | n = 4 | Maze-Wirkung fast tot: Tax 1 < Umweg-Restkosten 2 — die Bahn hält fast immer |
-| **2 (Ist)** | **n = 2** | 2 Pflanzen reissen den Kanal auf — sichtbare Maze-Wirkung pro Zucht-Schritt |
-| 3 | n = 1 | Jede Pflanze auf der Bahn lenkt sofort aus — aggressiv, droht Weg-Tiles wertlos zu machen |
-
-**Post-Break-Formen beim Ist-Wert 2** (in `maze_balance.test.ts` gepinnt):
-
-| Pflanzen auf der Bahn | Route | Geometrie |
-|---|---|---|
-| 0 (nur Weg) | Reihe 7, 12 Knoten, Qualität 1.0 | gerade Bahn |
-| 1 | Reihe 7 (unverändert) | Tax 2.6/Zelle ≤ Ausweich-Kosten |
-| 2 | Knick über Reihe 6, 13 Knoten | erster Kanal-Bruch |
-| 3 | Knick über Reihe 6, 13 Knoten (länger) | Ausweg wächst mit |
-| 4 | totale Auslenkung (Reihe 0), 12 Knoten | Bahn komplett verlassen |
+| Leere Welt | 23 Wegpunkte, 22 Felder, kürzestmöglich 22 | die Route läuft über die RAND-ECKEN (Reihe 0 nach links, dann Spalte 0 hinunter) |
+| 1 Pflanze auf der Route | Laufweg 22 (unverändert), Route verlegt | Pflanze = ORTS-Schraube: sie wählt die Gasse, nicht die Länge |
+| Pflanzenreihe (gy 0, gx 2..9) | Laufweg 22 (unverändert) | Ausweich-Gasse gy=1; kein Wegpunkt steht auf einer Pflanzzelle |
+| Zwei versetzte Topf-Wände | **44 Felder** (Gewinn 22) | Blocker = LÄNGEN-Schraube: erst Lücke (7,11), dann zurück zur Lücke (5,0) |
 
 **Wichtige Nebenbefunde:**
 
-1. **Der Schwellwert-Mathe:** Ausweichen kostet ~2 Gewichtseinheiten mehr als die
-   Bahn (Knick hin+zurück, Weg-Tile-Vorsprung 0.4/Zelle). Die Schwelle ist damit
-   `ceil(2 / (PLANT_ROUTE_COST - 0.6))`-nah — jede Wert-Änderung verschiebt die
-   Schwelle NICHT linear: 1→4, 2→2, 3→1 (degressive Wirkung nach oben).
-2. **Gleichkosten-Tie:** Bei totaler Auslenkung wählt der Dijkstra die zuerst
-   gefundenen Ziel-Reihe (First-Set-Order) — mehrere Parallel-Kanäle haben
-   identische Kosten. Die Route ist deterministisch (gleicher Seed ⇒ gleiche Reihe),
-   aber nicht „die intuitive“.
-3. **Pflanzen ohne Weg-Tiles lenken NICHT:** 7 Pflanzen in einer Reihe auf der
-   Wiese ändern die Default-Route nicht (alle Zellen gleich teuer, die Reihe ist
-   eine von mehreren Parallel-Optimalen). Maze-Wirkung braucht die Weg-Bahn als
-   Anker — erst Bahn + Pflanzen am/an der Bahn erzeugen Lenkung.
-4. **Pflanzen AUF Weg-Tiles sind legal** (Platzierung prüft nur Pflanzen-Kollision):
-   die stärkste Lenk-Mechanik ist Zucht AUF der gebauten Bahn. Das ist das
-   beabsichtigte Spiel: Weg legen → Pflanzen darauf → Kanal bricht Richtung Feuerraum.
+1. **Pflanzen verlängern nichts.** Ein pflanzenfreier monotomer Weg existiert praktisch immer
+   (Pflanzen BLOCKIEREN nicht) — deshalb bleibt der Laufweg 22 Felder, egal wie viele Pflanzen
+   auf der Route stehen. Der Zucht-Gewinn ist Zeit UNTER FEUER, nicht Weglänge.
+2. **Nur Blocker schrauben die Länge:** der Topf erzwingt einen Rückweg. Erst dann wächst
+   `routeWalkTiles` über `routeIdealTiles` — der HUD-Abstand beider Zahlen ist dieser Gewinn.
+3. **Gleichkosten-Tie:** Bei gleich teuren Parallel-Gassen entscheidet die Dijkstra-Ordnung
+   (First-Set-Order) — deterministisch (gleicher Seed ⇒ gleiche Gasse), aber nicht „die intuitive".
+4. **Pflanzen AUF der Route sind legal und gewollt** (Platzierung prüft nur Pflanzen-Kollision):
+   die stärkste Mechanik ist Zucht DORT, wo die Biester laufen.
 
 **Tuning-Regeln für künftige Änderungen:**
 
-- Werte unter 2 töten die Maze-Wirkung praktisch (Schwelle ≥ 4 Pflanzen — unerreichbar
-  in frühem Gameplay): nur wählen, wenn Weg-Tiles dominieren sollen.
-- Wert 3 macht jede Bahnpflanze zur sofortigen Umlenkung: nur wählen, wenn das
-  Weg-Tile-System abgeschwächt werden soll.
-- Wert 2 ist der dokumentierte Sweet Spot: 2 Pflanzen = 1 sichtbarer Knick, 4 = totale
-  Auslenkung. Änderungen daran sind Balance-Entscheidungen mit diesem Datensatz als
-  Vorher-Nachher-Basis — der Vertrag-Test (`maze_balance.test.ts`) muss mitgezogen werden.
+- `PLANT_ROUTE_COST` entscheidet, OB die Route einer Pflanze ausweicht und WELCHE Gasse sie
+  danach nimmt — bei 2 verlegt bereits EINE Pflanze die Route (gemessen).
+- Die LÄNGE regelt der Spieler über Blocker; `maxCount` des Topfs (24) ist damit die eigentliche
+  Maze-Balance-Klemme, nicht mehr eine Weg-Kachel. **Der Deckel schützt nicht mehr geometrisch:**
+  mit 24 Töpfen ist eine volle Spaltenmauer möglich — einzige Schranke bleibt die
+  Integritätsregel (`route_blocked` lässt den letzten freien Weg stehen).
+- Änderungen an diesen Zahlen: `maze_balance.test.ts` ist der Vertrag und muss mitgezogen werden.
+
+### Vorgänger-Messung (2026-09-18) — ungültig seit dem Weg-Schnitt
+
+Der alte Datensatz maß eine **Weg-Bahn** aus 8 Weg-Tiles (Gewicht 0,6) und die Kanal-Bruch-Schwelle
+„n Pflanzen auf der Bahn" (Ist-Wert 2 ⇒ n=2). Seine Mechanik existiert nicht mehr: ohne
+Anziehungskachel gibt es keine Bahn, auf die die Route „reitet". Was daraus WEITER gilt: der
+Gleichkosten-Tie ist deterministisch, Pflanzen dürfen auf dem Laufweg stehen, und die Messung
+gehört als Vertrag in den Test (beides oben übernommen).
+
 
 ---
 

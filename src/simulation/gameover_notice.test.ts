@@ -114,19 +114,25 @@ function collector(root: SimulationRoot, type: GameEvent['type']) {
 
 describe('B29 — Ablehnungen erreichen den Spieler (echter Run)', () => {
   it('TILE_REJECTED: out_of_world und max_count kommen mit Text an', () => {
-    const root = makeRoot({ seed: 4242, materialStock: { boulder: 10 } });
+    // Seit dem Findling-Schnitt (21.09.2026) hat nur noch die DEKO einen kleinen Deckel
+    // (maxCount 20) — an ihr bleibt `max_count` überhaupt erreichbar. Deko ist begehbar, es
+    // kann also kein `route_blocked` dazwischenfunken.
+    const root = makeRoot({ seed: 4242, materialStock: { decor: 25 } });
     const read = collector(root, 'TILE_REJECTED');
 
     // Außerhalb der Weltfläche — die UI prüft das nicht vor, die Sim entscheidet.
-    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 50, gy: 3, tile: 'path' }));
+    root.commands.push(makeCommand(0, 'PLACE_TILE', 1, { gx: 50, gy: 3, tile: 'decor' }));
     root.stepOnce();
     expect(read().reason).toBe('out_of_world');
 
-    // Findlinge: 6 erlaubt, der siebte wird abgewiesen (schützt vor Weg-Mauern).
-    // #4: der Vorrat (10) macht das maxCount-Limit zur Grenze, nicht das Material.
+    // 20 Deko sind erlaubt, die 21. wird abgewiesen. #4: der Vorrat (25) macht das
+    // maxCount-Limit zur Grenze, nicht das Material.
+    const cells: [number, number][] = [];
+    for (let gx = 0; gx < 12; gx++) cells.push([gx, 8]);
+    for (let gx = 0; gx < 9; gx++) cells.push([gx, 9]);
     let seq = 2;
-    for (let i = 0; i < 7; i++) {
-      root.commands.push(makeCommand(1, 'PLACE_TILE', seq++, { gx: 2 + i, gy: 8, tile: 'boulder' }));
+    for (const [gx, gy] of cells) {
+      root.commands.push(makeCommand(1, 'PLACE_TILE', seq++, { gx, gy, tile: 'decor' }));
     }
     root.stepOnce();
     expect(read().reason).toBe('max_count');

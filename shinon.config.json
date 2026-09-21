@@ -1,4 +1,7 @@
 {
+  "commit": {
+    "maxFiles": 150
+  },
   "gate": {
     "enforcement": "strict",
     "checks": {

@@ -100,4 +100,19 @@ describe('crossGenomes — Mutation', () => {
       }
     }
   });
+
+  it('7) Sonderfähigkeiten hängen an Rolle UND Gen (Aura, Reflex)', () => {
+    // BLINDER FLECK (Mutations-Drill, Genom-Runde): Die Sonderfähigkeit war nirgends gepinnt —
+    // wer die Wahrnehmungsschwelle der Aura auf 0.95 dreht oder den Wand-Reflex abschaltet,
+    // machte die Unterstützung zur stummen Pflanze, ohne einen roten Test zu erzeugen.
+    const genes = (id: string, power: number) => [{ id, power, dominant: true }];
+    expect(deriveStats('support', genes('heal', 0.6)).special).toBe('heal_aura');
+    expect(deriveStats('support', genes('heal', 0.21)).special).toBe('heal_aura');
+    expect(deriveStats('support', genes('heal', 0.1)).special).toBeNull();
+    expect(deriveStats('wall', genes('thorns', 0.5)).special).toBe('reflect');
+    expect(deriveStats('wall', genes('thorns', 0.1)).special).toBeNull();
+    // Rollen-Gate: dasselbe Gen auf einem Schützen löst keine der beiden Fähigkeiten aus.
+    expect(deriveStats('shooter', genes('heal', 0.9)).special).toBeNull();
+    expect(deriveStats('shooter', genes('thorns', 0.9)).special).toBeNull();
+  });
 });

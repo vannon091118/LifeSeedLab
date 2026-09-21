@@ -13,7 +13,7 @@ describe('ShinonGate', () => {
     const { git, config } = initTempRepo('gate-open');
     const gate = new ShinonGate([
       check('a', [finding('a', 'A1', 'alles gut', { severity: 'info' })]),
-      check('b', [finding('b', 'B1', 'Hinweis', { severity: 'warn' })]),
+      check('b', [finding('b', 'B1', 'Hinweis', { severity: 'info' })]),
     ]);
 
     const report = await gate.run(contextFor(git, config, { quiet: true }));
