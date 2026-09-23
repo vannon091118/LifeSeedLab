@@ -1,7 +1,7 @@
 # Shinon Audit-Spezifikation: LLM-Slop, Redundanz & Invarianten-Detektion (LifeSeedLab)
 
 > **Autoritative Prüf- und Erkennungsspezifikation für Shinon & Agenten-Audits.**
-> Basierend auf empirischen Analysen von 304.362+ AI-Commits, OWASP Top 10:2025, TypeScript/React-Spezifikationen und der LifeSeedLab Systemarchitektur ([AGENTS.md](file:///c:/Users/Vannon/Documents/seeddlab/AGENTS.md), [architecture-contract.md](file:///c:/Users/Vannon/Documents/seeddlab/docs/architecture/architecture-contract.md)).
+> Basierend auf empirischen Analysen von 304.362+ AI-Commits, OWASP Top 10:2025, TypeScript/React-Spezifikationen und der LifeSeedLab Systemarchitektur ([AGENTS.md](../../AGENTS.md), [architecture-contract.md](../architecture/architecture-contract.md)).
 
 ---
 
@@ -28,7 +28,7 @@ Diese Spezifikation definiert für das Werkzeug **Shinon** 22 prüfbare Erkennun
 - **Audit-Prüffrage:** *Existieren mehrere Modelle, Schreibweisen oder Umrechnungsketten für dieselbe fachliche Entität oder Regel?*
 - **Shinon-Detektionslogik:** AST-Namensgraphen-Vergleich von Typ-Aliasen, Config-Keys und State-Slices. Treffer bei: `gleiche Entität + verschiedene Namen + ähnliche Felder + Konvertierungskette`.
 - **Empirischer Befund in LifeSeedLab:**
-  - `state.wave.number` ([state.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/simulation/state.ts#L136)) vs `RunSnapshot.waveNumber` ([runSave.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/persistence/runSave.ts#L26)) vs `pendingRun.waveNumber` ([App.tsx](file:///c:/Users/Vannon/Documents/seeddlab/src/App.tsx#L203)) vs `clock.waveTime` ([clock.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/core/clock.ts#L10)).
+  - `state.wave.number` ([state.ts](../../src/simulation/state.ts#L136)) vs `RunSnapshot.waveNumber` ([runSave.ts](../../src/persistence/runSave.ts#L26)) vs `pendingRun.waveNumber` ([App.tsx](../../src/App.tsx#L203)) vs `clock.waveTime` ([clock.ts](../../src/core/clock.ts#L10)).
   - **Bewertung:** *False Positive bezüglich Mutations-Konflikt.* Das Schema `wave.number` ist die reine Simulations-Wahrheit. `RunSnapshot.waveNumber` ist die serialisierte Persistenz-Form an der Boundary. 
   - **Systeminvariante:** Nur `SimulationRoot` darf `state.wave` verändern. Serialisierer an den Grenzen dürfen den Begriff transformieren, sofern kein zweiter Writer entsteht.
 
@@ -36,10 +36,10 @@ Diese Spezifikation definiert für das Werkzeug **Shinon** 22 prüfbare Erkennun
 
 - **Forschungskontext:** Verteilung von Schreibrechten für denselben Domänenwert über mehrere Funktionen oder UI-Komponenten zerstört die deterministische Zustandskontrolle.
 - **Audit-Prüffrage:** *Gibt es genau einen autoritativen Mutationsweg oder haben mehrere Funktionen eigene Schreib-Wahrheiten?*
-- **Shinon-Detektionslogik:** Single-Writer AST-Analyse. Prüft alle Zuweisungen (`state.x =`, `setX()`, `updateX()`) gegen die Ownership-Tabelle aus [architecture-contract.md](file:///c:/Users/Vannon/Documents/seeddlab/docs/architecture/architecture-contract.md) §3.
+- **Shinon-Detektionslogik:** Single-Writer AST-Analyse. Prüft alle Zuweisungen (`state.x =`, `setX()`, `updateX()`) gegen die Ownership-Tabelle aus [architecture-contract.md](../architecture/architecture-contract.md) §3.
 - **Empirischer Befund in LifeSeedLab:**
   - `src/simulation/enemySystem.ts` ist exklusiver Writer für `enemies`, `biteIntents` und Biss-Geometrie (`reach² = 1.1025`).
-  - In [gameRuntime.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/render/gameRuntime.ts#L211) ruft ein Event-Subscriber `advanceCrossMaturation(1)` bei `WAVE_STARTED` auf.
+  - In [gameRuntime.ts](../../src/render/gameRuntime.ts#L211) ruft ein Event-Subscriber `advanceCrossMaturation(1)` bei `WAVE_STARTED` auf.
   - **Bewertung:** *True Negative.* `advanceCrossMaturation` mutiert Meta-Fortschritt (`meta/economy.ts`) als Reaktion auf ein Bus-Event. Der Gameplay-Simulationszustand (`SimState`) bleibt zu 100 % im Besitz von `SimulationRoot` und seinen registrierten Systemen.
 
 ### 3. Event Echo & Datenfluss-Zyklen
@@ -48,8 +48,8 @@ Diese Spezifikation definiert für das Werkzeug **Shinon** 22 prüfbare Erkennun
 - **Audit-Prüffrage:** *Wer emittiert das Event? Wer hört zu? Verändert ein Listener den Zustand, den der Emittent gerade verändert hat?*
 - **Shinon-Detektionslogik:** Statische Datenflussgraphen-Analyse (Emitter-Slice vs Subscriber-Mutation-Slice).
 - **Empirischer Befund in LifeSeedLab:**
-  - In [gameRuntime.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/render/gameRuntime.ts#L214-L223): `GAME_OVER`-Listener ruft `recordRunEnd()` in `meta/economy.ts` auf.
-  - In [worldAutor.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/persistence/worldAutor.ts#L37): `TILE_PLACED`-Listener schreibt in den persistenten Autosave-Buffer.
+  - In [gameRuntime.ts](../../src/render/gameRuntime.ts#L214-L223): `GAME_OVER`-Listener ruft `recordRunEnd()` in `meta/economy.ts` auf.
+  - In [worldAutor.ts](../../src/persistence/worldAutor.ts#L37): `TILE_PLACED`-Listener schreibt in den persistenten Autosave-Buffer.
   - **Bewertung:** *True Negative.* Subskriptionen in `render/` und `persistence/` schreiben **niemals** in den `SimState` zurück, sondern leiten Daten ausschließlich an Darstellung oder Web-Storage weiter.
 
 ### 4. Hidden Fallback (Maskieren unmöglicher Zustände)
@@ -58,8 +58,8 @@ Diese Spezifikation definiert für das Werkzeug **Shinon** 22 prüfbare Erkennun
 - **Audit-Prüffrage:** *Wurde ein diagnostisch relevanter oder fachlich unmöglicher Fehlerzustand stillschweigend in einen gültigen Wert verwandelt?*
 - **Shinon-Detektionslogik:** AST-Pattern `CatchClause` oder `NullishCoalescing` an Systemgrenzen ohne Logging oder Invalidierungs-Signal.
 - **Empirischer Befund in LifeSeedLab:**
-  - In [llmBridge.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/simulation/llmBridge.ts#L81): `try { const d = JSON.parse(raw) ... } catch { return null; }` -> Fail-closed! Verwirft unlesbares LLM-JSON sauber und gibt `ok: false, reason: 'unparseable'` zurück.
-  - In [gameRuntime.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/render/gameRuntime.ts#L221): `try { recordRunEnd(...) } catch { /* meta persist must never break the run screen */ }` -> Stummes Catchen im Event-Handler.
+  - In [llmBridge.ts](../../src/simulation/llmBridge.ts#L81): `try { const d = JSON.parse(raw) ... } catch { return null; }` -> Fail-closed! Verwirft unlesbares LLM-JSON sauber und gibt `ok: false, reason: 'unparseable'` zurück.
+  - In [gameRuntime.ts](../../src/render/gameRuntime.ts#L221): `try { recordRunEnd(...) } catch { /* meta persist must never break the run screen */ }` -> Stummes Catchen im Event-Handler.
   - **Bewertung:** **WARNUNG (LOG001).** Das stumme Catchen in `gameRuntime.ts` verhindert zwar einen UI-Absturz beim Rundenende, maskiert aber Speicherfehler im Meta-System ohne DevGate-Logging.
 
 ### 5. Repair Instead of Fix (Multi-Commit Fehlerkaschierung)
@@ -68,7 +68,7 @@ Diese Spezifikation definiert für das Werkzeug **Shinon** 22 prüfbare Erkennun
 - **Audit-Prüffrage:** *Entstehen in kurzen Commit-Abständen aufeinanderfolgende Maskierungsebenen um dieselbe Eigenschaft?*
 - **Shinon-Detektionslogik:** Git-Diff-Historien-Scanner über AST-Knoten-Deltas in aufeinanderfolgenden Commits.
 - **Empirischer Befund in LifeSeedLab:**
-  - In [hudSnapshot.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/components/hudSnapshot.ts) & [PlacementTray.tsx](file:///c:/Users/Vannon/Documents/seeddlab/src/components/PlacementTray.tsx): defensive Null-Checks (`pendingRun?.waveNumber ?? null`).
+  - In [hudSnapshot.ts](../../src/components/hudSnapshot.ts) & [PlacementTray.tsx](../../src/components/PlacementTray.tsx): defensive Null-Checks (`pendingRun?.waveNumber ?? null`).
   - **Bewertung:** *Unbedenklich.* Die Null-Checks sichern den ungeladenen Zustand vor dem Rundenstart ab.
 
 ### 6. Boundary Laundering (Ungeprüfte Typ-Assertions an Schnittstellen)
@@ -77,8 +77,8 @@ Diese Spezifikation definiert für das Werkzeug **Shinon** 22 prüfbare Erkennun
 - **Audit-Prüffrage:** *Stammt dieser Wert aus einer Vertrauensgrenze (JSON, LocalStorage, Network, LLM) und wird ohne Runtime-Guard gecastet?*
 - **Shinon-Detektionslogik:** Grep/AST-Rule `TSAsExpression` direkt nach `JSON.parse`, `localStorage.getItem` oder `fetch`.
 - **Empirischer Befund in LifeSeedLab:**
-  - In [snapshot.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/simulation/snapshot.ts#L54): `const env = JSON.parse(raw) as SnapshotEnvelope;` -> Ungeprüfte Assertion von Savegames!
-  - In [llmBridge.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/simulation/llmBridge.ts#L78): `const d = JSON.parse(raw) as AgentDecision;`
+  - In [snapshot.ts](../../src/simulation/snapshot.ts#L54): `const env = JSON.parse(raw) as SnapshotEnvelope;` -> Ungeprüfte Assertion von Savegames!
+  - In [llmBridge.ts](../../src/simulation/llmBridge.ts#L78): `const d = JSON.parse(raw) as AgentDecision;`
   - **Bewertung:** **TRUE POSITIVE (AST001 / Boundary Laundering).** `snapshot.ts#L54` und `llmBridge.ts#L78` casten rohes JSON mittels `as`. Während `llmBridge.ts` direkt in den Folgezeilen 79–80 die Typen (`version === 1`, `typeof strategy === 'string'`, `Array.isArray(actions)`) valide prüft, benötigt `snapshot.ts` eine strukturierte Schema-Prüfung vor der Zustands-Restauration.
 
 ### 7. API Shape Drift & Konverter-Dschungel
@@ -87,8 +87,8 @@ Diese Spezifikation definiert für das Werkzeug **Shinon** 22 prüfbare Erkennun
 - **Audit-Prüffrage:** *Entstehen Adapterketten A -> B -> C -> A nur, um inkompatible Feldnamen desselben Begriffs zu überbrücken?*
 - **Shinon-Detektionslogik:** Identifikation von Mapper-Funktionen, die ausschließlich Keys umbenennen.
 - **Empirischer Befund in LifeSeedLab:**
-  - In [state.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/simulation/state.ts#L13): `variantId: string;` für Pflanzen.
-  - In [generator.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/visual/generator.ts): `genomeToVisualInput(genome, seed)` übersetzt Genome -> VisualInput.
+  - In [state.ts](../../src/simulation/state.ts#L13): `variantId: string;` für Pflanzen.
+  - In [generator.ts](../../src/visual/generator.ts): `genomeToVisualInput(genome, seed)` übersetzt Genome -> VisualInput.
   - **Bewertung:** *True Negative.* `variantId` ist die durchgängige ID im gesamten Simulation/Genome-Bereich. Der VisualGenerator nutzt eine exakt getrennte Repräsentation (`VisualInput`), was der Architektur-Vorgabe (Simulation ≠ Präsentation) entspricht.
 
 ### 8. Version Fossil & Deprelizierte Library-Muster
@@ -105,16 +105,16 @@ Diese Spezifikation definiert für das Werkzeug **Shinon** 22 prüfbare Erkennun
 - **Audit-Prüffrage:** *Wird vor dem Schreiben eines Async-Ergebnisses geprüft, ob die Versions-ID/Tick des Zustands noch mit dem Aufrufzeitpunkt übereinstimmt?*
 - **Shinon-Detektionslogik:** Promise-Continuation State Mutation Tracker.
 - **Empirischer Befund in LifeSeedLab:**
-  - Der gesamte Gameplay-Simulationskern ([src/simulation/](file:///c:/Users/Vannon/Documents/seeddlab/src/simulation/)) ist **synchron und deterministisch (30 TPS fixed step)**. Es existiert kein `async/await` im Simulationskreis.
+  - Der gesamte Gameplay-Simulationskern (`src/simulation/`) ist **synchron und deterministisch (30 TPS fixed step)**. Es existiert kein `async/await` im Simulationskreis.
 
 ### 10. Determinismus-Provenienz & Externe Leaks
 
 - **Forschungskontext:** Simulationsentscheidungen hängen von nicht-deterministischen Quellen ab (DOM-Order, Map-Iteration, UI-Mount-Order, `Math.random`, `Date.now`).
 - **Audit-Prüffrage:** *Kann ein Zustand, der den Spielverlauf bestimmt, von Werten außerhalb von `deriveSeed` und `GameClock` beeinflusst werden?*
-- **Shinon-Detektionslogik:** Automated Tree Test [determinism_rule.test.ts](file:///c:/Users/Vannon/Documents/seeddlab/tools/shinon/tests/determinism_rule.test.ts) verbietet `Math.random`, `Date.now`, `localeCompare`, `Math.pow`, `Math.hypot` und Transzendente in `src/simulation/`.
+- **Shinon-Detektionslogik:** Automated Tree Test [determinism_rule.test.ts](../../tools/shinon/tests/determinism_rule.test.ts) verbietet `Math.random`, `Date.now`, `localeCompare`, `Math.pow`, `Math.hypot` und Transzendente in `src/simulation/`.
 - **Empirischer Befund in LifeSeedLab:**
-  - In [vectorSystem.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/simulation/vectorSystem.ts#L84): `for (const key of Object.keys(state.vectors).sort())` nutzt String-Code-Unit Sortierung.
-  - **Bewertung:** *Sauber.* JS `.sort()` sortiert Strings nach Code Units (identisch zu `compareCodeUnits`). In [hash.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/core/hash.ts#L62) wird explizit `compareCodeUnits` verwendet.
+  - In [vectorSystem.ts](../../src/simulation/vectorSystem.ts#L84): `for (const key of Object.keys(state.vectors).sort())` nutzt String-Code-Unit Sortierung.
+  - **Bewertung:** *Sauber.* JS `.sort()` sortiert Strings nach Code Units (identisch zu `compareCodeUnits`). In [hash.ts](../../src/core/hash.ts#L62) wird explizit `compareCodeUnits` verwendet.
 
 ### 11. RNG-Reinitialisierung & Sequenz-Abbrüche
 
@@ -122,8 +122,8 @@ Diese Spezifikation definiert für das Werkzeug **Shinon** 22 prüfbare Erkennun
 - **Audit-Prüffrage:** *Wird `makeRng` innerhalb von Schleifen oder Mutationsfunktionen mit demselben Seed neu erzeugt?*
 - **Shinon-Detektionslogik:** AST-Pattern `new RNG` oder `makeRng` innerhalb von Funktionskörpern außerhalb der Initialisierung.
 - **Empirischer Befund in LifeSeedLab:**
-  - In [enemies.source.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/config/enemies.source.ts#L72): `generateWaveSchedule(rootSeed, waveNumber)` erzeugt deterministisch den Wave-Schedule aus `(rootSeed, waveNumber)`.
-  - In [enemySystem.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/simulation/enemySystem.ts#L46): Gegner-Phänotyp nutzt stateless Derivats-Tupel `(rootSeed, waveNumber, spawnIndex)`.
+  - In [enemies.source.ts](../../src/config/enemies.source.ts#L72): `generateWaveSchedule(rootSeed, waveNumber)` erzeugt deterministisch den Wave-Schedule aus `(rootSeed, waveNumber)`.
+  - In [enemySystem.ts](../../src/simulation/enemySystem.ts#L46): Gegner-Phänotyp nutzt stateless Derivats-Tupel `(rootSeed, waveNumber, spawnIndex)`.
 
 ### 12. State-Mutating `Array.prototype.sort()`
 
@@ -131,19 +131,19 @@ Diese Spezifikation definiert für das Werkzeug **Shinon** 22 prüfbare Erkennun
 - **Audit-Prüffrage:** *Wird `.sort()` direkt auf einem Array aufgerufen, das Teil des autoritativen `SimState` ist?*
 - **Shinon-Detektionslogik:** Type-aware AST-Check: Ist das Target-Expression ein State-Property-Array?
 - **Empirischer Befund in LifeSeedLab:**
-  - In [hash.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/core/hash.ts#L62): `const plants = [...s.plants].sort(...)` -> Nutzt Spread-Operator `[...]` vor `.sort()`!
-  - In [hash.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/core/hash.ts#L68): `const enemies = [...s.enemies].sort(...)`
-  - In [chain.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/discovery/chain.ts#L31): `const sorted = [...genome].sort(...)`
+  - In [hash.ts](../../src/core/hash.ts#L62): `const plants = [...s.plants].sort(...)` -> Nutzt Spread-Operator `[...]` vor `.sort()`!
+  - In [hash.ts](../../src/core/hash.ts#L68): `const enemies = [...s.enemies].sort(...)`
+  - In [chain.ts](../../src/discovery/chain.ts#L31): `const sorted = [...genome].sort(...)`
   - **Bewertung:** **VORBILDKLICH (True Negative).** Alle Sortierungen auf State-Ebene kopieren vorher via `[...]` oder `.slice()`.
 
 ### 13. Non-Deterministic ID Provenance
 
 - **Forschungskontext:** IDs werden aus `Date.now()`, `Math.random()`, `randomUUID()` oder dynamischen Array-Indizes erzeugt.
 - **Audit-Prüffrage:** *Wird eine Entitäts-ID aus Zufall oder Laufzeit-Uhr anstelle deterministischer FNV-Hashes generiert?*
-- **Shinon-Detektionslogik:** Check aller ID-Erzeugungsfunktionen in [ids.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/core/ids.ts).
+- **Shinon-Detektionslogik:** Check aller ID-Erzeugungsfunktionen in [ids.ts](../../src/core/ids.ts).
 - **Empirischer Befund in LifeSeedLab:**
-  - In [ids.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/core/ids.ts#L25): Entity-IDs werden deterministisch via FNV über `(matchId, kind, seq)` gebildet.
-  - In [codex.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/discovery/codex.ts#L36-L37): `generatePlayerId()` nutzt `crypto.randomUUID()` oder Navigator-Fingerabdruck.
+  - In [ids.ts](../../src/core/ids.ts#L25): Entity-IDs werden deterministisch via FNV über `(matchId, kind, seq)` gebildet.
+  - In [codex.ts](../../src/discovery/codex.ts#L36-L37): `generatePlayerId()` nutzt `crypto.randomUUID()` oder Navigator-Fingerabdruck.
   - **Bewertung:** *Sauber.* `generatePlayerId()` erzeugt einmalig die lokale Geräte-/Spieler-Identität für die lokale CODEX-Kette. Die In-Game Entity-IDs im SimulationState nutzen strikt `src/core/ids.ts`.
 
 ### 14. Tautologische Test-Orakel
@@ -152,7 +152,7 @@ Diese Spezifikation definiert für das Werkzeug **Shinon** 22 prüfbare Erkennun
 - **Audit-Prüffrage:** *Stammt das Test-Orakel aus einer unabhängigen Referenz oder spiegelt es 1:1 den Quellcode wider?*
 - **Shinon-Detektionslogik:** AST-Check auf identische Funktionsaufrufe in `expect()` und Expected-Value-Deklarationen.
 - **Empirischer Befund in LifeSeedLab:**
-  - In [vector_engine_gate.test.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/simulation/vector_engine_gate.test.ts): Nutzt vordefinierte Golden Master Snapshots (`goldenCells`) und vergleicht Vektor-Ausbreitung gegen feste numerische Erwartungswerte.
+  - In [vector_engine_gate.test.ts](../../src/simulation/vector_engine_gate.test.ts): Nutzt vordefinierte Golden Master Snapshots (`goldenCells`) und vergleicht Vektor-Ausbreitung gegen feste numerische Erwartungswerte.
 
 ### 15. Unchecked Corner Cases & Empty State Exposure
 
@@ -160,7 +160,7 @@ Diese Spezifikation definiert für das Werkzeug **Shinon** 22 prüfbare Erkennun
 - **Audit-Prüffrage:** *Ist die Logik sicher bei n=0, n=1, Duplikaten und gelöschten Entitäten?*
 - **Shinon-Detektionslogik:** Grep nach `[0]` ohne vorherige Length-Prüfung oder `!` Non-Null Assertion auf `.find()`.
 - **Empirischer Befund in LifeSeedLab:**
-  - In [llmBridge.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/simulation/llmBridge.ts#L112): `if (decision.actions.length > MAX_ACTIONS)` und saubere Handhabung von `actions.length === 0` -> Fail-closed.
+  - In [llmBridge.ts](../../src/simulation/llmBridge.ts#L112): `if (decision.actions.length > MAX_ACTIONS)` und saubere Handhabung von `actions.length === 0` -> Fail-closed.
 
 ### 16. Dead Infrastructure & Geister-Code
 
@@ -168,7 +168,7 @@ Diese Spezifikation definiert für das Werkzeug **Shinon** 22 prüfbare Erkennun
 - **Audit-Prüffrage:** *Existieren exportierte Funktionen/Typen/Events, die keinen aktiven Konsumenten im Projekt besitzen?*
 - **Shinon-Detektionslogik:** Dependency Graph Dead Export Sweep via AST-Analyse.
 - **Empirischer Befund in LifeSeedLab:**
-  - In [llmBridge.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/simulation/llmBridge.ts#L153): `// PROPAGATE_PLANT, DEPLOY_BEETLE... bewusst nicht bedienbar.`
+  - In [llmBridge.ts](../../src/simulation/llmBridge.ts#L153): `// PROPAGATE_PLANT, DEPLOY_BEETLE... bewusst nicht bedienbar.`
   - Untracked Tools `tools/shinon/mutate.ts` im Worktree vorhanden.
 
 ### 17. Generic Name Density (Cognitive Overlap Indicator)
@@ -177,7 +177,7 @@ Diese Spezifikation definiert für das Werkzeug **Shinon** 22 prüfbare Erkennun
 - **Audit-Prüffrage:** *Existiert in einer Funktion eine hohe Dichte an generischen Variablennamen, die auf verschwommene Denkmodelle hinweist?*
 - **Shinon-Detektionslogik:** Threshold-Check: > 4 generische Bezeichner im selben Function Scope.
 - **Empirischer Befund in LifeSeedLab:**
-  - In [rootCommands.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/simulation/rootCommands.ts): Explizite Benennung (`state`, `cmd`, `ctx`, `res`).
+  - In [rootCommands.ts](../../src/simulation/rootCommands.ts): Explizite Benennung (`state`, `cmd`, `ctx`, `res`).
 
 ### 18. Thin Wrapper mit Dual-API Risiko
 
@@ -185,7 +185,7 @@ Diese Spezifikation definiert für das Werkzeug **Shinon** 22 prüfbare Erkennun
 - **Audit-Prüffrage:** *Existiert ein Wrapper ohne Transformation, der einen eigenen Default/Fallback besitzt?*
 - **Shinon-Detektionslogik:** AST Pattern `function f(x) { return g(x); }`.
 - **Empirischer Befund in LifeSeedLab:**
-  - In [waveSystem.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/simulation/waveSystem.ts#L110): `peekSchedule(rootSeed, waveNumber) { return generateWaveSchedule(rootSeed, waveNumber); }` -> Fassade für `SimulationRoot`, kein abweichender Default.
+  - In [waveSystem.ts](../../src/simulation/waveSystem.ts#L110): `peekSchedule(rootSeed, waveNumber) { return generateWaveSchedule(rootSeed, waveNumber); }` -> Fassade für `SimulationRoot`, kein abweichender Default.
 
 ### 19. Dual Key Access & Unentschlossene Ränder
 
@@ -193,7 +193,7 @@ Diese Spezifikation definiert für das Werkzeug **Shinon** 22 prüfbare Erkennun
 - **Audit-Prüffrage:** *Werden alternative Key-Namen in Nullish-Chains hintereinandergeschaltet?*
 - **Shinon-Detektionslogik:** AST Pattern `PropertyAccess ?? PropertyAccess` auf demselben Basisobjekt.
 - **Empirischer Befund in LifeSeedLab:**
-  - In [main.tsx](file:///c:/Users/Vannon/Documents/seeddlab/src/main.tsx#L23): `e.error?.message ?? e.message ?? 'Unbekannter Fehler'` (Standard-DOM Error Handling).
+  - In [main.tsx](../../src/main.tsx#L23): `e.error?.message ?? e.message ?? 'Unbekannter Fehler'` (Standard-DOM Error Handling).
 
 ### 20. Narrator Code (Syntaktisches Gebrabbel in Kommentaren)
 
@@ -208,15 +208,15 @@ Diese Spezifikation definiert für das Werkzeug **Shinon** 22 prüfbare Erkennun
 - **Audit-Prüffrage:** *Werden externe oder nicht-sanitisierte Strings direkt in das DOM injiziert?*
 - **Shinon-Detektionslogik:** Grep nach `innerHTML` Zuweisungen.
 - **Empirischer Befund in LifeSeedLab:**
-  - In [main.tsx](file:///c:/Users/Vannon/Documents/seeddlab/src/main.tsx#L11-L20): `paintFatal(message)` fügt `${message}` direkt in `root.innerHTML` ein.
+  - In [main.tsx](../../src/main.tsx#L11-L20): `paintFatal(message)` fügt `${message}` direkt in `root.innerHTML` ein.
   - **TRUE POSITIVE (SEC001 / Unsafe HTML Interpolation in Fatal Paint):** Falls `message` Zeichen wie `<script>` oder HTML-Tags enthält, wird dies ungeprüft in den DOM-Baum injiziert.
   - **Behebung:** HTML-Entities Escaping (`escapeHtml(message)`) vor der Zuweisung in `root.innerHTML`.
 
 ### 22. Float-Exaktheit & Transzendenten-Verbot (life-seed-lab Spezialinvariante)
 
-- **Forschungskontext:** `Math.pow`, `Math.hypot` und Transzendenten (`sin/cos/tan/exp/log`) rechnen auf verschiedenen CPU-Architekturen/Browser-Engines intern abweichend im LSB, was Multiplayer/Replay-Determinismus zerstört ([architecture-contract.md](file:///c:/Users/Vannon/Documents/seeddlab/docs/architecture/architecture-contract.md) §6).
+- **Forschungskontext:** `Math.pow`, `Math.hypot` und Transzendenten (`sin/cos/tan/exp/log`) rechnen auf verschiedenen CPU-Architekturen/Browser-Engines intern abweichend im LSB, was Multiplayer/Replay-Determinismus zerstört ([architecture-contract.md](../architecture/architecture-contract.md) §6).
 - **Audit-Prüffrage:** *Werden im Gameplay-Kern (`src/simulation/**`) verbotene transzendente Math-Funktionen aufgerufen?*
-- **Shinon-Detektionslogik:** Automated Tree Test [determinism_rule.test.ts](file:///c:/Users/Vannon/Documents/seeddlab/tools/shinon/tests/determinism_rule.test.ts).
+- **Shinon-Detektionslogik:** Automated Tree Test [determinism_rule.test.ts](../../tools/shinon/tests/determinism_rule.test.ts).
 - **Empirischer Befund in LifeSeedLab:**
   - Alle Simulation-Berechnungen nutzen Multiplikationsschleifen (z. B. `driftFor`) und `Math.sqrt`. 100% grün durch CI-Gate-Test abgesichert.
 
@@ -269,11 +269,11 @@ flowchart TD
 
 | Befund-ID | Pattern-Klasse | Fundstelle (Datei & Zeilen) | Ursprünglicher Status | Endgültiger Status & Nachweis (v0.0.95) |
 |---|---|---|---|---|
-| **SEC001** | Security / Unsafe HTML | [main.tsx](file:///c:/Users/Vannon/Documents/seeddlab/src/main.tsx#L25) | TRUE POSITIVE | **ERLEDIGT / BEHOBEN:** `escapeHtml(message)` eingefügt, abgesichert durch [main.test.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/main.test.ts) und Shinon Gate. |
-| **AST001** | Boundary Laundering | [snapshot.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/simulation/snapshot.ts#L53) | TRUE POSITIVE | **ERLEDIGT / BEHOBEN:** Fail-Closed `parseSnapshotEnvelope` Schema-Validation eingefügt, abgesichert durch [snapshot.test.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/simulation/snapshot.test.ts) und Shinon Gate. |
-| **LOG001** | Hidden Fallback | [gameRuntime.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/render/gameRuntime.ts#L222) | WARNUNG | **ERLEDIGT / BEHOBEN:** DevGate Diagnoselogging `if (isDevActive()) console.warn(...)` im Catch-Block ergänzt. |
-| **TS002** | Type Laundering (`as any`) | [ResultCard.tsx](file:///c:/Users/Vannon/Documents/seeddlab/src/components/greenhouse/ResultCard.tsx#L30) | WARNUNG | **ERLEDIGT / BEHOBEN:** `as any` durch `as TranslationKey` ersetzt. 0 `as any` im gesamten Produktionscode `src/`. |
-| **ENF001** | Shinon Gate Enforcement | [gate.ts](file:///c:/Users/Vannon/Documents/seeddlab/tools/shinon/gate.ts#L59) | REGELVERSTOSS | **ERLEDIGT / BEHOBEN:** Hard-Lock auf `strict` in `defaultConfig()`; `advisory` blockiert sofort mit `"Fun mode du manipulierst mich und ich blocke dich strikt"`. |
-| **DET001** | Determinismus / Order | [vectorSystem.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/simulation/vectorSystem.ts#L84) | SAFE | **BESTÄTIGT (SAFE):** `Object.keys().sort()` nutzt String Code-Units. Abgesichert durch CI-Gate-Test. |
-| **OWN001** | Single Writer | [root.ts](file:///c:/Users/Vannon/Documents/seeddlab/src/simulation/root.ts) | SAFE | **BESTÄTIGT (SAFE):** `SimulationRoot` steuert alle Subsystem-Writings exklusiv. |
+| **SEC001** | Security / Unsafe HTML | [main.tsx](../../src/main.tsx#L25) | TRUE POSITIVE | **ERLEDIGT / BEHOBEN:** `escapeHtml(message)` eingefügt, abgesichert durch [main.test.ts](../../src/main.test.ts) und Shinon Gate. |
+| **AST001** | Boundary Laundering | [snapshot.ts](../../src/simulation/snapshot.ts#L53) | TRUE POSITIVE | **ERLEDIGT / BEHOBEN:** Fail-Closed `parseSnapshotEnvelope` Schema-Validation eingefügt, abgesichert durch [snapshot.test.ts](../../src/simulation/snapshot.test.ts) und Shinon Gate. |
+| **LOG001** | Hidden Fallback | [gameRuntime.ts](../../src/render/gameRuntime.ts#L222) | WARNUNG | **ERLEDIGT / BEHOBEN:** DevGate Diagnoselogging `if (isDevActive()) console.warn(...)` im Catch-Block ergänzt. |
+| **TS002** | Type Laundering (`as any`) | [ResultCard.tsx](../../src/components/greenhouse/ResultCard.tsx#L30) | WARNUNG | **ERLEDIGT / BEHOBEN:** `as any` durch `as TranslationKey` ersetzt. 0 `as any` im gesamten Produktionscode `src/`. |
+| **ENF001** | Shinon Gate Enforcement | [gate.ts](../../tools/shinon/gate.ts#L59) | REGELVERSTOSS | **ERLEDIGT / BEHOBEN:** Hard-Lock auf `strict` in `defaultConfig()`; `advisory` blockiert sofort mit `"Fun mode du manipulierst mich und ich blocke dich strikt"`. |
+| **DET001** | Determinismus / Order | [vectorSystem.ts](../../src/simulation/vectorSystem.ts#L84) | SAFE | **BESTÄTIGT (SAFE):** `Object.keys().sort()` nutzt String Code-Units. Abgesichert durch CI-Gate-Test. |
+| **OWN001** | Single Writer | [root.ts](../../src/simulation/root.ts) | SAFE | **BESTÄTIGT (SAFE):** `SimulationRoot` steuert alle Subsystem-Writings exklusiv. |
 

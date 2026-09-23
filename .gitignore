@@ -60,6 +60,9 @@ docs/art/
 # Shinon-Werkzeug: der Code liegt getrackt unter tools/, Laufzeit-Artefakte bleiben lokal.
 tools/.tmp/
 tools/.shinon-state.json
+# Gate-Lock des Werkzeugs (Enforcement-Stufe) — lokaler Zustand, kein Projektinhalt.
+# Nicht verwechseln mit shinon.config.json, das die Regeln enthält und getrackt IST.
+shinon.lock
 commit_msg.txt
 CLAUDE.md
 

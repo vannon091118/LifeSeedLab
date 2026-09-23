@@ -1,4 +1,0 @@
-[bypass_rules]
-allow_nested_git = [
-  ".claude/worktrees/**"
-]
