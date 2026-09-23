@@ -59,6 +59,7 @@ git worktree remove /tmp/qa-consolidation
 - `2026-09-23_nachverifikation-v0.0.96.md` — T1/T2/T3 erledigt (R2-Neubau wirkt), W1/W2 offen (persistente Welt), Q5 in-arbeit.
 - `2026-09-23_taktik-mazing-v0.0.96.md` — Mazing wirkt: +10 Tiles Maze-Gewinn, 1 Kill-Box-Leihe haelt bis Welle 7; B1/B3 Design-Fragen.
 - `2026-09-23_oekonomie-w1-besitzmodell.md` — W1 erledigt: kein Gratis-Loop, Besitz-Modell schliesst exakt (Kauf=Besitz, Bau=Verbrauch, Verkauf=Rueckgewinn).
+- `2026-09-23_kipppunkt-welle10.md` — B2 erledigt: Kipppunkt Welle 10 (HP-Sprung 94->375), Leihe allein traegt bis 9; N1 offen (Tank-Leak-Kosten).
 
 ## Status-Begriffe
 
