@@ -108,6 +108,7 @@ export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPl
               {...cardPress(() => { onSelectPlant(id, count); setManualTab(null); })}
               data-tut={id === firstPlayable ? 'card' : undefined}
               data-plant={id}
+              className={isSelected ? 'tray-card-selected' : undefined}
               style={{ ...styles.trayItem, ...(isSelected ? styles.trayItemSelected : {}) }}
               aria-pressed={isSelected} title={label}
             >
@@ -151,6 +152,7 @@ export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPl
             <button
               key={tile}
               {...cardPress(() => onSelectTile(tile))}
+              className={isSelected ? 'tray-card-selected' : undefined}
               style={{ ...styles.trayItem, ...(isSelected ? styles.trayItemSelected : {}) }}
               aria-pressed={isSelected}
               // Der Topf erklärt seine vier Farben dort, wo man ihn auswählt (der Titel nennt
@@ -234,7 +236,10 @@ const styles: Record<string, CSSProperties> = {
   // Q2 (QA): touchAction none — der Drag aus der Tray darf dem Browser nicht als Scroll-Geste
   // gestohlen werden; releasePointerCapture im Handler lässt die Pointer-Events zum Canvas.
   trayItem: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px 12px', background: '#fff', borderWidth: '2px', borderStyle: 'solid', borderColor: 'var(--ink)', borderRadius: 10, cursor: 'pointer', color: 'var(--ink)', fontSize: 12, fontWeight: 700, boxShadow: '2px 2px 0 var(--ink)', minWidth: 76, flexShrink: 0, lineHeight: 1.1, minHeight: 64, touchAction: 'none' as const },
-  trayItemSelected: { background: '#f0fdf4', borderColor: 'var(--leaf)', boxShadow: '2px 2px 0 var(--leaf-dark)' },
+  // Auswahl ist AMBER, nicht Bläschen: dasselbe Bernstein wie Reise/Währung/Dringlichkeit —
+  // „das bist du gerade am tun“ bekommt eine Farbe, die die Welt schon spricht. Der Wackel-
+  // Atem kommt aus der Klasse `tray-card-selected` (index.css, reduced-motion-safe).
+  trayItemSelected: { background: '#fdf3d7', borderColor: '#b98a2f', boxShadow: '2px 2px 0 #b98a2f', color: '#6b4a10' },
   trayDot: { width: 10, height: 10, borderRadius: '50%', background: 'var(--leaf)', border: '1.5px solid var(--ink)', flexShrink: 0 },
   trayName: { fontSize: 11, color: 'var(--ink)', textAlign: 'center', wordBreak: 'break-word', maxWidth: 72 },
   trayCount: { fontSize: 11, color: '#6b6250', fontWeight: 800 },

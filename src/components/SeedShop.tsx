@@ -123,10 +123,12 @@ const styles: Record<string, React.CSSProperties> = {
   note: { marginBottom: 10, padding: '8px 10px', background: '#eef7e6', border: '2px solid var(--leaf-dark)', borderRadius: 8, color: 'var(--leaf-dark)', fontSize: 12, fontWeight: 700 },
   tabsRow: { display: 'flex', gap: 8, marginBottom: 12 },
   tabBtn: { flex: 1, padding: '9px 10px', background: '#fff', border: '2.5px solid var(--ink)', borderRadius: 8, cursor: 'pointer', color: 'var(--ink)', fontWeight: 800, fontSize: 12, textTransform: 'uppercase' as const, letterSpacing: 0.4, boxShadow: '3px 3px 0 var(--ink)' },
-  tabBtnActive: { background: 'var(--leaf-dark)', color: '#fff' },
+  // Aktiver Pool = Markisen-Amber (derselbe Ton wie der Markt-Awning im Hub) — vorher war
+  // der Aktivtab dunkelgrün, dieselbe Familie wie alles andere: kein Zustand lesbar.
+  tabBtnActive: { background: '#f3e0b0', color: '#6b4a10', borderColor: '#8a5f16', boxShadow: '2px 2px 0 #8a5f16' },
   offersRow: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 },
   offerName: { fontSize: 14, fontWeight: 800, color: 'var(--ink)' },
-  offerCard: { display: 'flex', flexDirection: 'column', gap: 6, padding: 14, background: '#fff', border: '2.5px solid var(--ink)', borderRadius: 8, cursor: 'pointer', color: 'var(--ink)', boxShadow: '3px 3px 0 var(--ink)' },
+  offerCard: { display: 'flex', flexDirection: 'column', gap: 6, padding: 14, background: '#fff', border: '2.5px solid var(--ink)', borderRadius: 8, cursor: 'pointer', color: 'var(--ink)', boxShadow: '3px 3px 0 var(--ink)', transition: 'transform 0.08s ease' },
   owned: { fontSize: 11, textTransform: 'uppercase' as const, letterSpacing: 1, color: '#6b6250', fontWeight: 800 },
   offerPrice: { fontSize: 16, fontWeight: 800, color: 'var(--ink)' },
   offerHint: { fontSize: 10, color: '#8a8065', fontWeight: 600 },

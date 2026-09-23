@@ -111,7 +111,13 @@ export function GameTopBar({
           </button>
         )}
       </div>
-      {hint && <div style={styles.prepHint} data-wave-hint>{hint}</div>}
+      {hint && (
+        // Die Vorbereitungszeit ist FARB-Sprache: entspannt = Papier-Zettel, letzte Sekunden
+        // = Amber mit Atem-Puls — der Auto-Start anklopft sichtbar, nicht nur als Text.
+        <div style={{ ...styles.prepHint, ...(waveBtn.seconds !== null && waveBtn.seconds <= 5 ? styles.prepHintUrgent : {}) }} data-wave-hint>
+          {hint}
+        </div>
+      )}
     </div>
   );
 }

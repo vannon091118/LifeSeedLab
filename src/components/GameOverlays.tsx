@@ -26,6 +26,8 @@ export function GameOverlays({ gameOver, reason, suspended, wave, score, onNewRu
     <>
       {gameOver && (
         <div style={styles.backdrop}>
+          <div style={styles.tape} aria-hidden />
+          <div style={styles.tape2} aria-hidden />
           <div style={styles.card}>
             <div style={styles.title}>{t('game.gameover')}</div>
             <div style={styles.sub}>{t('game.wave')} {wave} • {t('over.score')} {formatScore(score)}</div>
@@ -54,9 +56,14 @@ export function GameOverlays({ gameOver, reason, suspended, wave, score, onNewRu
 
 const styles: Record<string, CSSProperties> = {
   backdrop: { position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(43,43,38,0.45)', zIndex: 3 },
-  card: { background: '#fbf6e9', border: '2px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', padding: 18, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', minWidth: 260 },
-  title: { fontSize: 22, fontWeight: 800, color: 'var(--ink)' },
-  sub: { fontSize: 13, color: '#6b6250', fontWeight: 600 },
+  // Der Abschluss ist ein EREIGNIS: das Feld dunkelt ins Rot-Braun, das Papier der Karte ist
+  // aschig, die Titelzeile gestempelt (Versatz, Danger-Ton) — wie ein Laborbericht über einen
+  // verlorenen Versuch. Vorher dieselbe weiße Karte wie überall: Zustandlosigkeit.
+  tape: { position: 'absolute', top: '18%', left: -30, right: -30, height: 26, background: 'repeating-linear-gradient(45deg, #a94438 0 16px, #2b2b26 16px 32px)', opacity: 0.55, transform: 'rotate(-4deg)', zIndex: 1 },
+  tape2: { position: 'absolute', bottom: '16%', left: -30, right: -30, height: 26, background: 'repeating-linear-gradient(45deg, #a94438 0 16px, #2b2b26 16px 32px)', opacity: 0.55, transform: 'rotate(3deg)', zIndex: 1 },
+  card: { position: 'relative', zIndex: 2, background: '#f1e6d8', border: '2.5px solid var(--ink)', borderRadius: 10, boxShadow: '5px 5px 0 var(--ink), inset 0 0 0 1px rgba(169,68,56,0.25)', padding: 20, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', minWidth: 260 },
+  title: { fontSize: 24, fontWeight: 800, color: 'var(--danger)', letterSpacing: 2, textTransform: 'uppercase' as const, transform: 'rotate(-1.5deg)', border: '3px solid var(--danger)', borderRadius: 6, padding: '2px 14px', background: 'rgba(169,68,56,0.08)' },
+  sub: { fontSize: 13, color: '#5c534a', fontWeight: 700 },
   reason: { marginTop: 10, padding: '8px 12px', background: '#fdecea', border: '2px solid var(--danger)', borderRadius: 8, color: 'var(--danger)', fontSize: 13, fontWeight: 800 },
   version: { fontSize: 11, color: '#6b6250', fontWeight: 600, opacity: 0.8 },
   row: { display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' },

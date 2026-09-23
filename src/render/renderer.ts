@@ -16,7 +16,7 @@ import { GaitTracker, gaitFrameOf } from './beetleGait';
 import type { ResolvedBeetleVisual } from '../visual/beetleGenerator';
 import { enemyVisualFor } from '../visual/enemyVisuals';
 import { drawMapTile } from './layers/mapTiles';
-import { drawEnemyBody } from './layers/enemies';
+import { drawEnemyBody, drawEnemyStatus } from './layers/enemies';
 import { drawParticle } from './layers/particlesDraw';
 import { bakeTerrain as bake } from './layers/terrain';
 import { drawVectorField } from './layers/vectorField';
@@ -51,6 +51,8 @@ export class Renderer {
   /** R2: dynamische Weltgröße — wird pro Frame aus dem State gespiegelt (Beobachter, kein Besitz). */
   private worldCols = 12;
   private worldRows = 12;
+  /** Präsentations-Phase für Status-FX (Brand/Grab-Gift) — aus dem Sim-Tick abgeleitet, keine zweite Uhr. */
+  private statusFlicker = 0;
 
   setBredVisuals(map: Map<string, ResolvedVisual>): void { this.bredVisuals = map; }
 
@@ -149,6 +151,7 @@ export class Renderer {
     const { ox, oy, cell } = this.metrics();
     const toPx = (wx: number) => wx * cell;
     const toPy = (wy: number) => wy * cell;
+    this.statusFlicker = state.clock.tick * 0.06;
 
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.fillStyle = PAPER; ctx.fillRect(0, 0, this.w, this.h);
@@ -166,7 +169,7 @@ export class Renderer {
     // Vector-Feld: 30% Alpha Decals je Vector + Attraktor-Pulse (read-only, gebatcht)
     drawVectorField(ctx, state, cell, ox, oy);
 
-    if (ghost) this.drawGhost(ctx, ghost, cell);
+    if (ghost) this.drawGhost(ctx, ghost, cell, state.clock.tick);
 
     // shadows
     ctx.fillStyle = 'rgba(43,43,38,0.18)';
@@ -218,6 +221,29 @@ export class Renderer {
     if (this.nightAlpha > 0.005) {
       ctx.globalAlpha = this.nightAlpha; ctx.fillStyle = NIGHT; ctx.fillRect(0, 0, this.w, this.h); ctx.globalAlpha = 1;
     }
+    if (this.nightAlpha > 0.05) {
+      // Die Nacht ist eine Stimmung, kein Schalter: gezeichneter Halbmond (Papier-Stempel,
+      // kein Glow) + sieben Glühwürmchen auf deterministischen Bahnen (Index-Fraktion statt
+      // RNG, Phase aus dem Sim-Tick — Präsentation darf trigonometrisch fahren).
+      const tick = state.clock.tick;
+      const mx = this.w * 0.84, my = this.h * 0.12;
+      ctx.globalAlpha = this.nightAlpha;
+      ctx.fillStyle = '#f2e9c8';
+      ctx.beginPath(); ctx.arc(mx, my, 13, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = NIGHT;
+      ctx.beginPath(); ctx.arc(mx - 6, my - 3, 11.5, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+      for (let i = 0; i < 7; i++) {
+        const fx = this.w * (0.12 + 0.74 * ((i * 0.37 + 0.13) % 1)) + Math.sin(tick * 0.011 + i * 1.9) * 26;
+        const fy = this.h * (0.28 + 0.52 * ((i * 0.61 + 0.41) % 1)) + Math.cos(tick * 0.013 + i * 2.7) * 18;
+        const pulse = 0.5 + Math.sin(tick * 0.05 + i * 1.3) * 0.5;
+        const g = ctx.createRadialGradient(fx, fy, 0, fx, fy, 5);
+        g.addColorStop(0, `rgba(233,214,120,${(0.5 + pulse * 0.45) * this.nightAlpha})`);
+        g.addColorStop(1, 'rgba(233,214,120,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(fx, fy, 5, 0, Math.PI * 2); ctx.fill();
+      }
+    }
     // B5.1: die Belohnungsreise gehört in den SCREEN-Raum — ihre Quelle liegt im Feldgitter,
     // ihr Ziel im HUD. Deshalb nach dem Nacht-Grade (sie ist Licht/Material, keine Verdunklung)
     // und unter den Blitzen: dieselben CSS-Pixel wie der Chip, dieselbe Zelle wie das Feld.
@@ -232,19 +258,24 @@ export class Renderer {
    * B3-Geist: ResolvedVisual mit 60 % Alpha, grün/rot getönter Footprint und Reichweitenring.
    * `shake` kommt tick-basiert aus der UI (Ablehnung) — nie aus der Wanduhr.
    */
-  private drawGhost(ctx: CanvasRenderingContext2D, ghost: RenderGhost, cell: number): void {
+  private drawGhost(ctx: CanvasRenderingContext2D, ghost: RenderGhost, cell: number, tick: number): void {
     const { gx, gy, valid, range } = ghost;
     const shakeX = ghost.shake?.x ?? 0;
     const shakeY = ghost.shake?.y ?? 0;
     const cx = (gx + 0.5) * cell + shakeX;
     const cy = (gy + 0.5) * cell + shakeY;
+    // Der Geist LEBT: gültig atmet die Zellfläche (sanfter Puls), ungültig pulsiert die
+    // Kantenstärke — Zustand ist am Objekt ablesbar, ohne ein Label zu lesen. Die Kante
+    // bleibt IMMER '#a94438' (B3-Vertrag „Geist zeigt ROT" — eine Blinkfarbe wäre in der
+    // Aus-Phase nicht mehr rot); die Dringlichkeit steckt in der Strichbreite. Phase: Sim-Tick.
+    const breathe = (Math.sin(tick * 0.05) * 0.5 + 0.5) * 0.1;
 
     ctx.save();
     ctx.translate(shakeX, shakeY);
-    ctx.fillStyle = valid ? 'rgba(90,143,78,0.25)' : 'rgba(169,68,56,0.30)';
+    ctx.fillStyle = valid ? `rgba(90,143,78,${0.22 + breathe})` : `rgba(169,68,56,${0.28 + breathe})`;
     ctx.fillRect(gx * cell + 2, gy * cell + 2, cell - 4, cell - 4);
     ctx.strokeStyle = valid ? '#5a8f4e' : '#a94438';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = valid ? 2 : 2 + (tick % 16 < 8 ? 0.9 : 0);
     ctx.setLineDash([6, 4]);
     ctx.strokeRect(gx * cell + 2, gy * cell + 2, cell - 4, cell - 4);
     ctx.setLineDash([]);
@@ -362,11 +393,15 @@ export class Renderer {
     const { phase } = this.gait.phaseOf(e.id, e.px, e.py, visual.phenotype);
     ctx.save(); ctx.translate(cx, cy); ctx.scale(punch, punch);
     drawEnemyBody(ctx, visual, e.typeId, cell, this.dpr, phase);
+    // Status am Wesen ablesbar (B0.7): Burn/Poison sind Sim-Wahrheit (statusSystem), vorher
+    // wurde nur `slow` gezeichnet — Gift/Brand wirkten, ohne je am Tier zu erscheinen.
+    // Die Zeichenbahn liegt beim Gegner-Layer (drawEnemyStatus), die Flicker-Phase im Sim-Tick.
+    drawEnemyStatus(ctx, {
+      slow: e.slowUntil > 0,
+      burn: e.burnTicks > 0,
+      poison: e.poisonTicks > 0,
+    }, cell, this.statusFlicker);
     ctx.restore();
-    if (e.slowUntil > 0) {
-      ctx.strokeStyle = 'rgba(125,155,192,0.7)'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(cx, cy, cell * 0.24, 0, Math.PI * 2); ctx.stroke();
-    }
     if (e.hp < e.maxHp) {
       const r = Math.max(cell * 0.16, cell * 0.2); const ratio = Math.max(0, e.hp / e.maxHp);
       ctx.fillStyle = INK; ctx.fillRect(cx - r, cy - r - 7, r * 2, 3.5);

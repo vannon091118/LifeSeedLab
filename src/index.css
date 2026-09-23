@@ -59,6 +59,26 @@ button:focus-visible {
   }
 }
 
+/* Zustands-Puls: Dringlichkeit (Vorbereitung), Freischaltung, Auswahl-Atem —
+   alle „wichtig“-Momente teilen EINEN Atem, keine drei Timings. */
+@keyframes hintPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.72; transform: scale(1.05); }
+}
+
+/* Tray-Auswahl: die gewählte Karte lebt (Wackel-Atmen) — Auswahl ist Zustand, nicht Zellton. */
+@keyframes cardBreathe {
+  0%, 100% { transform: rotate(-0.7deg); }
+  50% { transform: rotate(0.7deg); }
+}
+
+/* Pop-in für Zustands-Wechsel (Notiz, Hinweis) — kurzer Feder-Wurf statt Harteschnitt. */
+@keyframes popIn {
+  from { transform: translateX(-50%) scale(0.6); opacity: 0; }
+  60% { transform: translateX(-50%) scale(1.06); opacity: 1; }
+  to { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -174,6 +194,11 @@ button:focus-visible {
   border-radius: 6px;
   box-shadow: 2px 2px 0 var(--ink);
   white-space: nowrap;
+}
+
+/* Tray-Auswahl atmet nur, wo Bewegung erlaubt ist — sonst bleibt die Bernsteinfärbung allein. */
+@media (prefers-reduced-motion: reduce) {
+  .tray-card-selected { animation: none; }
 }
 
 /* 390×844 portrait-first: kein Hover-Pfad, Touch-Ziele ≥44px (B9/D) */

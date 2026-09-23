@@ -19,6 +19,9 @@ export const gameViewStyles: Record<string, CSSProperties> = {
   // B23.2: während die Welle läuft ist der Knopf eine Anzeige, kein Knopf mehr.
   btnDisabled: { background: '#e6dfc9', color: '#6b6250', cursor: 'not-allowed', boxShadow: 'none' },
   prepHint: { flexBasis: '100%', fontSize: 11, fontWeight: 700, color: '#6b6250', textAlign: 'center', letterSpacing: 0.3 },
+  // Dringlichkeit sichtbar: die letzten 5 Sekunden der Vorbereitung atmen bernstein —
+  // derselbe Amber, den die Reise und die Währung sprechen (eine Farb-Wahrheit für „wichtig").
+  prepHintUrgent: { color: '#8a5f16', background: '#f7e3b2', borderRadius: 8, padding: '3px 10px', margin: '0 auto', animation: 'hintPulse 1.1s ease-in-out infinite' },
   stage: { flex: 1, position: 'relative', minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '10px 10px 8px', background: 'var(--paper)' },
   canvasFrame: { position: 'relative', width: '100%', maxWidth: 860, flex: 1, minHeight: 0, background: '#fff', border: '2px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink), 0 14px 32px rgba(43,43,38,0.16)', overflow: 'hidden', display: 'flex' },
   canvas: { width: '100%', height: '100%', display: 'block', touchAction: 'none', flex: 1 },
