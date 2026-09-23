@@ -98,6 +98,12 @@ export function drawVectorField(
   ox: number,
   oy: number,
 ): void {
+  // Doppel-Offset-Befund (21.09.2026): der Renderer translated den Kontext bereits um (ox, oy),
+  // diese Schicht hatte es NOCHMAL addiert — jedes Decal saß diagonal versetzt („Toxin rechts
+  // auf der falschen Feldseite, jede Runde exakt gleich“). Parameter bleiben (Call-Sites),
+  // werden aber ignoriert: Welt-Koordinaten × cell ist die Wahrheit.
+  void ox;
+  void oy;
   // Vergängliche Feld-Decals: pro Zelle ein Decal
   for (const [key, cells] of Object.entries(state.vectors)) {
     if (!cells || cells.length === 0) continue;
@@ -111,14 +117,14 @@ export function drawVectorField(
     const ls = VECTOR_LOGIC_SOURCE[cells[0].vectorId as keyof typeof VECTOR_LOGIC_SOURCE];
     const maxTtl = ls?.ttl ?? cells[0].ttl;
     const maxIntensity = cells.reduce((m, c) => (c.intensity > m ? c.intensity : m), 0);
-    const px = ox + gx * cell;
-    const py = oy + gy * cell;
+    const px = gx * cell;
+    const py = gy * cell;
     drawDecal(ctx, px, py, cell, color, vs?.particleProfile ?? null, maxIntensity, cells[0].ttl, maxTtl);
   }
   // Attraktoren: pulsierender Ring_soft + trail_fast-Schleier (read-only)
   for (const a of state.attractors) {
-    const cx = ox + a.x * cell;
-    const cy = oy + a.y * cell;
+    const cx = a.x * cell;
+    const cy = a.y * cell;
     const r = a.radius * cell;
     const vs = VECTOR_VISUAL_SOURCE.VECTOR_ATTRACTOR;
     ctx.save();

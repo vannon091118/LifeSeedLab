@@ -305,6 +305,10 @@ export class EnemySystem {
     if (d > 0.55) {
       b.px += (dx / d) * b.speed;
       b.py += (dy / d) * b.speed;
+      // Welt-Klemme (Befund 21.09.2026, „Käfer hüpfen aus dem Map-Bereich“): der Brutling
+      // läuft frei ohne Pfad — ein Überschuss-Schritt darf ihn nie außerhalb der Welt lassen.
+      b.px = Math.max(0, Math.min(state.cols, b.px));
+      b.py = Math.max(0, Math.min(state.rows, b.py));
     } else if (b.biteCooldown <= 0) {
       b.biteCooldown = 30;
       const died = this.applyDamage(state, target.id, b.attack, false, null, null).died;
@@ -319,7 +323,13 @@ export class EnemySystem {
     for (const br of b.broodlings) {
       const bdx = b.px - br.px, bdy = b.py - br.py;
       const bd = Math.sqrt(bdx * bdx + bdy * bdy) || 1;
-      if (bd > 0.4) { br.px += (bdx / bd) * b.speed; br.py += (bdy / bd) * b.speed; }
+      if (bd > 0.4) {
+        br.px += (bdx / bd) * b.speed;
+        br.py += (bdy / bd) * b.speed;
+        // Dieselbe Klemme wie der Anführer — keine Brutling-Geister außerhalb der Welt.
+        br.px = Math.max(0, Math.min(state.cols, br.px));
+        br.py = Math.max(0, Math.min(state.rows, br.py));
+      }
     }
 
     // Gegenseitiger Schaden: Gegner beißen zurück (Brutling-HP sinkt; Splash auf Mit-Brutlinge)

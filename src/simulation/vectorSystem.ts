@@ -52,9 +52,14 @@ export class VectorSystem {
     }
   }
 
-  /** Ein Schreibpfad für eine Zelle — Deposit und Diffusion teilen ihn (keine zweite Rechnung). */
+  /** Ein Schreibpfad für eine Zelle — Deposit und Diffusion teilen ihn (keine zweite Rechnung).
+   *  Bounds-Klemme (Befund 21.09.2026): außerhalb der Welt wird NICHT geschrieben — der
+   *  Chebyshev-Radius eines Rand-Deposits darf keine Geister-Zellen (−2,20) erzeugen. Gemessen:
+   *  ohne Klemme wuchsen 2600 Ticks mit Deposits auf 4,97 Mio. Zellen (bis −19/37 · −24/38),
+   *  Out-of-Bounds-Zellen sterben nie (TTL-Refresh) und frieren die Sim ein. */
   private addCell(state: SimState, gx: number, gy: number, vectorId: string, amount: number, ttl: number): void {
     if (amount <= 0) return;
+    if (gx < 0 || gy < 0 || gx >= state.cols || gy >= state.rows) return;
     const key = `${gx},${gy}`;
     const cell = state.vectors[key];
     const existing = cell?.find(c => c.vectorId === vectorId);
@@ -120,6 +125,10 @@ export class VectorSystem {
     // Spread kann nicht explodieren, weil Diffusion schwächer ist als der Zerfall der Quelle und
     // jede Generation eine kürzere TTL bekommt (carryTtl -6). Test: 34270 Explosion verhindern.
     for (const key of Object.keys(spread).sort()) {
+      // Dieselbe Klemme für Diffusions-Ziele: eine Rand-Zelle diffusionert sonst eine Zeile
+      // außerhalb (gx+1 bei gx=cols−1) — dort würde sie nie zerfallen.
+      const [sgx, sgy] = key.split(',').map(Number);
+      if (sgx < 0 || sgy < 0 || sgx >= state.cols || sgy >= state.rows) continue;
       for (const s of spread[key]!) {
         if (s.amount < 0.01) continue;
         const existing = next[key]?.find(c => c.vectorId === s.vectorId);
