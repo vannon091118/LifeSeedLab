@@ -33,6 +33,15 @@ export function applyResume(state: SimState, snapshot: ResumeSnapshot): void {
   state.lives = snapshot.lives;
   state.score = snapshot.score;
   state.combo = { ...snapshot.combo };
+  // P-29-Heilung: Altsaves ohne `waveBestMult` (Feld jünger als der Save) heilen auf die
+  // Invariante — die Wellen-Combo der fortgesetzten Welle beginnt bei 1, kausal korrekt,
+  // weil Kills ab hier sie ohnehin neu schreiben. Fail-closed statt undefined-Arithmetik.
+  if (!Number.isFinite(state.combo.waveBestMult) || state.combo.waveBestMult < 1) {
+    state.combo.waveBestMult = 1;
+  }
+  if (!Number.isFinite(state.combo.waveBestMultWave) || state.combo.waveBestMultWave < 0) {
+    state.combo.waveBestMultWave = snapshot.waveNumber;
+  }
   state.plants = snapshot.plants.map(p => ({ ...p }));
   state.inventory = { ...snapshot.inventory };
   state.discoveredVariants = [...snapshot.discoveredVariants];

@@ -174,7 +174,10 @@ export interface SimState {
   /** Attraktoren (Gravity) — writer VectorAttractor, volatile. */
   attractors: AttractorEntity[];
   score: number;
-  combo: { count: number; timer: number; multiplier: number; highest: number };
+  combo: { count: number; timer: number; multiplier: number; highest: number;
+    /** P-29: bester Combo-Multiplier DER Welle in `waveBestMultWave` — die Wellen-Wahrheit
+     *  neben der Lauf-Wahrheit (`highest`). Buchungsgrundlage des Wellen-Bonus. */
+    waveBestMult: number; waveBestMultWave: number };
   nektarEarned: number;
   counters: { enemy: number; plant: number; projectile: number };
   /** Variants the player carried in via loadout (placeable bred plants — B1). */

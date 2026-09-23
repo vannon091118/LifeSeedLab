@@ -84,16 +84,17 @@ export const EVENT_AUDIENCE: Record<EventType, AudienceEntry> = {
   PROJECTILE_HIT: { audiences: ['fx'], why: 'Einschlag-Burst, effektgefärbt (Burn/Eis/Gift/Kette).' },
   DAMAGE_DEALT: { audiences: ['fx'], why: 'Schadenszahl, Treffer-Punch, Impact-Ring.' },
   CRITICAL_HIT: { audiences: ['fx'], why: 'KRIT-Banner, Shake, Blitz, Sternen-Burst.' },
-  ENEMY_DIED: { audiences: ['fx'], why: 'Todes-Puls, Belohnungszahl (der Belohnungs-FLUG hängt an REWARD_GRANTED — dort reist der Betrag, hier stirbt das Wesen).' },
+  ENEMY_DIED: { audiences: ['fx'], why: 'Todes-Puls (die Belohnungszahl hängt am REWARD_GRANTED — dort ist der Betrag GEBUCHT, hier stirbt nur das Wesen).' },
 
   // ── Wirtschaft: Zahlen, die der HUD aus dem State liest ──────────────────
   SCORE_CHANGED: { audiences: ['snapshot'], why: 'HUD liest `state.score` über `hudOf` — ein Event-Konsum wäre eine zweite Wahrheit.' },
   COMBO_CHANGED: { audiences: ['snapshot'], why: 'HUD liest `state.combo.count`; die Combo-FX hängen an den Treffern, nicht am Zähler.' },
   REWARD_GRANTED: {
     audiences: ['fx'],
-    why: 'Die Belohnung REIST: vom Kill-Ort (Payload) zum Nektar-Zähler (Quelle → Ziel → Ankunft, '
-      + 'B5.1). Ohne Weltursprung (Wellen-Bonus, `px/py = null`) bewusst kein Flug — ein erfundener '
-      + 'Startpunkt war der alte Defekt.',
+    why: 'Die Belohnung REIST: vom Kill-Ort (Payload) zum Nektar-Zähler — die ANGEZEIGTE Zahl ist '
+      + '`grantedNektar`, die gebuchte Menge (P-31), nie die Roh-Belohnung. Ohne Weltursprung '
+      + '(Wellen-Bonus, P-29: nur alle 10 Wellen, combo-gestaffelt) pulsiert die Ankunft AM Zähler '
+      + 'mit dem Betrag statt eines Flugs von einem erfundenen Punkt.',
   },
 
   // ── Ablehnungen: der Kern des Befunds — jede erreicht den Spieler ────────

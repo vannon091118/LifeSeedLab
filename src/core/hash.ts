@@ -25,6 +25,9 @@ export interface HashableState {
   vectors: { key: string; cells: { vectorId: string; intensity: number; ttl: number }[] }[];
   attractors: { id: string; x: number; y: number; strength: number; radius: number; ttl: number }[];
   score: number;
+  // P-29: `waveBestMult`/`waveBestMultWave` bleiben BEWUSST außerhalb — sie sind vollständig
+  // aus dem Event-Strom (Kills je Welle) ableitbar und tragen KEINE eigene Zufallsentscheidung;
+  // der Hash gewinnt keine Detektionskraft, aber würde den Golden-Vector-Anker drift lassen.
   combo: { count: number; multiplier: number; timer: number; highest: number };
 }
 

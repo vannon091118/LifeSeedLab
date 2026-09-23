@@ -46,7 +46,7 @@ describe('Gate B — Resume-Shape (RunSave v2)', () => {
       seed: 123,
       resume: {
         waveNumber: 20, lives: 1, score: 0,
-        combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
+        combo: { count: 0, timer: 0, multiplier: 1, highest: 0, waveBestMult: 1, waveBestMultWave: 20 },
         plants: [], inventory: {}, discoveredVariants: [], nektarEarned: 0,
       },
     });
@@ -61,7 +61,7 @@ describe('Gate B — Resume-Shape (RunSave v2)', () => {
     // wir verifizieren den Shape indirekt: RunSave type hat keine enemies/projectiles
     const shapeCheck: import('../persistence/runSave').RunSave = {
       version: 3, appVersion: '0.0.0-test', runId: 1, seed: 1, tick: 0, waveNumber: 1, lives: 20, score: 0,
-      combo: { count: 0, timer: 0, multiplier: 1, highest: 0 }, plants: [], inventory: {}, discoveredVariants: [], bredStats: {}, nektarEarned: 0,
+      combo: { count: 0, timer: 0, multiplier: 1, highest: 0, waveBestMult: 1, waveBestMultWave: 1 }, plants: [], inventory: {}, discoveredVariants: [], bredStats: {}, nektarEarned: 0,
       cols: 12, rows: 12,
     };
     expect(shapeCheck.version).toBe(3);

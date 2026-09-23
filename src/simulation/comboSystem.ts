@@ -20,6 +20,14 @@ export class ComboSystem {
     // multiplier: 1 + count/10, capped
     const prev = state.combo.multiplier;
     state.combo.multiplier = Math.min(5, 1 + state.combo.count * 0.1);
+    // P-29: die Wellen-Wahrheit — der beste Multiplier DIESER Welle. Nur erhöhen, wenn die
+    // Welle noch die aktuelle ist; der Reset gehört dem Wellenwechsel (onWaveStarted).
+    if (state.combo.waveBestMultWave !== state.wave.number) {
+      state.combo.waveBestMultWave = state.wave.number;
+      state.combo.waveBestMult = state.combo.multiplier;
+    } else if (state.combo.multiplier > state.combo.waveBestMult) {
+      state.combo.waveBestMult = state.combo.multiplier;
+    }
     if (state.combo.count > state.combo.highest) {
       state.combo.highest = state.combo.count;
     }
@@ -42,5 +50,12 @@ export class ComboSystem {
         count: 0, multiplier: 1,
       }));
     }
+  }
+
+  /** P-29: Wellenwechsel — die Wellen-Combo beginnt neu. EIN Writer (ComboSystem),
+   *  aufgerufen vom Root in `onWaveStarted` (dieselbe Naht wie ScoreSystem/EnemySystem). */
+  onWaveStarted(state: SimState): void {
+    state.combo.waveBestMult = 1;
+    state.combo.waveBestMultWave = state.wave.number;
   }
 }

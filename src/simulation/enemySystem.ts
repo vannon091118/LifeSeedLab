@@ -175,8 +175,11 @@ export class EnemySystem {
     e.hp -= amount;
     if (sourcePlantId) e.lastHitByPlantId = sourcePlantId;
 
+    // P-34: der Effekt reist MIT dem Schadens-Event — der Einschlag wird in SEINER Effektfarbe
+    // gezeichnet statt in Papierfarbe auf Papier. Emittent hat den Kontext; der Observer leitet
+    // nur die Farbe aus der Source ab (keine zweite Farbliste).
     this.emit(makeEvent(state.clock.tick, 'DAMAGE_DEALT', e.id, ++this.seq, {
-      enemyId: e.id, amount, critical, hp: Math.max(0, e.hp), px: e.px, py: e.py,
+      enemyId: e.id, amount, critical, hp: Math.max(0, e.hp), px: e.px, py: e.py, effectId,
     }));
 
     this.setStatus(state, e, effectId);
@@ -223,8 +226,11 @@ export class EnemySystem {
   damageDirect(state: SimState, e: EnemyEntity, amount: number, critical: boolean): void {
     if (e.hp <= 0) return;
     e.hp -= amount;
+    // effectId: null — ein DoT-Tick ist kein neuer Einschlag; seine Farbe war beim Auftragen
+    // (setStatus-Schuss) bereits am Feld sichtbar. Das Payload-Feld ist verpflichtend, `null`
+    // ist hier die ehrliche Antwort.
     this.emit(makeEvent(state.clock.tick, 'DAMAGE_DEALT', e.id, ++this.seq, {
-      enemyId: e.id, amount, critical, hp: Math.max(0, e.hp), px: e.px, py: e.py,
+      enemyId: e.id, amount, critical, hp: Math.max(0, e.hp), px: e.px, py: e.py, effectId: null,
     }));
     if (e.hp <= 0) {
       this.emit(makeEvent(state.clock.tick, 'ENEMY_DIED', e.id, ++this.seq, {

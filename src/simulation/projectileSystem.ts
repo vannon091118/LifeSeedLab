@@ -57,8 +57,10 @@ export class ProjectileSystem {
     state.projectiles.push(p);
 
     // Der Event trägt den FÜHRENDEN Effekt (Projektion fürs Publikum), die Entität trägt alle.
+    // P-28: der MÜNDUNGSORT reist mit — der Puff des B5-Vertrags braucht ihn, ohne State-Zugriff.
     this.emit(makeEvent(state.clock.tick, 'PROJECTILE_FIRED', p.id, ++this.seq, {
       projectileId: p.id, plantId: plant.id, targetId: target.id, damage, effectId: carried[0] ?? null,
+      px: p.px, py: p.py,
     }));
     return p;
   }
@@ -86,6 +88,8 @@ export class ProjectileSystem {
             projectileId: p.id, enemyId: e.id, damage: dmg, critical: crit,
             px: p.px, py: p.py, effectId: lead,
           }));
+          // P-34-Farbe liegt auf DAMAGE_DEALT (emittiert in applyDamage mit effectId) — hier
+          // nur der dokumentierte Hinweis, warum der Einschlag inzwischen doppelt sichtbar ist.
           if (crit) {
             this.emit(makeEvent(state.clock.tick, 'CRITICAL_HIT', e.id, ++this.seq, {
               enemyId: e.id, amount: dmg, px: e.px, py: e.py,

@@ -66,7 +66,8 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
       seed: SEED,
       score: 0,
       nektarEarned: 0,
-      combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
+      wave: { number: 1 },
+      combo: { count: 0, timer: 0, multiplier: 1, highest: 0, waveBestMult: 1, waveBestMultWave: 1 },
     };
     const s = state as import('./state').SimState;
     // erster Kill: multiplier 1 → delta = reward*1
@@ -87,6 +88,29 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
     expect(delta2).toBe(Math.round(reward * mult2));
   });
 
+  it('P-29: die Wellen-Combo (waveBestMult) folgt der Welle und resetet beim Wellenwechsel', () => {
+    const combo = new ComboSystem(() => {});
+    const s = {
+      clock: { tick: 1 }, wave: { number: 4 },
+      combo: { count: 0, timer: 0, multiplier: 1, highest: 0, waveBestMult: 1, waveBestMultWave: 4 },
+    } as unknown as import('./state').SimState;
+    combo.registerKill(s); combo.registerKill(s); combo.registerKill(s);
+    expect(s.combo.waveBestMultWave).toBe(4);
+    expect(s.combo.waveBestMult).toBeCloseTo(1.3, 6);   // 3 Kills in Welle 4
+
+    s.wave.number = 5;
+    combo.onWaveStarted(s);                              // Wellenwechsel-Reset (Root-Naht)
+    expect(s.combo.waveBestMult).toBe(1);
+    expect(s.combo.waveBestMultWave).toBe(5);
+
+    combo.registerKill(s);                               // neue Welle schreibt neu
+    expect(s.combo.waveBestMultWave).toBe(5);
+    // Das Kampf-FENSTER (count/multiplier) trägt bewusst über die Wellengrenze (nur die
+    // Wellen-WAHRHEIT resetet in onWaveStarted): count ist hier 4 ⇒ multiplier 1.4, und
+    // waveBestMult zeigt den besten in Welle 5 GESEHENEN Multiplier — die getragene Kette zählt.
+    expect(s.combo.waveBestMult).toBeCloseTo(1.4, 6);
+  });
+
   it('WaveReward ist nur noch Anzeige: weder Score noch Pool ändern sich (#4)', () => {
     const root = makeRoot({ seed: SEED });
     root.commands.push(makeCommand(0, 'START_WAVE', 1, {}));
@@ -97,7 +121,7 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
     const beforeScore = s.score;
     const beforePool = { ...s.inventory };
     const reward = (root as unknown as { waves: { checkCompletion: (s: unknown) => number | null } }).waves.checkCompletion(s);
-    if (reward !== null) (root as unknown as { score: { grantWaveReward: (s: unknown, w: number, r: number) => void } }).score.grantWaveReward(s, s.wave.number, reward);
+    if (reward !== null) (root as unknown as { score: { grantWaveReward: (s: unknown, w: number, r: number, waveBest: number) => void } }).score.grantWaveReward(s, s.wave.number, reward, s.combo.waveBestMult);
     expect(s.score).toBe(beforeScore);
     expect(s.inventory).toEqual(beforePool);
   });
@@ -107,7 +131,7 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
     // kein Live-State-Zugriff. Run bleibt am Leben über beide 2400-Tick-Zyklen.
     const resume = {
       waveNumber: 1, lives: 1_000_000_000, score: 0,
-      combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
+      combo: { count: 0, timer: 0, multiplier: 1, highest: 0, waveBestMult: 1, waveBestMultWave: 1 },
       plants: [], inventory: {}, discoveredVariants: [], nektarEarned: 0,
     };
     const root = makeRoot({ seed: SEED, resume });
@@ -127,7 +151,7 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
     // 1 Leben: Welle 21 spawnt ~60 Gegner, der Durchbruch ist garantiert.
     const resume: import('./resume').ResumeSnapshot = {
       waveNumber: 20, lives: 1, score: 0,
-      combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
+      combo: { count: 0, timer: 0, multiplier: 1, highest: 0, waveBestMult: 1, waveBestMultWave: 20 },
       plants: [], inventory: {}, discoveredVariants: [], nektarEarned: 0,
     };
     const root = makeRoot({ seed: SEED, resume });
@@ -219,13 +243,22 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
     score.onEnemyDied(s, 'enemy-0001', 10, 10, 4.5, 9.25);
     const reward = seen.find(e => e.type === 'REWARD_GRANTED');
     expect(reward).toBeDefined();
-    expect(reward!.payload).toMatchObject({ reward: 10, sourceId: 'enemy-0001', px: 4.5, py: 9.25 });
+    // P-31: das Payload trägt die GEBUCHTE Menge — exakt das Delta, um das der Kontostand wuchs.
+    expect(reward!.payload).toMatchObject({ reward: 10, grantedNektar: 2, sourceId: 'enemy-0001', px: 4.5, py: 9.25 });
+    expect(s.nektarEarned).toBe(2);
 
-    // Der Wellen-Bonus hat keinen Ort im Feld — `null` statt eines geratenen Startpunkts.
+    // P-29: Welle 3 ist KEINE Bonus-Welle (Bonus nur alle 10) — kein Event, keine Buchung.
     const waveSeen: GameEvent[] = [];
     const score2 = new ScoreSystem(e => waveSeen.push(e));
-    score2.grantWaveReward(s, 3, 25);
-    expect(waveSeen[0].payload).toMatchObject({ reward: 25, px: null, py: null });
+    score2.grantWaveReward(s, 3, 25, 1.5);
+    expect(waveSeen).toHaveLength(0);
+    expect(s.nektarEarned).toBe(2);
+
+    // Welle 10: der Bonus fällt an — combo-gestaffelt (waveBestMult 1.5 ⇒ Faktor 1.05),
+    // ohne Weltort (ein Wellen-Bonus hat keine Quelle im Feld).
+    score2.grantWaveReward(s, 10, 25, 1.5);
+    expect(waveSeen[0].payload).toMatchObject({ reward: 25, grantedNektar: 26, sourceId: 'wave-10', px: null, py: null });
+    expect(s.nektarEarned).toBe(28); // 2 (Kill) + 26 (Bonus)
   });
 
   it('EFFECT_CHAIN: Kill springt zu nächstem Gegner', () => {

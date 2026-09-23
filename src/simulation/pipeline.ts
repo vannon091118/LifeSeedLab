@@ -73,7 +73,7 @@ export function freshState(
     vectors: {},
     attractors: [],
     score: 0,
-    combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
+    combo: { count: 0, timer: 0, multiplier: 1, highest: 0, waveBestMult: 1, waveBestMultWave: 0 },
     nektarEarned: 0,
     counters: { enemy: 0, plant: 0, projectile: 0 },
   };

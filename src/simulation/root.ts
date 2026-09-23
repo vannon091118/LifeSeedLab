@@ -110,6 +110,10 @@ export class SimulationRoot {
     this.combo = new ComboSystem(e => this.publish(e));
     this.waves = new WaveSystem(e => this.publish(e));
     this.map = new MapSystem(e => this.publish(e));
+    // P-29: Wellenwechsel-Reset der Wellen-Combo — EIN Writer (ComboSystem), EIN Draht (hier,
+    // der einzigen Verdrahtungsstelle). Das Reset läuft VOR den Kills der neuen Welle:
+    // WAVE_STARTED wird in waves.update emittiert, die Kills des neuen Schedule kommen danach.
+    this.bus.subscribe('WAVE_STARTED', () => this.combo.onWaveStarted(this.state));
     this.shotPorts = { vectors: this.vectors, attractors: this.attractors, projectiles: this.projectiles, enemies };
     // R2: RUN-START — die erste Route wird aus dem Welt-Snapshot abgeleitet (Vertrag:
     // Neuberechnung bei Run-Start, jedem Bau und jedem Wellenbeginn). Die UI/Terrain
@@ -253,7 +257,7 @@ export class SimulationRoot {
     if (state.phase === 'wave' && state.lives > 0) {
       const reward = this.waves.checkCompletion(state);
       if (reward !== null) {
-        this.score.grantWaveReward(state, state.wave.number, reward);
+        this.score.grantWaveReward(state, state.wave.number, reward, state.combo.waveBestMult);
       }
     }
 

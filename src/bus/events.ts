@@ -102,16 +102,22 @@ export interface EventPayloads {
   PLANT_WITHERED: { plantId: string; variantId: string; gx: number; gy: number };
   PLANT_PROPAGATED: { sourcePlantId: string; plantId: string; variantId: string; gx: number; gy: number };
 
-  PROJECTILE_FIRED: { projectileId: string; plantId: string; targetId: string; damage: number; effectId: string | null };
+  /** P-28: `px/py` ist der MÜNDUNGSORT (Pflanzenzentrum) — der Mündungspuff (B5) zeichnet am
+   *  Abschuss, nicht an der Zielposition; der Observer darf dafür nicht ins State greifen. */
+  PROJECTILE_FIRED: { projectileId: string; plantId: string; targetId: string; damage: number; effectId: string | null; px: number; py: number };
   PROJECTILE_HIT: { projectileId: string; enemyId: string; damage: number; critical: boolean; px: number; py: number; effectId: string | null };
-  DAMAGE_DEALT: { enemyId: string; amount: number; critical: boolean; hp: number; px: number; py: number };
+  /** P-34: `effectId` färbt den Einschlag in der Effektfarbe (Papier-auf-Papier war unsichtbar).
+   *  DoT-Ticks (`damageDirect`) tragen `null` — ihre Wirkung wurde bereits beim Auftragen angekündigt. */
+  DAMAGE_DEALT: { enemyId: string; amount: number; critical: boolean; hp: number; px: number; py: number; effectId: string | null };
   CRITICAL_HIT: { enemyId: string; amount: number; px: number; py: number };
   ENEMY_DIED: { enemyId: string; px: number; py: number; reward: number; killerPlantId: string | null };
   SCORE_CHANGED: { score: number; delta: number };
   COMBO_CHANGED: { count: number; multiplier: number };
   /** B5.1: Der Ursprung der Belohnung ist Teil des Faktums — die Reise (Quelle → Zähler) darf
-   *  ihn nicht raten. Kill ⇒ Weltposition des Kills; Quelle ohne Ort (Wellen-Bonus) ⇒ null. */
-  REWARD_GRANTED: { reward: number; sourceId: string; px: number | null; py: number | null };
+   *  ihn nicht raten. Kill ⇒ Weltposition des Kills; Quelle ohne Ort (Wellen-Bonus) ⇒ null.
+   *  P-31: `grantedNektar` ist die GEBUCHTE Menge (dieselbe Rechnung wie die Kontobewegung,
+   *  ein Owner: ScoreSystem) — die Anzeige zeigt den Buchungs-Delta, nie die Roh-Belohnung. */
+  REWARD_GRANTED: { reward: number; grantedNektar: number; sourceId: string; px: number | null; py: number | null };
   PLACEMENT_REJECTED: { reason: PlacementRejectReason; gx: number; gy: number };
   FERTILIZE_REJECTED: { plantId: string; reason: Exclude<PlantRejectReason, 'not_mature'> };
   PROPAGATE_REJECTED: { plantId: string; reason: Exclude<PlantRejectReason, 'not_growing' | 'max_reached'> };

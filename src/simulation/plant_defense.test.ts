@@ -59,7 +59,7 @@ function tankScene(seed: number, extraVariants: string[] = []): { root: Simulati
     ownedCounts,
     resume: {
       waveNumber: 5, lives: 999, score: 0,
-      combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
+      combo: { count: 0, timer: 0, multiplier: 1, highest: 0, waveBestMult: 1, waveBestMultWave: 5 },
       plants: [], inventory: snapInventory, discoveredVariants: [...variants], nektarEarned: 0,
     } as ResumeSnapshot,
   });

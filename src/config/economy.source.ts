@@ -101,6 +101,17 @@ export function resumeCostFor(wave: number): number {
  * nur Wertung (Score/Combo/Nektar-Ertrag).
  */
 
+/**
+ * P-29 (Entscheidung des Eigentümers, 23.09.2026): Der Wellen-Bonus fällt nur auf jeder
+ * `everyWaves`-ten Welle an und wächst mit der besten Combo DERSELBEN Welle — Bonus-Staffel
+ * `1 + (waveBestMult − 1) × comboStep` auf den Schedule-Reward. Content-Wahrheit (Regel 6):
+ * die Zahlen stehen hier, die Buchungsregie in `simulation/scoreSystem.grantWaveReward`.
+ */
+export const WAVE_BONUS = {
+  everyWaves: 10, // Bonus auf Welle 10, 20, 30 …
+  comboStep: 0.1, // je Punkt der Wellen-Combo-Multiplier (Cap 5 ⇒ max Faktor 1.4)
+} as const;
+
 /** Auto-Wellen: Ticks in 'prep' bis die nächste Welle automatisch startet. */
 export const AUTO_WAVE_DELAY_TICKS = 90; // 3s bei 30tps
 

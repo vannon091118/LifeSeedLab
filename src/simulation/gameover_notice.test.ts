@@ -17,7 +17,7 @@ const GO_SEED = 424242;
 function forceGameOver(): SimulationRoot {
   const resume: import('./resume').ResumeSnapshot = {
     waveNumber: 20, lives: 1, score: 0,
-    combo: { count: 0, timer: 0, multiplier: 1, highest: 0 },
+    combo: { count: 0, timer: 0, multiplier: 1, highest: 0, waveBestMult: 1, waveBestMultWave: 20 },
     plants: [], inventory: {}, discoveredVariants: [], nektarEarned: 0,
   };
   const root = makeRoot({ seed: GO_SEED, resume });

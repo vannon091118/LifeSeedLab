@@ -75,9 +75,9 @@ describe('AP4 — Observation-Serializer (Phase 2)', () => {
     // eventsForAgent ist die reine Filter-Funktion darüber.
     const log = [
       makeEvent(7, 'PLACEMENT_REJECTED', 'system:inventory', 1, { reason: 'on_path', gx: 3, gy: 3 }),
-      makeEvent(7, 'PROJECTILE_FIRED', 'plant-0001', 2, { projectileId: 'pr1', plantId: 'p1', targetId: 'e1', damage: 15, effectId: null }),
+      makeEvent(7, 'PROJECTILE_FIRED', 'plant-0001', 2, { projectileId: 'pr1', plantId: 'p1', targetId: 'e1', damage: 15, effectId: null, px: 2.5, py: 4.5 }),
       makeEvent(9, 'WAVE_STARTED', 'system:wave', 3, { wave: 2, enemyCount: 8 }),
-      makeEvent(10, 'DAMAGE_DEALT', 'system:combat', 4, { enemyId: 'e1', amount: 12, critical: false, hp: 40, px: 3.5, py: 3.5 }),
+      makeEvent(10, 'DAMAGE_DEALT', 'system:combat', 4, { enemyId: 'e1', amount: 12, critical: false, hp: 40, px: 3.5, py: 3.5, effectId: null }),
       makeEvent(12, 'ROUTE_CHANGED', 'system:map', 5, { waypoints: 0, tiles: null, ideal: null, blocked: true }),
     ];
     const events = eventsForAgent(log);
