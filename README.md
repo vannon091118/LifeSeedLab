@@ -226,11 +226,11 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `9f2d333` — chore(repo): maschinenpfade raus, werkzeugmuell weg |
-| Arbeitsbaum | 22 gestaged, 3 geändert, 0 neu |
+| HEAD | `b6e0b4e` — feat(ui): Krix erklärt nur noch, was auf dem Screen wirklich passiert |
+| Arbeitsbaum | 7 gestaged, 2 geändert, 0 neu |
 | Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `9f2d333` chore(repo): maschinenpfade raus, werkzeugmuell weg |
+| Letzter Shinon-Commit | `b6e0b4e` feat(ui): Krix erklärt nur noch, was auf dem Screen wirklich passiert |
 | Letzter Push | ✅ origin/main |
 | LOC-Hotspots | `src/simulation/plantSystem.ts` 261/300 (87 %)<br>`src/simulation/enemySystem.ts` 256/300 (85 %)<br>`src/meta/run.ts` 158/200 (79 %)<br>`src/components/GameView.tsx` 313/400 (78 %)<br>`src/render/renderer.ts` 312/400 (78 %) |
 <!-- SHINON:STATUS:END -->

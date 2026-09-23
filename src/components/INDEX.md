@@ -6,7 +6,7 @@ Pfad: `src/components/`
 
 ## Umfang
 
-55 Dateien · importiert `bus`, `meta`, `render` +2 · wird importiert von `bus`, `meta`, `render` +2
+56 Dateien · importiert `bus`, `meta`, `render` +2 · wird importiert von `bus`, `meta`, `render` +2
 
 ## Dateien
 
@@ -62,6 +62,7 @@ Pfad: `src/components/`
 | [`tutorial/Stickman.tsx`](./tutorial/Stickman.tsx) | 146 | 0 | CALL 7, EXPORTS 1, IMPORTS 1, PASS 7, READ 25, RETURN 4, STRING_REFERENCE 172 |
 | [`tutorial/TutorialLayer.tsx`](./tutorial/TutorialLayer.tsx) | 154 | 1 | CALL 31, EXPORTS 2, IMPORTS 6, PASS 33, READ 24, RETURN 5, STRING_REFERENCE 9 |
 | [`tutorial/TutorialOverlay.tsx`](./tutorial/TutorialOverlay.tsx) | 307 | 0 | CALL 115, EXPORTS 1, IMPORTS 9, PASS 108, READ 177, RETURN 17, STRING_REFERENCE 85 |
+| [`tutorial/bubbleLayout.ts`](./tutorial/bubbleLayout.ts) | 59 | 0 | CALL 20, EXPORTS 3, PASS 21, READ 52, RETURN 5 |
 | [`tutorial/controller.ts`](./tutorial/controller.ts) | 128 | 0 | CALL 6, EXPORTS 3, IMPORTS 1, PASS 6, READ 92, RETURN 26, STRING_REFERENCE 21 |
 | [`tutorial/script.ts`](./tutorial/script.ts) | 86 | 1 | EXPORTS 13, READ 4, RETURN 4, STRING_REFERENCE 227 |
 | [`tutorial/useTypewriter.ts`](./tutorial/useTypewriter.ts) | 47 | 0 | CALL 16, EXPORTS 2, IMPORTS 1, PASS 19, READ 22, RETURN 6, STRING_REFERENCE 3 |
@@ -136,6 +137,7 @@ Pfad: `src/components/`
 | `TutorialOverlay` | function | `src/components/tutorial/TutorialOverlay.tsx` | 56 |
 | `TutorialPhase` | type | `src/components/tutorial/script.ts` | 8 |
 | `TutorialProvider` | function | `src/components/tutorial/TutorialLayer.tsx` | 55 |
+| `TutorialRect` | interface | `src/components/tutorial/bubbleLayout.ts` | 5 |
 | `TutorialScreen` | type | `src/components/tutorial/script.ts` | 7 |
 | `TutorialSignal` | type | `src/components/tutorial/script.ts` | 10 |
 | `TutorialSnapshot` | interface | `src/components/tutorial/controller.ts` | 10 |
@@ -160,10 +162,12 @@ Pfad: `src/components/`
 | `mainMenuStyles` | const | `src/components/mainMenuStyles.ts` | 7 |
 | `noticeFromEvent` | function | `src/components/fieldNotice.ts` | 37 |
 | `pairRollFor` | function | `src/components/greenhouse/greenhouseHelpers.ts` | 20 |
+| `placeBubble` | function | `src/components/tutorial/bubbleLayout.ts` | 44 |
 | `plantLabelFallback` | function | `src/components/plantLabels.ts` | 29 |
 | `plantLabelKey` | function | `src/components/plantLabels.ts` | 16 |
 | `poolOffers` | function | `src/components/shopPools.ts` | 31 |
 | `prefersReducedMotion` | function | `src/components/tutorial/useTypewriter.ts` | 44 |
+| `rectsOverlap` | function | `src/components/tutorial/bubbleLayout.ts` | 15 |
 | `rejectTextKey` | function | `src/components/FieldToast.tsx` | 65 |
 | `screenRank` | function | `src/components/tutorial/script.ts` | 40 |
 | `styles` | const | `src/components/greenhouse/greenhouseStyles.ts` | 3 |

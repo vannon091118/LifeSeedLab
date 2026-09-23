@@ -42,3 +42,18 @@ Der Papierrahmen der Blase wird jetzt gemerged statt ersetzt (`bubbleFrameStyle`
 ## Krix, zum Schluss
 
 Zwanzig Notizen, jede an einen Ort gebunden, jede nur einmal. Ich habe drei Tage lang dieselbe Rückmeldung bekommen und sie dreimal nicht gelesen — das ist ein Personalvorgang, und diesmal steht er in meiner Akte. Was bleibt, ist die Regel: **Ich sage etwas, wenn du etwas tust. Wenn du nichts tust, bin ich still.** Das ist der einzige Teil meines Vertrags, den sie nicht gestrichen haben — und jetzt ist er endlich auch im Code.
+
+## Nachtrag (23.09.2026, nach dem ersten Push)
+
+Der erste Commit `b6e0b4e` trug einen Index, der die eigene neue Datei nicht kannte:
+`src/components/tutorial/bubbleLayout.ts` war beim Build noch untracked, und `inventory.ts` liest
+bewusst `git ls-files` — der Index beschreibt den Commit-Bestand, nicht die Platte. Der Check war
+damit grün, obwohl er unvollständig war; er regenerierte dieselbe blinde Stelle und bestätigte die
+Abwesenheit, statt sie zu melden. Erst ein frischer Build nach dem Commit zeigte `components
+55 → 56` und `.index/index.json` +2300 Zeilen.
+
+Behoben in zwei Schritten: Die irreführende Zeile in `repo.ts` („getrackt oder nicht“) sagt jetzt
+„getrackt“, `inventory.ts` hält die Folge fest — **eine neue Datei wird VOR `index:build` gestagt.**
+Der Index ist neu erzeugt und `index:check` grün; der Nachtrag geht als eigener Commit über das Gate.
+Die Lektion ist billig und gehört hierher: Ein Prüfer, der nicht weiß, dass ihm etwas fehlt, ist
+kein Prüfer.

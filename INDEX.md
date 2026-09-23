@@ -11,7 +11,7 @@ Die maschinenlesbare Quelle aller Beziehungen ist `.index/index.json`; jeder Ind
 PROJECT
 ├── bus  (10 Dateien)
 │   └── src/bus/INDEX.md
-├── components  (55 Dateien)
+├── components  (56 Dateien)
 │   └── src/components/INDEX.md
 ├── config  (18 Dateien)
 │   └── src/config/INDEX.md
@@ -64,7 +64,7 @@ PROJECT
 | Modul | Pfad | Dateien | Importiert | Importiert von | Aufrufe nach außen |
 |---|---|---|---|---|---|
 | `bus` | [`src/bus`](src/bus/INDEX.md) | 10 | `components`, `dev`, `meta` +5 | `components`, `dev`, `meta` +5 | `observers (2)`, `simulation (7)` |
-| `components` | [`src/components`](src/components/INDEX.md) | 55 | `bus`, `meta`, `render` +2 | `bus`, `meta`, `render` +2 | `bus (4)`, `core (2)`, `observers (1)` +2 |
+| `components` | [`src/components`](src/components/INDEX.md) | 56 | `bus`, `meta`, `render` +2 | `bus`, `meta`, `render` +2 | `bus (4)`, `core (2)`, `observers (1)` +2 |
 | `config` | [`src/config`](src/config/INDEX.md) | 18 | ``, `components`, `genome` +6 | ``, `components`, `genome` +6 | `core (1)` |
 | `core` | [`src/core`](src/core/INDEX.md) | 7 | `bus`, `components`, `config` +10 | `bus`, `components`, `config` +10 | — |
 | `dev` | [`src/dev`](src/dev/INDEX.md) | 5 | `components`, `render` | `components`, `render` | `simulation (3)` |

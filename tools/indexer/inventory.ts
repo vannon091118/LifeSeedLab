@@ -11,6 +11,12 @@
 // Modulzuordnung. Die Modulzuordnung ist die Längster-passender-Pfad-Regel —
 // dieselbe Mechanik, die später der Architecture-Check verwendet, damit
 // Indexer und Validator sich nicht unterschiedlich verhalten.
+//
+// Folge für neue Dateien: `git ls-files` sieht nur Gestagtes/Gepatchtes —
+// eine neue Datei wird erst nach `git add` Teil des Index. Der Index beschreibt
+// damit den Commit-Bestand, nicht die Platte; wer eine Datei neu anlegt, stagt
+// sie VOR `index:build` (Fund des ersten Krix-Slice: der neue bubbleLayout-Eintrag
+// fehlte im committeten Index, weil er beim Build noch untracked war).
 
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';

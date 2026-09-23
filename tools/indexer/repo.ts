@@ -18,7 +18,7 @@ export interface Diagnostic {
   file?: string;
 }
 
-/** Eine Datei im Repository — getrackt oder nicht, Pfad ist kanonisch. */
+/** Eine getrackte Datei des Repositorys; der Pfad ist kanonisch (Repository-relativ, POSIX). */
 export interface RepoFile {
   /** Repository-relativer POSIX-Pfad, z. B. `src/core/rng.ts`. */
   path: string;
