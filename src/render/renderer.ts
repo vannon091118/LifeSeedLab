@@ -182,6 +182,16 @@ export class Renderer {
     }
 
     for (const plant of state.plants) this.drawPlant(ctx, plant, state, toPx, toPy, cell, feedback);
+    // P-27: Verwelk-Ghosts — die Pflanze ist nach PLANT_WITHERED aus dem State entfernt, ihr
+    // Verschwinden zeichnet sich hier (Ort + Optik reisten im Command mit, kein Raten).
+    feedback?.forEachDeathGhost((ghost, phase) => {
+      if (!ghost.visualKey) return;
+      const v = this.plantVisual({ variantId: ghost.visualKey } as PlantEntity, state.seed);
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 1 - phase);
+      drawSprite(ctx, v, cell, this.dpr, toPx(ghost.x), toPy(ghost.y), 1 - phase * 0.7);
+      ctx.restore();
+    });
     // Lauf-Gang: die Phase kommt aus der STRECKE, nicht aus dem Takt (beetleGait). Ein Frame
     // umschließt alle Wesen, damit `endFrame()` die Getöteten vergisst.
     this.gait.beginFrame();
@@ -349,6 +359,9 @@ export class Renderer {
     else if (v.animation === 'bob') oy = Math.sin(tick * 0.05 + plant.gy) * cell * 0.02;
     if (anim?.anim === 'attack') { const p = anim.phase; const lunge = Math.sin(p * Math.PI) * cell * 0.12; ox = lunge * 0.3; oy = -lunge * 0.4; sq = 1 + Math.sin(p * Math.PI) * 0.08; }
     else if (anim?.anim === 'placement') { const p = anim.phase; sq = p < 0.3 ? 0.6 + p * 1.5 : p < 0.8 ? 1.05 : 1; }
+    // P-27: die Reife hebt sich aufs Papier — Scale-In auf die volle Genom-Größe (präsentiert
+    // die Phase 0..1, die der Observer je PLANT_GROWN emittiert; vorher ein stilles Kommando).
+    else if (anim?.anim === 'grow') { const p = anim.phase; sq = 0.4 + p * 0.6; }
     // B29: 'recoil' war im VisualCommand-Vertrag deklariert, aber nie gezeichnet — die
     // Ablehnung an einer Pflanze wäre damit trotz FX-Kommando stumm geblieben (drei Schläge
     // seitwärts = „nein“, ohne die Entity zu verschieben).

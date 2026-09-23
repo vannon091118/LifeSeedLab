@@ -107,6 +107,11 @@ export class RunRuntime {
   private readonly devActive: boolean;
   private readonly onResize: () => void;
   private readonly onVisibility: () => void;
+  /** P-25: Beobachter auf den FRAME (nicht nur window) — sobald der Frame ohne Window-Resize
+   *  seine Größe ändert (Tray wächst/schrumpft im Fluss, Aufbauhilfe erscheint/verblasst),
+   *  passt das Canvas seine Auflösung an. Vorher blieb es auf Altmaß und ragte über die
+   *  Tray hinaus (gemessen: Canvas 501 px im 432-px-Frame bei 390×844). */
+  private readonly frameObserver: ResizeObserver;
 
   constructor(input: RunRuntimeInput, cbs: RunRuntimeCallbacks, pausedRef: { current: boolean }, holdRef: { current: boolean }) {
     this.cbs = cbs;
@@ -235,6 +240,8 @@ export class RunRuntime {
 
     this.onResize = () => { renderer.resize(); };
     window.addEventListener('resize', this.onResize);
+    this.frameObserver = new ResizeObserver(() => { renderer.resize(); });
+    this.frameObserver.observe(input.canvas.parentElement!);
     this.onResize();
 
     this.onVisibility = () => {
@@ -398,6 +405,7 @@ export class RunRuntime {
   destroy(): void {
     cancelAnimationFrame(this.raf);
     window.removeEventListener('resize', this.onResize);
+    this.frameObserver.disconnect();
     document.removeEventListener('visibilitychange', this.onVisibility);
     // R2: die Welt zuerst schließen — der letzte Flush spiegelt verbleibende Bau-Ops,
     // bevor der Run-Snapshot geschrieben wird.

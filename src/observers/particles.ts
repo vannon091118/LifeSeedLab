@@ -40,7 +40,9 @@ const PARTICLE_PROFILES: Record<string, ParticleProfile> = {
   frost_mist:   { kind: 'SMOKE',   count: 8,  lifetime: 30, size: [0.08, 0.18], velocity: [0.01, 0.04], gravity: -0.002,rotationSpeed: 0.05, alphaCurve: 'fadeInOut', spawnShape: 'ring' },
   ember_burst:  { kind: 'GLOW',    count: 10, lifetime: 22, size: [0.05, 0.12], velocity: [0.03, 0.09], gravity: -0.003,rotationSpeed: 0.3, alphaCurve: 'easeOut',   spawnShape: 'ring' },
   burst_star:   { kind: 'SPARK',   count: 16, lifetime: 20, size: [0.06, 0.15], velocity: [0.05, 0.12], gravity: 0.002, rotationSpeed: 0.35,alphaCurve: 'easeOut',   spawnShape: 'ring' },
-  spawn_spore:  { kind: 'SPORE',   count: 6,  lifetime: 34, size: [0.04, 0.09], velocity: [0.005, 0.02],gravity: -0.002,rotationSpeed: 0.05,alphaCurve: 'fadeInOut', spawnShape: 'ring' },
+  // P-34 (Hebel 1, gemessen): [0.04, 0.09] Zellen bei fadeInOut war zu klein/zu blass, um sich
+  // vom Untergrund zu lösen — der Sporen-Schimmer war im Einschlagframe nicht nachweisbar.
+  spawn_spore:  { kind: 'SPORE',   count: 6,  lifetime: 34, size: [0.06, 0.14], velocity: [0.005, 0.02],gravity: -0.002,rotationSpeed: 0.05,alphaCurve: 'easeOut', spawnShape: 'ring' },
   warn_pulse:   { kind: 'RING',    count: 4,  lifetime: 26, size: [0.10, 0.22], velocity: [0.01, 0.03], gravity: 0,     rotationSpeed: 0,   alphaCurve: 'fadeInOut', spawnShape: 'ring' },
   muzzle_puff:  { kind: 'DUST',    count: 4,  lifetime: 10, size: [0.04, 0.09], velocity: [0.02, 0.05], gravity: -0.001,rotationSpeed: 0.1, alphaCurve: 'easeOut',   spawnShape: 'cone' },
   confetti_leaf:{ kind: 'LEAF',    count: 10, lifetime: 44, size: [0.07, 0.14], velocity: [0.02, 0.06], gravity: 0.003, rotationSpeed: 0.25,alphaCurve: 'fadeInOut', spawnShape: 'ring' },
@@ -50,7 +52,9 @@ const PARTICLE_PROFILES: Record<string, ParticleProfile> = {
   spark_line:   { kind: 'SPARK',   count: 6,  lifetime: 12, size: [0.03, 0.07], velocity: [0.10, 0.18], gravity: 0,     rotationSpeed: 0,   alphaCurve: 'linear',    spawnShape: 'cone' },
   ring_metal:   { kind: 'RING',    count: 6,  lifetime: 16, size: [0.08, 0.15], velocity: [0.02, 0.05], gravity: 0,     rotationSpeed: 0,   alphaCurve: 'easeOut',   spawnShape: 'ring' },
   glow_rise:    { kind: 'GLOW',    count: 8,  lifetime: 30, size: [0.04, 0.10], velocity: [0.005, 0.02],gravity: -0.004,rotationSpeed: 0.1, alphaCurve: 'fadeInOut', spawnShape: 'ring' },
-  bubble_pop:   { kind: 'BUBBLE',  count: 8,  lifetime: 22, size: [0.04, 0.10], velocity: [0.01, 0.03], gravity: -0.003,rotationSpeed: 0.05,alphaCurve: 'fadeInOut', spawnShape: 'ring' },
+  // P-34 (Hebel 1): dieselbe Sichtbarkeits-Wurzel wie spawn_spore — Gift/Sporen-Einschläge
+  // müssen in ihrer Effektfarbe nachweisbar sein, nicht nur die Schadenszahl.
+  bubble_pop:   { kind: 'BUBBLE',  count: 8,  lifetime: 22, size: [0.06, 0.14], velocity: [0.01, 0.03], gravity: -0.003,rotationSpeed: 0.05,alphaCurve: 'easeOut', spawnShape: 'ring' },
   ring_soft:    { kind: 'RING',    count: 5,  lifetime: 24, size: [0.10, 0.20], velocity: [0.01, 0.02], gravity: 0,     rotationSpeed: 0,   alphaCurve: 'fadeInOut', spawnShape: 'ring' },
   trail_fast:   { kind: 'DUST',    count: 5,  lifetime: 14, size: [0.03, 0.07], velocity: [0.01, 0.03], gravity: 0,     rotationSpeed: 0.2, alphaCurve: 'easeOut',   spawnShape: 'point' },
   arc_jump:     { kind: 'SPARK',   count: 8,  lifetime: 10, size: [0.03, 0.07], velocity: [0.10, 0.16], gravity: 0,     rotationSpeed: 0.5, alphaCurve: 'linear',    spawnShape: 'ring' },

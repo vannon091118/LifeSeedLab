@@ -18,8 +18,9 @@ export type VisualCommand =
   | { type: 'CameraShake'; intensity: number }
   | { type: 'ScreenFlash'; color: string; alpha: number; ticks: number }
   | { type: 'SpawnRewardFlight'; x: number; y: number; color: string }
+  | { type: 'SpawnRewardArrival'; amount: number; color: string }
   | { type: 'ShowMangaText'; text: string; x: number; y: number; intensity: number }
-  | { type: 'PlayAnimation'; entityId: string; anim: 'attack' | 'hit' | 'recoil' | 'death' | 'grow' | 'placement'; ticks: number };
+  | { type: 'PlayAnimation'; entityId: string; anim: 'attack' | 'hit' | 'recoil' | 'death' | 'grow' | 'placement'; ticks: number; /** P-27: nur `death` — der Ghost hat nach dem State-Exit keine Zelle mehr. */ x?: number; y?: number; variantId?: string };
 
 const INK = '#2b2b26';
 
@@ -53,9 +54,12 @@ export class VisualObserver {
   observe(e: GameEvent): void {
     switch (e.type) {
       case 'DAMAGE_DEALT':
+        // P-34: der Einschlag trägt die EFFEKTFARBE aus der Source (Payload.effectId) — vorher
+        // stand hier Papier (`#d9c9a3`) auf Papier, der Einschlag war unterm eigenen Gegner
+        // unsichtbar. Ohne Effekt (Grunt-Biss, DoT-Tick) bleibt der neutrale Papierstaub.
         this.push({ type: 'SpawnFloatingNumber', text: String(e.payload.amount), x: e.payload.px, y: e.payload.py, color: INK, intensity: 1, crit: false });
         this.push({ type: 'PunchScale', entityId: e.payload.enemyId, strength: 0.15 });
-        this.push({ type: 'SpawnParticleBurst', profile: 'impact_ring', x: e.payload.px, y: e.payload.py, seed: (e.tick * 31 + this.seq * 7) | 0, intensity: 1, color: '#d9c9a3' });
+        this.push({ type: 'SpawnParticleBurst', profile: 'impact_ring', x: e.payload.px, y: e.payload.py, seed: (e.tick * 31 + this.seq * 7) | 0, intensity: 1, color: effectColor(e.payload.effectId) });
         break;
 
       case 'CRITICAL_HIT':
@@ -79,21 +83,33 @@ export class VisualObserver {
       }
 
       case 'PROJECTILE_FIRED':
+        // P-28: der B5-Vertrag versprach den Mündungspuff — das Profil existierte, nur der
+        // Emit fehlte. Der Ort kommt aus dem Payload (Abschuss der Pflanze), die Farbe aus
+        // derselben Effekt-Farbe wie der spätere Einschlag: Schuss und Treffer sprechen dieselbe Sprache.
         this.push({ type: 'PlayAnimation', entityId: e.payload.plantId, anim: 'attack', ticks: 8 });
+        this.push({ type: 'SpawnParticleBurst', profile: 'muzzle_puff', x: e.payload.px, y: e.payload.py, seed: (e.tick * 11 + this.seq * 5) | 0, intensity: 1, color: effectColor(e.payload.effectId) });
         break;
 
       case 'ENEMY_DIED':
+        // P-31: der `+N`-Text lebt im REWARD_GRANTED-Zweig — dort ist die Menge GEBUCHT und im
+        // Payload. Hier war er eine Vorhersage: der Text zeigte die Roh-Belohnung, während der
+        // Zähler floor(reward/5) wuchs (zwei Zahlen, die nicht zusammenpassten).
         this.push({ type: 'SpawnParticleBurst', profile: 'death_pop', x: e.payload.px, y: e.payload.py, seed: (e.tick * 17 + this.seq * 3) | 0, intensity: 2, color: '#a94438' });
-        this.push({ type: 'SpawnFloatingNumber', text: `+${e.payload.reward}`, x: e.payload.px, y: e.payload.py, color: '#d9a441', intensity: 1, crit: false });
         this.push({ type: 'PunchScale', entityId: e.payload.enemyId, strength: 0.3 });
         break;
 
       case 'REWARD_GRANTED':
-        // B5.1: die Belohnung REIST — vom Ort ihrer Ursache zum Zähler im HUD. Der Ort kommt aus
-        // dem Payload, nie aus einer Annahme: hier stand früher ein Burst in der Rastermitte
-        // (`x: 6, y: 4`), also eine Behauptung über die Welt, die niemand geprüft hat. Fehlt der
-        // Ort (Wellen-Bonus), unterbleibt die Reise statt zu erfinden, wo sie begann.
-        if (e.payload.px === null || e.payload.py === null) break;
+        // B5.1/P-31: die Belohnung REIST — vom Ort ihrer Ursache zum Zähler im HUD; die ANGEZEIGTE
+        // Zahl ist `grantedNektar` (die gebuchte Menge), nie die Roh-Belohnung — der Text sagt
+        // exakt, um wie viel der Zähler wächst. Fehlt der Ort (Wellen-Bonus, P-29), unterbleibt
+        // die Reise statt einen Startpunkt zu erfinden; stattdessen pulsiert die Ankunft AM
+        // ZÄHLER mit dem Buchungs-Betrag (SpawnRewardArrival) — eine echte Buchung ohne
+        // Weltort ist kein Grund zur Stille.
+        if (e.payload.px === null || e.payload.py === null) {
+          this.push({ type: 'SpawnRewardArrival', amount: e.payload.grantedNektar, color: '#d9a441' });
+          break;
+        }
+        this.push({ type: 'SpawnFloatingNumber', text: `+${e.payload.grantedNektar}`, x: e.payload.px, y: e.payload.py, color: '#d9a441', intensity: 1, crit: false });
         this.push({ type: 'SpawnRewardFlight', x: e.payload.px, y: e.payload.py, color: '#d9a441' });
         break;
 
@@ -160,8 +176,10 @@ export class VisualObserver {
 
       case 'PLANT_WITHERED':
         // Verwelkt: Papierstaub sinkt zu Boden (schwerkraftbetont), entsättigt Rot-Braun.
+        // P-27: die death-Animation trägt px/py — die Pflanze ist im Moment des Events bereits
+        // aus dem State entfernt, der Ghost muss seinen Ort MITREISEN statt ihn zu raten.
         this.push({ type: 'SpawnParticleBurst', profile: 'wither_dust', x: e.payload.gx + 0.5, y: e.payload.gy + 0.5, seed: (e.tick * 43 + this.seq) | 0, intensity: 1.5, color: '#9c8464' });
-        this.push({ type: 'PlayAnimation', entityId: e.payload.plantId, anim: 'death', ticks: 12 });
+        this.push({ type: 'PlayAnimation', entityId: e.payload.plantId, anim: 'death', ticks: 12, x: e.payload.gx + 0.5, y: e.payload.gy + 0.5, variantId: e.payload.variantId });
         break;
 
       case 'PLANT_FERTILIZED':

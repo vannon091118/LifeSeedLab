@@ -12,10 +12,14 @@ interface MangaTxt { text: string; x: number; y: number; life: number; maxLife: 
 interface Flash { color: string; alpha: number; life: number; maxLife: number; }
 interface Punch { entityId: string; t: number; strength: number; }
 interface AnimState { anim: string; t: number; total: number; }
+/** P-27: die death-Animation überlebt den State-Exit der Pflanze — Ort + Optik reisen mit. */
+interface DeathGhost { x: number; y: number; visualKey: string; t: number; total: number; }
 /** B5.1: Belohnungsreise — Quelle in der WELT, Ziel im HUD (Screen-Raum). Reine Darstellung. */
 interface RewardFlight { x: number; y: number; color: string; life: number; maxLife: number; }
 /** Ankunft am Zähler: kurzer Papier-Puls. Lebt AM Anker, nicht an der Quelle. */
 interface ArrivalPop { color: string; life: number; maxLife: number; }
+/** P-29: Ankunft EINER Buchung ohne Weltort (Wellen-Bonus) — Puls + Betrag am Zähler. */
+interface RewardArrival { amount: number; color: string; life: number; maxLife: number; }
 
 const FLIGHT_TICKS = 22;
 const ARRIVAL_TICKS = 9;
@@ -39,6 +43,7 @@ export class FeedbackLayer {
   private anims = new Map<string, AnimState>();
   private flights: RewardFlight[] = [];
   private arrivals: ArrivalPop[] = [];
+  private rewardArrivals: RewardArrival[] = [];
 
   /** Execute one drained visual command. */
   exec(c: VisualCommand): void {
@@ -55,14 +60,28 @@ export class FeedbackLayer {
         this.flashes.push({ color: c.color, alpha: c.alpha, life: c.ticks, maxLife: c.ticks });
         break;
       case 'SpawnRewardFlight':
+        // P-33: Verwerfen bucht die Ankunft — die Sim-Buchung ist längst passiert, der Pop ist
+        // ihre ehrliche Darstellung. Still verschwinden wäre eine Lüge mitten im Luftverkehr.
+        if (this.flights.length >= 8) {
+          const dropped = this.flights.shift()!;
+          this.arrivals.push({ color: dropped.color, life: ARRIVAL_TICKS, maxLife: ARRIVAL_TICKS });
+          this.fadeOutOldest(this.arrivals, 4, 2);
+        }
         this.flights.push({ x: c.x, y: c.y, color: c.color, life: FLIGHT_TICKS, maxLife: FLIGHT_TICKS });
-        if (this.flights.length > 8) this.flights.shift();
+        break;
+      case 'SpawnRewardArrival':
+        this.rewardArrivals.push({ amount: c.amount, color: c.color, life: ARRIVAL_TICKS + 6, maxLife: ARRIVAL_TICKS + 6 });
+        if (this.rewardArrivals.length > 4) this.rewardArrivals.shift();
         break;
       case 'PunchScale':
         this.punches.set(c.entityId, { entityId: c.entityId, t: 8, strength: c.strength });
         break;
       case 'PlayAnimation':
         this.anims.set(c.entityId, { anim: c.anim, t: c.ticks, total: c.ticks });
+        // P-27: der Tod überlebt den State-Exit — Ort + Optik reisen im Command mit.
+        if (c.anim === 'death' && c.x !== undefined && c.y !== undefined) {
+          this.deaths.set(c.entityId, { x: c.x, y: c.y, visualKey: c.variantId ?? '', t: c.ticks, total: c.ticks });
+        }
         break;
       case 'SpawnParticleBurst':
       case 'CameraShake':
@@ -74,11 +93,12 @@ export class FeedbackLayer {
     this.numbers = this.numbers.filter(n => --n.life > 0);
     this.mangas = this.mangas.filter(m => --m.life > 0);
     this.flashes = this.flashes.filter(f => --f.life > 0);
+    this.rewardArrivals = this.rewardArrivals.filter(a => --a.life > 0);
     // Angekommen ⇒ der Zähler pulst (das Ziel, nicht die Quelle: die Reise ist beendet).
     this.flights = this.flights.filter(f => {
       if (--f.life > 0) return true;
       this.arrivals.push({ color: f.color, life: ARRIVAL_TICKS, maxLife: ARRIVAL_TICKS });
-      if (this.arrivals.length > 4) this.arrivals.shift();
+      this.fadeOutOldest(this.arrivals, 4, 2);
       return false;
     });
     this.arrivals = this.arrivals.filter(a => --a.life > 0);
@@ -88,6 +108,25 @@ export class FeedbackLayer {
     for (const [id, a] of this.anims) {
       if (--a.t <= 0) this.anims.delete(id); else this.anims.set(id, a);
     }
+    for (const [id, g] of this.deaths) {
+      if (--g.t <= 0) this.deaths.delete(id); else this.deaths.set(id, g);
+    }
+  }
+
+  /** Read-only Sicht für Tests/Diagnose: wie viele Reisen gerade leben (P-33-Cap). */
+  get flightCount(): number { return this.flights.length; }
+
+  /** P-27: die death-Animation überlebt den State-Exit der Pflanze — Ort + Optik reisen mit. */
+  private deaths = new Map<string, DeathGhost>();
+
+  /**
+   * P-33: Überlauf wird NICHT hart gelöscht — der älteste Eintrag bekommt eine Rest-Lebenszeit
+   * und blendet weich aus. Verwerfen ohne Rest ist der stille Verlust, den der Befund meint.
+   */
+  private fadeOutOldest(list: { life: number }[], cap: number, floor: number): void {
+    if (list.length <= cap) return;
+    const oldest = list[0];
+    if (oldest.life > floor) oldest.life = floor;
   }
 
   /** Punch scale factor for an entity (1 = neutral). */
@@ -103,6 +142,11 @@ export class FeedbackLayer {
     const a = this.anims.get(entityId);
     if (!a) return null;
     return { anim: a.anim, phase: 1 - a.t / a.total };
+  }
+
+  /** P-27: lebende Verwelk-Ghosts mit Fortschritt (0 = gerade gestorben, 1 = verweht). */
+  forEachDeathGhost(fn: (ghost: { x: number; y: number; visualKey: string }, phase: number) => void): void {
+    for (const g of this.deaths.values()) fn({ x: g.x, y: g.y, visualKey: g.visualKey }, 1 - g.t / g.total);
   }
 
   /** Draw floating numbers + manga texts (screen-space conversions done by caller). */
@@ -176,6 +220,22 @@ export class FeedbackLayer {
       ctx.beginPath(); ctx.arc(anchor.x, anchor.y, r, 0, Math.PI * 2);
       ctx.lineWidth = 2.5; ctx.strokeStyle = a.color; ctx.stroke();
     }
+    // P-29: Buchung ohne Weltort — der Betrag erscheint AM ZÄHLER (Puls + Zahl), nie an einem
+    // erfundenen Punkt in der Welt. Gleiche Tinten-Sprache wie die Flug-Zahlen.
+    for (const a of this.rewardArrivals) {
+      const k = a.life / a.maxLife;
+      const r = 10 + (1 - k) * 20;
+      ctx.globalAlpha = Math.min(1, k * 1.6);
+      ctx.beginPath(); ctx.arc(anchor.x, anchor.y, r, 0, Math.PI * 2);
+      ctx.lineWidth = 2.5; ctx.strokeStyle = a.color; ctx.stroke();
+      ctx.font = '700 14px "Segoe UI", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.lineWidth = 3; ctx.strokeStyle = '#f5efdc';
+      const rise = (1 - k) * 10;
+      ctx.strokeText(`+${a.amount}`, anchor.x, anchor.y - 14 - rise);
+      ctx.fillStyle = a.color;
+      ctx.fillText(`+${a.amount}`, anchor.x, anchor.y - 14 - rise);
+    }
     ctx.globalAlpha = 1;
   }
 
@@ -191,7 +251,7 @@ export class FeedbackLayer {
 
   clear(): void {
     this.numbers = []; this.mangas = []; this.flashes = [];
-    this.punches.clear(); this.anims.clear();
-    this.flights = []; this.arrivals = [];
+    this.punches.clear(); this.anims.clear(); this.deaths.clear();
+    this.flights = []; this.arrivals = []; this.rewardArrivals = [];
   }
 }
