@@ -1,6 +1,6 @@
 {
   "commit": {
-    "maxFiles": 150
+    "maxFiles": 25
   },
   "gate": {
     "enforcement": "strict",
