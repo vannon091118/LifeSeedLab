@@ -52,4 +52,4 @@ Wie steil ist die Gegner-Skala danach?
 | ID | Punkt | Status |
 |---|---|---|
 | B2 | Balance-Schwelle: Kipppunkt Welle 10, HP-Sprung ×4 — Balance-Druck bestätigt, „zu einfach" widerlegt | erledigt (Messung) |
-| N1 | Tank-Leak-Kosten (Mehr-Leben-pro-Durchbruch?) — HUD-Sichtbarkeit | offen (Beobachtung) |
+| N1 | Tank-Leak-Kosten (Mehr-Leben-pro-Durchbruch?) — HUD-Sichtbarkeit | offen (Beobachtung, kein Owner im Task 23.09. Navigation) |

@@ -57,7 +57,14 @@ git worktree remove /tmp/qa-consolidation
 ## Aktive Berichte
 
 - `2026-09-23_nachverifikation-v0.0.96.md` — T1/T2/T3 erledigt (R2-Neubau wirkt), W1/W2 offen (persistente Welt), Q5 in-arbeit.
-- `2026-09-23_taktik-mazing-v0.0.96.md` — Mazing wirkt: +10 Tiles Maze-Gewinn, 1 Kill-Box-Leihe haelt bis Welle 7; B1/B3 Design-Fragen.
+- `2026-09-23_taktik-mazing-v0.0.96.md` — Mazing wirkt: +10 Tiles Maze-Gewinn, 1 Kill-Box-Leihe haelt bis Welle 7; B2 erledigt (Kipppunkt-Messung), B1/B3 Design-Fragen.
+- `2026-09-23_kipppunkt-welle10.md` — B2 erledigt (Messung), N1 offen (Tank-Leak-HUD).
+- `2026-09-23_oekonomie-w1-besitzmodell.md` — W1 erledigt (Besitz-Modell schliesst exakt), B1 Design-Frage.
+- `2026-09-23_resume-shop-vertraege.md` — vertragsgetreu, keine offenen Befunde.
+
+Status-Setzung 23.09.2026 (Task Navigation/Ownership): W1 + B2 auf **erledigt** gehoben (jeweils durch den
+Fachbericht beantwortet). W2, Q5, Pn, B1, B3, N1 bleiben **offen/in-arbeit** und werden ausdruecklich NICHT
+vom Task 23.09. beansprucht — sie gehoeren in die naechste Fachsitzung, nicht in einen Strukturumbau.
 - `2026-09-23_oekonomie-w1-besitzmodell.md` — W1 erledigt: kein Gratis-Loop, Besitz-Modell schliesst exakt (Kauf=Besitz, Bau=Verbrauch, Verkauf=Rueckgewinn).
 - `2026-09-23_kipppunkt-welle10.md` — B2 erledigt: Kipppunkt Welle 10 (HP-Sprung 94->375), Leihe allein traegt bis 9; N1 offen (Tank-Leak-Kosten).
 - `2026-09-23_resume-shop-vertraege.md` — Resume vertragsgetreu (prep-Neustart, Save-Felder bit-genau), Shop-Preise=fail-closed OK; Quarantaene-Vertrag live bestaetigt.

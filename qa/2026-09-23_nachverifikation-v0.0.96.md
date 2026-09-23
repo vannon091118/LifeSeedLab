@@ -122,7 +122,7 @@ T2 erledigt (konstruktiv), T3 erledigt (3/3), Q5 bleibt in-arbeit (bekannte Reac
 
 | ID | Punkt | Status |
 |---|---|---|
-| W1 | Persistente Welt + frisches Inventar: gewolltes Modell oder Ökonomie-Loch? | offen (Design-Frage) |
-| W2 | `worldSeed` wechselt pro Reload — was determiniert er? (potBoost-Farben?) | offen (Klärung) |
-| Q5 | React-border-Warnung (shorthand/non-shorthand mix) | in-arbeit (alt) |
-| Pn | „PvP Board" im Hub ungetestet | offen (Folgetermin) |
+| W1 | Persistente Welt + frisches Inventar: gewolltes Modell oder Ökonomie-Loch? | erledigt (Beantwortung: `qa/2026-09-23_oekonomie-w1-besitzmodell.md` — Besitz-Modell schließt exakt, kein Gratis-Loop) |
+| W2 | `worldSeed` wechselt pro Reload — was determiniert er? (potBoost-Farben?) | offen (Klärung, kein Owner im Task 23.09. Navigation) |
+| Q5 | React-border-Warnung (shorthand/non-shorthand mix) | in-arbeit (alt, kein Owner im Task 23.09. Navigation) |
+| Pn | „PvP Board" im Hub ungetestet | offen (Folgetermin, kein Owner im Task 23.09. Navigation) |

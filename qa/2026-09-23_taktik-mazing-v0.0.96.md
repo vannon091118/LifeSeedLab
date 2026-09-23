@@ -69,6 +69,6 @@ Kill-Box-Schiene** → Spalte 0 nach unten. Der Laufweg streift die Leihe über 
 | ID | Punkt | Status |
 |---|---|---|
 | M1 | Time-on-Target-Belohnung: MAZE WIRKT, Bewertung positiv | erledigt (Bewertung, kein Fix nötig) |
-| B1 | Persistenz-Progression (2. Run startet stärker) — Absicht? | als Design-Frage übergeben |
-| B2 | Schwelle „zu einfach" ab mittleren Wellen (Beobachtung) | offen (Beobachtung) |
+| B1 | Persistenz-Progression (2. Run startet stärker) — Absicht? | als Design-Frage übergeben (bleibt offen) |
+| B2 | Schwelle „zu einfach" ab mittleren Wellen (Beobachtung) | erledigt (Messung: `qa/2026-09-23_kipppunkt-welle10.md` — Kipppunkt Welle 10, „zu einfach" widerlegt) |
 | B3 | Time-on-Target-Chip im HUD (Vorschlag) | als Design-Frage übergeben |
