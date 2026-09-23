@@ -12,7 +12,9 @@ import { defineConfig } from 'vitest/config';
 // (`persistence/testDom.clearTestStorage()` je beforeEach) — Kollisionen nicht beobachtet.
 export default defineConfig({
   test: {
-    include: ['src/**/*.test.{ts,tsx}'],
+    // P-35: die Vertragstests der E2E-Garde leben neben den Specs in `tests/` — der include
+    // erfasst sie (nur *.test.ts, nie die *.spec.ts, die Playwright gehören).
+    include: ['src/**/*.test.{ts,tsx}', 'tests/**/*.test.{ts,tsx}'],
     exclude: ['**/node_modules/**', '**/dist/**'],
     fsModuleCache: true,
     isolate: false,

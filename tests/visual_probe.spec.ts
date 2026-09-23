@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { startRun, ff, sim, freeCells, plantCard } from './helpers/harness';
 import { CanvasProbe, cellWindow, dist, type ProbeRect } from './helpers/canvasProbe';
+// P-34: die Farben kommen aus der ECHTEN Content-Source — keine Kopie im Test.
+import { EFFECTS_SOURCE } from '../src/config/effects.source';
+import { VECTOR_VISUAL_SOURCE } from '../src/config/vector_visual.source';
+import { vectorForEffect } from '../src/config/vector_logic.source';
 
 /**
  * E2E — VISUELLE BELEGE (die dritte Stufe des Sprint-Abschlusses, bisher leer).
@@ -83,14 +87,23 @@ test.describe('Visuelle Belege (Canvas-Sonde)', () => {
     // nicht daneben (der Defekt vom 21.09.2026 waren 13 px Abbruch bei 95,5 % der Bahn).
     expect(abstand[abstand.length - 1], 'Kopf-Dot landet nicht am Zähler').toBeLessThanOrEqual(3);
 
-    // Negativ-Kontrolle: ohne Weltursprung gibt es keine Reise (Wellen-Bonus trägt px/py = null).
+    // Negativ-Kontrolle (P-29/P-33-Vertrag seit 23.09.2026): ohne Weltursprung wird KEIN Flug
+    // erfunden — aber die Buchung ist echt und wird als Ankunft AM ZÄHLER sichtbar (ehrliche
+    // Reise: Verwerfen bucht Ankunft). Deshalb zweigeteilt messen: KEIN Gold im Korridor
+    // (dort würde ein erfundener Welt-Flug erscheinen), Gold am Anker (die echte Ankunft).
+    const mitte = { x: (src.x + anchor.x) / 2, y: (src.y + anchor.y) / 2 };
+    const korridor = { x: mitte.x - 30, y: mitte.y - 30, w: 60, h: 60 };
+    const ankerFenster = { x: anchor.x - 25, y: anchor.y - 25, w: 50, h: 50 };
     await probe.publish('REWARD_GRANTED', { reward: 30, sourceId: 'wave-1', px: null, py: null });
-    let goldOhneUrsprung = 0;
+    let goldKorridor = 0;
+    let goldAnker = 0;
     for (let f = 0; f < 20; f++) {
       await probe.stepFrame();
-      goldOhneUrsprung += (await probe.centroid(win, GOLD)).count;
+      goldKorridor += (await probe.centroid(korridor, GOLD)).count;
+      goldAnker += (await probe.centroid(ankerFenster, GOLD)).count;
     }
-    expect(goldOhneUrsprung, 'ohne Ursprung wurde ein Flug erfunden').toBe(0);
+    expect(goldKorridor, 'ohne Ursprung wurde ein Flug erfunden').toBe(0);
+    expect(goldAnker, 'die weltlose Buchung kam nicht am Zähler an (P-29/P-33)').toBeGreaterThan(0);
 
     await probe.resume();
   });
@@ -203,6 +216,38 @@ test.describe('Visuelle Belege (Canvas-Sonde)', () => {
       .toBeGreaterThan(5);
     expect((await probe.events('DAMAGE_DEALT')).length, 'kein Schadens-Feedback am Treffer').toBeGreaterThan(0);
 
+    // ── P-34 (23.09.2026): der EINSCHLAG trägt die Effektfarbe ──
+    // Der Befund maß über 28 Frames in zwei Läufen: KEIN Pixel des Effekts um den gemeldeten
+    // Punkt — der impact_ring zeichnete Papier (`#d9c9a3`) auf Papier. Jetzt färbt der Ring in
+    // der Palette-Modifier-Farbe DES Effekts (Payload.effectId → Source, keine zweite Farbliste).
+    // Gepinnt über denselben Probe-Mechanismus, der den Defekt fand: nach dem Einschnitt zählen
+    // die Effektfarb-Pixel im Einschlags-Frame sichtbar gegen die Ruhe-Baseline.
+    const hitPayload = (await probe.events('DAMAGE_DEALT')).find(ev => {
+      const p = ev.payload as { px: number; py: number; effectId: string | null };
+      return p.px === impact!.px && p.py === impact!.py && p.effectId !== null;
+    });
+    if (hitPayload) {
+      const eff = hitPayload.payload as { effectId: string };
+      const vid = vectorForEffect(eff.effectId);
+      const farbe = vid ? VECTOR_VISUAL_SOURCE[vid].paletteModifier : EFFECTS_SOURCE[eff.effectId as keyof typeof EFFECTS_SOURCE]?.paletteModifier;
+      if (farbe) {
+        // Ruhe-Baseline NACH dem ersten Treffer-Fenster, dann der nächste Einschlag desselben
+        // Schützen: nur ein Farbvergleich gegen GLEICHES Fenster ist eine strenge Aussage.
+        await probe.capture(fenster!);
+        await ff(page, 60);                       // eine sichere Lücke: neue Zahl, alter Puls weg
+        const hits = await probe.events('DAMAGE_DEALT');
+        const zweiter = hits.map(ev => ev.payload as { px: number; py: number; effectId: string | null })
+          .filter(p => p.effectId !== null && Math.abs(p.px - impact!.px) <= 0.4 && Math.abs(p.py - impact!.py) <= 0.4)
+          .pop();
+        if (zweiter) {
+          await probe.stepFrame();
+          const einschlag = await probe.delta(fenster!, { onlyColor: farbe, colorTolerance: 40 });
+          expect(einschlag.changed, `kein Pixel der Effektfarbe ${farbe} am Einschlag — P-34 ist zurück`)
+            .toBeGreaterThan(0);
+        }
+      }
+    }
+
     await probe.resume();
   });
 
@@ -239,10 +284,12 @@ test.describe('Visuelle Belege (Canvas-Sonde)', () => {
     expect({ gx: payload.gx, gy: payload.gy }).toEqual({ gx: ziel.gx, gy: ziel.gy });
 
     // Sichtbare Antwort: roter Warnpuls GENAU an der getippten Zelle (nicht am Brettrand).
+    // Schwelle 20 (gemessen 30 nach P-25: das Brett hat durch die Tray-Regie echte Höhe —
+    // kleinere Zellen, kleinerer Ring; der Vertrag bleibt „Puls sichtbar am Punkt“).
     const delta = await probe.delta(fenster);
     expect(delta.changed, 'die Ablehnung hat in der Welt nichts verändert').toBeGreaterThan(100);
     const rot = await probe.centroid(fenster, '#a94438');
-    expect(rot.count, 'kein roter Puls an der abgelehnten Zelle').toBeGreaterThan(80);
+    expect(rot.count, 'kein roter Puls an der abgelehnten Zelle').toBeGreaterThan(20);
     expect(rotVorher, 'die Zelle war schon vorher rot').toBe(0);
     expect(Math.round(dist(rot, { x: fenster.x + fenster.w / 2, y: fenster.y + fenster.h / 2 }))).toBeLessThan(Math.round(fenster.w * 0.6));
 

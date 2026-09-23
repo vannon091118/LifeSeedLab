@@ -67,9 +67,9 @@ test.describe('Mobile 390×844 (DoD)', () => {
     // Der Geist zeichnet rot: wir fangen den strokeRect-Aufruf mit #a94438 ab
     // (drawGhost, src/render/renderer.ts). WICHTIG (gemessen): drawGhost zeichnet NACH
     // ctx.translate in BRETT-Koordinaten — die Erwartung ist gx*cell+2 / gy*cell+2.
-    // Die Zelle muss SICHTBAR sein: bei 390×844 überdeckt die Tray die unterste Brettreihe
-    // (Brett-Unterkante ~696, Tray-Oberkante ~652) — ein Hover dort würde von der Tray
-    // abgefangen. Bewusst ein ereignisgetriebener Hover im selben evaluate (Proben-Stand).
+    // Die Zelle muss SICHTBAR sein: seit P-25 (Tray unter dem Frame, kein Overlay mehr)
+    // ist die ganze Brettreihe klickbar — der Filter unten misst die Tray-Rect weiterhin
+    // dynamisch und lässt jetzt ALLE schließenden Zellen zu (tray.top liegt unter dem Brett).
     const drawn = await page.evaluate(async () => {
       const root = (window as any).__simRootRef.current;
       const snap = root.getSnapshot();

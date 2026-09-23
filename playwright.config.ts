@@ -1,8 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
+ * P-35 (23.09.2026) — Last-Vorbedingung: unter paralleler Last (zweite Playwright-Instanz im
+ * selben Worktree) meldete die Lane Zeitüberschreitungen, die isoliert grün sind; ein roter
+ * Lauf war nicht mehr von einem echten Defekt unterscheidbar. `globalSetup` nimmt ein PID-Lock
+ * (`tests/e2eLock.ts`): ein zweiter Lauf bricht SOFORT mit klarer Meldung ab, statt flaky zu
+ * rot — die Lane bleibt unter Last ehrlich (Abbruch statt Scheiterndefekt).
  */
 // import dotenv from 'dotenv';
 // dotenv.config({ path: path.resolve(__dirname, '.env') });
@@ -12,8 +15,15 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './tests',
+  /* Playwright hört NUR auf *.spec.ts — die *.test.ts in `tests/` (z. B. der P-35-
+   * Garde-Vertragstest) gehören der Vitest-Suite. */
+  testMatch: '**/*.spec.ts',
+  /* P-35: Last-Vorbedingung — siehe Kommentar oben. */
+  globalSetup: './tests/e2eLock.ts',
   /* Maximum time one test can run for. */
   timeout: 60 * 1000,
+  /* P-35: die unter Last gemesse Worst-Spec braucht ihr volles Budget auch isoliert —
+   * unter Last ALLE Budgets pauschal anzuheben versteckt echte Hänger nur länger. */
   expect: {
     /**
      * Maximum time expect() should wait for the condition to be met.
