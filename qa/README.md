@@ -54,6 +54,10 @@ git worktree remove /tmp/qa-consolidation
 
 ---
 
+## Aktive Berichte
+
+- `2026-09-23_nachverifikation-v0.0.96.md` — T1/T2/T3 erledigt (R2-Neubau wirkt), W1/W2 offen (persistente Welt), Q5 in-arbeit.
+
 ## Status-Begriffe
 
 - `offen` — neu, ungelesen oder unbearbeitet
