@@ -10,12 +10,9 @@
 // F1: Im cueMode zeigt ein Pfeil-Hinweis aufs Cue-Ziel („→ HIER DRÜCKEN") statt des
 // Expandier-Hinweises — der Erstspieler erkennt die passende Aktion.
 //
-// B42 (Defekt, 19.09.2026): Der Text war im cueMode AUTOMATISCH eingeklappt („F2 Auto-Kollaps") —
-// und die eingeklappte Zeile war gleichzeitig pointer-durchlässig. Der Aufklapp-Klick war damit
-// UNERREICHBAR: In jedem Handlungsschritt sah der Spieler nur eine Titelzeile, den Rest nie.
-// Genau das war der Befund „Nachrichten klappen ein, ohne dass man sie nachlesen kann“.
-// Jetzt gilt: **Text steht, bis der Spieler ihn wegklickt oder der Schritt weitergeht** —
-// eingeklappt wird nur auf ausdrücklichen Klick (✕) und ist wieder aufklappbar (▸).
+// B42 (Defekt, 19.09.2026): Der Text bleibt im cueMode sichtbar, bis der Spieler ihn explizit
+// über „Gelesen“ einklappt. Die Handlung läuft dadurch nicht ins Unlesbare, und der sichere
+// Cue-/Layout-Vertrag verhindert gleichzeitig eine Kartenüberdeckung.
 
 import { useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
@@ -35,8 +32,10 @@ interface SpeechBubbleProps {
   hint: string;
   /** F1: Hinweis-Text, der aufs Cue-Ziel verweist (nur cueMode). */
   cueHint: string;
-  /** F2: Schritt verlangt eine Handlung am Cue-Ziel ⇒ Textkörper pointer-durchlässig,
-   *  Text eingeklappt (Auto-Kollaps), damit die Blase das Ziel nicht verdeckt. */
+  readLabel: string;
+  showLabel: string;
+  /** F2: Schritt verlangt eine Handlung am Cue-Ziel ⇒ der Text bleibt sichtbar, aber der
+   *  Textkörper ist pointer-durchlässig, damit das echte Ziel klickbar bleibt. */
   cueMode: boolean;
   /** Schwanzrichtung: zeigt zur Figur. */
   tail: 'downLeft' | 'downRight';
@@ -46,7 +45,7 @@ interface SpeechBubbleProps {
 
 /**
  * F5-Vertrag (Zonen-Lock): true ⇒ dieser Schritt rendert die DURCHLÄSSIGE Blase
- * (`frameCue`, pointer-events:none) mit dem Skip als einzigem interaktiven Kind.
+ * (`frameCue`, pointer-events:none); nur die echten Blasen-Knöpfe bleiben interaktiv.
  * Der Gate-Test liest genau diese Entscheidung — die nächste Blasen-Position kann die
  * Cue-Zone nicht wieder verdecken, ohne dass dieser Vertrag rot.
  */
@@ -54,7 +53,9 @@ export function bubbleIsPointerTransparent(cueMode: boolean): boolean {
   return cueMode;
 }/** F5: der gerenderte Rahmen-Stil — auto (normal) oder durchlässig (cueMode). Messbar gelockt. */
 export function bubbleFrameStyle(cueMode: boolean): CSSProperties {
-  return cueMode ? styles.frameCue : styles.frame;
+  // `frameCue` ist nur eine Overlay-Eigenschaft. Den Papierrahmen wieder wegzugeben war der
+  // direkte Grund für den Screenshot-Befund: Text lag ohne Hintergrund über den Hub-Karten.
+  return cueMode ? { ...styles.frame, ...styles.frameCue } : styles.frame;
 }
 
 /**
@@ -75,18 +76,18 @@ function bubbleBodyEvents(cueMode: boolean): CSSProperties {
 }
 
 export function SpeechBubble({
-  speaker, role, note, title, text, typing, pressLabel, skipLabel, hint, cueHint, cueMode, tail, onPress, onSkip,
+  speaker, role, note, title, text, typing, pressLabel, skipLabel, hint, cueHint, readLabel, showLabel,
+  cueMode, tail, onPress, onSkip,
 }: SpeechBubbleProps): ReactNode {
   // B42: Der Schritt startet IMMER mit sichtbarem Text. `dismissed` entsteht ausschließlich durch
-  // einen Klick auf „✕ Gelesen" (cueMode) — nie automatisch. Der nächste Schritt remountet die
+  // einen Klick auf „Gelesen" (cueMode) — nie automatisch. Der nächste Schritt remountet die
   // Blase (`key={view.index}` im Layer), damit jeder Schritt wieder vollständig dasteht.
   const [dismissed, setDismissed] = useState(false);
   const showText = bubbleTextVisible(cueMode, dismissed);
   return (
-    // F5 (F2-Regression, 4/4): Im cueMode ist die GESAMTE Blase pointer-durchlässig — der Rahmen
-    // selbst hat `auto` (340×200-Verdeckungszone) und fing jeden Klick aufs geführte Ziel (nur der
-    // Textkörper war durchlässig). Interaktiv bleiben NUR die echten Knöpfe (Skip) — Backdrop passthrough,
-    // Bedienelemente behalten ihre Funktion.
+    // F5 (F2-Regression, 4/4): Im cueMode ist der Rahmen pointer-durchlässig; nur die beiden
+    // echten Blasen-Knöpfe bleiben interaktiv. Das Layout Avoid-Set verhindert zusätzlich jede
+    // Verdeckung der als `data-tut-avoid` markierten Karten.
     <div className="tut-bubble" style={bubbleFrameStyle(cueMode)}>
       <span style={tail === 'downLeft' ? styles.tailLeft : styles.tailRight} aria-hidden />
       <div style={styles.header}>
@@ -131,7 +132,7 @@ export function SpeechBubble({
             aria-expanded={showText}
             title={hint}
           >
-            {showText ? '✕ Gelesen' : '▸ Notiz'}
+            {showText ? `✕ ${readLabel}` : `▸ ${showLabel}`}
           </button>
         )}
         {pressLabel && (
@@ -154,6 +155,10 @@ const styles: Record<string, CSSProperties> = {
   frame: {
     position: 'relative',
     width: 'min(340px, calc(100vw - 28px))',
+    minHeight: 128,
+    maxHeight: 'calc(100dvh - 16px)',
+    overflowY: 'auto',
+    boxSizing: 'border-box',
     padding: '14px 16px 12px',
     background: 'var(--paper-warm)',
     border: '3px solid var(--ink)',
@@ -187,24 +192,24 @@ const styles: Record<string, CSSProperties> = {
   header: {
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
+    gap: 5,
     flexWrap: 'wrap',
-    marginBottom: 8,
+    marginBottom: 5,
   },
   namePlate: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 800,
-    letterSpacing: 0.6,
+    letterSpacing: 0.4,
     textTransform: 'uppercase',
     color: 'var(--paper-warm)',
     background: 'var(--ink)',
     padding: '3px 8px',
     borderRadius: 6,
   },
-  role: { fontSize: 10, fontWeight: 700, color: '#6b6250', textTransform: 'uppercase', letterSpacing: 0.6 },
+  role: { fontSize: 9, fontWeight: 700, color: '#6b6250', textTransform: 'uppercase', letterSpacing: 0.4 },
   note: {
     marginLeft: 'auto',
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 800,
     color: 'var(--ink)',
     background: 'var(--nektar)',
@@ -232,9 +237,9 @@ const styles: Record<string, CSSProperties> = {
   // F1: der sichtbare Vorwärts-Hinweis im cueMode.
   cueHint: {
     display: 'inline-block',
-    marginTop: 8,
-    padding: '5px 10px',
-    fontSize: 12,
+    marginTop: 5,
+    padding: '3px 8px',
+    fontSize: 11,
     fontWeight: 800,
     letterSpacing: 0.8,
     color: 'var(--paper-warm)',
@@ -245,11 +250,11 @@ const styles: Record<string, CSSProperties> = {
     pointerEvents: 'none',
   },
   title: { display: 'block', fontSize: 15, fontWeight: 800, marginBottom: 5, letterSpacing: 0.2 },
-  text: { display: 'block', fontSize: 13, lineHeight: 1.42, fontWeight: 600, color: '#3a3a33', whiteSpace: 'pre-line' },
-  footer: { display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' },
+  text: { display: 'block', fontSize: 12, lineHeight: 1.3, fontWeight: 600, color: '#3a3a33', whiteSpace: 'pre-line' },
+  footer: { display: 'flex', gap: 6, marginTop: 7, flexWrap: 'wrap' },
   btn: {
-    padding: '8px 12px',
-    minHeight: 40,
+    padding: '6px 10px',
+    minHeight: 36,
     background: '#fff',
     border: '2px solid var(--ink)',
     borderRadius: 9,

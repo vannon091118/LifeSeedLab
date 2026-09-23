@@ -100,15 +100,17 @@ describe('i18n-Tutorialtexte (DE/EN)', () => {
     }
   });
 
-  it('schreibt Krix nicht sparsam: jeder Schritt hat mehrere Absätze', () => {
-    const stepKeys = Object.keys(tutorialTexts.de).filter(k => k.endsWith('.text'));
-    expect(stepKeys.length).toBeGreaterThanOrEqual(8);
-    for (const key of stepKeys) {
+  it('hält Krix knapp: eine Zeile pro Dialog, höchstens 180 Zeichen', () => {
+    const textKeys = Object.keys(tutorialTexts.de).filter(k => k.endsWith('.text'));
+    expect(textKeys).toHaveLength(20);
+    for (const key of textKeys) {
       const de = tutorialTexts.de[key as TutorialTextKey];
       const en = tutorialTexts.en[key as TutorialTextKey];
-      expect(de.split('\n').length, `${key} (DE) ist zu knapp geraten`).toBeGreaterThanOrEqual(2);
-      expect(en.split('\n').length, `${key} (EN) ist zu knapp geraten`).toBeGreaterThanOrEqual(2);
-      expect(de.length).toBeGreaterThan(80);
+      expect(de.length, `${key} (DE) ist zu knapp geraten`).toBeLessThanOrEqual(180);
+      expect(en.length, `${key} (EN) ist zu knapp geraten`).toBeLessThanOrEqual(180);
+      expect(de.includes('\n'), `${key} (DE) soll als eine Notiz kommen`).toBe(false);
+      expect(en.includes('\n'), `${key} (EN) soll als eine note kommen`).toBe(false);
+      expect(de.length, `${key} (DE) ist leer`).toBeGreaterThan(20);
     }
   });
 
@@ -122,6 +124,6 @@ describe('i18n-Tutorialtexte (DE/EN)', () => {
   it('nennt die Figur und die Zählung der Feldnotizen', () => {
     expect(tutorialText('tut.name', 'de')).toBe('Krix');
     expect(tutorialText('tut.note', 'de')).toMatch(/\{n\}\/\{m\}/);
-    expect(tutorialText('tut.cue', 'en')).toBe('PRESS HERE');
+    expect(tutorialText('tut.cue', 'en')).toBe('HERE');
   });
 });

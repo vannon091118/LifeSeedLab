@@ -23,16 +23,16 @@ Pfad: `src/components/`
 | [`GameTopBar.tsx`](./GameTopBar.tsx) | 123 | 0 | CALL 17, EXPORTS 1, IMPORTS 3, PASS 16, READ 30, RETURN 1, STRING_REFERENCE 26 |
 | [`GameView.tsx`](./GameView.tsx) | 398 | 1 | CALL 124, EXPORTS 1, IMPORTS 24, PASS 123, READ 173, RETURN 7, STRING_REFERENCE 63 |
 | [`Greenhouse.tsx`](./Greenhouse.tsx) | 268 | 1 | CALL 82, EXPORTS 1, IMPORTS 17, PASS 80, READ 109, RETURN 1, STRING_REFERENCE 42 |
-| [`MainMenu.tsx`](./MainMenu.tsx) | 208 | 1 | CALL 52, EXPORTS 1, IMPORTS 12, PASS 53, READ 73, RETURN 3, STRING_REFERENCE 50 |
+| [`MainMenu.tsx`](./MainMenu.tsx) | 217 | 1 | CALL 53, EXPORTS 1, IMPORTS 13, PASS 53, READ 73, RETURN 3, STRING_REFERENCE 54 |
 | [`MenuIcons.tsx`](./MenuIcons.tsx) | 78 | 0 | EXPORTS 7, RETURN 7, STRING_REFERENCE 125 |
 | [`MenuScreenShell.tsx`](./MenuScreenShell.tsx) | 112 | 1 | CALL 3, EXPORTS 1, IMPORTS 6, PASS 2, READ 7, RETURN 2, STRING_REFERENCE 41 |
 | [`NavIndicators.tsx`](./NavIndicators.tsx) | 198 | 1 | CALL 21, EXPORTS 2, IMPORTS 7, PASS 19, READ 39, RETURN 3, STRING_REFERENCE 80 |
 | [`PhenotypeCanvas.tsx`](./PhenotypeCanvas.tsx) | 88 | 0 | CALL 12, EXPORTS 2, IMPORTS 8, PASS 17, READ 14, RETURN 5, STRING_REFERENCE 18 |
-| [`PlacementTray.tsx`](./PlacementTray.tsx) | 277 | 0 | CALL 40, EXPORTS 3, IMPORTS 7, PASS 37, READ 48, RETURN 10, STRING_REFERENCE 130 |
+| [`PlacementTray.tsx`](./PlacementTray.tsx) | 279 | 0 | CALL 40, EXPORTS 3, IMPORTS 7, PASS 37, READ 48, RETURN 10, STRING_REFERENCE 132 |
 | [`ScreenTransition.tsx`](./ScreenTransition.tsx) | 45 | 0 | CALL 13, EXPORTS 1, IMPORTS 1, PASS 15, READ 5, RETURN 3, STRING_REFERENCE 11 |
 | [`SeedShop.tsx`](./SeedShop.tsx) | 138 | 1 | CALL 31, EXPORTS 1, IMPORTS 8, PASS 29, READ 39, RETURN 1, STRING_REFERENCE 86 |
-| [`StartScreen.tsx`](./StartScreen.tsx) | 213 | 1 | CALL 12, EXPORTS 1, IMPORTS 5, PASS 11, READ 20, RETURN 1, STRING_REFERENCE 127 |
-| [`components_tutorial.test.ts`](./components_tutorial.test.ts) | 300 | 0 | CALL 347, IMPORTS 4, PASS 319, READ 311, RETURN 2, STRING_REFERENCE 184 |
+| [`StartScreen.tsx`](./StartScreen.tsx) | 213 | 1 | CALL 12, EXPORTS 1, IMPORTS 5, PASS 11, READ 20, RETURN 1, STRING_REFERENCE 129 |
+| [`components_tutorial.test.ts`](./components_tutorial.test.ts) | 272 | 0 | CALL 370, IMPORTS 5, PASS 338, READ 328, RETURN 2, STRING_REFERENCE 211 |
 | [`createdBy.test.ts`](./createdBy.test.ts) | 52 | 0 | CALL 51, IMPORTS 3, PASS 48, READ 49, STRING_REFERENCE 21 |
 | [`fieldNotice.ts`](./fieldNotice.ts) | 53 | 3 | EXPORTS 2, IMPORTS 1, READ 7, RETURN 3, STRING_REFERENCE 8 |
 | [`gameIcons.test.tsx`](./gameIcons.test.tsx) | 30 | 0 | CALL 17, IMPORTS 3, PASS 17, READ 8, STRING_REFERENCE 14 |
@@ -56,14 +56,14 @@ Pfad: `src/components/`
 | [`placementTray.test.ts`](./placementTray.test.ts) | 67 | 0 | CALL 48, IMPORTS 3, PASS 47, READ 21, RETURN 1, STRING_REFERENCE 19 |
 | [`plantLabels.test.ts`](./plantLabels.test.ts) | 42 | 0 | CALL 35, IMPORTS 5, PASS 28, READ 30, STRING_REFERENCE 15 |
 | [`plantLabels.ts`](./plantLabels.ts) | 34 | 0 | EXPORTS 4, IMPORTS 3, READ 11, RETURN 4, STRING_REFERENCE 4 |
-| [`qa_befunde.test.ts`](./qa_befunde.test.ts) | 142 | 0 | CALL 102, IMPORTS 7, PASS 92, READ 62, RETURN 1, STRING_REFERENCE 48 |
+| [`qa_befunde.test.ts`](./qa_befunde.test.ts) | 144 | 0 | CALL 108, IMPORTS 7, PASS 98, READ 66, RETURN 1, STRING_REFERENCE 50 |
 | [`shopPools.ts`](./shopPools.ts) | 54 | 1 | CALL 5, EXPORTS 3, IMPORTS 3, PASS 5, READ 11, RETURN 4, STRING_REFERENCE 4 |
-| [`tutorial/SpeechBubble.tsx`](./tutorial/SpeechBubble.tsx) | 264 | 0 | CALL 5, EXPORTS 4, IMPORTS 2, PASS 5, READ 22, RETURN 5, STRING_REFERENCE 84 |
+| [`tutorial/SpeechBubble.tsx`](./tutorial/SpeechBubble.tsx) | 269 | 0 | CALL 5, EXPORTS 4, IMPORTS 2, PASS 5, READ 22, RETURN 5, STRING_REFERENCE 85 |
 | [`tutorial/Stickman.tsx`](./tutorial/Stickman.tsx) | 146 | 0 | CALL 7, EXPORTS 1, IMPORTS 1, PASS 7, READ 25, RETURN 4, STRING_REFERENCE 172 |
 | [`tutorial/TutorialLayer.tsx`](./tutorial/TutorialLayer.tsx) | 154 | 1 | CALL 31, EXPORTS 2, IMPORTS 6, PASS 33, READ 24, RETURN 5, STRING_REFERENCE 9 |
-| [`tutorial/TutorialOverlay.tsx`](./tutorial/TutorialOverlay.tsx) | 269 | 0 | CALL 83, EXPORTS 1, IMPORTS 8, PASS 76, READ 134, RETURN 13, STRING_REFERENCE 77 |
-| [`tutorial/controller.ts`](./tutorial/controller.ts) | 152 | 0 | CALL 5, EXPORTS 3, IMPORTS 1, PASS 5, READ 77, RETURN 20, STRING_REFERENCE 14 |
-| [`tutorial/script.ts`](./tutorial/script.ts) | 111 | 1 | EXPORTS 10, READ 4, RETURN 4, STRING_REFERENCE 133 |
+| [`tutorial/TutorialOverlay.tsx`](./tutorial/TutorialOverlay.tsx) | 307 | 0 | CALL 115, EXPORTS 1, IMPORTS 9, PASS 108, READ 177, RETURN 17, STRING_REFERENCE 85 |
+| [`tutorial/controller.ts`](./tutorial/controller.ts) | 128 | 0 | CALL 6, EXPORTS 3, IMPORTS 1, PASS 6, READ 92, RETURN 26, STRING_REFERENCE 21 |
+| [`tutorial/script.ts`](./tutorial/script.ts) | 86 | 1 | EXPORTS 13, READ 4, RETURN 4, STRING_REFERENCE 227 |
 | [`tutorial/useTypewriter.ts`](./tutorial/useTypewriter.ts) | 47 | 0 | CALL 16, EXPORTS 2, IMPORTS 1, PASS 19, READ 22, RETURN 6, STRING_REFERENCE 3 |
 | [`waveButton.test.ts`](./waveButton.test.ts) | 77 | 0 | CALL 77, IMPORTS 8, PASS 73, READ 50, STRING_REFERENCE 39 |
 | [`waveButton.ts`](./waveButton.ts) | 56 | 0 | CALL 1, EXPORTS 1, IMPORTS 2, PASS 1, READ 5, RETURN 5, STRING_REFERENCE 13 |
@@ -78,7 +78,7 @@ Pfad: `src/components/`
 | `BeetleLab` | function | `src/components/BeetleLab.tsx` | 28 |
 | `BookIcon` | function | `src/components/MenuIcons.tsx` | 39 |
 | `BugIcon` | function | `src/components/MenuIcons.tsx` | 68 |
-| `CUE_SELECTORS` | const | `src/components/tutorial/script.ts` | 97 |
+| `CUE_SELECTORS` | const | `src/components/tutorial/script.ts` | 72 |
 | `Codex` | function | `src/components/Codex.tsx` | 24 |
 | `CodexGlyph` | function | `src/components/GameIcons.tsx` | 66 |
 | `CreatedBy` | function | `src/components/CreatedBy.tsx` | 68 |
@@ -95,7 +95,7 @@ Pfad: `src/components/`
 | `GreenhouseGlyph` | function | `src/components/GameIcons.tsx` | 26 |
 | `HudSnapshot` | interface | `src/components/hudSnapshot.ts` | 9 |
 | `LivesChipIcon` | function | `src/components/GameIcons.tsx` | 11 |
-| `MainMenu` | function | `src/components/MainMenu.tsx` | 31 |
+| `MainMenu` | function | `src/components/MainMenu.tsx` | 32 |
 | `MarginMark` | function | `src/components/CreatedBy.tsx` | 53 |
 | `MenuScreen` | type | `src/components/NavIndicators.tsx` | 26 |
 | `MenuScreenShell` | function | `src/components/MenuScreenShell.tsx` | 20 |
@@ -113,7 +113,7 @@ Pfad: `src/components/`
 | `PoolOffer` | interface | `src/components/shopPools.ts` | 20 |
 | `PotRow` | function | `src/components/greenhouse/PotRow.tsx` | 15 |
 | `ResultCard` | function | `src/components/greenhouse/ResultCard.tsx` | 17 |
-| `SCREEN_RANK` | const | `src/components/tutorial/script.ts` | 56 |
+| `SCREEN_RANK` | const | `src/components/tutorial/script.ts` | 38 |
 | `SIGNATURE_FRAGMENTS` | const | `src/components/CreatedBy.tsx` | 37 |
 | `ScreenTransition` | function | `src/components/ScreenTransition.tsx` | 13 |
 | `SeedIcon` | function | `src/components/MenuIcons.tsx` | 59 |
@@ -121,34 +121,37 @@ Pfad: `src/components/`
 | `SeedlingTray` | function | `src/components/greenhouse/SeedlingTray.tsx` | 15 |
 | `ShopGlyph` | function | `src/components/GameIcons.tsx` | 39 |
 | `SlotBuyButton` | function | `src/components/greenhouse/SlotBuyButton.tsx` | 16 |
-| `SpeechBubble` | function | `src/components/tutorial/SpeechBubble.tsx` | 77 |
+| `SpeechBubble` | function | `src/components/tutorial/SpeechBubble.tsx` | 78 |
 | `SproutIcon` | function | `src/components/MenuIcons.tsx` | 4 |
 | `StartScreen` | function | `src/components/StartScreen.tsx` | 23 |
 | `Stickman` | function | `src/components/tutorial/Stickman.tsx` | 51 |
-| `StickmanPose` | type | `src/components/tutorial/script.ts` | 16 |
+| `StickmanPose` | type | `src/components/tutorial/script.ts` | 6 |
 | `SwordIcon` | function | `src/components/MenuIcons.tsx` | 49 |
 | `TOAST_TICKS` | const | `src/components/FieldToast.tsx` | 14 |
-| `TUTORIAL_STEPS` | const | `src/components/tutorial/script.ts` | 74 |
-| `TUTORIAL_VERSION` | const | `src/components/tutorial/script.ts` | 72 |
-| `TutorialController` | class | `src/components/tutorial/controller.ts` | 44 |
-| `TutorialCue` | type | `src/components/tutorial/script.ts` | 22 |
+| `TUTORIAL_STEPS` | const | `src/components/tutorial/script.ts` | 49 |
+| `TUTORIAL_VERSION` | const | `src/components/tutorial/script.ts` | 47 |
+| `TutorialController` | class | `src/components/tutorial/controller.ts` | 27 |
+| `TutorialCue` | type | `src/components/tutorial/script.ts` | 9 |
 | `TutorialLayer` | function | `src/components/tutorial/TutorialLayer.tsx` | 123 |
-| `TutorialOverlay` | function | `src/components/tutorial/TutorialOverlay.tsx` | 44 |
+| `TutorialOverlay` | function | `src/components/tutorial/TutorialOverlay.tsx` | 56 |
+| `TutorialPhase` | type | `src/components/tutorial/script.ts` | 8 |
 | `TutorialProvider` | function | `src/components/tutorial/TutorialLayer.tsx` | 55 |
-| `TutorialSnapshot` | interface | `src/components/tutorial/controller.ts` | 21 |
-| `TutorialStep` | interface | `src/components/tutorial/script.ts` | 38 |
-| `TutorialStepId` | type | `src/components/tutorial/script.ts` | 52 |
-| `TutorialView` | interface | `src/components/tutorial/controller.ts` | 35 |
+| `TutorialScreen` | type | `src/components/tutorial/script.ts` | 7 |
+| `TutorialSignal` | type | `src/components/tutorial/script.ts` | 10 |
+| `TutorialSnapshot` | interface | `src/components/tutorial/controller.ts` | 10 |
+| `TutorialStep` | interface | `src/components/tutorial/script.ts` | 17 |
+| `TutorialStepId` | type | `src/components/tutorial/script.ts` | 32 |
+| `TutorialView` | interface | `src/components/tutorial/controller.ts` | 19 |
 | `WaveChipIcon` | function | `src/components/GameIcons.tsx` | 21 |
 | `WaveIcon` | function | `src/components/MenuIcons.tsx` | 30 |
-| `bubbleFrameStyle` | function | `src/components/tutorial/SpeechBubble.tsx` | 56 |
-| `bubbleIsPointerTransparent` | function | `src/components/tutorial/SpeechBubble.tsx` | 53 |
-| `bubbleTextVisible` | function | `src/components/tutorial/SpeechBubble.tsx` | 65 |
+| `bubbleFrameStyle` | function | `src/components/tutorial/SpeechBubble.tsx` | 55 |
+| `bubbleIsPointerTransparent` | function | `src/components/tutorial/SpeechBubble.tsx` | 52 |
+| `bubbleTextVisible` | function | `src/components/tutorial/SpeechBubble.tsx` | 66 |
 | `canAfford` | function | `src/components/shopPools.ts` | 52 |
-| `cardPress` | function | `src/components/PlacementTray.tsx` | 217 |
-| `cardsWithStock` | function | `src/components/PlacementTray.tsx` | 200 |
+| `cardPress` | function | `src/components/PlacementTray.tsx` | 219 |
+| `cardsWithStock` | function | `src/components/PlacementTray.tsx` | 202 |
 | `countsAsPlacement` | function | `src/components/placementSignal.ts` | 10 |
-| `cueSelector` | function | `src/components/tutorial/script.ts` | 109 |
+| `cueSelector` | function | `src/components/tutorial/script.ts` | 84 |
 | `findVariant` | function | `src/components/greenhouse/greenhouseHelpers.ts` | 33 |
 | `formatScore` | function | `src/components/numberFormat.ts` | 7 |
 | `gameViewStyles` | const | `src/components/gameViewStyles.ts` | 6 |
@@ -162,7 +165,7 @@ Pfad: `src/components/`
 | `poolOffers` | function | `src/components/shopPools.ts` | 31 |
 | `prefersReducedMotion` | function | `src/components/tutorial/useTypewriter.ts` | 44 |
 | `rejectTextKey` | function | `src/components/FieldToast.tsx` | 65 |
-| `screenRank` | function | `src/components/tutorial/script.ts` | 59 |
+| `screenRank` | function | `src/components/tutorial/script.ts` | 40 |
 | `styles` | const | `src/components/greenhouse/greenhouseStyles.ts` | 3 |
 | `tileLabelFallback` | function | `src/components/plantLabels.ts` | 32 |
 | `tileLabelKey` | function | `src/components/plantLabels.ts` | 23 |

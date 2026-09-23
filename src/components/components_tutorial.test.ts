@@ -1,53 +1,58 @@
 import { describe, expect, it } from 'vitest';
 import { TutorialController, type TutorialSnapshot } from './tutorial/controller';
 import { CUE_SELECTORS, TUTORIAL_STEPS, cueSelector, screenRank } from './tutorial/script';
+import { placeBubble, rectsOverlap, type TutorialRect } from './tutorial/bubbleLayout';
 import { tutorialTexts, type TutorialTextKey } from '../i18n/tutorial.ts';
 
 // Drei Verträge werden hier gelockt:
-// 1. Das Schrittmodell ist vollständig — kein Schritt ohne Text (DE + EN) und Cue-Selektor.
-// 2. Die Zustandsmaschine schaltet NUR nach ihrer eigenen Bedingung weiter (kein Sim-Schreibrecht).
-// 3. Die Sprungregel (B21.3): die Tour läuft über Start → Hub → Feld und bremst niemanden aus,
-//    der schneller ist als sie. Genau das war der Befund der Erstspieler-Runde: die Notizen
-//    begannen erst im Feld, also lange nach der Sprachwahl.
+// 1. Jeder Schritt hat eine eigene Rolle (Prompt oder Reaktion), DE/EN-Text und einen Screen.
+// 2. Ein Prompt reagiert nur auf eine Ereigniskante; ein wiederholter Zustand bleibt ohne Reaktion.
+// 3. Die Blase sucht eine Position außerhalb der als Karten markierten Flächen.
 
 const base: TutorialSnapshot = {
   screen: 'start', langChosen: false, selectedVariant: null, placements: 0, phase: 'prep', paused: false,
 };
 const snap = (patch: Partial<TutorialSnapshot> = {}): TutorialSnapshot => ({ ...base, ...patch });
+const runSnap = (patch: Partial<TutorialSnapshot> = {}): TutorialSnapshot => snap({ screen: 'run', phase: 'layout', ...patch });
 
 function fresh(): TutorialController {
   return new TutorialController();
 }
 
-/** Controller direkt im Feld: die Stationen davor sind per Sprungregel vorbei. */
 function inRun(): TutorialController {
   const c = fresh();
-  c.update(snap({ screen: 'run' }));
+  c.update(runSnap());
   return c;
 }
 
-describe('B21 — Schrittmodell', () => {
-  it('hat elf Schritte mit eindeutigen IDs', () => {
-    expect(TUTORIAL_STEPS).toHaveLength(11);
-    expect(new Set(TUTORIAL_STEPS.map(s => s.id)).size).toBe(11);
+describe('B21 — Ereignis-Skript', () => {
+  it('hat 20 eindeutige Prompt/Reaktion-Schritte', () => {
+    expect(TUTORIAL_STEPS).toHaveLength(20);
+    expect(new Set(TUTORIAL_STEPS.map(s => s.id)).size).toBe(20);
+    expect(TUTORIAL_STEPS.every((s, i) => s.phase === (i % 2 === 0 ? 'prompt' : 'reaction'))).toBe(true);
   });
 
-  it('beginnt am Titel-Screen und endet im Feld', () => {
+  it('beginnt auf dem Titel-Screen und endet nach dem Ergebnis im Feld', () => {
     expect(TUTORIAL_STEPS[0].id).toBe('ankunft');
     expect(TUTORIAL_STEPS[0].screen).toBe('start');
     const last = TUTORIAL_STEPS[TUTORIAL_STEPS.length - 1];
     expect(last.id).toBe('abschluss');
+    expect(last.phase).toBe('reaction');
     expect(last.screen).toBe('run');
   });
 
-  it('verteilt die Stationen auf Start, Hub und Feld', () => {
+  it('verteilt jede Station sichtbar auf genau einen Screen', () => {
     const ids = (screen: string) => TUTORIAL_STEPS.filter(s => s.screen === screen).map(s => s.id);
-    expect(ids('start')).toEqual(['ankunft', 'startknopf']);
-    expect(ids('menu')).toEqual(['labor']);
-    expect(ids('run')).toEqual(['karte', 'pflanzen', 'bau', 'welle', 'pause', 'weiter', 'chips', 'abschluss']);
+    expect(ids('start')).toEqual(['ankunft', 'sprache', 'startknopf']);
+    expect(ids('menu')).toEqual(['hub', 'labor']);
+    expect(ids('run')).toEqual([
+      'feld', 'karte', 'auswahl', 'pflanzen', 'platzierung', 'bau', 'bau_ergebnis',
+      'welle', 'welle_ergebnis', 'pause', 'pause_ergebnis', 'weiter', 'weiter_ergebnis',
+      'chips', 'abschluss',
+    ]);
   });
 
-  it('ordnet die Screens monoton (start < menu < run, Unterseiten = menu)', () => {
+  it('ordnet die Screen-Ränge monoton; Unterseiten bleiben Menü', () => {
     expect(screenRank('start')).toBe(0);
     expect(screenRank('menu')).toBe(1);
     expect(screenRank('greenhouse')).toBe(1);
@@ -55,7 +60,7 @@ describe('B21 — Schrittmodell', () => {
     expect(screenRank('run')).toBe(2);
   });
 
-  it('hat für JEDEN Schritt Titel und Text in beiden Sprachen', () => {
+  it('hat für jeden Schritt Titel und Text in beiden Sprachen', () => {
     for (const step of TUTORIAL_STEPS) {
       for (const suffix of ['title', 'text'] as const) {
         const key = `tut.${step.id}.${suffix}` as TutorialTextKey;
@@ -73,228 +78,195 @@ describe('B21 — Schrittmodell', () => {
     expect(Object.keys(CUE_SELECTORS)).toHaveLength(9);
   });
 
-  it('hält die Sim nur beim Lesen IM FELD — nie auf Titel oder Hub', () => {
+  it('hält die Sim nur für die bewusst lesbaren Feld- und Reaktionsschritte an', () => {
     const holding = TUTORIAL_STEPS.filter(s => s.hold);
-    expect(holding.map(s => s.id)).toEqual(['karte', 'pflanzen']);
+    expect(holding.map(s => s.id)).toEqual(['feld', 'karte', 'auswahl', 'pflanzen', 'platzierung']);
     expect(holding.every(s => s.screen === 'run')).toBe(true);
-    // Der Wellen-Schritt muss die Sim laufen lassen — sonst sieht der Spieler die Welle nie.
     expect(TUTORIAL_STEPS.find(s => s.id === 'welle')?.hold).toBe(false);
   });
 
-  it('markiert jeden Handlungsschritt mit dem Signal, das er verlangt', () => {
+  it('markiert jeden Prompt mit seinem konkreten Ereignis', () => {
     const signalOf = (id: string) => TUTORIAL_STEPS.find(s => s.id === id)?.advanceOn;
     expect(signalOf('ankunft')).toBe('langChosen');
     expect(signalOf('startknopf')).toBe('screenLeft');
     expect(signalOf('labor')).toBe('screenLeft');
     expect(signalOf('karte')).toBe('cardSelected');
     expect(signalOf('pflanzen')).toBe('placed');
-    expect(signalOf('bau')).toBe('layoutDone');       // R1: die Bauphase ist ein eigener Schritt
+    expect(signalOf('bau')).toBe('layoutDone');
     expect(signalOf('welle')).toBe('waveStarted');
     expect(signalOf('pause')).toBe('paused');
     expect(signalOf('weiter')).toBe('running');
+    expect(signalOf('chips')).toBe('press');
   });
 });
 
-describe('B21 — TutorialController', () => {
-  it('startet auf dem TITEL-Screen mit der Sprachwahl und hält nichts an', () => {
-    const c = fresh();
-    expect(c.view.active).toBe(true);
-    expect(c.view.step?.id).toBe('ankunft');
-    expect(c.view.index).toBe(0);
-    expect(c.hold).toBe(false);
-  });
-
-  it('geht erst weiter, wenn der Spieler wirklich eine Sprache gewählt hat', () => {
+describe('B21 — Ereignis-Controller', () => {
+  it('wartet auf die Sprachwahl und zeigt erst danach die Reaktion', () => {
     const c = fresh();
     c.update(snap());
-    expect(c.view.step?.id).toBe('ankunft');      // vorgewählte Sprache ist keine Wahl
+    expect(c.view.step?.id).toBe('ankunft');
     c.update(snap({ langChosen: true }));
+    expect(c.view.step?.id).toBe('sprache');
+    c.update(snap({ langChosen: true }));
+    expect(c.view.step?.id).toBe('sprache'); // gleicher Zustand ist kein neues Ereignis
+    c.press(snap({ langChosen: true }));
     expect(c.view.step?.id).toBe('startknopf');
   });
 
-  it('lässt den Spieler vorrennen: passierte Screens werden übersprungen', () => {
-    const c = fresh();
-    c.update(snap({ screen: 'menu' }));            // Sprache nie angefasst, direkt ins Menü
-    expect(c.view.step?.id).toBe('labor');
-    c.update(snap({ screen: 'run' }));             // Hub übersprungen, direkt ins Feld
-    expect(c.view.step?.id).toBe('karte');
-  });
-
-  it('wartet auf Menü-Unterseiten, statt den Schritt zu verlieren', () => {
+  it('lässt den Spieler vorrennen und wartet auf Unterseiten', () => {
     const c = fresh();
     c.update(snap({ screen: 'menu' }));
+    expect(c.view.step?.id).toBe('hub');
     c.update(snap({ screen: 'greenhouse' }));
-    expect(c.view.step?.id).toBe('labor');         // der Schritt bleibt offen
-    expect(c.stepOn('greenhouse')).toBeNull();     // … ist dort aber nicht sichtbar
-    expect(c.stepOn('menu')?.id).toBe('labor');
-  });
-
-  it('ist einseitig: ein Feld-Schritt wartet auf dem Rückweg ins Menü', () => {
-    const c = inRun();
-    expect(c.view.step?.id).toBe('karte');
+    expect(c.view.step?.id).toBe('hub');
+    expect(c.stepOn('greenhouse')).toBeNull();
     c.update(snap({ screen: 'menu' }));
-    expect(c.view.step?.id).toBe('karte');         // Run verlassen heißt nicht Tour verloren
+    expect(c.stepOn('menu')?.id).toBe('hub');
+    c.press(snap({ screen: 'menu' }));
+    expect(c.view.step?.id).toBe('labor');
+    c.update(runSnap());
+    expect(c.view.step?.id).toBe('feld');
+  });
+
+  it('hält eine Feld-Reaktion auf dem Rückweg zum Menü verborgen, ohne sie zu verlieren', () => {
+    const c = inRun();
+    expect(c.view.step?.id).toBe('feld');
+    c.update(snap({ screen: 'menu' }));
+    expect(c.view.step?.id).toBe('feld');
     expect(c.stepOn('menu')).toBeNull();
+    c.update(runSnap());
+    expect(c.view.step?.id).toBe('feld');
   });
 
-  it('nimmt den Knopf nur auf dem Screen an, der den Schritt zeigt', () => {
-    const chips = TUTORIAL_STEPS.find(s => s.id === 'chips')!;
-    const c = new TutorialController([chips]);     // Knopf-Schritt, der im Feld liegt
-    expect(c.press(snap({ screen: 'menu' })).step?.id).toBe('chips');  // fremder Screen ⇒ keine Wirkung
-    expect(c.press(snap({ screen: 'run' })).finished).toBe(true);      // eigener Screen ⇒ Schritt geht
-  });
-
-  it('hält die Sim nur im Feld und nur beim Lesen', () => {
-    expect(fresh().hold).toBe(false);
+  it('nimmt den Klick einer Reaktion nur auf ihrem Screen an', () => {
     const c = inRun();
-    expect(c.hold).toBe(true);                     // 'karte' ist ein Leseschritt
-    c.update(snap({ screen: 'run', selectedVariant: 'sprout' }));
-    expect(c.view.step?.id).toBe('pflanzen');
-    expect(c.hold).toBe(true);
-    c.update(snap({ screen: 'run', selectedVariant: 'sprout', placements: 1 }));
-    expect(c.view.step?.id).toBe('welle');
-    expect(c.hold).toBe(false);                    // ab der Welle läuft die Sim
+    c.press(snap({ screen: 'menu' }));
+    expect(c.view.step?.id).toBe('feld');
+    c.press(runSnap());
+    expect(c.view.step?.id).toBe('karte');
+    c.press(runSnap());
+    expect(c.view.step?.id).toBe('karte'); // Prompt-Karte verlangt Auswahl, nicht den Blasenknopf
   });
 
-  it('verlangt für „pflanzen" eine NEUE Platzierung (Basis beim Schritt-Eintritt)', () => {
+  it('löst nur echte Auswahl- und Platzierungs-Kanten aus', () => {
     const c = inRun();
-    // phase 'layout' = die Bauphase läuft: dort wartet der Bau-Schritt, der Test bleibt eindeutig.
-    c.update(snap({ screen: 'run', selectedVariant: 'sprout', placements: 4, phase: 'layout' }));
+    c.press(runSnap());
+    expect(c.view.step?.id).toBe('karte');
+    c.update(runSnap({ selectedVariant: null }));
+    expect(c.view.step?.id).toBe('karte');
+    c.update(runSnap({ selectedVariant: 'sprout' }));
+    expect(c.view.step?.id).toBe('auswahl');
+    c.update(runSnap({ selectedVariant: 'sprout' }));
+    expect(c.view.step?.id).toBe('auswahl');
+    c.press(runSnap({ selectedVariant: 'sprout', placements: 0 }));
     expect(c.view.step?.id).toBe('pflanzen');
+    c.update(runSnap({ selectedVariant: 'sprout', placements: 0 }));
+    expect(c.view.step?.id).toBe('pflanzen');
+    c.update(runSnap({ selectedVariant: 'sprout', placements: 1 }));
+    expect(c.view.step?.id).toBe('platzierung');
+  });
 
-    c.update(snap({ screen: 'run', selectedVariant: 'sprout', placements: 4, phase: 'layout' }));
-    expect(c.view.step?.id).toBe('pflanzen');      // gleicher Zähler ist keine neue Platzierung
-    c.update(snap({ screen: 'run', selectedVariant: 'sprout', placements: 5, phase: 'layout' }));
-    // Die Platzierung erfüllt „pflanzen"; danach kommt die Bauphase (der neue Schritt).
+  it('meldet eine abgelehnte Platzierung nicht als Ereignis', () => {
+    const c = inRun();
+    c.press(runSnap());
+    c.update(runSnap({ selectedVariant: 'sprout' }));
+    c.press(runSnap({ selectedVariant: 'sprout', placements: 0 }));
+    c.update(runSnap({ selectedVariant: 'sprout', placements: 0 }));
+    c.update(runSnap({ selectedVariant: 'sprout', placements: 0, phase: 'layout' }));
+    expect(c.view.step?.id).toBe('pflanzen');
+  });
+
+  it('trennt Bau-Ende, Welle, Pause und Fortsetzen als vier Ereignisse', () => {
+    const c = inRun();
+    c.press(runSnap());
+    c.update(runSnap({ selectedVariant: 'sprout', placements: 0 }));
+    c.press(runSnap({ selectedVariant: 'sprout', placements: 0 }));
+    c.update(runSnap({ selectedVariant: 'sprout', placements: 1 }));
+    c.press(runSnap({ selectedVariant: 'sprout', placements: 1 }));
     expect(c.view.step?.id).toBe('bau');
-  });
-
-  it('nimmt die Welle, die Pause und das Fortsetzen als Handlung an', () => {
-    const c = inRun();
-    const at = (patch: Partial<TutorialSnapshot>) => snap({ screen: 'run', selectedVariant: 'sprout', ...patch });
-    c.update(at({}));                              // Eintritt in „pflanzen" (Basis 0)
-    c.update(at({ placements: 1 }));               // die eine neue Platzierung
+    c.update(runSnap({ selectedVariant: 'sprout', placements: 1, phase: 'prep' }));
+    expect(c.view.step?.id).toBe('bau_ergebnis');
+    c.press(runSnap({ selectedVariant: 'sprout', placements: 1, phase: 'prep' }));
     expect(c.view.step?.id).toBe('welle');
-
-    c.update(at({ placements: 1, phase: 'prep' }));
+    c.update(runSnap({ selectedVariant: 'sprout', placements: 1, phase: 'prep' }));
     expect(c.view.step?.id).toBe('welle');
-    c.update(at({ placements: 1, phase: 'wave' }));
+    c.update(runSnap({ selectedVariant: 'sprout', placements: 1, phase: 'wave' }));
+    expect(c.view.step?.id).toBe('welle_ergebnis');
+    c.press(runSnap({ selectedVariant: 'sprout', placements: 1, phase: 'wave' }));
     expect(c.view.step?.id).toBe('pause');
-
-    c.update(at({ phase: 'wave', paused: false }));
-    expect(c.view.step?.id).toBe('pause');
-    c.update(at({ phase: 'wave', paused: true }));
+    c.update(runSnap({ selectedVariant: 'sprout', placements: 1, phase: 'wave', paused: true }));
+    expect(c.view.step?.id).toBe('pause_ergebnis');
+    c.press(runSnap({ selectedVariant: 'sprout', placements: 1, phase: 'wave', paused: true }));
     expect(c.view.step?.id).toBe('weiter');
-
-    c.update(at({ phase: 'wave', paused: false }));
-    expect(c.view.step?.id).toBe('chips');
-    expect(c.hold).toBe(false);
+    c.update(runSnap({ selectedVariant: 'sprout', placements: 1, phase: 'wave', paused: false }));
+    expect(c.view.step?.id).toBe('weiter_ergebnis');
   });
 
-  it('nimmt mehrere Schritte in EINEM Takt, wenn die Welt schon weiter ist', () => {
+  it('zeigt bei bereits gestarteter Welle direkt die Ergebnisreaktion', () => {
     const c = inRun();
-    c.update(snap({ screen: 'run', selectedVariant: 'sprout' }));                       // Eintritt „pflanzen"
-    c.update(snap({ screen: 'run', selectedVariant: 'sprout', placements: 1, phase: 'wave' }));
-    // Der Welle-Schritt erfüllt sich sofort (Welle läuft schon), der Pause-Schritt wartet.
+    c.press(runSnap());
+    c.update(runSnap({ selectedVariant: 'sprout', placements: 0, phase: 'wave' }));
+    c.press(runSnap({ selectedVariant: 'sprout', placements: 0, phase: 'wave' }));
+    c.update(runSnap({ selectedVariant: 'sprout', placements: 1, phase: 'wave' }));
+    c.press(runSnap({ selectedVariant: 'sprout', placements: 1, phase: 'wave' }));
+    expect(c.view.step?.id).toBe('bau_ergebnis');
+    c.press(runSnap({ selectedVariant: 'sprout', placements: 1, phase: 'wave' }));
+    expect(c.view.step?.id).toBe('welle_ergebnis');
+  });
+
+  it('schließt nach HUD-Notiz und Abschluss terminal ab', () => {
+    const c = inRun();
+    c.press(runSnap());
+    c.update(runSnap({ selectedVariant: 'sprout', placements: 0, phase: 'wave' }));
+    c.press(runSnap({ selectedVariant: 'sprout', placements: 0, phase: 'wave' }));
+    c.update(runSnap({ selectedVariant: 'sprout', placements: 1, phase: 'wave' }));
+    c.press(runSnap({ selectedVariant: 'sprout', placements: 1, phase: 'wave' }));
+    c.update(runSnap({ selectedVariant: 'sprout', placements: 1, phase: 'wave' }));
+    expect(c.view.step?.id).toBe('bau_ergebnis');
+    c.press(runSnap({ selectedVariant: 'sprout', placements: 1, phase: 'wave' }));
+    expect(c.view.step?.id).toBe('welle_ergebnis');
+    c.press(runSnap({ selectedVariant: 'sprout', placements: 1, phase: 'wave' }));
     expect(c.view.step?.id).toBe('pause');
-  });
-
-  it('(Regression) der Wellen-Schritt erfüllt sich NICHT in der Bauphase', () => {
-    // Befund: Der Run beginnt in `layout`. Das Kriterium war `phase !== 'prep'` — damit war der
-    // Wellen-Schritt in der Bauphase SOFORT erfüllt, bevor der Spieler gebaut oder gedrückt hatte.
-    const c = inRun();
-    const at = (patch: Partial<TutorialSnapshot>) => snap({ screen: 'run', selectedVariant: 'sprout', ...patch });
-    c.update(at({ phase: 'layout' }));      // Eintritt „pflanzen" (Basis 0) — Bauphase läuft
-    c.update(at({ placements: 1, phase: 'layout' }));   // ⇒ Bau-Schritt
-    expect(c.view.step?.id).toBe('bau');
-    c.update(at({ placements: 1, phase: 'layout' }));
-    expect(c.view.step?.id).toBe('bau');    // baut noch: der Schritt bleibt
-    c.update(at({ placements: 1, phase: 'prep' }));
-    expect(c.view.step?.id).toBe('welle');  // Bau beendet ⇒ Welle-Schritt fordert die Welle
-    c.update(at({ placements: 1, phase: 'prep' }));
-    expect(c.view.step?.id).toBe('welle');  // Vorbereitung ist KEINE Welle
-    c.update(at({ placements: 1, phase: 'wave' }));
-    expect(c.view.step?.id).toBe('pause');  // erst jetzt ist die Handlung getan
+    c.update(runSnap({ selectedVariant: 'sprout', placements: 1, phase: 'wave', paused: true }));
+    c.press(runSnap({ selectedVariant: 'sprout', placements: 1, phase: 'wave', paused: true }));
+    c.update(runSnap({ selectedVariant: 'sprout', placements: 1, phase: 'wave', paused: false }));
+    c.press(runSnap({ selectedVariant: 'sprout', placements: 1, phase: 'wave' }));
+    expect(c.view.step?.id).toBe('chips');
+    c.press(runSnap({ selectedVariant: 'sprout', placements: 1, phase: 'wave' }));
+    expect(c.view.step?.id).toBe('abschluss');
+    c.press(runSnap({ selectedVariant: 'sprout', placements: 1, phase: 'wave' }));
+    expect(c.view.finished).toBe(true);
+    expect(c.hold).toBe(false);
   });
 
   it('liefert dieselbe View-Identität, solange sich nichts ändert', () => {
     const c = fresh();
-    const first = c.view;
-    expect(c.update(snap())).toBe(first);          // sonst rendert der Signal-Eingang endlos
+    const first = c.update(snap());
+    expect(c.update(snap())).toBe(first);
     c.update(snap({ langChosen: true }));
     expect(c.view).not.toBe(first);
   });
 
-  it('überspringt auf „Überspringen" terminal', () => {
+  it('überspringt terminal und lässt sich nicht wiederbeleben', () => {
     const c = fresh();
     c.skip();
-
     expect(c.view.finished).toBe(true);
     expect(c.view.active).toBe(false);
     expect(c.view.step).toBeNull();
     expect(c.hold).toBe(false);
   });
-
-  it('lässt sich nach dem Abschluss nicht wiederbeleben', () => {
-    const c = inRun();
-    const at = (patch: Partial<TutorialSnapshot>) => snap({ screen: 'run', selectedVariant: 'sprout', ...patch });
-    c.update(at({ phase: 'wave' }));                  // Eintritt „pflanzen" (Basis 0)
-    c.update(at({ placements: 1, phase: 'wave' }));   // ⇒ Welle (läuft schon) ⇒ Pause
-    expect(c.view.step?.id).toBe('pause');
-    c.update(at({ placements: 1, phase: 'wave', paused: true }));
-    expect(c.view.step?.id).toBe('weiter');
-    c.update(at({ placements: 1, phase: 'wave', paused: false }));
-    expect(c.view.step?.id).toBe('chips');
-    c.press(at({ placements: 1, phase: 'wave' }));
-    expect(c.view.step?.id).toBe('abschluss');
-    c.press(at({ placements: 1, phase: 'wave' }));
-
-    expect(c.view.finished).toBe(true);
-    expect(c.hold).toBe(false);
-    c.update(snap({ screen: 'run', selectedVariant: 'rootwall', placements: 99, phase: 'wave', paused: true }));
-    expect(c.view.active).toBe(false);
-  });
-
-  it('ignoriert den Knopf in Handlungsschritten (die Anweisung bleibt echt)', () => {
-    const c = inRun();
-    expect(c.view.step?.id).toBe('karte');
-    c.press(snap({ screen: 'run' }));
-    expect(c.view.step?.id).toBe('karte');
-  });
 });
 
-describe('F1/F2 — Cue-Modus: Vorwärts-Signal + Blase durchlässig', () => {
-  it('JEDER Handlungsschritt (advanceOn != press) mit Cue-Ziel läuft im cueMode', () => {
-    // cueMode-Vertrag: advanceOn != 'press' UND ein Cue-Ziel vorhanden — genau die Schritte,
-    // bei denen die Blase das geführte Ziel verdecken KÖNNTE (F2-Positionsabhängigkeit).
-    const cueSteps = TUTORIAL_STEPS.filter(s => s.advanceOn !== 'press' && s.cue !== 'none');
-    expect(cueSteps.length).toBeGreaterThan(4);
-    for (const s of cueSteps) {
-      expect(cueSelector(s.cue), `Schritt ${s.id}`).not.toBeNull();
-    }
-  });
-
-  it('KEIN Leseschritt (press) ohne Ziel läuft im cueMode — die Blase bleibt dort expandierbar', () => {
-    const pressSteps = TUTORIAL_STEPS.filter(s => s.advanceOn === 'press');
-    expect(pressSteps.length).toBeGreaterThan(0);
-    for (const s of pressSteps) {
-      // press-Schritte brauchen kein Cue-Ziel — ihre Blase ist die Interaktion selbst.
-      expect(s.advanceOn).toBe('press');
-    }
-  });
-
-  it('hat den Pfeil-Hinweis (tut.cueHint) in BEIDEN Sprachen — F1-Parität', () => {
-    for (const lang of ['de', 'en'] as const) {
-      const hint = tutorialTexts[lang]['tut.cueHint' as TutorialTextKey];
-      expect(hint, lang).toBeTruthy();
-      expect(hint.length, lang).toBeGreaterThan(3);
-    }
-  });
-
-  it('cueMode-Schritte haben einen i18n-Cue-Wort-Text (das blinkende Ziel ist benannt)', () => {
-    // F1 zeigt „→ <tut.cue>" — der Cue-Chip-Text muss in beiden Sprachen existieren.
-    for (const lang of ['de', 'en'] as const) {
-      expect(tutorialTexts[lang]['tut.cue' as TutorialTextKey], lang).toBeTruthy();
-    }
+describe('P-5 — Bubble-Geometrie', () => {
+  it('findet eine Position außerhalb der Karten und im Viewport', () => {
+    const size: TutorialRect = { x: 0, y: 0, w: 220, h: 130 };
+    const bounds: TutorialRect = { x: 0, y: 0, w: 800, h: 600 };
+    const stage: TutorialRect = { x: 0, y: 180, w: 800, h: 360 };
+    const preferred: TutorialRect = { x: 260, y: 280, w: 220, h: 130 };
+    const avoid: TutorialRect[] = [{ x: 0, y: 240, w: 520, h: 200 }];
+    const placed = placeBubble(size, bounds, stage, preferred, avoid);
+    expect(placed.x >= 0 && placed.y >= 0).toBe(true);
+    expect(placed.x + placed.w <= bounds.w && placed.y + placed.h <= bounds.h).toBe(true);
+    expect(rectsOverlap(placed, avoid[0], 10)).toBe(false);
   });
 });

@@ -14,13 +14,13 @@ Pfad: `src/i18n/`
 |---|---|---|---|
 | [`b0_tab_labels.test.ts`](./b0_tab_labels.test.ts) | 22 | 0 | CALL 12, IMPORTS 2, PASS 12, READ 10, STRING_REFERENCE 18 |
 | [`help.ts`](./help.ts) | 35 | 1 | CALL 2, EXPORTS 3, PASS 2, READ 4, RETURN 1, STRING_REFERENCE 22 |
-| [`i18n_texts.test.ts`](./i18n_texts.test.ts) | 127 | 0 | CALL 113, IMPORTS 4, PASS 101, READ 107, STRING_REFERENCE 43 |
+| [`i18n_texts.test.ts`](./i18n_texts.test.ts) | 129 | 0 | CALL 117, IMPORTS 4, PASS 105, READ 108, STRING_REFERENCE 43 |
 | [`texts_codex.ts`](./texts_codex.ts) | 126 | 0 | EXPORTS 1, STRING_REFERENCE 208 |
 | [`texts_run.ts`](./texts_run.ts) | 158 | 0 | EXPORTS 1, STRING_REFERENCE 228 |
 | [`texts_shell.ts`](./texts_shell.ts) | 88 | 0 | EXPORTS 1, STRING_REFERENCE 144 |
 | [`texts_shop.ts`](./texts_shop.ts) | 107 | 0 | EXPORTS 1, STRING_REFERENCE 180 |
 | [`translations.ts`](./translations.ts) | 28 | 7 | EXPORTS 4, IMPORTS 4, READ 8, STRING_REFERENCE 6 |
-| [`tutorial.ts`](./tutorial.ts) | 189 | 2 | CALL 22, EXPORTS 3, PASS 22, READ 24, RETURN 1, STRING_REFERENCE 204 |
+| [`tutorial.ts`](./tutorial.ts) | 118 | 2 | EXPORTS 3, READ 2, RETURN 1, STRING_REFERENCE 206 |
 
 ## Öffentliche Symbole
 
@@ -30,7 +30,7 @@ Pfad: `src/i18n/`
 | `Lang` | type | `src/i18n/translations.ts` | 17 |
 | `TEXT_MODULES` | const | `src/i18n/translations.ts` | 21 |
 | `TranslationKey` | type | `src/i18n/translations.ts` | 28 |
-| `TutorialTextKey` | type | `src/i18n/tutorial.ts` | 185 |
+| `TutorialTextKey` | type | `src/i18n/tutorial.ts` | 114 |
 | `codexTexts` | const | `src/i18n/texts_codex.ts` | 7 |
 | `helpText` | function | `src/i18n/help.ts` | 33 |
 | `helpTexts` | const | `src/i18n/help.ts` | 6 |
@@ -38,8 +38,8 @@ Pfad: `src/i18n/`
 | `shellTexts` | const | `src/i18n/texts_shell.ts` | 7 |
 | `shopTexts` | const | `src/i18n/texts_shop.ts` | 7 |
 | `translations` | const | `src/i18n/translations.ts` | 23 |
-| `tutorialText` | function | `src/i18n/tutorial.ts` | 187 |
-| `tutorialTexts` | const | `src/i18n/tutorial.ts` | 16 |
+| `tutorialText` | function | `src/i18n/tutorial.ts` | 116 |
+| `tutorialTexts` | const | `src/i18n/tutorial.ts` | 5 |
 
 ## Datenfluss
 
@@ -85,7 +85,7 @@ nicht Projektrelation, und würde den Datenfluss mit fremdem Code fluten.
 | `src/i18n/i18n_texts.test.ts` | 91 | `de` | 1 | [`src/i18n/i18n_texts.test.ts`](i18n_texts.test.ts) | expect |
 | `src/i18n/i18n_texts.test.ts` | 95 | `'hat keine leeren Texte'` | 1 | [`src/i18n/i18n_texts.test.ts`](i18n_texts.test.ts) | it |
 | `src/i18n/i18n_texts.test.ts` | 98 | `typeof value === 'string' && value.trim().length > 0` | 1 | [`src/i18n/i18n_texts.test.ts`](i18n_texts.test.ts) | expect |
-| `src/i18n/i18n_texts.test.ts` | 103 | `'schreibt Krix nicht sparsam: jeder Schritt hat mehrere Absätze'` | 1 | [`src/i18n/i18n_texts.test.ts`](i18n_texts.test.ts) | it |
-| `src/i18n/i18n_texts.test.ts` | 105 | `stepKeys.length` | 1 | [`src/i18n/i18n_texts.test.ts`](i18n_texts.test.ts) | expect |
-| `src/i18n/i18n_texts.test.ts` | 109 | `de.split('\n').length` | 1 | [`src/i18n/i18n_texts.test.ts`](i18n_texts.test.ts) | expect |
-| `src/i18n/i18n_texts.test.ts` | 110 | `en.split('\n').length` | 1 | [`src/i18n/i18n_texts.test.ts`](i18n_texts.test.ts) | expect |
+| `src/i18n/i18n_texts.test.ts` | 103 | `'hält Krix knapp: eine Zeile pro Dialog, höchstens 180 Zeichen'` | 1 | [`src/i18n/i18n_texts.test.ts`](i18n_texts.test.ts) | it |
+| `src/i18n/i18n_texts.test.ts` | 105 | `textKeys` | 1 | [`src/i18n/i18n_texts.test.ts`](i18n_texts.test.ts) | expect |
+| `src/i18n/i18n_texts.test.ts` | 109 | `de.length` | 1 | [`src/i18n/i18n_texts.test.ts`](i18n_texts.test.ts) | expect |
+| `src/i18n/i18n_texts.test.ts` | 110 | `en.length` | 1 | [`src/i18n/i18n_texts.test.ts`](i18n_texts.test.ts) | expect |

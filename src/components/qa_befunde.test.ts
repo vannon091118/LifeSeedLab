@@ -29,6 +29,8 @@ describe('F5 — Blase im cueMode durchlässig (Backdrop-Passthrough, Skip bleib
   it('im cueMode rendert der Rahmen pointerEvents none — vorher war er `auto` (F5-Zonen-Messung: 2529 px² Verdeckung)', () => {
     expect(bubbleFrameStyle(true).pointerEvents).toBe('none');
     expect(bubbleFrameStyle(false).pointerEvents).toBe('auto');
+    expect(bubbleFrameStyle(true).background).toBe('var(--paper-warm)');
+    expect(bubbleFrameStyle(true).border).toBe('3px solid var(--ink)');
   });
 
   // B42 (19.09.2026): Die Blase klappte im Handlungsschritt VON SELBST ein und war zugleich

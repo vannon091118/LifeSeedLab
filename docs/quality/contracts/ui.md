@@ -166,19 +166,22 @@ Hinweis am Ziel-Element. Die Vorbereitungsphase startet die erste Welle zusätzl
 2. **Figur = Krix**, ein Fineliner-Strichmännchen mit Klemmbrett (B0.7/B0.9: Papierwelt, Ink-Kontur,
    kein Emoji, kein Stock-Icon). Er wird animiert **eingeblendet** (Ink-Draw über `stroke-dashoffset`,
    Anschieben von unten) und atmet danach weiter (Idle-Bob, Blinzeln, Mund beim Sprechen).
-3. **Comic-Sprechblase** mit Papierverschluss, harter Ink-Kontur, Offset-Schatten, Schwanz und
-   Schreibmaschinen-Reveal; erster Tipp auf die Blase = voller Text, zweiter Tipp = nächster Schritt.
-4. **Blinkende Handlungsanweisung:** jeder Schritt zielt auf **genau ein** reales Bedienelement
-   (`data-tut="language|begin|endless|card|board|wave|pause|hud"`). Der Cue-Ring blinkt dort
-   (marchierende Ink-Striche, Ecken-Marker, Label) und der Arm der Figur zeigt auf das Ziel. Der
-   Overlay-Rahmen ist `pointer-events: none` — der Spieler bedient **die echten Knöpfe**, nie eine
-   Attrappe. Liegt ein Ziel außerhalb der Falz (Hub), holt der Overlay es einmal ins Bild.
+3. **Comic-Sprechblase** mit Papierverchluss, harter Ink-Kontur, Offset-Schatten und Schwanz. Krix
+   zeigt abwechselnd einen kurzen Prompt und — erst nach einem echten Ereignis — die Reaktion:
+   `karte` → `auswahl`, `pflanzen` → `platzierung`, `bau` → `bau_ergebnis` usw. Ein Prompt ohne
+   Ereignis bleibt bei derselben Notiz; es gibt keinen unsolicited Reaktionsschwall.
+4. **Blinkende Handlungsanweisung:** jeder Prompt zielt auf **genau ein** reales Bedienelement
+   (`data-tut="language|begin|endless|card|board|layout-done|wave|pause|hud"`). Der Cue-Ring
+   blinkt dort; der Overlay-Rahmen ist `pointer-events: none`, damit der Spieler die echten
+   Knöpfe bedient. `data-tut-avoid` markiert Hub- und Tray-Karten; `bubbleLayout.ts` sucht die
+   Blasenposition außerhalb dieser Flächen und im Viewport. `data-tut-avoid` ist die einzige
+   Kollisionsquelle — Krix dupliziert keine DOM-Geometrie.
 5. **Ein Writer pro Wahrheit:** Das Tutorial besitzt ausschließlich Präsentations-State. Es liest
    Sim-Signale (Phase, Pause, Auswahl) und **schreibt** nur `meta.tutorialVersion` (beim Abschluss)
    und den Tutorial-Hold (`holdRef`, Präsentations-Gate im RAF — kein Sim-Schreibzugriff).
-6. **Kein Zeitdruck beim Lesen:** die Leseschritte `karte`/`pflanzen` setzen den Hold (die Sim tickt
-   nicht ⇒ auch der Auto-Start-Timer steht). Der Hold fällt mit dem platzierten Drop — die Pflanze
-   erscheint dadurch im nächsten Frame.
+6. **Kein Zeitdruck beim Lesen:** die Feld-Prompts und ihre kurzen Reaktionen (`feld`, `karte`,
+   `auswahl`, `pflanzen`, `platzierung`) setzen den Hold. Der Hold fällt nach dem bestätigten
+   Ereignis; die Welle selbst läuft ohne Krix-Freeze.
 7. **Persistenz:** `MetaSave.tutorialVersion` (v7, Migration 1→6 bleibt lesbar) entscheidet, ob das
    Onboarding automatisch startet: `tutorialVersion < TUTORIAL_VERSION` ⇒ es läuft genau einmal.
    Ein Bool konnte die überarbeitete Tour nicht ausdrücken (s. B21.6). Kein zweiter Speicher, kein
@@ -189,42 +192,50 @@ Hinweis am Ziel-Element. Die Vorbereitungsphase startet die erste Welle zusätzl
 
 ### B21.3 Schrittfolge (eine Quelle: `script.ts`)
 
-Jeder Schritt liegt auf genau **einem** Screen: `start` (Titel), `menu` (Hub), `run` (Feld).
+Jeder Eintrag liegt auf genau **einem** Screen und besteht aus einem Prompt mit Ereignis plus einer
+kurzen Reaktion. `screenLeft` ist der einzige Sprung zwischen Screens; die Reaktion landet auf dem
+Screen, den der Spieler gerade betreten hat.
 
-| Screen | Schritt | Cue | geht weiter durch |
-|---|---|---|---|
-| start | `ankunft` | Sprachwahl | eigener Tap auf eine Sprache (`langChosen`) |
-| start | `startknopf` | „Spiel starten" | Verlassen des Screens |
-| menu | `labor` | „Endlos"/Hub-Karten | Verlassen des Screens |
-| run | `karte` (Hold) | Tray-Karte | angenommene Karten-Auswahl |
-| run | `pflanzen` (Hold) | Feld | angenommener Drop (neue Platzierung) |
-| run | `welle` | „Welle starten" | `phase !== 'prep'` |
-| run | `pause` | Pause-Knopf | pausiert |
-| run | `weiter` | Pause-Knopf | läuft wieder |
-| run | `chips` | HUD | eigener Knopf |
-| run | `abschluss` | — | eigener Knopf, schreibt `tutorialVersion` |
+| Screen | Prompt → Reaktion | Ereignis / Ergebnis |
+|---|---|---|
+| start | `ankunft` → `sprache` | eigene Sprachwahl; danach wird der Startknopf erklärt |
+| start → menu | `startknopf` → `hub` | Screenwechsel; der Flur wird eingeordnet |
+| menu → run | `labor` → `feld` | „Endlos“; das Beet und der nächste Handgriff werden erklärt |
+| run | `karte` → `auswahl` (Hold) | ausgewählte Tray-Karte; danach freie Zelle |
+| run | `pflanzen` → `platzierung` (Hold) | angenommener Drop; Ablehnungen bleiben ohne Reaktion |
+| run | `bau` → `bau_ergebnis` | Bauphase verlassen; Welle ist vorbereitet |
+| run | `welle` → `welle_ergebnis` | `phase === 'wave'`; die Gäste laufen |
+| run | `pause` → `pause_ergebnis` | Pause wurde gedrückt |
+| run | `weiter` → `weiter_ergebnis` | Pause wurde beendet |
+| run | `chips` → `abschluss` | HUD gelesen; der Loop endet mit dem Freigabe-Klick |
 
-**Sprungregel** (`controller.met`): liegt der offene Schritt auf einem Screen, dessen Rang der
-Spieler schon hinter sich hat (`screenRank(screen) > SCREEN_RANK[step.screen]`), ist er vorbei —
-ohne Zutun. Wer vorrennt (Sprache nicht angefasst, Hub übersprungen), wird nie ausgebremst; wer den
-Run verlässt, findet seinen Schritt beim Wiedereintritt unverändert vor (Rang ist einseitig).
+**Ereignisregel** (`controller.met`): ein Prompt reagiert nur auf eine Änderung nach seinem
+Eintritt (`langChosen`, Auswahl, angenommene Platzierung, Phase oder Pause). Ein wiederholter
+Zustand ist still. `skipIfCurrent` verhindert, dass ein bereits eingetretener Zustand (z. B. die
+automatisch gestartete Welle) den Spieler in einer Endlosschleife fängt.
+
+**Sprungregel:** liegt der offene Schritt auf einem Screen, dessen Rang der Spieler schon hinter
+sich hat (`screenRank(screen) > SCREEN_RANK[step.screen]`), ist er vorbei. Wer vorrennt, wird
+nicht ausgebremst; wer den Run verlässt, findet seinen Schritt beim Wiedereintritt unverändert vor.
 
 ### B21.4 DoD für B21
 
-- [ ] Schrittmodell und i18n-Texte deckungsgleich (jeder Schritt hat DE- und EN-Text) — Lock: `components_tutorial.test.ts`
-- [ ] Zustandsmaschine deterministisch (kein `Math.random`, keine Wanduhr) — Lock: `components_tutorial.test.ts`
-- [ ] Genau ein Writer (`tutorialVersion` über `updateMeta`, Hold über `holdRef`) — Lock: Gate + `meta_migrations.test.ts`
-- [ ] `MetaSave` v7 liest v1–v6 verlustfrei, das v6-Ja wird zu Fassung 1 — Lock: `meta_migrations.test.ts`
-- [ ] Sprungregel einseitig: übersprungene Screens fallen, künftige warten — Lock: `components_tutorial.test.ts`
-- [ ] Cue-Ziele existieren im DOM (`data-tut`), Overlay blockiert die echten Knöpfe nicht — E2E (Tutorial-Sweep)
-- [ ] `tsc` clean, Suite grün, `vite build` grün; GameView bleibt ≤ 400 LOC (GameTopBar extrahiert)
+- [x] Schrittmodell und i18n-Texte deckungsgleich: 20 Prompt/Reaktion-Einträge, DE + EN —
+  Lock: `components_tutorial.test.ts`, `i18n_texts.test.ts`
+- [x] Ereignis-Kanten: unveränderter Zustand löst keine Reaktion aus, abgelehnte Platzierung bleibt still —
+  Lock: `components_tutorial.test.ts`
+- [x] Karten-Kollision: `bubbleLayout` + `data-tut-avoid`, Blase und Figur bleiben im Viewport —
+  Lock: `components_tutorial.test.ts`, `tests/krix_bubble.spec.ts`, Preview 390×844 + Desktop
+- [x] Release-Fläche ohne Dev-/Popup-Zeile; DevGate-Footer nur hinter `?dev=1` — Lock: `tests/krix_bubble.spec.ts`
+- [x] TypeScript, Suite und Build grün; `TUTORIAL_VERSION = 5` startet die neue Fassung genau einmal
 
-### B21.5 Nachtrag — E2E-Beweis zurückgebaut
+### B21.5 Nachtrag — Sichtprüfung und E2E
 
-Der Onboarding-E2E ist auf Wunsch entfallen (er kostete je Lauf Sekunden
-und deckte dieselben DOM-Verträge ab, die `components_tutorial.test.ts` deterministisch prüft). Damit gilt für
-B21: Cue-Ziele und Hold-Verhalten sind **unit-gelockt**, der Sichtpfad ist nur noch manuell
-(Preview) belegt — nicht E2E.
+Die alte Tour hatte keinen belastbaren E2E-Vertrag. `tests/krix_bubble.spec.ts` prüft jetzt auf
+390×844 den kompletten sichtbaren Bubble-Vertrag: Release-Pfad ohne DevGate, Hub- und Tray-Karten
+bleiben frei, der Papierhintergrund ist vorhanden und die Blase liegt vollständig im Viewport.
+Die Preview wurde zusätzlich bei Desktop und 390×844 geprüft; der Sichtpfad ist damit nicht
+mehr nur eine Behauptung aus dem DOM-Vertrag.
 
 ### B21.6 Nachtrag — die Tour begann zu spät (Befund: Erstspieler-Test)
 
@@ -253,14 +264,16 @@ alte Tour schon kannten — inklusive des Spielers, der den Bericht geschrieben 
    `tutorial=0` unterdrückt). Router- und Preview-E2E fahren mit `?tutorial=0` — sie messen
    Navigation und Layout, nicht die Tour.
 
-**DoD.**
+**DoD — abgelöst durch B21.4/B21.5 (23.09.2026).** Die fünf Punkte bleiben als Herkunft stehen;
+ihr Nachweis liegt jetzt an einer Stelle (B21.4/B21.5), damit hier keine zweite Statusliste lebt.
 
-- [ ] Erster Schritt erscheint auf dem **Titel-Screen** (Cue: Sprachwahl) — Lock: `components_tutorial.test.ts`
-- [ ] Sprungregel: `screen: 'run'` überspringt die drei Stationen davor, `screen: 'greenhouse'`
-      wartet — Lock: `components_tutorial.test.ts`
-- [ ] Hold nur in `karte`/`pflanzen`, nie auf Titel oder Hub — Lock: `components_tutorial.test.ts`
-- [ ] Genau ein Controller (Provider); kein Screen hält eigenen Tutorial-State
-- [ ] Router-/Preview-E2E unverändert grün mit `?tutorial=0`
+- [x] Erster Schritt auf dem **Titel-Screen** (Cue: Sprachwahl) — Lock: `components_tutorial.test.ts`
+- [x] Sprungregel (`screenRank`) und Wiedereintritt in den Run — derselbe Lock
+- [x] Genau ein Controller (Provider); kein Screen hält eigenen Tutorial-State — `TutorialLayer.tsx`
+- [x] Router-/Preview-E2E unverändert grün mit `?tutorial=0` — `tests/router.spec.ts`, `tests/preview.spec.ts`
+- [x] Hold-Menge folgt B21.2 Punkt 6: die Feld-Sequenz (`feld`, `karte`, `auswahl`, `pflanzen`,
+      `platzierung`) hält die Sim an, nicht mehr die alte Zwei-Schritt-Fassung; `hold` steht im
+      Schrittmodell (`script.ts`) und ist damit prüfbar.
 
 ---
 
@@ -467,7 +480,8 @@ Verständnis-QA v0.0.55. Nur am aktuellen Code **belegte** Erledigungen; Offenes
   als Titel „Jede Topf-Zelle trägt eine feste Farbe …" plus die vier Wirkungen (`pot.amber`,
   `pot.violet`, `pot.moss`, `pot.rust`) und einen Vier-Farb-Punkt. Bewusst KEINE schwebende
   Beschriftung — genau die hatte früher die Tray-Karten verdeckt (F5/N4).
-- **Onboarding als Spielerfluss — im Re-Test v0.0.53 belegt.** 10/10 Schritten in beiden Sprachen,
-  jeder Übergang über eine echte Spieleraktion, kein Crash, kein hängender Cue; KRIX trägt eine
-  sichtbare Rolle („Praktikant · Strich mit Klemmbrett"), `tutorialVersion 3` wird geschrieben.
-  Der Tour-Schritt nennt jetzt den echten Weg (Leih-Spross → eigene Pflanze → wegweisender Lauf).
+- **Onboarding als Spielerfluss — im Re-Test v0.0.53 belegt (historischer Stand: 10/10 Schritte,
+  `tutorialVersion 3`).** Heute gilt die überarbeitete Fassung: 20 Einträge als 10
+  Prompt/Reaktion-Paare, `TUTORIAL_VERSION = 5`; der aktuelle Nachweis steht in B21.4/B21.5.
+  KRIX trägt weiter die sichtbare Rolle („Praktikant · Strich mit Klemmbrett") und der Tour-Schritt
+  nennt den echten Weg (Leih-Spross → eigene Pflanze → wegweisender Lauf).

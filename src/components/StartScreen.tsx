@@ -56,13 +56,13 @@ export function StartScreen({ onBegin }: Props) {
         <p style={styles.subtitle}>{t('start.subtitle')}</p>
         <p style={styles.tagline}>{t('start.tagline')}</p>
 
-        <button onClick={onBegin} style={styles.beginBtn} data-tut="begin">
+        <button onClick={onBegin} style={styles.beginBtn} data-tut="begin" data-tut-avoid="target">
           {t('start.begin')} →
         </button>
 
         <div style={styles.langBlock}>
           <div style={styles.langLabel}>{t('start.language')}</div>
-          <div style={styles.langRow} data-tut="language">
+          <div style={styles.langRow} data-tut="language" data-tut-avoid="target">
             {LANGS.map(l => (
               <button
                 key={l.id}

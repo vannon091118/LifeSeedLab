@@ -15,7 +15,7 @@ Pfad: `src/dev/`
 | [`DevOverlay.tsx`](./DevOverlay.tsx) | 87 | 1 | CALL 14, EXPORTS 1, IMPORTS 4, PASS 11, READ 56, RETURN 3, STRING_REFERENCE 43 |
 | [`Inspector.tsx`](./Inspector.tsx) | 66 | 1 | CALL 6, EXPORTS 1, IMPORTS 1, PASS 6, READ 43, RETURN 3, STRING_REFERENCE 48 |
 | [`gate.test.ts`](./gate.test.ts) | 30 | 0 | CALL 30, IMPORTS 2, PASS 30, READ 8, STRING_REFERENCE 23 |
-| [`gate.ts`](./gate.ts) | 49 | 3 | CALL 9, EXPORTS 4, PASS 8, READ 12, RETURN 13, STRING_REFERENCE 12 |
+| [`gate.ts`](./gate.ts) | 49 | 4 | CALL 9, EXPORTS 4, PASS 8, READ 12, RETURN 13, STRING_REFERENCE 12 |
 | [`testHooks.ts`](./testHooks.ts) | 63 | 1 | CALL 6, EXPORTS 3, IMPORTS 2, PASS 2, READ 24, RETURN 4, STRING_REFERENCE 6 |
 
 ## Öffentliche Symbole

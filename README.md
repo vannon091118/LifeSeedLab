@@ -225,12 +225,12 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 
 | Kennzahl | Stand |
 |---|---|
-| Branch | `main` · Upstream: `origin/main` (+10/-1) |
-| HEAD | `bca1d38` — chore(gate): Slice-Grenze und Testzahl werden geprüfte Regeln |
-| Arbeitsbaum | 97 gestaged, 0 geändert, 0 neu |
-| Letztes Gate | ✅ offen (preflight, 0 Fehler, 0 Warnungen) |
+| Branch | `main` · Upstream: `origin/main` (+0/-0) |
+| HEAD | `9f2d333` — chore(repo): maschinenpfade raus, werkzeugmuell weg |
+| Arbeitsbaum | 22 gestaged, 3 geändert, 0 neu |
+| Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `bca1d38` chore(gate): Slice-Grenze und Testzahl werden geprüfte Regeln |
-| Letzter Push | 🛑 origin/main |
-| LOC-Hotspots | `src/simulation/plantSystem.ts` 261/300 (87 %)<br>`src/i18n/tutorial.ts` 172/200 (86 %)<br>`src/simulation/enemySystem.ts` 249/300 (83 %)<br>`src/meta/run.ts` 158/200 (79 %)<br>`src/components/GameView.tsx` 305/400 (76 %) |
+| Letzter Shinon-Commit | `9f2d333` chore(repo): maschinenpfade raus, werkzeugmuell weg |
+| Letzter Push | ✅ origin/main |
+| LOC-Hotspots | `src/simulation/plantSystem.ts` 261/300 (87 %)<br>`src/simulation/enemySystem.ts` 256/300 (85 %)<br>`src/meta/run.ts` 158/200 (79 %)<br>`src/components/GameView.tsx` 313/400 (78 %)<br>`src/render/renderer.ts` 312/400 (78 %) |
 <!-- SHINON:STATUS:END -->

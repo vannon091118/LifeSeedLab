@@ -10,6 +10,7 @@ import type { MenuScreen } from './NavIndicators';
 import { mainMenuStyles as styles } from './mainMenuStyles';
 import { PlantVariantThumb } from './PhenotypeCanvas';
 import { resumeCostFor } from '../config/economy.source';
+import { isDevActive } from '../dev/gate';
 
 // Owner: UI (MainMenu = Hub-Kärtchen). LOC ≤ 200.
 // MainMenu ist NUR noch das Tor: illustrierte Karten navigieren auf EIGENE
@@ -54,6 +55,9 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onNavigate, resumeWav
       .filter((v): v is PlantVariant => v !== undefined),
     [meta.loadout, ownedVariants],
   );
+  // Die alte Versionszeile war eine Dev-Ausgabe auf der Release-Fläche. Sie bleibt nur im
+  // ausdrücklich geöffneten DevGate sichtbar; Spieler sehen keine Popup-Blocker-Diagnose.
+  const showDevFooter = isDevActive();
 
   return (
     <div>
@@ -139,6 +143,7 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onNavigate, resumeWav
               style={styles.loadoutItem}
               onClick={() => onMetaChange(toggleLoadout(v.id))}
               aria-label={`${t('menu.leave')}: ${v.name}`}
+              data-tut-avoid="card"
             >
               <span style={styles.thumb}>
                 <PlantVariantThumb variant={v} size={44} />
@@ -154,6 +159,7 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onNavigate, resumeWav
               onClick={() => onMetaChange(toggleLoadout(v.id))}
               disabled={loadoutVariants.length >= 4}
               aria-label={`${t('menu.take')}: ${v.name}`}
+              data-tut-avoid="card"
             >
               <span style={styles.thumb}>
                 <PlantVariantThumb variant={v} size={44} />
@@ -168,9 +174,11 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onNavigate, resumeWav
         </div>
       </div>
 
-      <p style={styles.footer} aria-hidden>
-        {t('menu.footer').replace('{v}', APP_VERSION_LABEL)}
-      </p>
+      {showDevFooter && (
+        <p style={styles.footer} aria-hidden>
+          {t('menu.footer').replace('{v}', APP_VERSION_LABEL)}
+        </p>
+      )}
     </div>
   );
 }
@@ -198,6 +206,7 @@ function ModeCard({ icon, title, desc, onClick, disabled, highlight, tut, style 
       onClick={onClick}
       disabled={disabled}
       data-tut={tut}
+      data-tut-avoid="card"
       style={{ ...styles.modeCard, ...(highlight ? styles.modeCardHighlight : {}), ...(disabled ? styles.modeCardDisabled : {}), ...style }}
     >
       <div style={styles.modeIcon}>{icon}</div>

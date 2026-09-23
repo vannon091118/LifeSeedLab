@@ -124,6 +124,7 @@ export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPl
             <button
               {...cardPress(() => { onSelectPlant(id, count); setManualTab(null); })}
               data-tut={id === firstPlayable ? 'card' : undefined}
+              data-tut-avoid="tray-card"
               data-plant={id}
               className={isSelected ? 'tray-card-selected' : undefined}
               style={{ ...styles.trayItem, ...(isSelected ? styles.trayItemSelected : {}) }}
@@ -172,6 +173,7 @@ export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPl
               className={isSelected ? 'tray-card-selected' : undefined}
               style={{ ...styles.trayItem, ...(isSelected ? styles.trayItemSelected : {}) }}
               aria-pressed={isSelected}
+              data-tut-avoid="tray-card"
               // Der Topf erklärt seine vier Farben dort, wo man ihn auswählt (der Titel nennt
               // die Wirkung; keine schwebende Blase, die die Karten verdecken würde).
               title={tile === 'pot'
