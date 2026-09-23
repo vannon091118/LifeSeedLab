@@ -60,6 +60,7 @@ git worktree remove /tmp/qa-consolidation
 - `2026-09-23_taktik-mazing-v0.0.96.md` — Mazing wirkt: +10 Tiles Maze-Gewinn, 1 Kill-Box-Leihe haelt bis Welle 7; B1/B3 Design-Fragen.
 - `2026-09-23_oekonomie-w1-besitzmodell.md` — W1 erledigt: kein Gratis-Loop, Besitz-Modell schliesst exakt (Kauf=Besitz, Bau=Verbrauch, Verkauf=Rueckgewinn).
 - `2026-09-23_kipppunkt-welle10.md` — B2 erledigt: Kipppunkt Welle 10 (HP-Sprung 94->375), Leihe allein traegt bis 9; N1 offen (Tank-Leak-Kosten).
+- `2026-09-23_resume-shop-vertraege.md` — Resume vertragsgetreu (prep-Neustart, Save-Felder bit-genau), Shop-Preise=fail-closed OK; Quarantaene-Vertrag live bestaetigt.
 
 ## Status-Begriffe
 
