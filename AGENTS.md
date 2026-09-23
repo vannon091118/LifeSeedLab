@@ -1,6 +1,8 @@
 # AGENTS.md — Arbeitsvertrag für Agenten
+Wir Commiten Jeden Task nachdem er fertig ist und die Tests abgenommen sind mit Shinon.
 
-> **Pflichtlektüre vor Code-Entstehung.**
+ 
+>**Pflichtlektüre vor Code-Entstehung.**
 > Vertiefung: [`architecture-contract.md`](docs/architecture/architecture-contract.md) (bindend) · [`architecture.md`](docs/architecture/architecture.md) (Technik) · [`quality-spec.md`](docs/quality/quality-spec.md) (Register) + Arbeitsliste je Domäne in `docs/quality/contracts/`.
 
 ## QA-Abholung vor Task-Start (PFLICHT)
