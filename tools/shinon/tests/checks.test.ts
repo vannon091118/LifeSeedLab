@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildChecks, knownCheckIds } from '../checks/index.ts';
 import { CommitSizeCheck } from '../checks/commit-size-check.ts';
+import { VersionFilesCheck } from '../checks/version-files-check.ts';
 import { ShinonGate } from '../gate.ts';
 import { runMessageSelfTest, validateMessage } from '../checks/commit-message-check.ts';
 import { ForbiddenPatternCheck } from '../checks/forbidden-pattern-check.ts';
@@ -83,6 +84,47 @@ describe('Commit-Größe (Slice-Regel)', () => {
     expect(report.passed).toBe(false);
     const ok = await new ShinonGate([new CommitSizeCheck()]).run(indexContext(dir, staged.slice(0, 25)));
     expect(ok.passed).toBe(true);
+  });
+});
+
+describe('Versions-Wahrheit bleibt uncommittet (VRF)', () => {
+  // Der Regel-0-Hook hebt package.json + src/version.ts als uncommitteten Vorsprung +1 an.
+  // Commit d924a17 trug beide im Index — das Gate hatte für diesen Vertrag keine Prüfung.
+  function indexContext(dir: string, staged: string[]): CheckContext {
+    const ctx = contextIn(dir, []);
+    ctx.stagedFiles = staged;
+    return ctx;
+  }
+
+  it('blockiert beide Versionsdateien im Index, einzeln je Befund', () => {
+    const dir = tempDir('version-files');
+    const findings = new VersionFilesCheck().run(indexContext(dir, ['src/simulation/a.ts', 'package.json', 'src/version.ts']));
+    expect(findings.filter((item) => item.code === 'VRF001')).toHaveLength(2);
+    expect(findings.every((item) => item.severity === 'error')).toBe(true);
+    expect(findings.map((item) => item.file).sort()).toEqual(['package.json', 'src/version.ts']);
+  });
+
+  it('lässt saubere Indizes durch und meldet den intakten Vorsprung', () => {
+    const dir = tempDir('version-files-clean');
+    const ctx = indexContext(dir, ['src/simulation/a.ts', 'CHANGELOG.md']);
+    const findings = new VersionFilesCheck().run(ctx);
+    expect(findings.some((item) => item.severity === 'error')).toBe(false);
+    expect(findings[0]?.code).toBe('VRF000');
+  });
+
+  it('urteilt nur über den Index — Versionsdateien im Arbeitsbaum blockieren nicht', () => {
+    const dir = tempDir('version-files-worktree');
+    const ctx = contextIn(dir, ['package.json', 'src/version.ts']);
+    ctx.stagedFiles = [];
+    const findings = new VersionFilesCheck().run(ctx);
+    expect(findings.some((item) => item.severity === 'error')).toBe(false);
+  });
+
+  it('ist als Default-Check registriert', () => {
+    const config = defaultConfig('/tmp/shinon');
+    expect(config.gate.checks.versionFiles).toBe(true);
+    expect(buildChecks(config).map((check) => check.id)).toContain('version-files');
+    expect(knownCheckIds()).toContain('version-files');
   });
 });
 

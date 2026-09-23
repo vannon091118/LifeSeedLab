@@ -64,6 +64,12 @@ interface GateChecks {
   docLinks: boolean;
   /** Slice-Grenze je Commit (`commit.maxFiles`) — der Mega-Commit bleibt abweisbar. */
   commitSize: boolean;
+  /**
+   * Versions-Wahrheit bleibt uncommittet (Regel-0-Vorsprung): `package.json` und
+   * `src/version.ts` gehören in die Arbeitskopie, der Hook hebt sie +1 — im Index sind sie
+   * ein Fehler (Befund 21.09.2026, Commit `d924a17` hatte beide im Index).
+   */
+  versionFiles: boolean;
 }
 
 /**
@@ -165,6 +171,7 @@ export function defaultConfig(root: string): ShinonConfig {
         changelog: true,
         docLinks: true,
         commitSize: true,
+        versionFiles: true,
       },
       failFast: true,
       enforcement: 'strict',

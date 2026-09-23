@@ -11,7 +11,7 @@ import type { ShinonGitHelfer } from '../git-helfer.ts';
 
 export type ShinonPhase = 'preflight' | 'pre-commit' | 'pre-push';
 
-type Severity = 'error' | 'warn' | 'info';
+export type Severity = 'error' | 'warn' | 'info';
 
 export interface Finding {
   check: string;
