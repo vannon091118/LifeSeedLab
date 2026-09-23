@@ -63,6 +63,15 @@ gesetzte Auswahl sofort wieder umschalten. Beleg: `placementTray.test.ts` (4 Fä
 Browser-Gegenprobe 6/6, und die Mutation (Klick-Zweig entfernt) macht genau die Tastatur- und
 Synthetik-Strecke rot.
 
+**Tile-Werkzeug bleibt gewählt (P-12, 23.09.2026).** Der Zweitklick auf dieselbe Tile-Karte war
+ein stiller Abbruch mitten im Serien-Bau — die Werkzeug-Knöpfe waren Umschalter, und der Zustand
+war an der Karte nicht schnell genug ablesbar (Taktik-Session, Kandidat 1/3). Regel:
+`selectTile` wählt nur um (anderes Tile) bzw. räumt eine stehende Ablehnung weg (gleiches Tile);
+Werkzeug und Geist bleiben. Die Abwahl ist die bewusste Geste über den ✕-Knopf (`cancel()`).
+Die Asymmetrie zu den Pflanzen-Karten (dort bleibt der B3-Zweitklick-Cancel) ist sachlich:
+Tiles werden serienweise gebaut, Pflanzen haben limitierten Bestand und brechen über Q17 ohnehin
+ab, sobald er auf 0 fällt. Beleg: `placementController.test.ts` (+2 Fälle P-12).
+
 **Leere Karten verschwinden (21.09.2026, Playtest-Befund „Wurzelmauer ×0").** Der Tray-Kasten
 zeigte JEDE bekannte Pflanze bzw. jedes Tile, auch mit Bestand 0 — als `aria-disabled`-Karte, die
 aussah wie eine Option, aber keine war. Regel: ein Kasten zeigt nur, was der Spieler HAT

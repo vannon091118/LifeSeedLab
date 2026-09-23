@@ -1,4 +1,5 @@
 import { styles } from './greenhouseStyles';
+import { NektarChipIcon } from '../GameIcons';
 import type { TranslationKey } from '../../i18n';
 
 interface Props {
@@ -30,7 +31,7 @@ export function SlotBuyButton({
             style={{ ...styles.slotBtn, opacity: canBuySlot ? 1 : 0.55 }}
             data-tut="buy-slot"
           >
-            {t('greenhouse.buySlot')} — 🍯 {slotGate.nektar} · {t('greenhouse.buySlotWave').replace('{n}', String(slotGate.wave))}
+            {t('greenhouse.buySlot')} — <NektarChipIcon/> {slotGate.nektar} · {t('greenhouse.buySlotWave').replace('{n}', String(slotGate.wave))}
           </button>
           {metaBestWave < slotGate.wave && (
             <div style={styles.hint}>

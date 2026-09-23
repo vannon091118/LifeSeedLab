@@ -39,7 +39,7 @@ export function PendingQueue({
   return (
     <div style={styles.pendingRow}>
       <span style={styles.sectionTitle}>
-        {readyCount > 0 && ' 🌟'}
+        {readyCount > 0 && ' ✓'}
         {t('shop.pending')
           .replace('{n}', String(pendingCrosses.length))
           .replace('{m}', String(rearingSlots))}

@@ -187,4 +187,30 @@ describe('PlacementController (B3)', () => {
     expect(state).toEqual({ mode: 'plant', variantId: null, ghost: null, rejection: null });
     expect(controller.drop(FREE)).toEqual({ kind: 'none' });
   });
+
+  // P-12 (Taktik-Session, 23.09.2026): der Zweitklick auf dieselbe Tile-Karte war ein stiller
+  // Abbruch mitten im Serien-Bau. Jetzt bleibt das Werkzeug gewählt (Abwahl über ✕), nur eine
+  // stehende Ablehnung wird weggeräumt.
+  it('P-12: Zweitklick auf dieselbe Tile-Karte wählt NICHT ab — Werkzeug und Geist bleiben', () => {
+    controller.selectTile('pot');
+    controller.hover(FREE);
+    expect(controller.getState().mode).toBe('pot');
+    expect(controller.getState().ghost?.valid).toBe(true);
+
+    const zweiter = controller.selectTile('pot');
+    expect(zweiter.mode).toBe('pot');          // das Werkzeug ist noch gewählt
+    expect(zweiter.ghost?.valid).toBe(true);   // der Geist lebt weiter
+    expect(controller.drop(FREE)).toEqual({ kind: 'tile', tile: 'pot', gx: 11, gy: 10 });
+  });
+
+  it('P-12: Zweitklick räumt eine stehende Ablehnung weg, ohne die Auswahl zu verlieren', () => {
+    board.inventory = { sprout: 2 }; // kein Topf-Material → lokaler Ablehnungsgrund
+    controller.selectTile('pot');
+    expect(controller.drop(FREE)).toEqual({ kind: 'reject', reason: 'no_inventory', gx: 11, gy: 10 });
+    expect(controller.getState().rejection).not.toBeNull();
+
+    controller.selectTile('pot'); // Zweitklick: Werkzeug bleibt, Ablehnung fällt
+    expect(controller.getState().mode).toBe('pot');
+    expect(controller.getState().rejection).toBeNull();
+  });
 });

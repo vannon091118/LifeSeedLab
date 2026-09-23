@@ -4,21 +4,26 @@ import type { TranslationKey } from '../i18n';
 import { useI18n } from '../i18n';
 import { readyBroods } from '../meta';
 import { createBaseVariants } from '../genome';
+import { GreenhouseGlyph, ShopGlyph, BeetleGlyph, CodexGlyph } from './GameIcons';
 
 // Owner: UI (NavIndicators — Screen-Navigation). LOC ≤ 400.
 // Indikatoren für absolut alles: Notizzettel-Tabs (aktiver Screen mit Ink-Unterstrich),
 // Status-Chips (Nektar, Samen, Sammlung, bestes Wave, Brutling), Page-Dots (Screen-Position).
 // Read-only gegenüber Meta — schreiben tut hier nichts (Ownership: Router besitzt Screen-State).
+// P-30: die Tab-Glyphen sind eigene Ink-SVGs (`GameIcons`) — KEINE Emojis (B0), die Tab-Texte
+// aus i18n tragen den reinen Namen ohne Symbol.
+
+type NavGlyph = typeof GreenhouseGlyph | typeof ShopGlyph | typeof BeetleGlyph | typeof CodexGlyph;
+
+const TABS: { id: MenuScreen; key: TranslationKey; Glyph: NavGlyph }[] = [
+  { id: 'menu', key: 'menu.title', Glyph: GreenhouseGlyph },
+  { id: 'greenhouse', key: 'menu.greenhouse', Glyph: GreenhouseGlyph },
+  { id: 'seedshop', key: 'menu.shop', Glyph: ShopGlyph },
+  { id: 'beetlelab', key: 'menu.beetleLab', Glyph: BeetleGlyph },
+  { id: 'codex', key: 'codex.title', Glyph: CodexGlyph },
+];
 
 export type MenuScreen = 'menu' | 'greenhouse' | 'seedshop' | 'beetlelab' | 'codex';
-
-const TABS: { id: MenuScreen; key: TranslationKey }[] = [
-  { id: 'menu', key: 'menu.title' },
-  { id: 'greenhouse', key: 'menu.greenhouse' },
-  { id: 'seedshop', key: 'menu.shop' },
-  { id: 'beetlelab', key: 'menu.beetleLab' },
-  { id: 'codex', key: 'codex.title' },
-];
 
 type Props = {
   meta: MetaSave;
@@ -46,6 +51,8 @@ export function NavIndicators({ meta, current, onNavigate }: Props) {
             onClick={() => onNavigate(tab.id)}
             style={{ ...styles.tab, ...(tab.id === current ? styles.tabActive : {}) }}
           >
+            {/* P-30: Ink-Glyphe statt Emoji — dieselbe Sprache wie die HUD-Chips (B0). */}
+            <span style={styles.tabGlyph} aria-hidden><tab.Glyph /></span>
             {t(tab.key)}
           </button>
         ))}
@@ -103,6 +110,9 @@ const styles: Record<string, React.CSSProperties> = {
     flexWrap: 'wrap',
   },
   tab: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 7,
     padding: '10px 14px',
     minHeight: 44,
     border: '2px solid var(--ink)',
@@ -120,6 +130,10 @@ const styles: Record<string, React.CSSProperties> = {
     borderColor: 'var(--leaf-dark)',
     color: 'var(--leaf-dark)',
     boxShadow: '2px 2px 0 var(--leaf-dark)',
+  },
+  tabGlyph: {
+    display: 'inline-flex',
+    flexShrink: 0,
   },
   tabActiveUnderline: {
     position: 'absolute',

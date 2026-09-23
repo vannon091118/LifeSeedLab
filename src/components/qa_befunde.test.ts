@@ -55,10 +55,11 @@ describe('F6 — Tray-Reihen (PFLANZEN / FELD): Auswahlinstrument, keine Verwech
     expect(MAP_TILE_IDS).not.toContain('boulder');
   });
 
-  it('die Leiste (N4-Position) liegt ÜBER der Tray-Kante (bottom 84 → 190)', () => {
-    // N4 (Eigentümer-#1, 3/3): vorher bottom: 84 — die Leiste lag AUF der Tray-Oberkante
-    // (gemessen 580–642 vs. Tray-Top 582). Der Fix docket sie über die Karten.
-    expect(gameViewStyles.firstRunHint.bottom).toBe(190);
+  it('die Leiste (P3QA-05) liegt seit P-25 frame-relativ — keine Tray-Höhen-Magie-Zahl mehr', () => {
+    // P-25 (23.09.2026): die Tray wohnt unter dem Frame (stage-Fluss), die Leiste liegt auf
+    // dem FELD (frame-relativ). Die alte `bottom`-Magie-Zahl (84 → 190, N4) starb mit dem
+    // Overlay — die Leiste kann keine Karten mehr verdecken, egal wie hoch die Tray wird.
+    expect(gameViewStyles.firstRunHint.bottom).toBeUndefined();
     expect(gameViewStyles.firstRunHint.pointerEvents).toBe('none');
   });
 });

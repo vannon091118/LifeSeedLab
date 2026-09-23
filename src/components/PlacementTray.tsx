@@ -31,13 +31,18 @@ interface PlacementTrayProps {
   /** D3: i18n-Sektions-Labels — die Tray trennt KAMPF (Pflanzen) von FELD (Tiles). */
   trayPlantsLabel: string;
   trayFieldLabel: string;
+  /** P-24: die Abwahl ist ein Werkzeug-Tag der Tray, nicht ein Overlay über dem Brett —
+   *  die Spawn-Ecke (oben rechts) bleibt frei klickbar. */
+  cancelVisible: boolean;
+  onCancel: () => void;
+  cancelLabel: string;
   /** QA v0.0.53 #3: gezüchtete Varianten stehen nicht in `PLANTS_SOURCE` — ohne diese Namen
    *  fiel die Karte auf die Roh-ID zurück („seed_0 ×1" im Run, während das Gewächshaus
    *  „Spross (Keim 1)" zeigte: zwei Screens, zwei Wahrheiten über dieselbe Pflanze). */
   names?: Record<string, string>;
 }
 
-export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPlant, onSelectTile, onSelectSell, trayPlantsLabel, trayFieldLabel, names }: PlacementTrayProps) {
+export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPlant, onSelectTile, onSelectSell, cancelVisible, onCancel, cancelLabel, trayPlantsLabel, trayFieldLabel, names }: PlacementTrayProps) {
   const { t } = useI18n();
   // Tab-Regie: 'sell' gehört zum BAU-Kasten, ein MapTileType ebenfalls; 'plant' zum
   // PFLANZEN-Kasten. Der sichtbare Tab leitet sich aus dem Modus AB (kein zweiter
@@ -70,6 +75,18 @@ export function PlacementTray({ plantIds, inventory, mode, variantId, onSelectPl
   const firstPlayable = plantCards[0] ?? null;
   return (
     <div style={styles.tray} role="toolbar" aria-label="Pflanzenauswahl">
+      {/* Werkzeug-Leiste: Status links (welches Werkzeug trägt die Hand), ✕ rechts (P-24:
+          die Abwahl wohnt bei den Werkzeugen, nicht als Overlay über der Spawn-Ecke). */}
+      <div style={styles.toolRow}>
+        <span style={styles.toolStatus} aria-live="polite">
+          {mode === 'sell' ? t('game.sellTool') : variantId !== null ? (names?.[variantId] ?? plantLabel(variantId)) : mode !== 'plant' ? tileLabel(mode) : trayPlantsLabel}
+        </span>
+        {cancelVisible && (
+          <button onClick={onCancel} style={styles.cancelBtn} aria-label={cancelLabel} title={cancelLabel}>
+            ✕ {cancelLabel}
+          </button>
+        )}
+      </div>
       {/* Mapbuilder-Tabs: zwei Werkzeugkästen, genau EINER sichtbar. aria-pressed statt
           aria-selected (Knopf-Sprache wie der Rest der Tray, E2E liest pressed). */}
       <div style={styles.tabRow}>
@@ -227,7 +244,13 @@ function tileSwatch(tile: MapTileType): string {
 }
 
 const styles: Record<string, CSSProperties> = {
-  tray: { position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 12px 10px', background: '#fbf6e9', border: '2px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', maxWidth: 'calc(100% - 20px)' },
+  // P-25: die Tray hängt seit der Regie UNTER dem Brett (stage-Fluss, GameView `trayDock`)
+  // — kein `position: absolute` mehr, sie kann keine Zelle mehr verdecken.
+  tray: { display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 12px 10px', background: '#fbf6e9', border: '2px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink)', maxWidth: 'calc(100% - 20px)', margin: '2px auto 8px' },
+  // P-24: Werkzeug-Leiste — Status + Abwahl in einer Reihe über den Kästen
+  toolRow: { display: 'flex', gap: 8, justifyContent: 'space-between', alignItems: 'center', minHeight: 30 },
+  toolStatus: { fontSize: 10, fontWeight: 800, letterSpacing: 1, color: '#6b6250', textTransform: 'uppercase' as const, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const },
+  cancelBtn: { padding: '5px 10px', background: '#fff', border: '1.5px solid var(--ink)', borderRadius: 8, boxShadow: '1.5px 1.5px 0 var(--ink)', fontSize: 11, fontWeight: 800, cursor: 'pointer', minHeight: 30, flexShrink: 0 },
   // Mapbuilder-Tabs: kleine Schalterreihe über dem aktiven Kasten
   tabRow: { display: 'flex', gap: 6, justifyContent: 'center' },
   tab: { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px', background: '#fff', border: '1.5px solid var(--ink)', borderRadius: 999, color: 'var(--ink)', fontSize: 10, fontWeight: 800, letterSpacing: 1.2, cursor: 'pointer', boxShadow: '1.5px 1.5px 0 var(--ink)', minHeight: 30 },

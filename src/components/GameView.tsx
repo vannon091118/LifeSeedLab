@@ -318,9 +318,8 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
               {hud.paused && <span style={{ ...styles.hudChip, background: '#fef3c7' }}>{t('game.paused')}</span>}
             </div>
           )}
-          {placement.variantId !== null || placement.mode !== 'plant' ? (
-            <button onClick={cancelPlacement} style={styles.cancelBtn} aria-label={t('common.cancel')}>✕ {t('common.cancel')}</button>
-          ) : null}
+          {/* P-24: kein ✕ mehr ÜBER dem Brett — die Abwahl wohnt in der Tray (P-24-Regie,
+              s. PlacementTray). Die Spawn-Ecke oben rechts bleibt frei klickbar. */}
           {/* B23.3/B29: Der Grund stand im Controller bzw. im Sim-Event, nur nie auf dem Schirm. */}
           <FieldToast notice={notice} tick={hud?.tick ?? 0} />
           <GameDevPanel
@@ -338,18 +337,15 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
             visual={inspectorVisual}
             entityLabel={inspectorLabel}
           />
-          <PlacementTray
-            plantIds={plantIds}
-            inventory={hud?.inventory ?? {}}
-            mode={placement.mode}
-            variantId={placement.variantId}
-            onSelectPlant={selectPlant}
-            onSelectTile={selectTile}
-            onSelectSell={selectSell}
-            trayPlantsLabel={t('game.trayPlants')}
-            trayFieldLabel={t('game.trayField')}
-            names={plantNames}
-          />
+          {/* P3QA-05 (frame-relativ seit P-25): die Aufbauhilfe liegt AUF dem Feld, nicht auf
+              dem Screen — sie steht nur bis zur ersten Platzierung ODER dem Ablauf ihrer
+              Frist (Sim-Tick), pointer-events:none blockiert nie. Die alte Magie-Zahl
+              `bottom: 190` (N4: Tray-Höhe im selben Behälter überklettern) starb mit P-25. */}
+          {placedCount === 0 && !hintFaded && !showGameOver && (
+            <div style={{ ...styles.firstRunHint, ...(hintFaded ? styles.firstRunHintFaded : {}) }} aria-hidden data-hint-fade={hintFaded ? 'faded' : 'on'}>
+              <span style={styles.paperNotePin}/> {hud?.phase === 'layout' ? t('game.hintLayout') : t('game.hint')}
+            </div>
+          )}
           <GameOverlays
             gameOver={showGameOver}
             reason={gameOverReason}
@@ -361,18 +357,30 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
             onResume={() => { setSuspended(false); pausedRef.current = false; runtimeRef.current?.root.clock.setPaused(false); }}
           />
         </div>
+        {/* P-25: die Tray verlässt das Brett — sie dockt UNTER den Frame in den stage-Fluss
+            und überdeckt keine Zelle mehr (Ausgang unten links = 0/rows-1 war vorher unter
+            ihr begraben). P-24 erledigt dieselbe Regie für den ✕ (jetzt Tray-Eck-Tag). */}
+        <div style={styles.trayDock}>
+          <PlacementTray
+            plantIds={plantIds}
+            inventory={hud?.inventory ?? {}}
+            mode={placement.mode}
+            variantId={placement.variantId}
+            onSelectPlant={selectPlant}
+            onSelectTile={selectTile}
+            onSelectSell={selectSell}
+            cancelVisible={placement.variantId !== null || placement.mode !== 'plant'}
+            onCancel={cancelPlacement}
+            cancelLabel={t('common.cancel')}
+            trayPlantsLabel={t('game.trayPlants')}
+            trayFieldLabel={t('game.trayField')}
+            names={plantNames}
+          />
+        </div>
         <TutorialLayer
           run={{ selectedVariant: placement.variantId, placements: placedCount, phase: hud?.phase ?? 'prep', paused: hud?.paused ?? false }}
           onHold={tutorialHold}
         />
-        {/* P3QA-05 + R1: Die Aufbauhilfe steht nur bis zur ersten Platzierung ODER dem
-            Ablauf ihrer Frist (Sim-Tick) — danach blockiert sie keinen Boden mehr und
-            verblasst, statt zu kleben. pointer-events:none — nichts blockiert. */}
-        {placedCount === 0 && !hintFaded && !showGameOver && (
-          <div style={{ ...styles.firstRunHint, ...(hintFaded ? styles.firstRunHintFaded : {}) }} aria-hidden data-hint-fade={hintFaded ? 'faded' : 'on'}>
-            <span style={styles.paperNotePin}/> {hud?.phase === 'layout' ? t('game.hintLayout') : t('game.hint')}
-          </div>
-        )}
         {/* Der Zettel unten ist KEIN Dauerzustand mehr (Lauf-3-Bericht): er begleitet nur die
             allererste Platzierung und ist danach antippbar weg — Sichtfläche gehört dem Feld. */}
         {placedCount > 0 && !noteDismissed && !showGameOver && (

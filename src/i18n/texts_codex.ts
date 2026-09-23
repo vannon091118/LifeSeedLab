@@ -6,7 +6,7 @@
 
 export const codexTexts = {
   de: {
-    'beetle.title': '🪲 Brutstätte — Brüten',
+    'beetle.title': 'Brutstätte — Brüten',
     'beetle.desc': 'Kein Gacha: Du wählst BEIDE Eltern. Ganze Genome verschmelzen — die Brut ähnelt ihren Eltern. Drei Kandidaten pro Brut, deterministisch.',
     'beetle.needTwo': 'Wähle zwei Tiere als Eltern',
     'beetle.notEnoughNektar': 'Nicht genug Nektar',
@@ -18,7 +18,7 @@ export const codexTexts = {
     'beetle.library': 'Brut-Lager',
     'gacha.result': 'Der Samen wird:',
     'gacha.parents': 'Eltern gewürfelt:',
-    'codex.title': '📖 Öffentlicher Codex',
+    'codex.title': 'Öffentlicher Codex',
     // B25 (Befund 8): „Chain valid"/„First by" klangen nach Onlinedienst. Das Ding hier heißt
     // jetzt beim Namen: dein Laborbuch auf diesem Gerät — kein Upload, kein Account.
     'codex.subtitle': 'Dein Laborbuch: jede Kreuzung bleibt hier auf diesem Gerät — die erste Zucht einer Sorte trägt deinen Namen.',
@@ -67,7 +67,7 @@ export const codexTexts = {
     'codex.noteVerify': 'Die Prüfung rechnet alles lokal nach — kein Online-Abgleich.',
   },
   en: {
-    'beetle.title': '🪲 Brood Chamber — Breeding',
+    'beetle.title': 'Brood Chamber — Breeding',
     'beetle.desc': 'No gacha: you pick BOTH parents. Full genomes merge — the brood resembles its parents. Three candidates per brood, deterministic.',
     'beetle.needTwo': 'Pick two parent specimens',
     'beetle.notEnoughNektar': 'Not enough Nectar',
@@ -79,7 +79,7 @@ export const codexTexts = {
     'beetle.library': 'Brood library',
     'gacha.result': 'The seed becomes:',
     'gacha.parents': 'Parents rolled:',
-    'codex.title': '📖 Public Codex',
+    'codex.title': 'Public Codex',
     // B25 (finding 8): "chain valid"/"first by" read like an online service. Name the thing:
     // your lab notebook on this device — no upload, no account.
     'codex.subtitle': 'Your lab notebook: every crossing stays on this device — the first breeder of a strain is named on it.',

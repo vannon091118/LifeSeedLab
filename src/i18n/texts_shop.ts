@@ -6,7 +6,7 @@
 
 export const shopTexts = {
   de: {
-    'shop.title': '🛒 Shop',
+    'shop.title': 'Shop',
     'shop.desc': 'Drei getrennte Pools, eine Währung: Samen bauen deine Biologie, Tiles und Deko bauen deine Karte. Was du kaufst, gehört dir dauerhaft — Bauen verbraucht es, was übrig bleibt, kommt am Lauf-Ende zurück.',
     'shop.pools': 'Pools',
     'shop.pool.seeds': 'Samen',
@@ -14,7 +14,7 @@ export const shopTexts = {
     'shop.pool.decor': 'Deko',
     'shop.owned': 'Bestand',
     'shop.addToStock': 'erhöht deinen Bestand',
-    'greenhouse.title': '🌾 Gewächshaus — Aussaat & Reifung',
+    'greenhouse.title': 'Gewächshaus — Aussaat & Reifung',
     'greenhouse.desc': 'Töpfe sind Platzraum für deine eigenen Pflanzen: Keimling anfassen, in einen freien Topf setzen. Daneben säst du Kreuzungen aus — Eltern und Kind deterministisch gewürfelt, reif nach genügend Wellen.',
     'greenhouse.potFree': 'Topf frei',
     'greenhouse.parents': 'ELTERN WÄHLEN — A × B ERGIBT DAS KIND',
@@ -56,7 +56,7 @@ export const shopTexts = {
     'pot.rust': 'Rost: +30 % Leben',
   },
   en: {
-    'shop.title': '🛒 Shop',
+    'shop.title': 'Shop',
     'shop.desc': 'Three separate pools, one currency: seeds build your biology, tiles and decor build your map. What you buy is yours for good — building spends it, whatever is left comes back when the run ends.',
     'shop.pools': 'Pools',
     'shop.pool.seeds': 'Seeds',
@@ -64,7 +64,7 @@ export const shopTexts = {
     'shop.pool.decor': 'Decor',
     'shop.owned': 'Owned',
     'shop.addToStock': 'adds to your stock',
-    'greenhouse.title': '🌾 Greenhouse — Sow & Mature',
+    'greenhouse.title': 'Greenhouse — Sow & Mature',
     'greenhouse.desc': 'Pots hold your own plants: grab a seedling, drop it into a free pot. Sowing crosses works beside it — parents and child rolled deterministically, ripe after enough waves.',
     'greenhouse.potFree': 'Pot free',
     'greenhouse.parents': 'CHOOSE PARENTS — A × B MAKES THE CHILD',

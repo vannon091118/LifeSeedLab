@@ -24,7 +24,7 @@ export const gameViewStyles: Record<string, CSSProperties> = {
   prepHintUrgent: { color: '#8a5f16', background: '#f7e3b2', borderRadius: 8, padding: '3px 10px', margin: '0 auto', animation: 'hintPulse 1.1s ease-in-out infinite' },
   stage: { flex: 1, position: 'relative', minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '10px 10px 8px', background: 'var(--paper)' },
   canvasFrame: { position: 'relative', width: '100%', maxWidth: 860, flex: 1, minHeight: 0, background: '#fff', border: '2px solid var(--ink)', borderRadius: 14, boxShadow: '4px 4px 0 var(--ink), 0 14px 32px rgba(43,43,38,0.16)', overflow: 'hidden', display: 'flex' },
-  canvas: { width: '100%', height: '100%', display: 'block', touchAction: 'none', flex: 1 },
+  canvas: { width: '100%', height: '100%', display: 'block', touchAction: 'none', flex: 1, minHeight: 0 },
   hud: { position: 'absolute', top: 10, left: 10, display: 'flex', gap: 8, flexWrap: 'wrap', zIndex: 1 },
   // P3QA-08: Ressourcen (Nektar/Leben/Welle) dünner, Werkzeuge (Karten unten) kräftig —
   // der Blick soll zuerst auf die Ressourcen fallen, ohne mit klickbaren Karten zu konkurrieren.
@@ -38,17 +38,19 @@ export const gameViewStyles: Record<string, CSSProperties> = {
   hudChipQuality: { background: '#eef7e6', borderColor: 'var(--leaf-dark)', color: 'var(--leaf-dark)' },
   // Der Vergleichswert („min 22") ist Nebensatz, nicht Hauptwert — kleiner und leiser.
   hudChipSub: { opacity: 0.65, fontWeight: 700 },
-  cancelBtn: { position: 'absolute', top: 10, right: 10, zIndex: 2, padding: '8px 12px', background: '#fff', border: '2px solid var(--ink)', borderRadius: 10, boxShadow: '2px 2px 0 var(--ink)', fontSize: 12, fontWeight: 800, cursor: 'pointer', minHeight: 44 },
-  // P3QA-05: Der Erst-Run-Hinweis ist die wichtigste Anleitung — prominent im Feld, nicht
-  // als Zettel darunter. Nach dem ersten wellen-Start verblasst er zur Zettel-Version.
-  // N4 (Eigentümer-#1, 3/3): die Leiste hing MIT `bottom: 84` AUF der Tray (Tray-Top 582 vs.
-  // Leiste 580–642) und verdeckte genau die Karten, die sie zum Antippen auffordert. `bottom: 172`
-  // docket sie ÜBER der Tray-Kante an (Tray-Höhe ~150–170 px) — die Sicht auf die Karten ist frei.
-  // R1 (Screenshot): die Leiste lag sichtbar AUF der Karten-Oberkante — mehr Abstand +
-  // schmalerer Text maxWidth hält die Tray frei.
-  firstRunHint: { position: 'absolute', left: '50%', bottom: 190, transform: 'translateX(-50%)', display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: '#fffbe8', border: '2px solid var(--ink)', borderRadius: 12, boxShadow: '3px 3px 0 var(--ink)', fontSize: 13, color: '#2b2b26', fontWeight: 700, maxWidth: 'min(86%, 560px)', zIndex: 3, textAlign: 'center' as const, pointerEvents: 'none' as const, transition: 'opacity 1.2s ease, transform 1.2s ease', opacity: 1 },
+  // P-24: der ✕ wohnt seit der P-24/25-Regie in der Tray (Tray-Eck-Tag) — der Platz über der
+  // Spawn-Ecke (oben rechts) gehört dem Brett. Der Style bleibt für den Tray-Knopf (Ecke).
+  // P3QA-05: Der Erst-Run-Hinweis ist die wichtigste Anleitung — er liegt JETZT (P-25) auf dem
+  // FELD (frame-relativ, oben mittig) statt auf dem Screen: kein `bottom`-Wert mehr, der die
+  // Tray-Höhe aus der Ferne erraten muss (N4-Klasse gestorben). Er verblasst nach der ersten
+  // Platzierung zur Zettel-Version.
+  firstRunHint: { position: 'absolute', left: '50%', top: 44, transform: 'translateX(-50%)', display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: '#fffbe8', border: '2px solid var(--ink)', borderRadius: 12, boxShadow: '3px 3px 0 var(--ink)', fontSize: 13, color: '#2b2b26', fontWeight: 700, maxWidth: 'min(86%, 560px)', zIndex: 3, textAlign: 'center' as const, pointerEvents: 'none' as const, transition: 'opacity 1.2s ease, transform 1.2s ease', opacity: 1 },
   // R1: der abgeblendete Zustand (Auto-Fade, Sim-Tick-Frist) — unsichtbar UND unverdeckend.
   firstRunHintFaded: { opacity: 0, transform: 'translateX(-50%) translateY(6px)' } as CSSProperties,
+  // P-25: Anderthalb-Dock unter dem Frame — die Tray ist kein absoluter Overlay mehr, sondern
+  // Teil des stage-Flusses. Sie kann das Brett nicht mehr verdecken (der Befund: Ausgang 0/11
+  // lag unter ihr), und das Brett gewinnt die volle Höhe zurück.
+  trayDock: { width: '100%', maxWidth: 860, display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 },
   paperNote: { display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: '#fff', border: '1.5px solid var(--ink)', borderRadius: 10, boxShadow: '2px 2px 0 var(--ink)', fontSize: 11, color: '#6b6250', fontWeight: 600, maxWidth: 860, width: '100%', justifyContent: 'center', textAlign: 'center' as const, cursor: 'pointer' as const },
   paperNotePin: { width: 8, height: 8, borderRadius: '50%', background: 'var(--nektar)', border: '1.5px solid var(--ink)', display: 'inline-block', flexShrink: 0 },
 };

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { MetaSave } from '../types';
 import type { TranslationKey } from '../i18n';
+import { NektarChipIcon } from './GameIcons';
 import { useI18n } from '../i18n';
 import { buySeedling, buyPoolItem } from '../meta';
 import { SHOP_POOL_IDS, SHOP_POOLS_SOURCE, type ShopPoolId } from '../config/shop.source';
@@ -47,7 +48,7 @@ export function SeedShop({ meta, onMetaChange, onClose }: Props) {
         <div style={styles.header}>
           <h2 style={styles.title}>{t('shop.title')}</h2>
           <div style={styles.headerRight}>
-            <span style={styles.nektar}>🍯 {meta.nektar}</span>
+            <span style={styles.nektar}><NektarChipIcon/> {meta.nektar}</span>
             <button onClick={onClose} style={styles.closeBtn} aria-label={t('common.close')}>✕</button>
           </div>
         </div>
@@ -78,11 +79,11 @@ export function SeedShop({ meta, onMetaChange, onClose }: Props) {
               style={{ ...styles.offerCard, opacity: canAfford(meta, o) ? 1 : 0.45 }}
               onClick={() => handleBuy(o)}
               disabled={!canAfford(meta, o)}
-              aria-label={`${t(o.labelKey as TranslationKey)} — 🍯 ${o.price}`}
+              aria-label={`${t(o.labelKey as TranslationKey)} — Nektar ${o.price}`}
             >
               <span style={styles.owned}>{t('shop.owned')} ×{o.owned}</span>
               <span style={styles.offerName}>{t(o.labelKey as TranslationKey)}</span>
-              <span style={styles.offerPrice}>🍯 {o.price}</span>
+              <span style={styles.offerPrice}><NektarChipIcon/> {o.price}</span>
               <span style={styles.offerHint}>
                 → {t(pool.kind === 'generator' ? 'shop.germinate' : 'shop.addToStock')}
               </span>

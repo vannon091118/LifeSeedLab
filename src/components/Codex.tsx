@@ -5,6 +5,7 @@
 import { useMemo, useState } from 'react';
 import { useI18n } from '../i18n';
 import { loadCodex, verifyLocalChain, getPlayerId } from '../discovery/codex';
+import { CodexGlyph } from './GameIcons';
 import type { DiscoveryEntry } from '../discovery/chain';
 
 type Props = { onClose: () => void };
@@ -57,11 +58,12 @@ export function Codex({ onClose }: Props) {
         </div>
 
         <div style={styles.metaRow}>
-          <span style={styles.metaPill}>🧬 {chain.length} {chain.length === 1 ? t('codex.countOne') : t('codex.countMany')}</span>
+          {/* P-30: Ink-Glyphen statt Emoji-Pills (B0) — CodexGlyph = das Laborbuch selbst. */}
+          <span style={styles.metaPill}><CodexGlyph/> {chain.length} {chain.length === 1 ? t('codex.countOne') : t('codex.countMany')}</span>
           <span style={{ ...styles.metaPill, background: verification.valid ? 'rgba(74,222,128,0.12)' : 'rgba(248,113,113,0.12)', borderColor: verification.valid ? 'rgba(74,222,128,0.35)' : 'rgba(248,113,113,0.35)', color: verification.valid ? '#4ade80' : '#f87171' }}>
             {verification.valid ? `✓ ${t('codex.valid')}` : `✗ ${t('codex.invalid')}`}
           </span>
-          <span style={styles.metaPillSmall} title={playerId}>👤 {playerId}</span>
+          <span style={styles.metaPillSmall} title={playerId}>{playerId}</span>
         </div>
 
         {display.length === 0 ? (
@@ -77,7 +79,7 @@ export function Codex({ onClose }: Props) {
                 <div style={styles.cardMeta}>
                   <span style={styles.metaLine}>{t('codex.firstBy')}: <strong style={styles.player}>{e.player_id}</strong> · {formatOrigin(e)}</span>
                   <span style={styles.metaLine}>{t('codex.parents')}: {e.parents[0]} × {e.parents[1]} · {e.plant_ref ?? `Seed ${e.seed ?? '?'}`}</span>
-                  <span style={styles.metaLineSmall} title={e.entry_hash}>⛓ {e.entry_hash.slice(0, 8)}… ← {e.prev_hash ? e.prev_hash.slice(0, 6) : 'GENESIS'}</span>
+                  <span style={styles.metaLineSmall} title={e.entry_hash}>{e.entry_hash.slice(0, 8)}… ← {e.prev_hash ? e.prev_hash.slice(0, 6) : 'GENESIS'}</span>
                 </div>
                 <div style={styles.cardActions}>
                   <button onClick={() => handleCopy(e)} style={styles.actionBtn}>

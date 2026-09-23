@@ -23,7 +23,8 @@ export class ErrorBoundary extends React.Component<Props, State> {
     return (
       <div style={styles.wrap}>
         <div style={styles.card}>
-          <div style={styles.glyph}>🥀</div>
+          {/* P-30: Text-Glyphe in Tinte statt Emoji (B0). */}
+          <div style={styles.glyph}>✿</div>
           <h1 style={styles.title}>Die Pflanze ist umgeknickt</h1>
           <p style={styles.sub}>Ein unerwarteter Fehler ist aufgetreten.</p>
           <pre style={styles.err}>{this.state.error.message}</pre>

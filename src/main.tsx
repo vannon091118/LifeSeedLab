@@ -30,8 +30,10 @@ function paintFatal(message: string): void {
   Object.assign(card.style, { textAlign: 'center', padding: '32px', maxWidth: '420px', background: '#fbf6e9', border: '2px solid #2b2b26', borderRadius: '14px', boxShadow: '4px 4px 0 #2b2b26' });
 
   const icon = document.createElement('div');
-  icon.style.fontSize = '42px';
-  icon.textContent = '🥀';
+  // P-30: die Emoji-Grafik ist einer Ink-Glyphe gewichen (B0: keine Emojis als
+  // Endgrafik) — ein gestrichelter Blütenstempel in denselben Farben wie die Karten.
+  Object.assign(icon.style, { fontSize: '34px', color: '#a94438', border: '3px dashed #2b2b26', borderRadius: '50%', width: '64px', height: '64px', lineHeight: '58px', margin: '0 auto 8px' });
+  icon.textContent = '✿';
 
   const heading = document.createElement('h1');
   Object.assign(heading.style, { fontSize: '20px', color: '#2b2b26', margin: '8px 0 4px' });

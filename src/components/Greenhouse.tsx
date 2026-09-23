@@ -6,6 +6,7 @@ import { rollGachaCross, crossPair, deriveBreedSeed } from '../genome';
 import { consumeSeedAndEnqueueCross, keepCross, isCrossReady, plantSeedlingIntoPot, buyRearingSlot } from '../meta';
 import { wavesToUnlockFor, rearingSlotGate, REARING_SLOTS_MAX } from '../config/economy.source';
 import { helpText } from '../i18n/help';
+import { GreenhouseGlyph } from './GameIcons';
 
 // Owner: UI (Greenhouse screen). LOC ≤ 400.
 // GEWÄCHSHAUS — fachlich getrennt vom SeedShop (P2): Hier wird AUSSÄT + REIFUNG +
@@ -207,7 +208,7 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
         {/* Der Knopf behält seinen NAMEN, wenn er aus ist (Barrierefreiheit: ein Bedienelement
             wird nicht umbenannt, nur weil es deaktiviert ist) — der Grund steht daneben. */}
         <button onClick={handleSow} disabled={!canSow} style={{ ...styles.sowBtn, opacity: canSow ? 1 : 0.4 }}>
-          🌱 {t('shop.sow')}
+          <GreenhouseGlyph/> {t('shop.sow')}
         </button>
         {!canSow && !queueFull && owned.length >= 2 && (
           <div style={styles.hint}>{t('shop.sowPickParents')}</div>

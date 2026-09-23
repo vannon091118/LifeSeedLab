@@ -136,9 +136,19 @@ export class PlacementController {
     return this.getState();
   }
 
-  /** Tap auf eine Tile-Karte: auswählen — oder bei gleicher Karte abbrechen (B3). */
+  /**
+   * Tap auf eine Tile-Karte: auswählen.
+   * P-12 (Taktik-Session, 23.09.2026): bewusst KEIN Umschalter mehr — beim Serien-Bau schalt
+   * der zweite Klick das Werkzeug still ab, mitten im Bau („ein Bruch mitten im Bauen"). Der
+   * Zweitklick räumt nur eine evtl. stehende Ablehnung weg; Werkzeug und Geist bleiben.
+   * Abwahl ist die bewusste Geste über den ✕-Knopf (`cancel()`). Die Pflanzen-Karten behalten
+   * ihren B3-Zweitklick-Cancel bewusst (limitierter Bestand, Auto-Cancel bei 0 — Q17).
+   */
   selectTile(tile: MapTileType): PlacementState {
-    if (this.mode === tile) return this.cancel();
+    if (this.mode === tile) {
+      this.rejection = null;
+      return this.getState();
+    }
     this.mode = tile;
     this.variantId = null;
     this.ghost = null;

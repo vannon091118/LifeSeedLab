@@ -1,5 +1,6 @@
 import type { MetaSave } from '../../types';
 import { styles } from './greenhouseStyles';
+import { GreenhouseGlyph } from '../GameIcons';
 import { variantName } from './greenhouseHelpers';
 import type { TranslationKey } from '../../i18n';
 
@@ -31,7 +32,7 @@ export function SeedlingTray({ seedlings, heldSeedling, onToggleSeedling, meta, 
             background: heldSeedling === id ? '#eef7e6' : '#fff',
           }}
         >
-          🌱 {variantName(id, meta)}
+          <GreenhouseGlyph/> {variantName(id, meta)}
         </button>
       ))}
     </div>

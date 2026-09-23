@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { BeetleAncestor, MetaSave } from '../types';
+import { NektarChipIcon } from './GameIcons';
 import { useI18n } from '../i18n';
 import { enqueueBrood, readyBroods, claimBrood } from '../meta';
 import { rollBrood, broodGenomeHash, beetlePower, resolveAncestor } from '../genome/beetle';
@@ -90,7 +91,7 @@ export function BeetleLab({ meta, onMetaChange, onClose }: Props) {
         <div style={styles.header}>
           <h2 style={styles.title}>{t('beetle.title')}</h2>
           <div style={styles.headerRight}>
-            <span style={styles.nektar}>🍯 {meta.nektar}</span>
+            <span style={styles.nektar}><NektarChipIcon/> {meta.nektar}</span>
             <button onClick={onClose} style={styles.closeBtn}>✕</button>
           </div>
         </div>
@@ -121,7 +122,7 @@ export function BeetleLab({ meta, onMetaChange, onClose }: Props) {
         </div>
 
         <button onClick={handleBreed} disabled={!ancestorA || !ancestorB} style={{ ...styles.breedBtn, opacity: meta.nektar < BEETLE_BREED.nektarCost ? 0.5 : 1 }}>
-          {t('beetle.breed')} (🍯 {BEETLE_BREED.nektarCost})
+          {t('beetle.breed')} (<NektarChipIcon/> {BEETLE_BREED.nektarCost})
         </button>
 
         {preview.length > 0 && (
