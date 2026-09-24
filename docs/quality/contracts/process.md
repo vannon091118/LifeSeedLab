@@ -46,6 +46,10 @@ Behoben: byte-genaue Rückkodierung CP1252 → UTF-8, BOM und CRLF erhalten, 0 �
 
 `tests/run.spec.ts` rechnet Zellmitten mit hartcodierten `GRID/PAD/+8` nach; der Kommentar sagt ehrlich, dass der Test bei Renderer-Drift nichts mehr findet, ohne dass jemand weiß warum. Fix (B16-Auftrag): `Renderer.metrics()` ans DevGate hängen (`CELL/OX/OY` als Werte), dann liest der Test die Wahrheit statt einer Kopie. Die `waitForTimeout`-Sleeps sind bekannte Flaky-Kandidaten, solange die Suite lokal grün läuft.
 
+### T9-Status (24.09.2026) — Route und E2E-Last abgeschlossen, Snapshot-Messung offen
+
+P-23 ist durch `MapSystem.routeExists()` als O(V+E)-BFS umgesetzt, während der sichtbare Laufweg den Dijkstra behält. P-33 wird im FeedbackLayer nicht mehr still verworfen: ein Überlauf erzeugt eine Ankunft am Zähler. P-35 hat mit `tests/e2eLock.ts`, `e2eLock.test.ts` und `PW_SINGLE_RUN=1` eine klare Abbruch-Vorbedingung statt flakiger Timeout-Raten. B14.7 bleibt als offener Messauftrag: Die aktuelle Bibliotheks-/Save-Größe und der 10-Hz-Snapshot-Druck müssen noch mit einem reproduzierbaren Profil belegt werden, bevor die T9-DoD als vollständig behauptet werden darf.
+
 ## B13. Definition of Done for this work order
 
 - [ ] Legacy symbols (`GameState`/`Tower`/`Enemy`/`Projectile`/`Worker*`) deleted; `types.ts` = meta/breeding only

@@ -127,6 +127,10 @@ Die Reifung hängt an **überstandenen** Wellen (B15.2). Wer mit zwei Pflanzen i
 `toggleLoadout` (der einzige Writer des Loadouts) hat in `src/` **keinen Aufrufer**; `MainMenu:97` rendert unter der Überschrift `t('menu.loadout')` („LOADOUT (n)") die **Sammlung** (`ownedVariants`), nicht den Loadout. Folge: `meta.loadout` bleibt dauerhaft leer, `root.ts` startet jeden Run mit `STARTING_INVENTORY` (1 Sprout + 1 Rootwall) — `for (const id of loadout) inventory[id] = 2` läuft nie —, und `savedVariants.filter(v => loadout.includes(v.id))` liefert immer eine leere Liste, sodass auch die aufgelösten Visuals der gezüchteten Pflanzen den Run nie erreichen.
 Damit ist der einzige Ort, an dem Zucht spielbar wird, unerreichbar: **jede Runde ist identisch**, egal wie viel gezüchtet wurde. Das ist der stärkste Beleg für die Meldung „keine Runde bringt was" — stärker als jede Zählerfrage. Vom E2E nicht auffindbar: `router.spec.ts` prüft nur, dass der Text `/LOADOUT/i` sichtbar ist (und der ist sichtbar — nur ohne Bedeutung).
 
+## Red-Team-Nachtrag (24.09.2026) — RT-03/RT-06/RT-12 BEHOBEN
+
+Die öffentlichen Kauf-Writer liegen jetzt jeweils in einem `load → mutate → persist`-Schritt. `SEED_PRICE` und `poolPriceOf()` sind die Preisquelle; `buyPoolItem` akzeptiert nur positive ganzzahlige Mengen; doppelte `crossIndex`-/`broodIndex`-Identitäten werden beim Load fail-closed behandelt und bereits vorhandene Cross-IDs werden nicht erneut eingereiht. Belege: `src/meta/entry_loop.test.ts`, `src/meta/shop_pools.test.ts`, `src/meta/brood_identity.test.ts`, `src/meta/identity_invariants.test.ts`, Commit `6441333`.
+
 ## B1. Run identity & loadout (repair: App.tsx, meta, root.ts)
 
 - `MetaSave` v2 adds: `runId: number`, `breedGeneration: number`, `loadout: string[]` (≤ 4 variant ids).
@@ -237,7 +241,7 @@ Entscheidung: `savedVariants` und `beetles` werden **nicht gekappt** — weder s
 
 Das „Spieler-Entscheidung"-Modell wurde bewusst abgelehnt: Es baut UI für ein Problem, das die 2→1-Regel nicht hat. Kappung löst ein Wachstumsproblem, das ohne Kappung nicht existiert — sie kostet dafür Vertrauen.
 
-**Umsetzung:** Die Hardcode-Caps (60/40, Verbotspunkt 6) sind aus `meta/run.ts` entfernt; das Miträum-Muster aus A18.3 bleibt als Regel dokumentiert, falls je wieder ein Cap eingeführt wird. **Invarianten sind test-gelockt** (`src/meta/cross_lifecycle.test.ts`, 5 Gates): kein Pfad verlässt einen Eintrag aus Bibliothek/Brut-Lager; jede Loadout-ID existiert; `bredStats` kennt keine Fremd-IDs; `beetleDeployed` verweist nie auf eine entfernte Specimen. Bringt jemand ein Cap zurück, schlagen diese Tests und erzwingen die Miträum-Pflicht.
+**Umsetzung:** Die Hardcode-Caps (60/40, Verbotspunkt 6) sind aus `meta/run.ts` entfernt; auch der tote Source-Wert `BEETLE_BREED.maxLibrary` ist nicht mehr vorhanden. Das Miträum-Muster aus A18.3 bleibt als Regel dokumentiert, falls je wieder ein Cap eingeführt wird. **Die Identitätsinvarianten sind test-gelockt** (`src/meta/identity_invariants.test.ts`): 61 echte Registrierungen halten Library, Besitz, `bredStats` und Loadout konsistent; 61 echte Keeps verlieren weder Kind noch Queue-Eintrag; das 41. Käfer-Specimen überlebt das historische 40er-Cap, während eine explizit gesetzte `beetleDeployed`-Referenz im Lager bleibt. Ein zurückgebrachtes 60/40-Cap fällt damit in mindestens einem echten Schreibpfad rot.
 
 **Offen (Mid-Term, Messschiene):** das reale Wachstum der Bibliothek messen — die 2ⁿ-Kostenkurve macht großes Wachstum unwahrscheinlich, aber gemessen statt behauptet wird es gegen B12 (Save-Größe / Snapshot-Budget).
 

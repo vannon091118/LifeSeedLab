@@ -177,6 +177,10 @@ machte, ist Content — nicht Code (siehe B26.3/3).
 
 ---
 
+### T7-Status (24.09.2026) — Source-Wahrheiten belegt, Balance offen
+
+`SEED_PRICE`, `poolPriceOf`, Brut-Reife und Slot-Gates liegen in `config/*.source.ts`; die Anzeigeformel für Nektar liegt nur noch im `ScoreSystem`. Die offenen Punkte P-8/P-9/P-11/P-18/P-19 sind keine weitere Implementierungsaufgabe, sondern eine nicht getroffene Produktentscheidung: differenzierte `reward`-/`scoreValue`-Kurven, Saatpreis versus Raritätswert, Brutkosten sowie die gewünschte Wellen- und Mutationskurve. Bis dahin bleiben die bestehenden Werte unverändert und als Balanceentscheidung sichtbar.
+
 ## B30. Brut-Seed in eigener Domäne — Migrationsentscheidung statt Namensleihe (Befund: Source → Runtime)
 
 ### B30.1 Befund

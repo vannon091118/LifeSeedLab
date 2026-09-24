@@ -70,7 +70,7 @@ test.describe('Visuelle Belege (Canvas-Sonde)', () => {
     // erzeugt) — geprüft wird hier der PRÄSENTATIONSPFAD: Observer → Executor → Renderer. Dass die
     // Sim das Event selbst mit dem Kill-Ort emittiert, pinnen `gateB.test.ts`/`observers.test.ts`.
     const GOLD = '#d9a441';
-    await probe.publish('REWARD_GRANTED', { reward: 10, sourceId: 'probe', px: 6.5, py: 9.5 });
+    await probe.publish('REWARD_GRANTED', { reward: 10, grantedNektar: 2, sourceId: 'probe', px: 6.5, py: 9.5 });
 
     const abstand: number[] = [];
     const pixel: number[] = [];
@@ -95,7 +95,7 @@ test.describe('Visuelle Belege (Canvas-Sonde)', () => {
     const mitte = { x: (src.x + anchor.x) / 2, y: (src.y + anchor.y) / 2 };
     const korridor = { x: mitte.x - 30, y: mitte.y - 30, w: 60, h: 60 };
     const ankerFenster = { x: anchor.x - 25, y: anchor.y - 25, w: 50, h: 50 };
-    await probe.publish('REWARD_GRANTED', { reward: 30, sourceId: 'wave-1', px: null, py: null });
+    await probe.publish('REWARD_GRANTED', { reward: 30, grantedNektar: 6, sourceId: 'wave-1', px: null, py: null });
     let goldKorridor = 0;
     let goldAnker = 0;
     for (let f = 0; f < 20; f++) {

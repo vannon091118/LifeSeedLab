@@ -104,7 +104,7 @@ Der Befund war schärfer als der Vertragstext: die Belohnung hatte **keine Reise
 
 **Belege:** `observers.test.ts` (Start am Kill-Ort statt Rastermitte · kein Flug bei `null` · Dots wandern näher zum Anker · Ankunft am Anker · **Kopf-Dot LANDET exakt am Anker** · ohne Anker kein Flug), `gateB.test.ts` (Payload trägt den Kill-Ort, Wellen-Bonus `null`), `hudSnapshot.test.ts` (Zähler spiegelt `state.nektarEarned`).
 **Sichtprüfung 21.09.2026:** Desktop (Flight im eingefrorenen Frame, Dots zwischen Kill und Chip) und 390×844 via Playwright — Pixelprobe: Gold-Centroid wandert über aufeinanderfolgende Frames von der Quelle Richtung Anker (314→240 px bei Anker 36.8/22.3), kein horizontaler Überlauf (`scrollWidth 390 = clientWidth 390`), Chip sichtbar bei (22/210, 45 px breit).
-**Offen (Register):** P-27 (`grow`/`death`-Animationen werden emittiert, aber nicht gezeichnet), P-28 (`muzzle_puff` tot), P-29 (Wellen-Bonus hat weder Senke noch Ort), P-31 (Kill-Zahl `+10` vs. Zähler-Delta `+2`), P-33 (Reise kappt still bei 8 Flügen).
+**Registerstatus 24.09.2026:** P-27, P-28, P-29, P-31 und P-33 sind **behoben**. `PlayAnimation` trägt den Welk-Ort, `PROJECTILE_FIRED` emittiert `muzzle_puff`, der Wellen-Bonus bucht und pulsiert ohne erfundenen Weltort, die Kill-Anzeige verwendet `grantedNektar`, und ein überlaufender Flug erzeugt am Zähler eine Ankunft. Belege: `src/observers/observers.test.ts`, `src/render/layers/feedback.ts`, `src/simulation/gateB.test.ts`, Commits `6b1d964` und `6ddc9b2`.
 
 ### B5.2 Pixelbelege (21.09.2026) — die Behauptung ist jetzt messbar
 
@@ -118,7 +118,7 @@ Der Befund war schärfer als der Vertragstext: die Belohnung hatte **keine Reise
 
 **Regel für künftige visuelle Abnahmen:** „Sichtbar" ist eine Pixelaussage, keine Handler-Aussage — ein Handler, der läuft, und ein Kommando, das entsteht, sind kein Beleg dafür, dass der Spieler etwas sieht (B5: Silence is not feedback). Zwei Fallen sind dabei belegt und dokumentiert: der Farbvergleich muss zum Zeichenmodus passen (ein transparenter Effekt über Papier hat **kein** Pixel der reinen Effektfarbe — exakt ±24 ergab 0 in 28 von 28 Frames), und die Baseline des Regionen-Vergleichs muss VOR dem gezeichneten Frame liegen.
 
-**Offen (Register):** P-34 (der Einschlag ist in der Effektfarbe messbar unsichtbar: `impact_ring` in Papierfarbe, `spawn_spore` zu klein/blass — sichtbar ist nur die Zahl).
+**Registerstatus 24.09.2026:** P-34 ist **behoben**. `DAMAGE_DEALT` trägt den `effectId`; `VisualObserver` löst daraus die Palette-Modifier-Farbe der Quelle ab, und der Einschlag wird nicht mehr als neutraler Papierring auf Papier gezeichnet. Belege: `src/bus/events.ts`, `src/simulation/enemySystem.ts`, `src/observers/visualObserver.ts`, `tests/visual_probe.spec.ts`, Commit `6b1d964`.
 
 ## B8. Audio (new `observers/audioObserver.ts` ≤ 250 LOC)
 

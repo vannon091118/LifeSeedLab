@@ -9,6 +9,10 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ## Unreleased (Arbeitsstand 19.–24.09.2026)
 
+- [E2E-Vertrag] Die Canvas-Sonde veröffentlicht Test-Events nun mit einer ableitbaren Event-ID und vollständigem `REWARD_GRANTED`-Payload; der gezielte Chromium-Single-Run für Visual-/Layout-/Erstsession-Specs ist 11/11 grün. Belege: `tests/helpers/canvasProbe.ts`, `tests/visual_probe.spec.ts`.
+
+- [Roadmap T1–T11] Die T1–T5- und T8-Slices sind mit Code-/Testbelegen als erledigt konsolidiert; T6 bleibt wegen P-36, T7 wegen der Balanceentscheidung und T9 wegen B14.7 teilweise offen. T10 bleibt bis zur schriftlichen Produktentscheidung gesperrt, T11 bleibt externe Owner-Aktion. Belege: `docs/process/ROADMAP.md`, Domänen-Contracts und Devlog 25.
+
 - [Simulation/Ownership] Root-Vektorwriter sind privat; Tests greifen nur über eine test-only Brücke zu, während die Produktion keinen Neben-Writer exportiert. Beleg: `src/simulation/root.ts`, `src/testing/vectorHooks.ts`, `vector_engine_gate.test.ts` (59 Tests), `tsc -b --noEmit`.
 
 - [Slop/Identität] Test-only Transport-/ObservationSerializer-Dateien, der tote `maxLibrary`-Wert und der No-op-Discovery-Sync werden entfernt; echte Discovery- und Identitätstests bleiben. Beleg: `src/meta/identity_invariants.test.ts`, `src/discovery/chain.ts`, `src/config/beetles.source.ts`; Voll-Suite und Build grün.

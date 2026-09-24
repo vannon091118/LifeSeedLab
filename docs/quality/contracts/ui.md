@@ -237,6 +237,10 @@ bleiben frei, der Papierhintergrund ist vorhanden und die Blase liegt vollständ
 Die Preview wurde zusätzlich bei Desktop und 390×844 geprüft; der Sichtpfad ist damit nicht
 mehr nur eine Behauptung aus dem DOM-Vertrag.
 
+### T6-Status (24.09.2026) — P-3/P-12/P-20/P-24/P-25 erledigt, P-36 offen
+
+Die tote PvP-Fläche ist aus dem Hub entfernt, Tile-Werkzeuge bleiben beim Serienbau gewählt, die Spawn-Ecke wird nicht mehr vom ✕-Overlay verdeckt und die Tray liegt unter dem Frame. Für P-20 gibt es keinen Inaktivitäts-/Maus-Timer: `gameRuntime.ts` reagiert ausschließlich auf `visibilitychange → hidden`, pausiert die Clock und zeigt das Suspend-Overlay. Die Behauptung eines Dimmer nach bloßer Mausinaktivität ist damit **widerlegt**; der Code enthält keinen solchen Zustand. P-36 bleibt offen, weil die Frage, ob die Feldmitte im Erstlauf bewusst erreichbar sein soll, eine Produktentscheidung ist und nicht durch eine automatische Wirtschaftsänderung beantwortet werden darf. Belege: `placementController.test.ts`, `qa_befunde.test.ts`, `tests/mobile.spec.ts`, `tests/layout_regie.spec.ts`, `src/render/gameRuntime.ts:247-254`.
+
 ### B21.6 Nachtrag — die Tour begann zu spät (Befund: Erstspieler-Test)
 
 **Befund.** Der Erstspieler-Bericht (16.09., Version 0.1) führt als Onboarding-Risiko genau das:

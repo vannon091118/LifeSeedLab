@@ -9,13 +9,8 @@
 
 ## 1. Aktueller Projektstatus
 
-- **Code-Stand (`main`):** Phasen A–F vollständig implementiert und test-locked. Phase G (Multiplayer/Backend) bewusst aufgeschoben.
-- **Verifizierungs-Baseline** — gemessen am **20.09.2026** im Arbeitsbaum (Stand `v0.0.72`); jede Zahl ist ein Messwert dieses Laufs, keine fortgeschriebene:
-  - TypeScript inkrementell: **0 Fehler** (`node node_modules/typescript/bin/tsc -b --noEmit`) — die zuvor blockierenden, fremden untracked Experimente (`src/lib`, `src/mcpServer`, 70 TS-Fehler, null Importe, bezogen sich auf das gestrichene Energie-Modell) sind in die Quarantäne `experiments/pending/` verschoben (git-ignoriert, lesbar, Entscheidung des Eigentümers steht aus).
-  - Test-Suite: **570 Tests in 61 Testdateien grün** (`node scripts/test-lane.mjs --full`)
-  - Tooling-Suite: **38 Tests in 8 Dateien grün** (`--config tools/vitest.config.ts`)
-  - E2E-Suite: **30/30 Tests grün** (`tests/`, Chromium 390×844 Portrait, Progression, Mobile-DoD) — die zuvor rote untracked Scratch-Spec liegt ebenfalls in der Quarantäne.
-  - Vite-Build: **Produktions-Build fehlerfrei** (24,1 s, `dist/` ist ignoriert)
+- **Code-Stand (`main`):** Phasen A–F vollständig implementiert und test-locked. Es gibt keinen aktiven Multiplayer-/Backend-Pfad; T10 ist bis zu einer expliziten Produktentscheidung gesperrt.
+- **Verifizierungs-Baseline:** Die folgende historische Messung vom **20.09.2026** ( damaliger Stand `v0.0.72`) ist keine aktuelle Behauptung. Für die aktuelle Slop-Konsolidierung belegt sind: `tsc -b --noEmit` grün, fokussierte Tests grün und `test-lane` mit **51 Testdateien / 517 Tests** grün. Ein vollständiger Suite-, E2E- und Build-Lauf ist für diesen Doku-Slice nicht erforderlich und wird hier nicht behauptet.
 - **Qualitäts-Gate (Shinon):**
   - Gate-Modus: `enforcement=strict`; **Gate OFFEN: 0 Fehler, 0 Warnungen** (Lauf 20.09.2026, nach der Quarantäne). `finish --all` ist damit technisch wieder frei.
   - Test-Lane: Ausführung relevanter Tests (`vitest related`) im Commit-Pfad ≤ 10 s; letzter Lauf **6,8 s** bei 26 berührten Dateien — im Budget.
@@ -34,7 +29,7 @@ Alle historischen Befunde aus Code-Audits (jetzt domänenweise in `docs/quality/
 - **Beauftragt** → §4 (Meilenstein; die Audit-IDs bleiben im Aufgabentext stehen).
 - **Behoben** → Domänen-Contract (`docs/quality/contracts/`) plus Devlog-Chronologie; der QA-Bericht selbst wird nach der Überführung aus `qa/` entfernt.
 
-Die frühere Liste **„2.2 Aktive Befunde" wurde am 20.09.2026 aufgelöst** — sie war eine zweite Liste derselben Sachen, ohne P-Nummern. Ihre fünf Einträge haben jetzt je genau einen Ort: **T3** → **P-12**; **T2** → überholt (Devlog 18: das Energie-Konto existiert nicht mehr, es gibt keinen zweiten Zahltisch); **N4** → behoben (Devlog 17: 3/3 auf Desktop und Mobile; der Rest an derselben Stelle sind **P-2**, **P-5**, **P-10**, **P-13**); **B16.2–B16.5** und **B16.9** → §4 STUFE 1; **B14.7** → §4 STUFE 2.
+Die frühere Liste **„2.2 Aktive Befunde" wurde am 20.09.2026 aufgelöst** — sie war eine zweite Liste derselben Sachen, ohne P-Nummern. Die alten STUFEN-Verweise sind jetzt eindeutig den T-Slices zugeordnet: **T6** → **P-12**; **T7** → **B16.2–B16.5**; **T9** → **B14.7**. Die frühere Energie-T2 ist überholt (Devlog 18: das Energie-Konto existiert nicht mehr, es gibt keinen zweiten Zahltisch); **N4** bleibt als behobene Spur in den Contracts/Devlogs.
 
 ### 2.1 Herkunft der Audit-IDs (Übersetzung, KEIN Status-Ersatz)
 
@@ -57,7 +52,7 @@ neue Aufträge nach §4.
 
 ---
 
-## 3. Bekannte Probleme (verifiziert am Code, 19.–20.09.2026)
+## 3. Bekannte Probleme (verifiziert am Code, 19.–24.09.2026)
 
 Aufgenommen ist nur, was am heutigen Stand **im Code belegt** offen ist — jede Zeile nennt
 Beleg und Owner. Was die Berichte gemeldet haben und inzwischen behoben ist, steht in den
@@ -99,6 +94,18 @@ Entschiedene Punkte wandern nach unten in die Spur-Abschnitte (Nummern bleiben s
 | P-34 | **Der Einschlag eines Schusses ist in der Effektfarbe nicht sichtbar.** Mit der neuen Canvas-Sonde gemessen (28 Frames, zwei Läufe): im Fenster um den gemeldeten Einschlagpunkt liegt in JEDEM Frame **kein** Pixel des Effekts (`#a3e635` bei `EFFECT_PIERCE → VECTOR_TOX`) innerhalb ±24 — und die ~100 blassgrünen Pixel, die dort dauerhaft stehen, sind der GEGNER (sie ändern sich gegenüber dem Vorher-Bild nicht). Zwei Ursachen im Owner: `DAMAGE_DEALT` zieht seinen `impact_ring` in Papierfarbe `#d9c9a3` (Papier auf Papier), und `spawn_spore` ist mit `size: [0.04, 0.09]` Zellen bei `alphaCurve: 'fadeInOut'` zu klein und zu blass, um sich vom Untergrund zu lösen. Sichtbar ist allein die Schadenszahl (Tinte, 18×15 px Glyphe am Punkt — die Sonde pinnt genau sie). Entscheidung nötig, nicht in dieser Scheibe getroffen: Effekt in der Palette-Modifier-Farbe zeichnen, Größe/Alphakurve anheben oder die Profile streichen. | Messung 21.09.2026 (`tests/visual_probe.spec.ts`, Tinte 50–60 Pixel im Einschlags-Frame), `observers/visualObserver.ts` (Zeile `impact_ring`), `observers/particles.ts` (`spawn_spore`) | `observers/` + `render/` |
 | P-35 | **Die E2E-Lane meldet unter paralleler Last Zeitüberschreitungen, die isoliert verschwinden.** Im gleichen Lauf sind zweimal VERSCHIEDENE, je 20–120 s bemessene Specs in DOM-Zugriffe gelaufen (`mechanics.spec.ts` „DevGate finite"/„Exit Run sauber", `progression.spec.ts` „Reifungs-Leiter": `getByRole('start game')` kam nie) — isoliert nachgefahren sind alle drei grün (6/6, 1/1). Beleg für die Last: zwei parallele node-Prozesse mit 758 s und 169 s CPU (~300 MB) zum Zeitpunkt des Laufs; dieselbe Beobachtung nennt `test-lane` („unter Last ist das kein Befund"). Risiko: ein rotes E2E-Band lässt sich dann nicht mehr von einem echten Defekt unterscheiden — die kurzen Specs brauchen entweder längere Budgets oder eine Last-Vorbedingung (z. B. Abbruch, wenn im Worktree eine zweite Playwright-Instanz läuft). | Messung 21.09.2026 (drei Lane-Läufe, drei verschiedene Last-Zeugen), `playwright.config.ts` (`timeout: 20_000` je Spec) | `process/` (E2E-Config) |
 | P-36 | **Der Erstsession-Loop bestraft die naheliegende Feldmitte ohne Erklärung.** Im Blindlauf (24.09.2026, echter Preview-Pfad) endete der Loan-Run mit der Pflanze bei gx 6/gy 5 in Welle 2 mit 0 Kills/0 Nektar; der Shop blieb deshalb korrekt bei 0 und der zweite Samen gesperrt. Der nahe Pfadfall gx 1/gy 1 erzeugte in einer App-getreuen `SimulationRoot`-Sonde mit Run-Seed 2447771834 dagegen 2.480 Nektar (Welle 20/Tick 21.195). Das ist eine Onboarding-/Designfrage (Kill-Box-/Time-on-Target-Hinweis oder zugängliche Erstplatzierung), **keine** defekte Wirtschaftsbuchung; der Produktloop-Test beweist nur den erreichbaren nahen Fall. | Blindlauf-Preview 24.09.2026, `tests/first_session_loop.spec.ts`, `placeOnePlant` (gx/gy 1/1) und `SimulationRoot`-Messung | `components/` + `meta/` |
+| P-37 | **World-Korruption wird als Erststart behandelt.** `loadWorld()` liefert für fehlend und korrupt dasselbe `null`; `ensureWorld()` überschreibt den defekten Bestand mit einer frischen Welt. | `docs/quality/red-team-architecture-audit.md` RT-01; `persistence/worldSave.ts:30-45`; `App.tsx:48-51` | `persistence/` + `App.tsx` |
+| P-38 | **Run-Exit hat eine asynchrone Save/Löschen-Race.** `countRun()` startet `clearRun()`, `destroy()` startet danach erneut `saveRun()`; beide IDB-Writes sind fire-and-forget und nicht serialisiert. | `docs/quality/red-team-architecture-audit.md` RT-02; `render/gameRuntime.ts:405-431`; `persistence/runSave.ts:39-69` | `render/` + `persistence/` |
+| P-39 | **Meta-Käufe sind trotz Atomaritätsversprechen mehrstufig.** `buySeedling`, `buySeedAndGerminate` und `germinateSeed` schreiben Registrierung und Zahlung in getrennten `updateMeta`-Zyklen; Fehler oder Tab-Konkurrenz erzeugen Teilbuchungen. | `docs/quality/red-team-architecture-audit.md` RT-03; `meta/economy.ts:47-70,184-196`; `meta/store.ts:201-204` | `meta/` + `persistence/` |
+| P-40 | **Same-Version-Saves werden nur per Checksummen- und Type-Assertion validiert.** Ein gültiger Envelope mit ungültiger `RunSave`-Form kann bis `applyResume()` gelangen. | `docs/quality/red-team-architecture-audit.md` RT-04; `persistence/storage.ts:92-106`; `persistence/runSave.ts:62-65` | `persistence/` |
+| P-41 | **World-Validierung prüft Syntax statt der Spielinvariante.** Unbekannte Tiles oder blockierter Spawn/Exit können als syntaktisch gültige Welt gespeichert werden; der EnemySystem-Defaultpfad maskiert die kaputte Route. | `docs/quality/red-team-architecture-audit.md` RT-05; `world/world_state.ts:73-86`; `simulation/enemySystem.ts:39-43` | `world/` + `simulation/` |
+| P-42 | **Öffentliche Meta-Writers akzeptieren beliebige Preise/Mengen.** Negative Preise erhöhen Nektar, `buyPoolItem('pot', 1.5)` bucht fractional Material; Source-Wahrheit wird umgangen. | `docs/quality/red-team-architecture-audit.md` RT-06; `meta/economy.ts:15-18,30-38,47-53` | `meta/` |
+| P-43 | **EventBus erzwingt den Event-Contract nicht.** `assertEventContract()` existiert, wird aber beim `publish()` nicht aufgerufen; typisierte, aber ungültige Events erreichen Downstream-Listener. | `docs/quality/red-team-architecture-audit.md` RT-07; `bus/bus.ts:9-17`; `bus/events.ts:167-200` | `bus/` |
+| P-44 | **SimulationRoot exportiert zusätzliche Writer.** `vectorSystem`, `attractorSystem`, `vectorDeposit()` und `attractorSpawn()` umgehen den Tick-Faden; aktuell überwiegend latent, aber ein Ownership-Schlupfloch. | `docs/quality/red-team-architecture-audit.md` RT-08; `simulation/root.ts:285-299` | `simulation/` |
+| P-45 | **Persistenzfehler werden als Erfolg behandelt.** `idbSet()` und `save()` verschlucken Fehler; Save-Aufrufer erhalten keinen sichtbaren `written/failed`-Status. | `docs/quality/red-team-architecture-audit.md` RT-09; `persistence/storage.ts:120-122,146-157`; `persistence/runSave.ts:59`; `persistence/worldSave.ts:20-22` | `persistence/` + UI |
+| P-46 | **IDB-Migration schreibt zurück, ohne den Write abzuwarten.** Ein migrierter Wert kann zurückgegeben werden, bevor seine persistente Neuformalisierung abgeschlossen ist. | `docs/quality/red-team-architecture-audit.md` RT-10; `persistence/storage.ts:100-106,171-174` | `persistence/` |
+| P-47 | **`worldSeed` ist persistiert, aber nicht Gameplay-Wahrheit.** `worldSnapshotOf()` überträgt ihn nicht; Pot-Boosts leiten Farben aus `EPOCH_ROOT` und Koordinaten ab. | `docs/quality/red-team-architecture-audit.md` RT-11; `world/world_state.ts:32,67-69`; `simulation/potBoost.ts:22-24` | `world/` + `simulation/` |
+| P-48 | **`crossIndex` ist nicht uniqueness-validiert.** Doppelte Queue-IDs werden per `find()` entschieden; ein Claim entfernt alle gleichnamigen Einträge. | `docs/quality/red-team-architecture-audit.md` RT-12; `meta/economy.ts:98-124,163-165`; `meta/run.ts:216-220` | `meta/` |
 | P-26 | **Drei von vier Pflanzen tun nichts — also ließ ich die Gegner fressen: GELÖST (20.09.2026).** Black-Box-Bericht v0.0.71 (Beste Welle 5): Mauer `EFFECT_REFLECT` und Myzel `EFFECT_HEAL` als `visual-only`-Tags in `effectSupport.ts` — 300 HP nie berührt, Heil-Aura nur im `prep` ohne Wunden. Jetzt hält die Mauer auf: **Tank und Boss bleiben stehen und fressen** (`stopsToEat` je Archetyp, `ENEMY_BITE = {damage:10, cooldownTicks:30, reach:1.05, share:0.2}` in `config/enemies.source.ts` — Tank ab Welle 6, Boss ab Welle 10; Grunt/Fast/Swarm ziehen vorbei). Geometrie-Eigentümer `biteTarget` (`enemySystem.ts`), Pflanzen-Writer `receiveBite` (`plantSystem.ts`, `PLANT_WITHERED`, Reflex = resolved Schaden), `healTick` im Kampf (`root.ts`). **Alle Zahlen gemessen, EINE Quelle:** Seed `555010`, Mauer (5,1), 1200 Ticks → Welle 1: 300→300 (0 Bisse, 0 stehende Ticks), Welle 6: 300→0 in **30 Bissen**, **472 stehende Ticks (39 %)**, Tod bei ~1168, Tank 285 HP (150×1.9) — alle Details, Sonde und Grenzen: **Devlog 22** (`docs/process/devlog/2026-09-20_22_pflanzen-und-bericht.md`). Belege: `src/simulation/plant_defense.test.ts` (8 Pins). Zum Audit-Hinweis „erst ab Welle 10": bewusst Tank 6 / Boss 10 (Entscheidung des Eigentümers, 20.09.2026 — frühe Grunt-Fresser machten Welle 2 unspielbar). | `config/enemies.source.ts`, `simulation/enemySystem.ts`, `simulation/plantSystem.ts`, `simulation/root.ts`, `simulation/plant_defense.test.ts`, Devlog 22 | `simulation/` + `config/` |
 
 ### Am 19.09.2026 entschieden und umgesetzt (Nummern bleiben stabil)
@@ -136,77 +143,47 @@ damit die Nummern nicht wandern und alte Verweise gültig bleiben:
 
 ---
 
-## 4. Konsolidierte Meilensteine in logischer Reihenfolge
+## 4. Konsolidierte T1–x-Slices
 
-Die Umsetzung erfolgt strikt sequenziell nach dem Arbeitsrhythmus: **Aufgabe → Test → Gate → Commit**.
+Die Roadmap führt keine parallelen „Stufen“-Listen mehr. Jede Arbeit liegt in genau einem
+priorisierten Slice; ein Slice kann mehrere P-Nummern bündeln, wenn dieselbe Domäne,
+derselbe Owner und derselbe Beweis beteiligt sind. Reihenfolge bedeutet Abhängigkeit,
+nicht dass alle kleineren UI-Befunde warten müssen.
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        LOGISCHE REIHENFOLGE                            │
-│                                                                        │
-│  [STUFE 1: Sofort]  ──▶  [STUFE 2: Performance] ──▶  [STUFE 3: Endgame]│
-│  - Mazing-Stabilität     - HUD-Snapshot Budget       - Brutstätten-    │
-│  - Mobile-Layout         - Touch-Latenz (390x844)      Balancing       │
-│  - B16 Genom-Modell      - Savegame-Skalierung       - Boss-Wellen     │
-│  - Kampfwerte-Anzeige    - B12/B13 Gates               & Progression   │
-│                                                              │         │
-│                                                              ▼         │
-│                                                     [STUFE 4: Ausblick]│
-│                                                     - Convex Backend   │
-│                                                     - Supabase Sync    │
-└────────────────────────────────────────────────────────────────────────┘
-```
+| Slice | Priorität | Status | Problem / Ziel | Befunde | Owner | DoD |
+|---|---:|---|---|---|---|---|
+| **T1** | P0 | **ERLEDIGT** | Save- und World-Integrität: fehlender, korrupter und migrierter Zustand darf nicht gleich behandelt werden; Schreibfehler und Run-Exit-Race werden sichtbar fail-closed. | P-37, P-38, P-40, P-45, P-46 | `persistence/`, `App.tsx`, `render/gameRuntime.ts` | **Beleg:** `persistence_resume.test.ts`, `world_autor.test.ts`, `runSaveAutor`-Tests, `tsc`/Vollsuite; Write-Ergebnisse, Runtime-Narrowing und terminale Save-Kette sind aktiv. |
+| **T2** | P0 | **ERLEDIGT** | Meta-Transaktionen und Queue-Identität: Kauf, Registrierung, Persistenz und Cross-Claim werden atomar; Source-Preise und ganzzahlige Mengen sind die einzige Wahrheit. | P-39, P-42, P-48; B18.3/B18.4 | `meta/`, `persistence/` | **Beleg:** `meta/entry_loop.test.ts`, `meta/shop_pools.test.ts`, `meta/brood_identity.test.ts`, `identity_invariants.test.ts`; `SEED_PRICE`/`poolPriceOf` sind Quellen der Wahrheit, Cross-IDs werden fail-closed geprüft. |
+| **T3** | P0 | **ERLEDIGT** | Simulations- und World-Ownership: Welt-Guards prüfen die Spielinvariante; `SimulationRoot` bleibt der einzige Tick-Writer; `worldSeed` ist Gameplay-Wahrheit oder entfernt. | P-41, P-44, P-47; RT-05/RT-08/RT-11 | `world/`, `simulation/` | **Beleg:** `isValidWorldState`, `placement_map.test.ts`, `vector_engine_gate.test.ts`, `world_autor.test.ts`; Vektorwriter sind privat, Seed-Feld entfernt, BFS-Probe ist read-only. |
+| **T4** | P0 | **ERLEDIGT** | Event-Contract als Laufzeitgrenze: ungültige Events erreichen keinen Downstream-Listener. | P-43; RT-07 | `bus/` | **Beleg:** `bus_events.test.ts` prüft Wurf vor Recent-Puffer/Listener; `EventBus.publish()` ruft `assertEventContract()` vor jeder Zustandsänderung. |
+| **T5** | P1 | **ERLEDIGT** | Sichtbares Gameplay-Feedback: stille Animationen, tote FX-Profile und fehlende Belohnungsorte werden als eine Kette aus Producer, Payload und Renderer repariert oder entfernt. | P-27, P-28, P-29, P-31, P-33, P-34 | `observers/`, `render/`, `config/`, `simulation/` | **Beleg:** `observers.test.ts`, `gateB.test.ts`, `visual_probe.spec.ts`; Animationen, Mündungspuff, Bonus-Ankunft, gebuchte Zahl, Farbe/Ort und Flug-Überlauf sind konsistent. |
+| **T6** | P1 | **TEILWEISE / PRODUKTFRAGE** | Navigation und Erstsession: die offensichtliche Feldmitte bzw. das Tile-Werkzeug darf den Spieler nicht in einen schlechten Erstlauf oder in einen schwer lesbaren Modus führen. | P-3, P-12, P-20, P-24, P-25, P-36; B16.9 | `components/`, `render/`, `meta/` | P-3/P-12/P-20/P-24/P-25 sind widerlegt/behoben und durch Layout-/Unit-Belege gedeckt. **P-36 bleibt eine Produktentscheidung**: ein bewusst günstiger Erstplatzierungs-Loop darf nicht als Wirtschaftsdefekt umetikettiert werden. |
+| **T7** | P1 | **OFFEN — BALANCEENTSCHEIDUNG** | Content- und Balance-Wahrheiten: `reward`/`scoreValue`, Saatpreis/Rarität, Brutkosten und Endgame-Kurven werden benannt, gemessen und aus `config/*.source.ts` getrieben. | P-8, P-9, P-11, P-18, P-19; B16.2–B16.5 | `config/`, `genome/`, `simulation/` | **Belegt:** Saatpreis ist `SEED_PRICE`, Brutreife und Slot-Gates sind source-driven. **Offen:** gewählte Kurven und die Produktentscheidung zu Brutkosten, Mutation und Wellen-Skalentepp; ohne diese Entscheidung wird keine Zahl heimlich umgeschrieben. |
+| **T8** | P2 | **ERLEDIGT** | Codex und Discovery-Oberfläche: technische Hashes werden aus dem Normalfluss in eine Detailansicht verschoben; Stammbaum und lokale Kette bleiben ehrlich. | P-4, P-15, P-30; B25.2/B31 | `components/`, `discovery/`, `i18n/` | **Beleg:** `Codex.tsx`, `texts_codex.ts`, `codex_clipboard.spec.ts`, `gameIcons.test.tsx`, `b0_tab_labels.test.ts`; DE/EN, echte Clipboard-Rückmeldung, lokale Gerätgrenze und SVG-Glyphen. |
+| **T9** | P2 | **TEILWEISE** | Performance und Save-Skalierung: Route-Probe, HUD-Snapshot, Feedback-Budget und Bibliothekswachstum werden mit reproduzierbaren Messungen priorisiert. | P-23, P-33, P-35; B12/B13/B14.7 | `simulation/`, `render/`, `persistence/` | **Belegt:** `routeExists` BFS, `placement_map.test.ts`, Feedback-Cap mit Ankunft, `e2eLock.test.ts` und `PW_SINGLE_RUN`. **Offen:** B14.7 Snapshot-Budget ist im Meta-Contract weiterhin als Messauftrag markiert; dafür fehlt eine aktuelle Bibliotheks-/Save-Skalierungsmessung. |
+| **T10** | P3 | **GESPERRT BIS PRODUKTENTSCHEIDUNG** | Optionale Vernetzung: Es gibt aktuell keinen Remote-Sync. Das Supabase-Schema bleibt inaktives Archiv; ohne explizite Owner-Entscheidung wird kein Client-, Transport- oder Leaderboard-Pfad gebaut. | Phase G, `supabase/migrations/001_discoveries.sql` | `discovery/`, `persistence/`, Eigentümer | Erst nach schriftlicher Entscheidung: Threat-Model, Server-Writer, Schema-Migration, Contract-Tests und echter End-to-End-Sync; danach eigener T-Slice |
+| **T11** | P3 | OFFEN | Externe Sicherheitsaktion: Tokens aus der veröffentlichten Historie widerrufen und neu ausstellen; das ist kein Code-Slice und wird nicht als erledigt behauptet, bevor der Eigentümer bestätigt. | P-17 | Eigentümer | alte Tokens ungültig, neue Tokens nur lokal/ignoriert, Bestätigung mit Datum und Anbieterstatus |
 
-### 🟢 STUFE 1: Sofort / Mechanik- & UX-Stabilisierung
-Fokus: Beseitigung aller offenen QA-Befunde und Schärfung des Genom-Gameplays.
+### Abschluss der früheren Audit-IDs
 
-1. **Mobile-Layout 390×844 (N4 ist abgeschlossen, Devlog 17: 3/3 Desktop und Mobile):**
-   - Der Rest an derselben Stelle, jetzt in §3 geführt: `flexWrap` der Run-Top-Bar (**P-2**), Blasen-Verankerung bei 390×844 (**P-5**), Scroll-Hinweis der Kartenreihe (**P-10**), Blasen-Größe und Leih-Karte (~10 px, **P-13**).
-2. **Mazing & Weg-Lenkung (T2 überholt, T3 = P-12):**
-   - T2 fiel mit dem Energie-Konto weg (Devlog 18); T3 ist der Tile-Schalter (**P-12**).
-   - Die Regeln stehen und sind belegt: keine Platzierung schließt den letzten Weg — dieselbe Integritätsregel wird jetzt **vorab** befragt statt erst beim Loslassen (Regel + Belege: `docs/quality/contracts/simulation.md`, QA-Abgleich 20.09.2026), und die Route wird über `ROUTE_CHANGED` gemeldet (`bus/events.ts`, Verbraucher `components/fieldNotice.ts`). Offen ist nur noch der **Preis** der Vorab-Probe (**P-23**, eigene Messreihe, weil sie jeden Bau berührt).
-3. **B16 Genom-Modell & Vererbungs-Tiefe (B16.2–B16.5):**
-   - Genom-Allel-Matrix erweitern (nicht nur geschlossene 15 Gene).
-   - Kampfwerte, Reichweitenkreise und Schadensarten im Feld-Inspektor klar visualisieren.
-4. **B16.9 E2E-Harness Geometrie:**
-   - `tests/helpers/harness.ts` liest Zellenkoordinaten dynamisch aus dem Canvas-Viewport.
+Die Red-Team-Nachträge P-37 bis P-48 sind **keine offenen Code-Befunde mehr**: T1–T4 haben die Persistenz-, Meta-, Simulations- und Bus-Grenzen geschlossen; die zugehörigen Tests und die Commits `6441333`, `6649b11` sind die Belege. Die QA-Berichte auf `qa-reports` wurden dort bereits als W1/R1/S1/B2 verifiziert bzw. als Designfragen markiert. Die vollständige QA-Konsolidierung ist deshalb: erledigte Aussagen in die Domänen-Contracts und diesen Roadmap-Slice überführt; offene Designfragen bleiben sichtbar.
 
-### 🟡 STUFE 2: Mid-Term / Performance & Mobile-Optimierung
-Fokus: Messen statt hoffen — strikte Einhaltung der B12/B13 Spezifikationen.
+**Wichtige Grenze:** T6, T7 und T9 sind nicht vollständig erledigt: P-36 ist eine echte Produktfrage, die gewünschte Balancekurve ist nicht entschieden, und B14.7 verlangt noch eine aktuelle Snapshot-/Bibliotheksmessung. T10 bleibt bis zur schriftlichen Owner-Entscheidung gesperrt. T11 bleibt externe Owner-Aktion. Diese Punkte werden nicht durch grüne Tests als erledigt verkauft.
 
-5. **B14.7 Snapshot-Budget (HUD-10-Hz-Klon):**
-   - `hudSnapshot.ts` optimieren: Nur geänderte Felder übertragen (Dirty-Flagging oder flache Projektion), um GC-Druck zu minimieren.
-   - Messziel: Sim-Tick ≤ 2 ms, Frame-Render ≤ 16 ms auf mobilen Endgeräten.
-6. **Mobile Touch-Optimierung (390×844 Portrait):**
-   - Touch-Latenz beim Drag-and-Drop / Tap-to-Place evaluieren.
-   - Mindest-Touch-Target-Größe von 44×44 px für alle interaktiven HUD-Elemente garantieren.
-7. **Bibliotheks-Wachstum & Save-Skalierung:**
-   - Messung des Lade- und Serialisierungsaufwands bei Sammlungen mit > 100 gezüchteten Pflanzen und Käfern.
-   - Bestätigung, dass die 2ⁿ-Kostenkurve im Gacha-System Speicherüberläufe zuverlässig verhindert.
-8. **Finalisierung der B12/B13 Gates:**
-   - Vollständige Validierung der DoD-Checkliste für den stabilen Release-Kandidaten.
+### Abhängigkeiten und Reihenfolge
 
-### 🟠 STUFE 3: Endgame, Balance & Content-Ausbau
-Fokus: Spieltiefe, Langzeitmotivation und harmonische Verzahnung von Zucht und Abwehr.
+1. **T1–T4 zuerst:** Persistenz, Meta, Simulation und Bus sind Grenzen; jede spätere UX- oder Performance-Arbeit würde sonst auf instabilen Zuständen messen.
+2. **T5–T7 danach:** erst sichtbare Wirkung, dann Produkt- und Balanceentscheidungen; keine neue Content-Kurve auf ungeklärten Payload-Wahrheiten.
+3. **T8–T9 als unabhängige Produktscheiben:** Codex-Oberfläche und Messreihen können parallel bearbeitet werden, sofern sie getrennte Files und Contracts besitzen.
+4. **T10 ist keine implizite Fortsetzung von T1:** Der entfernte No-op-Sync und die gelöschte test-only Transport-Infrastruktur belegen, dass „Share-Text“ nicht mit einem aktiven Netzwerkpfad verwechselt werden darf.
+5. **T11 bleibt extern:** Kein Roadmap-Slice darf die Token-Widerruf durch eine Doku- oder Testaussage ersetzen.
 
-9. **Brutstätten-Balancing (Käfer / Brood):**
-   - Synergien zwischen Pflanzen (Shooter, Wall, Slow) und Käfer-Begleitern (Nahkampf, Chitin-Rüstung, Aas-Verwertung) ausbalancieren.
-   - Kostenkurve für Nektar und Bruteier im Shop kalibrieren.
-10. **Endless-Wave Progression & Boss-Phasen:**
-    - Bosse alle 10 Wellen mit einzigartigen Fähigkeiten (Schild-Auren, Sporen-Resistenz, Erdschlag).
-    - Tag/Nacht-Einfluss vertiefen (Nachtaktive Pflanzen schießen schneller, Pilze leuchten).
-11. **Codex-Vollendung:**
-    - Visuelle Stammbaum-Darstellung im Codex (`src/components/Codex.tsx`).
+### Erledigungsschlüssel
 
-### 🔵 STUFE 4: Ausblick & Vernetzung (Phase G)
-Fokus: Asynchrones Teilen und Community-Features (bewusst nachgelagert).
-
-12. **Build-Sharing via Convex:**
-    - Schematisierung des Export-Formats: `{ rootSeed, genomePair, commandLogHash, variantKey, version }`.
-    - Kein Gameplay-Einfluss; Anbindung über `bus/remote`-Adapter.
-13. **Discovery-Chain Supabase-Spiegel:**
-    - Synchronisation des lokalen Codex mit `supabase/migrations/001_discoveries.sql`.
-    - Weltweites Leaderboard für seltene Mutationen.
+Ein Slice gilt erst als fertig, wenn sein P-Befund entweder im jeweiligen Domänen-Contract als
+`ERLEDIGT` mit Fundstelle steht oder ausdrücklich als `WIDERLEGT`/`VERSCHOBEN` begründet ist.
+Danach wird der Befund in genau einen Devlog-Eintrag überführt; QA-Berichte werden nicht parallel
+weitergeführt.
 
 ---
 

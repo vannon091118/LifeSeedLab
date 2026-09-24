@@ -134,6 +134,8 @@ export function installProbe(): void {
     return { size, ox: (b.width - size * cell) / 2, oy: (b.height - size * cell) / 2 + 8, w: b.width, h: b.height };
   };
 
+  let probeSeq = 0;
+
   const probe = {
     frozen: false,
     queued: null as null | ((now: number) => void),
@@ -321,7 +323,7 @@ export function installProbe(): void {
       if (!root) throw new Error('Canvas-Sonde: Sim-Brücke nicht gebunden');
       const tick = root.getSnapshot().clock.tick;
       (root.bus as unknown as { publish: (e: unknown) => void }).publish({
-        eventId: `probe:${tick}:${type}`, tick, type, sourceId: 'probe', version: 1, payload,
+        eventId: `${tick}:probe:${type}:${probeSeq++}`, tick, type, sourceId: 'probe', version: 1, payload,
       });
     },
   };

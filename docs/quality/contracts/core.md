@@ -46,6 +46,10 @@ Ursache war nicht Vergessen, sondern **Struktur**: die Subscription-Liste stand 
 `render/gameRuntime.ts`. Was dort fehlte, fehlte lautlos — es gab keinen Ort, an dem „wer hört zu?“
 eine Entscheidung war. Das ist die eigentliche Reparatur dieses Sprints.
 
+### Red-Team-Nachtrag (24.09.2026) — RT-07 BEHOBEN
+
+`EventBus.publish()` ruft seit Commit `6441333` `assertEventContract()` **vor** Recent-Puffer, Publish-Zähler und Listenern auf. `src/bus/bus_events.test.ts` beweist die Negativprobe: ungültiges Event wirft, keine Listenerwirkung, kein Recent-Eintrag. Das ist die Runtime-Grenze; die alte rote Nachtrag-Notiz ist erledigt.
+
 ### B29.2 Die Entscheidungen (je Event eine, mit Begründung)
 
 | Event | Entscheidung | Grund |
@@ -107,5 +111,8 @@ Ergänzend beschlossen (gleiche Klasse, ausdrücklich statt zufällig): `PLANT_R
 - [ ] Offen (eigene Politur, nicht Teil von B29): `PLANT_REMOVED` (Rückerstattung als Zahl, braucht
       Position im Payload), `TILE_PLACED` (der Bau hat keinen Moment), `PLANT_ATTACKED` (Duplikat
       prüfen), `grow`/`death`-Animationen (emittiert, im Renderer ohne Wirkung)
+
+---
+Animationen (emittiert, im Renderer ohne Wirkung)
 
 ---

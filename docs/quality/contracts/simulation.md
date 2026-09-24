@@ -25,6 +25,10 @@ Commit-Historie. Dieses Dokument ist die Arbeitsliste dieser Domäne: Befund →
 - INCOMPLETE: `state.discoveredVariants` initialized from `STARTING_INVENTORY` only — meta loadout is never injected. **Bred plants are unplaceable in runs** ⇒ the entire breeding→defense loop is severed. Fix via `RootInit.loadout` (B1).
 - INCOMPLETE: `SimState.runCounter` always 0; run identity actually derived in `App.tsx` from `meta.runs + runKey` (React-session state). One authority required: `runId` (B1).
 
+## Red-Team-Nachtrag (24.09.2026) — RT-05/RT-08/RT-11 BEHOBEN
+
+`isValidWorldState()` prüft Tile-IDs, Weltgrenzen und die Wegbarkeit von Spawn/Exit. Die Vektorwriter in `SimulationRoot` sind privat; Tests greifen nur über `src/testing/vectorHooks.ts` zu. Das ungenutzte `worldSeed`-Feld ist aus dem Welt-Snapshot entfernt. Die Integritäts-Vorabfrage nutzt eine read-only BFS (`routeExists`) und lässt den sichtbaren Laufweg beim Dijkstra. Belege: `world_state.ts`, `mapSystem.ts`, `placement_map.test.ts`, `vector_engine_gate.test.ts`, `world_autor.test.ts`, Commits `6441333` und `6649b11`.
+
 ## B6. Effect chain (sim → visuals, first real pass)
 
 - `ProjectileEntity` gains `effectId: EffectId | null`.

@@ -26,6 +26,10 @@ Commit-Historie. Dieses Dokument ist die Arbeitsliste dieser Domäne: Befund →
 
 `env.v > opts.version` kehrte in **beiden** Backends still zum Fallback zurück; das nächste `save()` hätte das neuere Save überschrieben. Jetzt: Quarantäne statt stiller Verwerfen (Rohdaten bleiben unter `<key>.corrupt` erhalten). Dabei gleich zwei Review-Punkte mitgenommen: die Envelope-Validierung existierte doppelt (`load`/`idbGet`, ~15 Zeilen je Stelle) und lebt jetzt einmal in `validateEnvelope`; die Version-Differenz folgt einer Regel in `resolveVersion` (unter uns ⇒ migrieren, über uns ⇒ Quarantäne). `storage.ts` ist dadurch **geschrumpft** (192 → 190 LOC), ohne den Cap anzufassen. Der unbenutzte Grabstein-Export `STORAGE_CHECKSUM_SEP` ist entfernt; der IDB-Name `lifegamelab` ist als bewusstes Legacy dokumentiert (Umbenennung würde Run-Snapshots verwaisen).
 
+## Red-Team-Nachtrag (24.09.2026) — RT-01/RT-04/RT-09/RT-10 BEHOBEN
+
+`loadResult`/`loadWorldResult` trennen `valid`, `missing`, `corrupt` und `failed`; `isValidRunSave` prüft dieselbe Version zur Laufzeit; `WriteResult` reicht `written`, `skipped` oder `failed` an die Aufrufer durch; IDB-Migrationen warten auf den Schreibabschluss. Der Run-Autor serialisiert Save/Clear über `writeChain` und markiert Gameover/Abbruch terminal, damit kein veralteter Snapshot nach dem Löschen zurückkehrt. Belege: `src/persistence/storage.ts`, `worldSave.ts`, `runSave.ts`, `runSaveAutor.ts`, `persistence_resume.test.ts`, Commit `6441333`.
+
 ## B2. Persistence contract (new `persistence/storage.ts` ≤ 250 LOC)
 
 - API: `load<T>(key, {version, migrate, fallback})`, `save(key, value)`; FNV-1a checksum suffix; checksum mismatch → quarantine to `key.corrupt` + return `fallback()`.
