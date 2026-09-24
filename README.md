@@ -4,7 +4,7 @@
 
 # LifeSeedLab
 
-**PvZ × Isaac — deine Kreuzungen sind deine Türme.**
+**Maze-TD mit Töpfen — Pfadlänge 22, blockierende Töpfe, deine Kreuzungen sind deine Türme.**
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React 19](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=white)](https://react.dev/)
@@ -63,7 +63,7 @@ Pflanzen reichen nicht? Züchte **Käfer (Brood)**. Chitin-Panzer, Mandibeln, bi
 Kreuzungen brauchen Zeit. Während du draußen Wellen überlebst, reifen deine Samen. Jede überstandene Welle = Reifefortschritt. Krix schaut manchmal rein ob die Töpfe noch okay sind. Meistens sind sie's.
 
 **Der Codex**<br>
-Jede Entdeckung wird in einer kryptografischen Kette (`genome_hash`) verewigt. Lokal, ehrlich, fälschungssicher. Entdeckst du eine seltene Spezies als Erster, gehört sie dir — für immer. Krix findet das philosophisch. Er hat zu viele Heatmaps gesehen um noch überrascht zu sein.
+Jede Entdeckung wird in einer lokalen Kette (`genome_hash`, SHA-256 via WebCrypto) auf diesem Gerät verewigt — kein Upload, kein Account. Die Prüfung rechnet aus dem öffentlichen Run-Seed im Worker nach. Solange kein Online-Abgleich existiert, bleibt die Kette lokal. Krix findet das philosophisch. Er hat zu viele Heatmaps gesehen um noch überrascht zu sein.
 
 **Das Beet (Tower Defense)**<br>
 30 Ticks pro Sekunde. Endlose Wellen. Bosse alle 10 Runden. Tag/Nacht-Zyklus. Dein Loadout (bis zu 4 gezüchtete Lieblinge) entscheidet ob du lebst oder kompostiert wirst.
@@ -76,7 +76,7 @@ Jede Entdeckung wird in einer kryptografischen Kette (`genome_hash`) verewigt. L
 
 Krix' wichtigster Merksatz — und er hat schon viel notiert:
 
-> **Gleiche Eltern + gleicher Seed = exakt dasselbe Kind. Weltweit. Auf jedem Rechner.**
+> **Gleiche Eltern + gleicher Run-Seed + gleiche Generation = exakt dasselbe Kind. Lokal deterministisch nachprüfbar, nicht weltweit identisch.**
 
 ```
 PlantVariant
@@ -88,7 +88,7 @@ PlantVariant
 └── generation: number      // Zucht-Generation im Stammbaum
 ```
 
-Teilbar als Code: `lifeseed:<seed>:<gen>:<hash>` — Krix hat das dreimal nachgeprüft.<br>
+Teilbar als Code: `lifeseed:<runSeed>:<beleg>:<gen>:<sha256-genom-hash>` — der Beleg trägt die Elternkontexte, der Worker rechnet das Kind nach. Krix hat das dreimal nachgeprüft.<br>
 Er hätte es zweimal tun sollen, aber der dritte Versuch war der mit dem Kaffeering.
 
 ---
@@ -191,7 +191,7 @@ src/
 ├── render/         # Canvas 2D Renderer, Papercraft-Offscreen, Layer-System
 ├── observers/      # Read-only Beobachter (Partikel, Audio, Visual-Commands)
 ├── persistence/    # Speicher-Owner (storage.ts, Checksummen, Save-Migration)
-├── discovery/      # Discovery-Chain (lokaler Codex, kryptografischer Beweis)
+├── discovery/      # Discovery-Chain (lokaler Codex, SHA-256-Nachrechnung)
 ├── components/     # React-Screens (Labor, Gewächshaus, Brutstätte, Beet, Tutorial)
 └── i18n/           # Vollständig zweisprachig (Deutsch / Englisch)
 ```
@@ -226,11 +226,12 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `b6e0b4e` — feat(ui): Krix erklärt nur noch, was auf dem Screen wirklich passiert |
-| Arbeitsbaum | 7 gestaged, 2 geändert, 0 neu |
+| HEAD | `e559ccc` — chore(tooling): tote Infrastruktur entfernen und Anker ehrlich schützen |
+| Arbeitsbaum | 0 gestaged, 50 geändert, 0 neu |
 | Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `b6e0b4e` feat(ui): Krix erklärt nur noch, was auf dem Screen wirklich passiert |
+| Letzter Shinon-Commit | `e559ccc` chore(tooling): tote Infrastruktur entfernen und Anker ehrlich schützen |
 | Letzter Push | ✅ origin/main |
-| LOC-Hotspots | `src/simulation/plantSystem.ts` 261/300 (87 %)<br>`src/simulation/enemySystem.ts` 256/300 (85 %)<br>`src/meta/run.ts` 158/200 (79 %)<br>`src/components/GameView.tsx` 313/400 (78 %)<br>`src/render/renderer.ts` 312/400 (78 %) |
+| LOC-Hotspots | `src/simulation/plantSystem.ts` 261/300 (87 %)<br>`src/simulation/enemySystem.ts` 256/300 (85 %)<br>`src/meta/run.ts` 159/200 (80 %)<br>`src/components/GameView.tsx` 315/400 (79 %)<br>`src/render/renderer.ts` 312/400 (78 %) |
 <!-- SHINON:STATUS:END -->
+->

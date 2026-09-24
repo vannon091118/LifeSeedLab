@@ -4,7 +4,7 @@
 
 import { useMemo, useState } from 'react';
 import { useI18n } from '../i18n';
-import { loadCodex, verifyLocalChain, getPlayerId } from '../discovery/codex';
+import { loadCodex, verifyLocalChain, getPlayerId, shareTextForEntry, reconstructShareInWorker } from '../discovery/codex';
 import { CodexGlyph } from './GameIcons';
 import type { DiscoveryEntry } from '../discovery/chain';
 
@@ -24,6 +24,9 @@ function formatOrigin(e: DiscoveryEntry): string {
 export function Codex({ onClose }: Props) {
   const { t } = useI18n();
   const [copied, setCopied] = useState<string | null>(null);
+  const [verifyText, setVerifyText] = useState('');
+  const [verifyNote, setVerifyNote] = useState<string | null>(null);
+  const [verifyBusy, setVerifyBusy] = useState(false);
   const chain = useMemo(() => loadCodex(), []);
   const verification = useMemo(() => verifyLocalChain(chain), [chain]);
   const playerId = useMemo(() => getPlayerId(), []);
@@ -33,8 +36,7 @@ export function Codex({ onClose }: Props) {
   const handleCopy = async (entry: DiscoveryEntry) => {
     // P2': Share-Zeile mit dem ÖFFENTLICHEN Identifier (plant_ref). Gründer-Einträge
     // (vor P2') behalten ihren historischen Seed — ihre Epoche-0-Wurzel ist öffentlich.
-    const identifier = entry.plant_ref ?? `seed-${entry.seed ?? '?'}`;
-    const text = `lifeseed:${identifier}:${entry.generation}:${entry.genome_hash}`;
+    const text = shareTextForEntry(entry);
 
     try {
       await navigator.clipboard.writeText(text);
@@ -43,6 +45,20 @@ export function Codex({ onClose }: Props) {
     } catch {
       // fallback — select hack
       setCopied(entry.entry_hash);
+    }
+  };
+
+  const handleVerify = async () => {
+    if (!verifyText.trim() || verifyBusy) return;
+    setVerifyBusy(true);
+    setVerifyNote(null);
+    try {
+      const result = await reconstructShareInWorker(verifyText);
+      setVerifyNote(result.ok ? t('codex.verifyOk') : result.reason);
+    } catch (error) {
+      setVerifyNote(error instanceof Error ? error.message : t('codex.verifyError'));
+    } finally {
+      setVerifyBusy(false);
     }
   };
 
@@ -92,7 +108,20 @@ export function Codex({ onClose }: Props) {
         )}
 
         <div style={styles.footerNote}>
-          <strong>{t('codex.noteTitle')}</strong> {t('codex.noteSeed')} <code style={styles.code}>lifeseed:beleg:gen:hash</code> {t('codex.noteSeedLoad')} {t('codex.noteVerify')}
+          <strong>{t('codex.noteTitle')}</strong> {t('codex.noteSeed')} <code style={styles.code}>lifeseed:runSeed:beleg:gen:hash</code> {t('codex.noteSeedLoad')} {t('codex.noteVerify')}
+        </div>
+        <div style={styles.verifyBox}>
+          <strong>{t('codex.verifyTitle')}</strong>
+          <input
+            value={verifyText}
+            onChange={event => setVerifyText(event.target.value)}
+            placeholder={t('codex.verifyPlaceholder')}
+            aria-label={t('codex.verifyPlaceholder')}
+          />
+          <button onClick={handleVerify} disabled={verifyBusy || !verifyText.trim()} style={styles.actionBtn}>
+            {verifyBusy ? t('codex.verifyBusy') : t('codex.verify')}
+          </button>
+          {verifyNote && <div style={styles.verifyNote}>{verifyNote}</div>}
         </div>
       </div>
     </div>
@@ -123,5 +152,7 @@ const styles: Record<string, React.CSSProperties> = {
   cardActions: { display: 'flex', gap: 8 },
   actionBtn: { padding: '8px 12px', background: '#fff', border: '2px solid var(--ink)', borderRadius: 8, color: 'var(--ink)', fontSize: 12, fontWeight: 700, cursor: 'pointer', boxShadow: '2px 2px 0 var(--ink)' },
   footerNote: { marginTop: 14, padding: 12, background: '#eef7e6', border: '2px solid var(--ink)', borderRadius: 8, color: 'var(--leaf-dark)', fontSize: 11, lineHeight: 1.5, fontWeight: 600 },
+  verifyBox: { marginTop: 10, display: 'flex', flexDirection: 'column' as const, gap: 7, padding: 10, background: '#fffaf0', border: '2px dashed var(--ink)', borderRadius: 8, fontSize: 11 },
+  verifyNote: { color: '#6b6250', fontWeight: 700, overflowWrap: 'anywhere' as const },
   code: { background: '#f0ead6', padding: '2px 6px', borderRadius: 6, color: 'var(--ink)', fontSize: 11 },
 };

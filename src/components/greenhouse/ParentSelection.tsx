@@ -26,6 +26,7 @@ export function ParentSelection({ owned, parentA, parentB, meta, onPickParent, t
               key={v.id}
               onClick={() => onPickParent(v.id)}
               aria-pressed={isA || isB}
+              data-tut="parent"
               style={{ ...styles.parentCard, ...(isA || isB ? styles.parentCardActive : {}) }}
               title={v.name}
             >

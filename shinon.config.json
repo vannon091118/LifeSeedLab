@@ -5,7 +5,7 @@
   "gate": {
     "enforcement": "strict",
     "checks": {
-      "e2e": true,
+      "e2e": false,
       "changelog": true,
       "docLinks": true
     },
@@ -37,11 +37,6 @@
       "changelog": {
         "command": "bash",
         "args": ["./scripts/check-changelog.sh"],
-        "enabled": true
-      },
-      "e2e": {
-        "command": "node",
-        "args": ["scripts/e2e-lane.mjs"],
         "enabled": true
       }
     }

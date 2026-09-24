@@ -5,18 +5,19 @@ import { createBaseVariants } from '../genome';
 import { toggleLoadout } from '../meta';
 import { useI18n } from '../i18n';
 import { APP_VERSION_LABEL } from '../version';
-import { SproutIcon, WaveIcon, BookIcon, SwordIcon, SeedIcon, BugIcon } from './MenuIcons';
+import { SproutIcon, WaveIcon, BookIcon, SeedIcon, BugIcon } from './MenuIcons';
 import type { MenuScreen } from './NavIndicators';
 import { mainMenuStyles as styles } from './mainMenuStyles';
 import { PlantVariantThumb } from './PhenotypeCanvas';
 import { resumeCostFor } from '../config/economy.source';
 import { isDevActive } from '../dev/gate';
+import { TUTORIAL_VERSION } from './tutorial/script';
 
 // Owner: UI (MainMenu = Hub-Kärtchen). LOC ≤ 200.
 // MainMenu ist NUR noch das Tor: illustrierte Karten navigieren auf EIGENE
 // Screens (Greenhouse/SeedShop/BeetleLab/Codex leben top-level in App.tsx).
 // Basis der Sammlung = createBaseVariants (eine Quelle — A2).
-// Gacha: Gewächshaus = Samen-Shop + Aussaat; keine Elternwahl.
+// Gacha: Das Gewächshaus trägt Keimling/Topf und Kreuzung mit bewusst gewählten Eltern;
 // Styles: mainMenuStyles.ts (Präsentation getrennt — Muster gameViewStyles.ts).
 
 type Props = {
@@ -27,9 +28,11 @@ type Props = {
   /** B2: Welle des gespeicherten Runs (null = kein fortsetzbarer Run). */
   resumeWave?: number | null;
   onResume?: () => void;
+  /** Freiwilliges Nachlesen der bereits gesehenen Krix-Notizen (P-15). */
+  onReviewNotes?: () => void;
 };
 
-export function MainMenu({ meta, onMetaChange, onStartRun, onNavigate, resumeWave, onResume }: Props) {
+export function MainMenu({ meta, onMetaChange, onStartRun, onNavigate, resumeWave, onResume, onReviewNotes }: Props) {
   const { t } = useI18n();
   // Fortsetzen ist ein KAUF (Entscheidung 19.09.2026): 25 Nektar je erreichter Welle, ohne Cap.
   // Ein Abbruch beendet den Lauf — ohne Nektar gibt es kein Wiedereinsteigen, und die Karte sagt das.
@@ -120,13 +123,15 @@ export function MainMenu({ meta, onMetaChange, onStartRun, onNavigate, resumeWav
           desc={t('codex.subtitle')}
           onClick={() => onNavigate('codex')}
         />
-        <ModeCard
-          icon={<SwordIcon />}
-          title={t('menu.pvp')}
-          desc={t('menu.pvpDesc')}
-          onClick={() => {}}
-          disabled
-        />
+        {meta.tutorialVersion >= TUTORIAL_VERSION && onReviewNotes && (
+          <ModeCard
+            icon={<BookIcon />}
+            title={t('menu.notes')}
+            desc={t('menu.notesDesc')}
+            onClick={onReviewNotes}
+          />
+        )}
+        {/* PvP-Karte ausgeblendet bis PvP existiert — keine tote Fläche im Hub (P-3) */}
       </div>
 
       <div style={styles.collectionSection}>

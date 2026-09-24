@@ -46,16 +46,6 @@ export function BookIcon() {
   );
 }
 
-export function SwordIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M5 19L16 8" stroke="#2b2b26" strokeWidth="2.4" strokeLinecap="round" />
-      <path d="M14 4l6 6-3 1-4-4 1-3Z" fill="#9ca3af" stroke="#2b2b26" strokeWidth="2" strokeLinejoin="round" />
-      <path d="M4 16l4 4-2 1-3-3 1-2Z" fill="#a94438" stroke="#2b2b26" strokeWidth="1.6" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 export function SeedIcon() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>

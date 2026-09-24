@@ -3,6 +3,7 @@ import { TutorialController, type TutorialSnapshot } from './tutorial/controller
 import { CUE_SELECTORS, TUTORIAL_STEPS, cueSelector, screenRank } from './tutorial/script';
 import { placeBubble, rectsOverlap, type TutorialRect } from './tutorial/bubbleLayout';
 import { tutorialTexts, type TutorialTextKey } from '../i18n/tutorial.ts';
+import { reviewNotes } from './tutorial/NotesReview';
 
 // Drei Verträge werden hier gelockt:
 // 1. Jeder Schritt hat eine eigene Rolle (Prompt oder Reaktion), DE/EN-Text und einen Screen.
@@ -97,6 +98,16 @@ describe('B21 — Ereignis-Skript', () => {
     expect(signalOf('pause')).toBe('paused');
     expect(signalOf('weiter')).toBe('running');
     expect(signalOf('chips')).toBe('press');
+  });
+
+  it('macht die gesehenen Notizen als read-only Review zugänglich (P-15)', () => {
+    const de = reviewNotes('de');
+    const en = reviewNotes('en');
+    expect(de).toHaveLength(TUTORIAL_STEPS.length);
+    expect(en).toHaveLength(TUTORIAL_STEPS.length);
+    expect(de.every(note => note.title.length > 0 && note.text.length > 0)).toBe(true);
+    expect(de[0]?.id).toBe('ankunft');
+    expect(de[de.length - 1]?.id).toBe('abschluss');
   });
 });
 

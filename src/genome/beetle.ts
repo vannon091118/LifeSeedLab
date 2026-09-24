@@ -6,7 +6,7 @@ import {
   BEETLES_SOURCE, BEETLE_GENES_SOURCE, BEETLE_GENE_POOL, BEETLE_BREED, BROOD_SEED_NAMESPACE,
 } from '../config/beetles.source';
 import { beetleMeasure, beetlePhenotypeOf } from './beetlePhenotype';
-import { hashGenome } from '../discovery/chain';
+import { legacyGenomeHash } from '../discovery/chain';
 import type { BeetleDeploySpec } from '../simulation/enemySystem';
 
 // Owner: Source (beetle breeding engine). LOC ≤ 300.
@@ -172,9 +172,9 @@ function geneFromSource(id: string): { id: string; power: number; dominant: bool
   return { id, power: 0.6, dominant }; // Basis-Power; Schwankung kommt aus dem Merge
 }
 
-/** Chain-Verankerung: Brutling → stabiler Genome-Hash (Öffentliche Kette, P6-Spec). */
+/** Legacy-Anker für die Käfer-Anzeige; Discovery-Pflanzeneinträge nutzen SHA-256. */
 export function broodGenomeHash(brood: BeetleSpecimen): string {
-  return hashGenome(brood.genome.map(g => ({ id: `b:${g.id}`, power: g.power, dominant: g.dominant })));
+  return legacyGenomeHash(brood.genome.map(g => ({ id: `b:${g.id}`, power: g.power, dominant: g.dominant })));
 }
 
 /** Specimen → Deploy-Spec (Root ruft das beim DEPLOY_BEETLE-Command — reines Mapping). */

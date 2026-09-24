@@ -1,6 +1,8 @@
-import type { Gene, Genome, PlantType, PlantVariant } from '../types';
+import type { Allele, Gene, Genome, PlantType, PlantVariant } from '../types';
 import { GENE_POOL } from './pool';
 import type { Rng } from '../core/rng';
+import { compareCodeUnits } from '../core/order';
+import { GENOME_SLOT_COUNT, BREEDING } from '../config/phenotype.source';
 import { NAME_CORE_BY_GENE, NAME_PREFIXES, NAME_SUFFIXES, NAME_FALLBACK_CORE } from '../config/names.source';
 import { rangeCxOf, cooldownCxOf } from './ballistics';
 
@@ -83,45 +85,134 @@ export function generateName(genome: Genome, rng: Rng): string {
   return `${prefix}${core}${suffix}`;
 }
 
+function clamp01(value: number): number {
+  return value < 0 ? 0 : value > 1 ? 1 : value;
+}
+
+/** Dominanz ist eine geordnete Source-Eigenschaft, kein boolean-Roulette. */
+function dominanceOf(gene: Gene): number {
+  return GENE_POOL[gene.id]?.dominance ?? (gene.dominant ? 3 : 1);
+}
+
+function effectiveDominant(gene: Pick<Allele, 'id' | 'dominant'>): boolean {
+  return GENE_POOL[gene.id]?.dominant ?? gene.dominant;
+}
+
+function alleleOf(gene: Gene): Allele {
+  return { id: gene.id, power: gene.power, dominant: effectiveDominant(gene) };
+}
+
+function allelesOf(gene: Gene): [Allele, Allele] {
+  if (gene.alleles) {
+    return [
+      { ...gene.alleles[0], dominant: effectiveDominant(gene.alleles[0]) },
+      { ...gene.alleles[1], dominant: effectiveDominant(gene.alleles[1]) },
+    ];
+  }
+  const expressed = alleleOf(gene);
+  return [{ ...expressed }, { ...expressed }];
+}
+
+function expressedAllele(alleles: readonly Allele[]): Allele {
+  return [...alleles].sort((left, right) => {
+    const rank = dominanceOf(right as Gene) - dominanceOf(left as Gene);
+    return rank !== 0 ? rank : right.power - left.power;
+  })[0]!;
+}
+
+/** Stabile Reihenfolge für Auswahl und Tie-Breaks; niemals eine Locale-Sortierung. */
+function compareGeneOrder(a: Gene, b: Gene): number {
+  const byId = compareCodeUnits(a.id, b.id);
+  if (byId !== 0) return byId;
+  if (a.power !== b.power) return b.power - a.power;
+  return Number(a.dominant) - Number(b.dominant);
+}
+
+function geneScore(gene: Gene): number {
+  return gene.power + dominanceOf(gene) * BREEDING.inheritance.dominanceWeight;
+}
+
+function compareSelection(a: Gene, b: Gene): number {
+  const score = geneScore(b) - geneScore(a);
+  return score !== 0 ? score : compareGeneOrder(a, b);
+}
+
+/**
+ * Ein gemeinsamer Genotyp wird nicht neu ausgeschürfelt: der Dominanz-Sieger bestimmt die
+ * Ausprägung, die stärkere Anlage den Kraftwert. Zwei rezessive Anlagen dürfen sich als
+ * homozygoter Träger aufbauen; genau hier entsteht der über mehrere Generationen sichtbare
+ * Selektionsgewinn statt Regression zur Mitte.
+ */
+function inheritShared(a: Gene, b: Gene): Gene {
+  const left = allelesOf(a);
+  const right = allelesOf(b);
+  const expressed = expressedAllele([left[0], right[0]]);
+  const recessive = !effectiveDominant(left[0]) && !effectiveDominant(right[0]);
+  const power = recessive
+    ? clamp01(Math.max(left[0].power, right[0].power) + BREEDING.inheritance.homozygousGain)
+    : Math.max(left[0].power, right[0].power);
+  return {
+    ...expressed,
+    id: a.id,
+    power,
+    dominant: effectiveDominant(expressed),
+    alleles: [left[0], right[0]],
+  };
+}
+
+function poolGene(id: string, power: number): Gene {
+  const expressed: Allele = { id, power: clamp01(power), dominant: GENE_POOL[id]?.dominant ?? false };
+  return { ...expressed, alleles: [{ ...expressed }, { ...expressed }] };
+}
+
+/**
+ * Mendel-Kreuzung für Pflanzen: bis zu zehn eindeutige Gen-Slots, vererbt statt gewürfelt.
+ *
+ * 1. Gleiche Gen-ID: Dominanz zuerst, dann Stärke; kein Mittelwert und kein Power-Jitter.
+ * 2. Nur ein Elternteil: die Anlage wird unverändert in den Kind-Slot übernommen.
+ * 3. Mehr als zehn Kandidaten: die stärksten/dominantesten zehn bleiben erhalten.
+ * 4. Nur ein echtes neues Gen darf mutieren; es ersetzt den schwächsten Slot.
+ *
+ * Alte, absichtlich kurze Test-Fixtures bleiben kürzer; sobald eine Basis zehn Slots trägt,
+ * erzeugt jede Kreuzung daraus wieder zehn Slots.
+ */
 export function crossGenomes(a: Genome, b: Genome, rng: Rng): Genome {
-  const maxLen = Math.max(a.length, b.length);
-  const child: Genome = [];
+  const slotLimit = Math.min(GENOME_SLOT_COUNT, Math.max(a.length, b.length));
+  const ids = Array.from(new Set([...a.map(g => g.id), ...b.map(g => g.id)]))
+    .sort(compareCodeUnits);
+  const inherited: Genome = [];
 
-  for (let i = 0; i < maxLen; i++) {
-    const geneA = a[i % a.length];
-    const geneB = b[i % b.length];
-
-    let parent = rng.next() < 0.5 ? geneA : geneB;
-    if (geneA.dominant !== geneB.dominant) {
-      parent = (rng.next() < 0.6) ? (geneA.dominant ? geneA : geneB) : parent;
-    }
-
-    if (rng.next() < 0.15) {
-      const keys = Object.keys(GENE_POOL);
-      const picked = rng.pickWeighted(keys, k => GENE_POOL[k].weight);
-      child.push({
-        id: picked,
-        power: 0.1 + rng.next() * 0.6,
-        dominant: GENE_POOL[picked].dominant,
-      });
-      continue;
-    }
-
-    const blend = 0.5 + (rng.next() - 0.5) * 0.3;
-    let power = geneA.power * blend + geneB.power * (1 - blend);
-    power = Math.max(0, Math.min(1, power + (rng.next() - 0.5) * 0.1));
-
-    child.push({
-      id: parent.id,
-      power,
-      dominant: parent.dominant ? rng.next() > 0.2 : rng.next() < 0.3,
-    });
+  for (const id of ids) {
+    const left = a.find(g => g.id === id);
+    const right = b.find(g => g.id === id);
+    if (left && right) inherited.push(inheritShared(left, right));
+    else if (left) inherited.push({ ...left, dominant: effectiveDominant(left), alleles: allelesOf(left) });
+    else if (right) inherited.push({ ...right, dominant: effectiveDominant(right), alleles: allelesOf(right) });
   }
 
-  const seen = new Map<string, Gene>();
-  for (const g of child) {
-    const existing = seen.get(g.id);
-    if (!existing || g.power > existing.power) seen.set(g.id, g);
+  const selected = inherited.sort(compareSelection).slice(0, slotLimit);
+  const selectedIds = new Set(selected.map(g => g.id));
+  const fresh = Object.keys(GENE_POOL)
+    .filter(id => !selectedIds.has(id))
+    .sort(compareCodeUnits);
+
+  // Ein Kind behält die elterliche Herkunft; fehlende Slots werden nur für einen
+  // zehn-Slot-Vertrag aus dem Pool ergänzt, nicht durch erneutes Würfeln bestehender Allele.
+  while (selected.length < slotLimit && fresh.length > 0) {
+    const id = fresh.shift()!;
+    selected.push(poolGene(id, 0.05));
   }
-  return Array.from(seen.values());
+
+  if (fresh.length > 0 && rng.next() < BREEDING.mutationChance) {
+    const id = rng.pickWeighted(fresh, key => GENE_POOL[key]!.weight);
+    const [low, high] = BREEDING.mutationPower;
+    const replacement = poolGene(id, low + rng.next() * (high - low));
+    const weakest = selected.reduce((lowest, gene) =>
+      geneScore(gene) < geneScore(lowest) ? gene : lowest,
+    selected[0]!);
+    const index = selected.findIndex(gene => gene.id === weakest.id);
+    if (index >= 0) selected[index] = replacement;
+  }
+
+  return selected.sort(compareGeneOrder);
 }

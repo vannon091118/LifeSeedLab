@@ -3,7 +3,9 @@
 // This barrel is the only public surface for `import ... from './genome'`.
 
 export { GENE_POOL } from './genome/pool';
+export { GENOME_SLOT_COUNT } from './config/phenotype.source';
 export { crossGenomes, deriveStats, deriveTraits, generateName } from './genome/cross';
+export { genomePower } from './genome/breeding';
 export type { GachaRoll } from './genome/gacha';
 export {
   variantPower,

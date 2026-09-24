@@ -15,15 +15,15 @@ Pfad: `src/config/`
 | [`ballistics.source.ts`](./ballistics.source.ts) | 99 | 3 | EXPORTS 24 |
 | [`beetlePhenotype.source.ts`](./beetlePhenotype.source.ts) | 183 | 3 | EXPORTS 20, READ 13, RETURN 1, STRING_REFERENCE 129 |
 | [`beetles.source.ts`](./beetles.source.ts) | 168 | 11 | CALL 3, EXPORTS 7, IMPORTS 1, PASS 3, READ 3, RETURN 1, STRING_REFERENCE 34 |
-| [`economy.source.ts`](./economy.source.ts) | 171 | 23 | CALL 3, EXPORTS 25, PASS 3, READ 6, RETURN 7, STRING_REFERENCE 13 |
+| [`economy.source.ts`](./economy.source.ts) | 171 | 24 | CALL 3, EXPORTS 25, PASS 3, READ 6, RETURN 7, STRING_REFERENCE 13 |
 | [`effects.source.ts`](./effects.source.ts) | 64 | 10 | CALL 1, EXPORTS 4, PASS 1, READ 1, RETURN 1, STRING_REFERENCE 135 |
 | [`enemies.source.ts`](./enemies.source.ts) | 104 | 7 | CALL 14, EXPORTS 7, IMPORTS 1, PASS 13, READ 15, RETURN 2, STRING_REFERENCE 19 |
 | [`enemyGenome.source.ts`](./enemyGenome.source.ts) | 57 | 4 | EXPORTS 4, IMPORTS 1, STRING_REFERENCE 19 |
 | [`genes.source.ts`](./genes.source.ts) | 46 | 2 | EXPORTS 1, IMPORTS 1, STRING_REFERENCE 24 |
 | [`map.source.ts`](./map.source.ts) | 93 | 17 | CALL 1, EXPORTS 10, PASS 1, READ 1, STRING_REFERENCE 9 |
 | [`names.source.ts`](./names.source.ts) | 57 | 2 | EXPORTS 4, STRING_REFERENCE 52 |
-| [`phenotype.source.ts`](./phenotype.source.ts) | 249 | 6 | CALL 1, EXPORTS 15, IMPORTS 1, PASS 1, READ 9, RETURN 2, STRING_REFERENCE 93 |
-| [`plants.source.ts`](./plants.source.ts) | 77 | 11 | CALL 1, EXPORTS 5, PASS 1, READ 1, STRING_REFERENCE 27 |
+| [`phenotype.source.ts`](./phenotype.source.ts) | 255 | 8 | CALL 1, EXPORTS 16, IMPORTS 1, PASS 1, READ 9, RETURN 2, STRING_REFERENCE 93 |
+| [`plants.source.ts`](./plants.source.ts) | 101 | 11 | CALL 1, EXPORTS 5, PASS 1, READ 1, STRING_REFERENCE 51 |
 | [`pot.source.ts`](./pot.source.ts) | 52 | 3 | EXPORTS 5, STRING_REFERENCE 16 |
 | [`shop.source.ts`](./shop.source.ts) | 55 | 4 | CALL 2, EXPORTS 5, IMPORTS 2, PASS 2, READ 6, RETURN 4, STRING_REFERENCE 19 |
 | [`sources.test.ts`](./sources.test.ts) | 177 | 0 | CALL 141, IMPORTS 8, PASS 128, READ 132, RETURN 1, STRING_REFERENCE 31 |
@@ -55,7 +55,7 @@ Pfad: `src/config/`
 | `BEETLE_PIGMENT_RAMP` | const | `src/config/beetlePhenotype.source.ts` | 115 |
 | `BEETLE_PIGMENT_SCATTER` | const | `src/config/beetlePhenotype.source.ts` | 145 |
 | `BEETLE_PIGMENT_SHIFT` | const | `src/config/beetlePhenotype.source.ts` | 126 |
-| `BREEDING` | const | `src/config/phenotype.source.ts` | 175 |
+| `BREEDING` | const | `src/config/phenotype.source.ts` | 179 |
 | `BROOD_SEED_NAMESPACE` | const | `src/config/beetles.source.ts` | 168 |
 | `BeetleAxis` | type | `src/config/beetlePhenotype.source.ts` | 27 |
 | `BeetleBearing` | type | `src/config/beetlePhenotype.source.ts` | 18 |
@@ -87,6 +87,7 @@ Pfad: `src/config/`
 | `EnemyTypeId` | type | `src/config/enemies.source.ts` | 10 |
 | `FERTILIZE_BONUS` | const | `src/config/economy.source.ts` | 155 |
 | `GENE_EFFECTS` | const | `src/config/genes.source.ts` | 19 |
+| `GENOME_SLOT_COUNT` | const | `src/config/phenotype.source.ts` | 19 |
 | `GREENHOUSE_POT_SLOTS` | const | `src/config/economy.source.ts` | 31 |
 | `GRID_COLS` | const | `src/config/world.source.ts` | 11 |
 | `GRID_ROWS` | const | `src/config/world.source.ts` | 12 |
@@ -109,17 +110,17 @@ Pfad: `src/config/`
 | `PIERCE_MIN_BP` | const | `src/config/ballistics.source.ts` | 79 |
 | `PIERCE_STEP_BP` | const | `src/config/ballistics.source.ts` | 81 |
 | `PLANTS_SOURCE` | const | `src/config/plants.source.ts` | 25 |
-| `PLANT_AXES_BY_GENE` | const | `src/config/phenotype.source.ts` | 46 |
-| `PLANT_AXIS_RANGE` | const | `src/config/phenotype.source.ts` | 96 |
-| `PLANT_DESCRIPTOR_AXES` | const | `src/config/phenotype.source.ts` | 147 |
-| `PLANT_DESCRIPTOR_WEIGHTS` | const | `src/config/phenotype.source.ts` | 162 |
-| `PLANT_FORM_THRESHOLDS` | const | `src/config/phenotype.source.ts` | 110 |
-| `PLANT_HABIT_BY_ROLE` | const | `src/config/phenotype.source.ts` | 27 |
-| `PLANT_IDS` | const | `src/config/plants.source.ts` | 67 |
-| `PLANT_INTERACTION` | const | `src/config/phenotype.source.ts` | 90 |
-| `PLANT_INTERACTION_RANGE` | const | `src/config/phenotype.source.ts` | 105 |
-| `PLANT_PIGMENT_RAMP` | const | `src/config/phenotype.source.ts` | 127 |
-| `PLANT_PIGMENT_SHIFT` | const | `src/config/phenotype.source.ts` | 141 |
+| `PLANT_AXES_BY_GENE` | const | `src/config/phenotype.source.ts` | 50 |
+| `PLANT_AXIS_RANGE` | const | `src/config/phenotype.source.ts` | 100 |
+| `PLANT_DESCRIPTOR_AXES` | const | `src/config/phenotype.source.ts` | 151 |
+| `PLANT_DESCRIPTOR_WEIGHTS` | const | `src/config/phenotype.source.ts` | 166 |
+| `PLANT_FORM_THRESHOLDS` | const | `src/config/phenotype.source.ts` | 114 |
+| `PLANT_HABIT_BY_ROLE` | const | `src/config/phenotype.source.ts` | 31 |
+| `PLANT_IDS` | const | `src/config/plants.source.ts` | 91 |
+| `PLANT_INTERACTION` | const | `src/config/phenotype.source.ts` | 94 |
+| `PLANT_INTERACTION_RANGE` | const | `src/config/phenotype.source.ts` | 109 |
+| `PLANT_PIGMENT_RAMP` | const | `src/config/phenotype.source.ts` | 131 |
+| `PLANT_PIGMENT_SHIFT` | const | `src/config/phenotype.source.ts` | 145 |
 | `PLANT_ROUTE_COST` | const | `src/config/map.source.ts` | 51 |
 | `PLOT_POOL_KEY` | const | `src/config/map.source.ts` | 74 |
 | `PLOT_PRICE` | const | `src/config/map.source.ts` | 75 |
@@ -128,8 +129,8 @@ Pfad: `src/config/`
 | `POT_COLORS` | const | `src/config/pot.source.ts` | 31 |
 | `POT_SEED_VERSION` | const | `src/config/pot.source.ts` | 52 |
 | `PREP_WAITS_FOR_FIRST_PLANT` | const | `src/config/economy.source.ts` | 135 |
-| `PlantAxis` | type | `src/config/phenotype.source.ts` | 34 |
-| `PlantHabit` | type | `src/config/phenotype.source.ts` | 18 |
+| `PlantAxis` | type | `src/config/phenotype.source.ts` | 38 |
+| `PlantHabit` | type | `src/config/phenotype.source.ts` | 22 |
 | `PlantSource` | interface | `src/config/plants.source.ts` | 7 |
 | `PlantTypeId` | type | `src/config/plants.source.ts` | 5 |
 | `PotBoost` | interface | `src/config/pot.source.ts` | 18 |
@@ -152,7 +153,7 @@ Pfad: `src/config/`
 | `SPEED_GAIN_BP` | const | `src/config/ballistics.source.ts` | 28 |
 | `SPEED_MAX_BP` | const | `src/config/ballistics.source.ts` | 30 |
 | `STARTER_PLANT_COUNT` | const | `src/config/economy.source.ts` | 6 |
-| `STARTING_INVENTORY` | const | `src/config/plants.source.ts` | 72 |
+| `STARTING_INVENTORY` | const | `src/config/plants.source.ts` | 96 |
 | `STARTING_MATERIAL` | const | `src/config/map.source.ts` | 87 |
 | `STARTING_NEKTAR` | const | `src/config/economy.source.ts` | 23 |
 | `STARTING_TILE_POOL` | const | `src/config/map.source.ts` | 64 |
@@ -176,9 +177,9 @@ Pfad: `src/config/`
 | `beetleInteractionOf` | function | `src/config/beetlePhenotype.source.ts` | 178 |
 | `beetleWavesToUnlock` | function | `src/config/beetles.source.ts` | 151 |
 | `dist` | function | `src/config/world.source.ts` | 27 |
-| `driftFor` | function | `src/config/phenotype.source.ts` | 231 |
+| `driftFor` | function | `src/config/phenotype.source.ts` | 237 |
 | `generateWaveSchedule` | function | `src/config/enemies.source.ts` | 71 |
-| `interactionOf` | function | `src/config/phenotype.source.ts` | 244 |
+| `interactionOf` | function | `src/config/phenotype.source.ts` | 250 |
 | `isInsideWorld` | function | `src/config/world.source.ts` | 18 |
 | `isValidEffect` | function | `src/config/effects.source.ts` | 62 |
 | `isValidVector` | function | `src/config/vector_logic.source.ts` | 165 |

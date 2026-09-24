@@ -110,11 +110,13 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
   // Der Chip erscheint mit dem ersten HUD-Abbild; `hud !== null` und der Phasenwechsel (ein paar
   // Mal pro Lauf) sind die einzigen Momente, in denen sich die Chip-Lage ohne Fenster-Resize
   // ändern kann. Kein Frame-Takt, kein Layout-Lesen pro Bild.
+  const hasHud = hud !== null;
+  const hudPhase = hud?.phase;
   useEffect(() => {
     measureRewardAnchor();
     window.addEventListener('resize', measureRewardAnchor);
     return () => window.removeEventListener('resize', measureRewardAnchor);
-  }, [measureRewardAnchor, hud !== null, hud?.phase]);
+  }, [measureRewardAnchor, hasHud, hudPhase]);
 
   const toggleFx = useCallback(() => {
     setFxOn(v => {

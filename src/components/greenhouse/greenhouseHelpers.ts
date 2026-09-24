@@ -21,7 +21,7 @@ export function pairRollFor(c: PendingCross, meta: MetaSave): GachaRoll | null {
   const a = findVariant(c.parentAId ?? '', meta);
   const b = findVariant(c.parentBId ?? '', meta);
   if (!a || !b || a.id === b.id) return null;
-  return crossPair(a, b, c.crossIndex);
+  return crossPair(a, b, c.crossIndex, c.rootSeed);
 }
 
 /** Anzeigename einer Variant-ID — Besitz-Bibliothek zuerst, Fallback die ID. */

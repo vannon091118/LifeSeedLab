@@ -19,6 +19,23 @@ export const GAME_SEED = 1337;
  */
 export const EPOCH_ROOT: number = GAME_SEED;
 
+/**
+ * Erzeugt den öffentlichen Wurzelwert eines neuen Runs. Das ist Entropie für die
+ * Run-Identität, kein Gameplay-Zufall: danach bestimmt ausschließlich `deriveSeed` den
+ * reproduzierbaren Run. Ohne WebCrypto bleibt ein fester, ehrlicher Fallback.
+ */
+export function freshRunSeed(): number {
+  try {
+    const bytes = new Uint8Array(4);
+    const cryptoObj = (globalThis as unknown as { crypto?: { getRandomValues?: (a: Uint8Array) => Uint8Array } }).crypto;
+    if (!cryptoObj?.getRandomValues) return EPOCH_ROOT;
+    cryptoObj.getRandomValues(bytes);
+    return ((bytes[0]! << 24) | (bytes[1]! << 16) | (bytes[2]! << 8) | bytes[3]!) >>> 0;
+  } catch {
+    return EPOCH_ROOT;
+  }
+}
+
 /** Identität der aktiven Epoche — wandert in jeden Discovery-Eintrag (P2). */
 export const EPOCH_ID = 0;
 

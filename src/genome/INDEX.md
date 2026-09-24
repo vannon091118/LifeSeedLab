@@ -6,7 +6,7 @@ Pfad: `src/genome/`
 
 ## Umfang
 
-20 Dateien · importiert `components`, `config`, `meta` +3 · wird importiert von `components`, `config`, `meta` +3
+20 Dateien · importiert `components`, `config`, `discovery` +4 · wird importiert von `components`, `config`, `discovery` +4
 
 ## Dateien
 
@@ -14,18 +14,18 @@ Pfad: `src/genome/`
 |---|---|---|---|
 | [`ballistics.test.ts`](./ballistics.test.ts) | 227 | 0 | CALL 243, IMPORTS 8, PASS 242, READ 115, STRING_REFERENCE 181 |
 | [`ballistics.ts`](./ballistics.ts) | 132 | 3 | CALL 25, EXPORTS 5, IMPORTS 3, PASS 28, READ 21, RETURN 9, STRING_REFERENCE 11 |
-| [`bases.ts`](./bases.ts) | 29 | 5 | CALL 6, EXPORTS 1, IMPORTS 3, PASS 6, READ 18, RETURN 2, STRING_REFERENCE 14 |
+| [`bases.ts`](./bases.ts) | 30 | 6 | CALL 6, EXPORTS 1, IMPORTS 3, PASS 6, READ 18, RETURN 2, STRING_REFERENCE 14 |
 | [`beetle.ts`](./beetle.ts) | 188 | 8 | CALL 35, EXPORTS 9, IMPORTS 8, PASS 34, READ 96, RETURN 16, STRING_REFERENCE 13 |
 | [`beetlePhenotype.test.ts`](./beetlePhenotype.test.ts) | 156 | 0 | CALL 151, IMPORTS 8, PASS 152, READ 136, RETURN 1, STRING_REFERENCE 58 |
 | [`beetlePhenotype.ts`](./beetlePhenotype.ts) | 274 | 8 | CALL 123, EXPORTS 4, IMPORTS 8, PASS 118, READ 172, RETURN 8, STRING_REFERENCE 45 |
 | [`breeding.test.ts`](./breeding.test.ts) | 201 | 0 | CALL 153, IMPORTS 6, PASS 150, READ 101, RETURN 5, STRING_REFERENCE 54 |
 | [`breeding.ts`](./breeding.ts) | 271 | 0 | CALL 56, EXPORTS 13, IMPORTS 3, PASS 48, READ 120, RETURN 14, STRING_REFERENCE 7 |
-| [`cross.test.ts`](./cross.test.ts) | 118 | 0 | CALL 107, IMPORTS 5, PASS 102, READ 93, RETURN 3, STRING_REFERENCE 36 |
-| [`cross.ts`](./cross.ts) | 127 | 1 | CALL 48, EXPORTS 5, IMPORTS 5, PASS 40, READ 70, RETURN 7, STRING_REFERENCE 37 |
+| [`cross.test.ts`](./cross.test.ts) | 136 | 0 | CALL 125, IMPORTS 7, PASS 120, READ 97, STRING_REFERENCE 47 |
+| [`cross.ts`](./cross.ts) | 218 | 1 | CALL 84, EXPORTS 5, IMPORTS 7, PASS 82, READ 123, RETURN 22, STRING_REFERENCE 41 |
 | [`effects.ts`](./effects.ts) | 23 | 0 | CALL 3, EXPORTS 1, IMPORTS 3, PASS 3, READ 8, RETURN 1, STRING_REFERENCE 3 |
 | [`enemyPhenotype.ts`](./enemyPhenotype.ts) | 74 | 1 | CALL 18, EXPORTS 3, IMPORTS 6, PASS 15, READ 29, RETURN 5, STRING_REFERENCE 8 |
 | [`enemy_phenotype.test.ts`](./enemy_phenotype.test.ts) | 114 | 0 | CALL 122, IMPORTS 7, PASS 114, READ 72, STRING_REFERENCE 60 |
-| [`gacha.ts`](./gacha.ts) | 101 | 4 | CALL 31, EXPORTS 6, IMPORTS 4, PASS 29, READ 42, RETURN 8, STRING_REFERENCE 13 |
+| [`gacha.ts`](./gacha.ts) | 113 | 6 | CALL 34, EXPORTS 7, IMPORTS 5, PASS 32, READ 39, RETURN 9, STRING_REFERENCE 19 |
 | [`genome_beetle.test.ts`](./genome_beetle.test.ts) | 104 | 0 | CALL 75, IMPORTS 4, PASS 73, READ 94, STRING_REFERENCE 35 |
 | [`phenotypeShared.ts`](./phenotypeShared.ts) | 16 | 0 | EXPORTS 2, RETURN 2 |
 | [`plantPhenotype.test.ts`](./plantPhenotype.test.ts) | 173 | 0 | CALL 140, IMPORTS 8, PASS 139, READ 116, RETURN 2, STRING_REFERENCE 75 |
@@ -40,8 +40,8 @@ Pfad: `src/genome/`
 | `BeetleParentRef` | type | `src/genome/beetle.ts` | 26 |
 | `BeetlePhenotype` | interface | `src/genome/beetlePhenotype.ts` | 28 |
 | `Descriptor` | type | `src/genome/breeding.ts` | 27 |
-| `GENE_POOL` | const | `src/genome/pool.ts` | 3 |
-| `GachaRoll` | interface | `src/genome/gacha.ts` | 9 |
+| `GENE_POOL` | const | `src/genome/pool.ts` | 6 |
+| `GachaRoll` | interface | `src/genome/gacha.ts` | 10 |
 | `LeafShape` | type | `src/genome/plantPhenotype.ts` | 25 |
 | `PlantPhenotype` | interface | `src/genome/plantPhenotype.ts` | 35 |
 | `ancestorOf` | function | `src/genome/beetle.ts` | 46 |
@@ -60,22 +60,23 @@ Pfad: `src/genome/`
 | `carriedGenes` | function | `src/genome/breeding.ts` | 269 |
 | `clamp` | function | `src/genome/phenotypeShared.ts` | 14 |
 | `cooldownCxOf` | function | `src/genome/ballistics.ts` | 80 |
-| `createBaseVariants` | function | `src/genome/bases.ts` | 11 |
-| `crossGenomes` | function | `src/genome/cross.ts` | 86 |
-| `crossPair` | function | `src/genome/gacha.ts` | 73 |
+| `createBaseVariants` | function | `src/genome/bases.ts` | 9 |
+| `crossGenomes` | function | `src/genome/cross.ts` | 179 |
+| `crossPair` | function | `src/genome/gacha.ts` | 85 |
 | `deriveBeetleStats` | function | `src/genome/beetle.ts` | 61 |
-| `deriveBreedSeed` | function | `src/genome/gacha.ts` | 98 |
+| `deriveBreedSeed` | function | `src/genome/gacha.ts` | 110 |
 | `deriveBroodSeed` | function | `src/genome/beetle.ts` | 91 |
-| `deriveColor` | function | `src/genome/cross.ts` | 71 |
-| `deriveGachaSeed` | function | `src/genome/gacha.ts` | 63 |
-| `deriveStats` | function | `src/genome/cross.ts` | 19 |
-| `deriveTraits` | function | `src/genome/cross.ts` | 64 |
+| `deriveChildGenome` | function | `src/genome/gacha.ts` | 74 |
+| `deriveColor` | function | `src/genome/cross.ts` | 73 |
+| `deriveGachaSeed` | function | `src/genome/gacha.ts` | 64 |
+| `deriveStats` | function | `src/genome/cross.ts` | 21 |
+| `deriveTraits` | function | `src/genome/cross.ts` | 66 |
 | `descriptorDistance` | function | `src/genome/breeding.ts` | 158 |
 | `enemyAncestorFor` | function | `src/genome/enemyPhenotype.ts` | 57 |
 | `enemyGenomeFor` | function | `src/genome/enemyPhenotype.ts` | 37 |
 | `enemyPhenotypeFor` | function | `src/genome/enemyPhenotype.ts` | 67 |
 | `expressed` | function | `src/genome/breeding.ts` | 138 |
-| `generateName` | function | `src/genome/cross.ts` | 78 |
+| `generateName` | function | `src/genome/cross.ts` | 80 |
 | `genomeEffectIds` | function | `src/genome/effects.ts` | 15 |
 | `genomeKey` | function | `src/genome/breeding.ts` | 264 |
 | `genomePower` | function | `src/genome/breeding.ts` | 143 |
@@ -91,9 +92,9 @@ Pfad: `src/genome/`
 | `resolveAncestor` | function | `src/genome/beetle.ts` | 56 |
 | `rollBrood` | function | `src/genome/beetle.ts` | 111 |
 | `rollCandidates` | function | `src/genome/breeding.ts` | 196 |
-| `rollGachaCross` | function | `src/genome/gacha.ts` | 21 |
+| `rollGachaCross` | function | `src/genome/gacha.ts` | 22 |
 | `toDeploySpec` | function | `src/genome/beetle.ts` | 181 |
-| `variantPower` | function | `src/genome/gacha.ts` | 17 |
+| `variantPower` | function | `src/genome/gacha.ts` | 18 |
 | `weightedDistance` | function | `src/genome/breeding.ts` | 171 |
 
 ## Datenfluss

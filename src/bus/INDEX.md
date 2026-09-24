@@ -16,7 +16,7 @@ Pfad: `src/bus/`
 | [`bus_audience.test.ts`](./bus_audience.test.ts) | 141 | 0 | CALL 56, IMPORTS 8, PASS 48, READ 48, STRING_REFERENCE 89 |
 | [`bus_commands.test.ts`](./bus_commands.test.ts) | 84 | 0 | CALL 89, IMPORTS 6, PASS 76, READ 53, STRING_REFERENCE 35 |
 | [`bus_events.test.ts`](./bus_events.test.ts) | 62 | 0 | CALL 39, IMPORTS 3, PASS 36, READ 23, STRING_REFERENCE 36 |
-| [`commands.ts`](./commands.ts) | 111 | 13 | CALL 1, EXPORTS 6, IMPORTS 1, PASS 1, READ 7, RETURN 4, STRING_REFERENCE 19 |
+| [`commands.ts`](./commands.ts) | 111 | 12 | CALL 1, EXPORTS 6, IMPORTS 1, PASS 1, READ 7, RETURN 4, STRING_REFERENCE 19 |
 | [`eventAudience.ts`](./eventAudience.ts) | 170 | 1 | CALL 6, EXPORTS 4, IMPORTS 1, PASS 6, READ 5, STRING_REFERENCE 98 |
 | [`events.ts`](./events.ts) | 200 | 27 | CALL 4, EXPORTS 16, PASS 4, READ 19, RETURN 1, STRING_REFERENCE 73 |
 | [`reject_reasons.test.ts`](./reject_reasons.test.ts) | 73 | 0 | CALL 41, IMPORTS 3, PASS 34, READ 27, RETURN 2, STRING_REFERENCE 28 |

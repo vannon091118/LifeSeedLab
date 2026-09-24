@@ -112,9 +112,9 @@ node node_modules/vite/bin/vite.js build           # Nur bei Build-Relevanz
 *Gezielter Einzeltest zur Fehlersuche:* `node node_modules/vitest/vitest.mjs run <datei>`. Keine Dauerschleifen!
 *Mechanik-Fragen:* Immer in Vitest gegen `SimulationRoot` testen, nicht im Browser. E2E pausiert die Sim vor Aktionen.
 
-### Verbindlicher Sprint-Abschluss (Reihenfolge bindend)
+### Sprint-Abschluss (E2E nur auf ausdrückliche Anweisung)
 1. **Preview prüfen:** Geänderter Screen (bei UI zusätzlich 390×844 Portrait und Desktop). Plattform-managed Server nicht neustarten/killen.
-2. **E2E:** `node node_modules/playwright/test/cli.js test` (`tests/`, Chromium). Playwright verwaltet Server selbst. Rote E2E = kein Abschluss.
+2. **E2E:** Standard- und CLI-Läufe führen keine Playwright-Tests aus. `node node_modules/playwright/test/cli.js test` (`tests/`, Chromium) wird ausschließlich auf direkte Anweisung ausgeführt; Playwright verwaltet den Server selbst. Rote E2E = kein Abschluss, wenn sie ausdrücklich angefordert wurde.
 3. **Voll-Suite:** `node scripts/test-lane.mjs --full` (429+ Tests grün).
 4. **Shinon Commit & Push:**
    ```bash

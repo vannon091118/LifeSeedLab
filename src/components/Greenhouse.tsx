@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import type { MetaSave, PlantVariant } from '../types';
+import type { MetaSave, PlantVariant, PlantParentSnapshot } from '../types';
 import { useI18n } from '../i18n';
 import type { GachaRoll } from '../genome/gacha';
 import { rollGachaCross, crossPair, deriveBreedSeed } from '../genome';
 import { consumeSeedAndEnqueueCross, keepCross, isCrossReady, plantSeedlingIntoPot, buyRearingSlot } from '../meta';
 import { wavesToUnlockFor, rearingSlotGate, REARING_SLOTS_MAX } from '../config/economy.source';
 import { helpText } from '../i18n/help';
+import { appendDiscovery, seedShareText } from '../discovery/codex';
 import { GreenhouseGlyph } from './GameIcons';
 
 // Owner: UI (Greenhouse screen). LOC ≤ 400.
@@ -86,17 +87,22 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
     // Die Kreuzung läuft über die GEWÄHLTEN Eltern (`crossPair`, deterministisch aus beiden
     // IDs + Generation). Der Seed wird mitgespeichert, damit die Reifungs-Zeile denselben
     // Nachkommen rekonstruieren kann, falls ein Altsave kein `child` trägt.
-    const gachaSeed = deriveBreedSeed(a.id, b.id, crossIndex);
-    const roll = crossPair(a, b, crossIndex);
+    const gachaSeed = deriveBreedSeed(a.id, b.id, crossIndex, meta.runSeed);
+    const roll = crossPair(a, b, crossIndex, meta.runSeed);
     if (!roll) return;
     // ATOMAR: Seed-Verbrauch + Cross-Enqueue in EINEM Persistenzschritt —
     // kein Zustand mehr möglich, in dem der Seed verbrannt ist, aber keine Kreuzung wartet.
     // B19: das Kind + Eltern werden MIT persistiert — der Claim hängt nur am Wellen-Timer.
-    const m = consumeSeedAndEnqueueCross(gachaSeed, crossIndex, meta.totalWavesSurvived, roll.child, roll.parentA.id, roll.parentB.id);
+    const m = consumeSeedAndEnqueueCross(gachaSeed, crossIndex, meta.totalWavesSurvived, roll.child, roll.parentA.id, roll.parentB.id, meta.runSeed);
     if (!m) return;
     setLastRoll(roll);
     onMetaChange(m);
   };
+
+  const parentContextOf = (roll: GachaRoll): [PlantParentSnapshot, PlantParentSnapshot] => [
+    { id: roll.parentA.id, type: roll.parentA.type, genome: roll.parentA.genome },
+    { id: roll.parentB.id, type: roll.parentB.type, genome: roll.parentB.genome },
+  ];
 
   const handleKeep = async (roll: GachaRoll) => {
     // Reifungs-Vertrag: behalten erst nach X überlebten Wellen (economy.source).
@@ -113,17 +119,16 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
     setLastRoll(null);
     // Discovery-Chain: append-only, hash-linked, lokale Deduplizierung
     try {
-      const { appendDiscovery } = await import('../discovery/codex');
-      const { hashGenome } = await import('../discovery/chain');
       // P2': der Breed-Seed bleibt intern (Referenz-Ableitung + Zeitstempel) — im Entry und
       // im Share-Text steht nur die öffentliche plant_ref, nie der Klartext-Seed.
-      const res = appendDiscovery({
+      const res = await appendDiscovery({
         genome: roll.child.genome,
-        parents: [roll.parentA.id, roll.parentB.id],
-        seed: deriveBreedSeed(roll.parentA.id, roll.parentB.id, roll.crossIndex),
+        parentContext: parentContextOf(roll),
+        seed: deriveBreedSeed(roll.parentA.id, roll.parentB.id, roll.crossIndex, meta.runSeed),
+        rootSeed: meta.runSeed,
         generation: roll.crossIndex,
       });
-      if (res.appended) setShareNote(`${t('discovery.appended')}: ${hashGenome(roll.child.genome)}`);
+      if (res.appended) setShareNote(`${t('discovery.appended')}: ${res.genome_hash}`);
       else if (res.reason) setShareNote(t('discovery.duplicate'));
       setTimeout(() => setShareNote(null), 2200);
     } catch {
@@ -132,18 +137,16 @@ export function Greenhouse({ meta, onMetaChange, onClose }: Props) {
   };
 
   const handleShareSeed = async (roll: GachaRoll) => {
-    const { appendDiscovery, seedShareText } = await import('../discovery/codex');
     // ensure entry exists before sharing (idempotent due to tryAppend)
-    appendDiscovery({
+    await appendDiscovery({
       genome: roll.child.genome,
-      parents: [roll.parentA.id, roll.parentB.id],
-      seed: deriveBreedSeed(roll.parentA.id, roll.parentB.id, roll.crossIndex),
+      parentContext: parentContextOf(roll),
+      seed: deriveBreedSeed(roll.parentA.id, roll.parentB.id, roll.crossIndex, meta.runSeed),
+      rootSeed: meta.runSeed,
       generation: roll.crossIndex,
     });
-    // P2': geteilt wird der ÖFFENTLICHE Identifier (plant_ref), nie der private Seed.
-    const { plantRefOf } = await import('../discovery/plantRef');
-    const shareSeed = deriveBreedSeed(roll.parentA.id, roll.parentB.id, roll.crossIndex);
-    const text = seedShareText(plantRefOf(shareSeed, roll.parentA.id, roll.parentB.id, roll.crossIndex), roll.crossIndex, roll.child.genome);
+    // Der Share enthält Run-Seed + Elternkontext + Generation + SHA-256; der private Seed bleibt draußen.
+    const text = await seedShareText(meta.runSeed, parentContextOf(roll), roll.crossIndex, roll.child.genome);
     try {
       await navigator.clipboard.writeText(text);
       setShareNote(t('codex.copied'));

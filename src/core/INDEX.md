@@ -15,9 +15,9 @@ Pfad: `src/core/`
 | [`clock.ts`](./clock.ts) | 107 | 7 | CALL 3, EXPORTS 6, PASS 2, READ 55, RETURN 6, STRING_REFERENCE 6 |
 | [`color.ts`](./color.ts) | 36 | 8 | CALL 16, EXPORTS 5, PASS 16, READ 7, RETURN 7, STRING_REFERENCE 3 |
 | [`core.test.ts`](./core.test.ts) | 200 | 0 | CALL 175, IMPORTS 5, PASS 137, READ 97, STRING_REFERENCE 85 |
-| [`hash.ts`](./hash.ts) | 100 | 10 | CALL 52, EXPORTS 4, IMPORTS 2, PASS 52, READ 85, RETURN 4, STRING_REFERENCE 5 |
+| [`hash.ts`](./hash.ts) | 112 | 10 | CALL 56, EXPORTS 5, IMPORTS 2, PASS 56, READ 91, RETURN 5, STRING_REFERENCE 9 |
 | [`ids.ts`](./ids.ts) | 46 | 20 | CALL 9, EXPORTS 5, PASS 9, READ 16, RETURN 3, STRING_REFERENCE 12 |
-| [`order.ts`](./order.ts) | 27 | 2 | EXPORTS 1, RETURN 2 |
+| [`order.ts`](./order.ts) | 27 | 3 | EXPORTS 1, RETURN 2 |
 | [`rng.ts`](./rng.ts) | 127 | 33 | CALL 29, EXPORTS 7, IMPORTS 1, PASS 24, READ 21, RETURN 16, STRING_REFERENCE 22 |
 
 ## Öffentliche Symbole
@@ -38,9 +38,9 @@ Pfad: `src/core/`
 | `compareCodeUnits` | function | `src/core/order.ts` | 24 |
 | `darken` | function | `src/core/color.ts` | 36 |
 | `deriveSeed` | function | `src/core/rng.ts` | 92 |
-| `fnv1a` | function | `src/core/hash.ts` | 43 |
-| `fnv1aHex` | function | `src/core/hash.ts` | 38 |
-| `hashState` | function | `src/core/hash.ts` | 58 |
+| `fnv1a` | function | `src/core/hash.ts` | 55 |
+| `fnv1aHex` | function | `src/core/hash.ts` | 50 |
+| `hashState` | function | `src/core/hash.ts` | 70 |
 | `hexToRgb` | function | `src/core/color.ts` | 8 |
 | `lighten` | function | `src/core/color.ts` | 33 |
 | `makeRng` | function | `src/core/rng.ts` | 122 |
@@ -49,6 +49,7 @@ Pfad: `src/core/`
 | `resetIds` | function | `src/core/ids.ts` | 34 |
 | `restoreIds` | function | `src/core/ids.ts` | 43 |
 | `rgbToHex` | function | `src/core/color.ts` | 14 |
+| `sha256Hex` | function | `src/core/hash.ts` | 35 |
 | `shiftChannels` | function | `src/core/color.ts` | 20 |
 | `snapshotIds` | function | `src/core/ids.ts` | 39 |
 | `strHash` | function | `src/core/rng.ts` | 108 |

@@ -3,10 +3,8 @@ import { PLANTS_SOURCE } from '../config/plants.source';
 import { deriveTraits } from './cross';
 
 // Owner: Source (base variants). LOC ≤ 200.
-// Basen werden aus PLANTS_SOURCE abgeleitet — EINE Stats-Quelle (Befund A2:
-// es gab zwei parallele Basen-Wahrheiten mit unterschiedlichen IDs). Kanonische
-// IDs = PlantTypeId, damit Platzierung im Run direkt über resolvePlantStats
-// funktioniert. stats.special bleibt: wall+thorns → reflect, support+heal → aura.
+// Basen werden aus PLANTS_SOURCE abgeleitet — EINE Stats-Quelle. Jeder Basis-Slot bekommt
+// zwei homozygote Allele; alte kurze Test-Fixtures dürfen die Top-Level-Genform weiterlesen.
 
 export function createBaseVariants(): PlantVariant[] {
   return Object.values(PLANTS_SOURCE).map(src => {
@@ -17,7 +15,10 @@ export function createBaseVariants(): PlantVariant[] {
       id: src.id,
       name: src.label,
       type: src.role,
-      genome: src.genome.map(g => ({ ...g })),
+      genome: src.genome.map(gene => ({
+        ...gene,
+        alleles: [{ ...gene }, { ...gene }],
+      })),
       traits: deriveTraits(src.genome as Genome),
       cost: src.cost,
       stats: { ...src.stats, special },

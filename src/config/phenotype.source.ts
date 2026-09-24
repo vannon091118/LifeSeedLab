@@ -14,6 +14,10 @@
 
 import type { PlantType } from '../types';
 
+/** Ein Pflanzen-Genom trägt zehn vererbbare Gen-Slots. Alte, kürzere Test-Fixtures bleiben
+ *  als Legacy lesbar; alle Basen und alle erzeugten Kreuzungen tragen diesen Slot-Umfang. */
+export const GENOME_SLOT_COUNT = 10;
+
 /** Wuchsgewohnheit (Silhouette) — eine Tendenz je Rolle, keine Schablone. */
 export type PlantHabit = 'upright' | 'creeping' | 'bulbous' | 'climbing';
 
@@ -173,6 +177,8 @@ export const PLANT_DESCRIPTOR_WEIGHTS: readonly number[] = [
  * freier, ohne die Familienlinie zu verlieren.
  */
 export const BREEDING = {
+  /** Vererbung: eine homozygote rezessive Anlage darf sich über Generationen aufbauen. */
+  inheritance: { homozygousGain: 0.08, dominanceWeight: 0.2 } as const,
   /** Mutation: Chance, dass ein Kind an einer Stelle ein NEUES Gen erhält. */
   mutationChance: 0.18,
   /** Mutation: Stärke-Fenster eines neuen Gens (mit Drift skaliert). */

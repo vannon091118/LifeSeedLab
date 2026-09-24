@@ -34,6 +34,14 @@ export const PLANTS_SOURCE: Record<PlantTypeId, PlantSource> = {
     genome: [
       { id: 'rapid', power: 0.5, dominant: true },
       { id: 'pierce', power: 0.3, dominant: true },
+      { id: 'crit', power: 0.12, dominant: false },
+      { id: 'swift', power: 0.1, dominant: true },
+      { id: 'fire', power: 0.1, dominant: true },
+      { id: 'splash', power: 0.08, dominant: false },
+      { id: 'bloom', power: 0.06, dominant: true },
+      { id: 'echo', power: 0.05, dominant: true },
+      { id: 'spore', power: 0.04, dominant: false },
+      { id: 'prismatic', power: 0.03, dominant: false },
     ],
   },
   rootwall: {
@@ -47,6 +55,14 @@ export const PLANTS_SOURCE: Record<PlantTypeId, PlantSource> = {
     genome: [
       { id: 'shield', power: 0.7, dominant: true },
       { id: 'thorns', power: 0.4, dominant: true },
+      { id: 'heavy', power: 0.15, dominant: false },
+      { id: 'regen', power: 0.1, dominant: false },
+      { id: 'titan', power: 0.08, dominant: false },
+      { id: 'spore', power: 0.06, dominant: false },
+      { id: 'acid', power: 0.05, dominant: true },
+      { id: 'gravity', power: 0.04, dominant: false },
+      { id: 'bloom', power: 0.04, dominant: true },
+      { id: 'prismatic', power: 0.03, dominant: false },
     ],
   },
   mycelia: {
@@ -60,6 +76,14 @@ export const PLANTS_SOURCE: Record<PlantTypeId, PlantSource> = {
     genome: [
       { id: 'heal', power: 0.6, dominant: false },
       { id: 'aura', power: 0.3, dominant: false },
+      { id: 'regen', power: 0.18, dominant: false },
+      { id: 'bloom', power: 0.12, dominant: true },
+      { id: 'spore', power: 0.1, dominant: false },
+      { id: 'echo', power: 0.08, dominant: true },
+      { id: 'titan', power: 0.06, dominant: false },
+      { id: 'gravity', power: 0.05, dominant: false },
+      { id: 'prismatic', power: 0.04, dominant: false },
+      { id: 'vortex', power: 0.03, dominant: true },
     ],
   },
 };
