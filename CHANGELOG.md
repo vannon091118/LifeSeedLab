@@ -9,6 +9,8 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ## Unreleased (Arbeitsstand 19.–24.09.2026)
 
+- [CI] Der nächste frischen-Checkout-Befund ist ebenfalls behoben: `scripts/e2e-lane-map.mjs` wird als Vertragsdatei der Vitest-Suite sichtbar gemacht, ohne den manuellen Playwright-Lauf wieder zu aktivieren.
+
 - [CI] Der GitHub-CI-Contract wird wieder aus einem frischen Checkout heraus ausführbar: Der bereits vorhandene Golden-Hash ist als Repository-Secret hinterlegt, das von der Test-Lane benötigte `scripts/test-lane-verdict.mjs` ist nicht mehr ignoriert, und die Quality-Register-Prüfung hat ihren eindeutigen B5.1-Contract-Stand.
 
 - [Index] Die Modulindizes für i18n und Meta werden als letzter kleiner Nachtrag aktualisiert, damit die generierte Navigation den bereits committed Source- und Testverträgen entspricht.
