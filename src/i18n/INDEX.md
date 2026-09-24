@@ -15,12 +15,12 @@ Pfad: `src/i18n/`
 | [`b0_tab_labels.test.ts`](./b0_tab_labels.test.ts) | 22 | 0 | CALL 12, IMPORTS 2, PASS 12, READ 10, STRING_REFERENCE 18 |
 | [`help.ts`](./help.ts) | 35 | 1 | CALL 2, EXPORTS 3, PASS 2, READ 4, RETURN 1, STRING_REFERENCE 22 |
 | [`i18n_texts.test.ts`](./i18n_texts.test.ts) | 129 | 0 | CALL 117, IMPORTS 4, PASS 105, READ 108, STRING_REFERENCE 43 |
-| [`texts_codex.ts`](./texts_codex.ts) | 126 | 0 | EXPORTS 1, STRING_REFERENCE 208 |
+| [`texts_codex.ts`](./texts_codex.ts) | 136 | 0 | EXPORTS 1, STRING_REFERENCE 228 |
 | [`texts_run.ts`](./texts_run.ts) | 158 | 0 | EXPORTS 1, STRING_REFERENCE 228 |
 | [`texts_shell.ts`](./texts_shell.ts) | 88 | 0 | EXPORTS 1, STRING_REFERENCE 144 |
 | [`texts_shop.ts`](./texts_shop.ts) | 107 | 0 | EXPORTS 1, STRING_REFERENCE 180 |
 | [`translations.ts`](./translations.ts) | 28 | 7 | EXPORTS 4, IMPORTS 4, READ 8, STRING_REFERENCE 6 |
-| [`tutorial.ts`](./tutorial.ts) | 118 | 2 | EXPORTS 3, READ 2, RETURN 1, STRING_REFERENCE 206 |
+| [`tutorial.ts`](./tutorial.ts) | 122 | 3 | EXPORTS 3, READ 2, RETURN 1, STRING_REFERENCE 214 |
 
 ## Öffentliche Symbole
 
@@ -30,7 +30,7 @@ Pfad: `src/i18n/`
 | `Lang` | type | `src/i18n/translations.ts` | 17 |
 | `TEXT_MODULES` | const | `src/i18n/translations.ts` | 21 |
 | `TranslationKey` | type | `src/i18n/translations.ts` | 28 |
-| `TutorialTextKey` | type | `src/i18n/tutorial.ts` | 114 |
+| `TutorialTextKey` | type | `src/i18n/tutorial.ts` | 118 |
 | `codexTexts` | const | `src/i18n/texts_codex.ts` | 7 |
 | `helpText` | function | `src/i18n/help.ts` | 33 |
 | `helpTexts` | const | `src/i18n/help.ts` | 6 |
@@ -38,7 +38,7 @@ Pfad: `src/i18n/`
 | `shellTexts` | const | `src/i18n/texts_shell.ts` | 7 |
 | `shopTexts` | const | `src/i18n/texts_shop.ts` | 7 |
 | `translations` | const | `src/i18n/translations.ts` | 23 |
-| `tutorialText` | function | `src/i18n/tutorial.ts` | 116 |
+| `tutorialText` | function | `src/i18n/tutorial.ts` | 120 |
 | `tutorialTexts` | const | `src/i18n/tutorial.ts` | 5 |
 
 ## Datenfluss
