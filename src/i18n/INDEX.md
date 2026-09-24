@@ -15,7 +15,7 @@ Pfad: `src/i18n/`
 | [`b0_tab_labels.test.ts`](./b0_tab_labels.test.ts) | 22 | 0 | CALL 12, IMPORTS 2, PASS 12, READ 10, STRING_REFERENCE 18 |
 | [`help.ts`](./help.ts) | 35 | 1 | CALL 2, EXPORTS 3, PASS 2, READ 4, RETURN 1, STRING_REFERENCE 22 |
 | [`i18n_texts.test.ts`](./i18n_texts.test.ts) | 129 | 0 | CALL 117, IMPORTS 4, PASS 105, READ 108, STRING_REFERENCE 43 |
-| [`texts_codex.ts`](./texts_codex.ts) | 136 | 0 | EXPORTS 1, STRING_REFERENCE 228 |
+| [`texts_codex.ts`](./texts_codex.ts) | 138 | 0 | EXPORTS 1, STRING_REFERENCE 232 |
 | [`texts_run.ts`](./texts_run.ts) | 158 | 0 | EXPORTS 1, STRING_REFERENCE 228 |
 | [`texts_shell.ts`](./texts_shell.ts) | 88 | 0 | EXPORTS 1, STRING_REFERENCE 144 |
 | [`texts_shop.ts`](./texts_shop.ts) | 107 | 0 | EXPORTS 1, STRING_REFERENCE 180 |

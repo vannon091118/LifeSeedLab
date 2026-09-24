@@ -9,6 +9,8 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ## Unreleased (Arbeitsstand 19.–24.09.2026)
 
+- [Worktree/Index] Die lokale Arbeitskopie wird vollständig konsolidiert: generierte Index-Ausgaben, Versionswahrheit `0.0.99`, Index-Skripte und die bereinigten Source-/Testverweise werden in getrennten Shinon-Slices übernommen. Fremde/generated Änderungen werden nicht mehr absichtlich im Worktree stehen gelassen.
+
 - [E2E-Vertrag] Die Canvas-Sonde veröffentlicht Test-Events nun mit einer ableitbaren Event-ID und vollständigem `REWARD_GRANTED`-Payload; der gezielte Chromium-Single-Run für Visual-/Layout-/Erstsession-Specs ist 11/11 grün. Belege: `tests/helpers/canvasProbe.ts`, `tests/visual_probe.spec.ts`.
 
 - [Roadmap T1–T11] Die T1–T5- und T8-Slices sind mit Code-/Testbelegen als erledigt konsolidiert; T6 bleibt wegen P-36, T7 wegen der Balanceentscheidung und T9 wegen B14.7 teilweise offen. T10 bleibt bis zur schriftlichen Produktentscheidung gesperrt, T11 bleibt externe Owner-Aktion. Belege: `docs/process/ROADMAP.md`, Domänen-Contracts und Devlog 25.

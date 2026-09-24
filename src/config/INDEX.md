@@ -6,7 +6,7 @@ Pfad: `src/config/`
 
 ## Umfang
 
-18 Dateien · importiert ``, `components`, `genome` +6 · wird importiert von ``, `components`, `genome` +6
+18 Dateien · importiert ``, `components`, `genome` +7 · wird importiert von ``, `components`, `genome` +7
 
 ## Dateien
 
@@ -14,13 +14,13 @@ Pfad: `src/config/`
 |---|---|---|---|
 | [`ballistics.source.ts`](./ballistics.source.ts) | 99 | 3 | EXPORTS 24 |
 | [`beetlePhenotype.source.ts`](./beetlePhenotype.source.ts) | 183 | 3 | EXPORTS 20, READ 13, RETURN 1, STRING_REFERENCE 129 |
-| [`beetles.source.ts`](./beetles.source.ts) | 168 | 11 | CALL 3, EXPORTS 7, IMPORTS 1, PASS 3, READ 3, RETURN 1, STRING_REFERENCE 34 |
+| [`beetles.source.ts`](./beetles.source.ts) | 166 | 11 | CALL 3, EXPORTS 7, IMPORTS 1, PASS 3, READ 3, RETURN 1, STRING_REFERENCE 34 |
 | [`economy.source.ts`](./economy.source.ts) | 171 | 24 | CALL 3, EXPORTS 25, PASS 3, READ 6, RETURN 7, STRING_REFERENCE 13 |
 | [`effects.source.ts`](./effects.source.ts) | 64 | 10 | CALL 1, EXPORTS 4, PASS 1, READ 1, RETURN 1, STRING_REFERENCE 135 |
 | [`enemies.source.ts`](./enemies.source.ts) | 104 | 7 | CALL 14, EXPORTS 7, IMPORTS 1, PASS 13, READ 15, RETURN 2, STRING_REFERENCE 19 |
 | [`enemyGenome.source.ts`](./enemyGenome.source.ts) | 57 | 4 | EXPORTS 4, IMPORTS 1, STRING_REFERENCE 19 |
 | [`genes.source.ts`](./genes.source.ts) | 46 | 2 | EXPORTS 1, IMPORTS 1, STRING_REFERENCE 24 |
-| [`map.source.ts`](./map.source.ts) | 93 | 17 | CALL 1, EXPORTS 10, PASS 1, READ 1, STRING_REFERENCE 9 |
+| [`map.source.ts`](./map.source.ts) | 93 | 18 | CALL 1, EXPORTS 10, PASS 1, READ 1, STRING_REFERENCE 9 |
 | [`names.source.ts`](./names.source.ts) | 57 | 2 | EXPORTS 4, STRING_REFERENCE 52 |
 | [`phenotype.source.ts`](./phenotype.source.ts) | 255 | 8 | CALL 1, EXPORTS 16, IMPORTS 1, PASS 1, READ 9, RETURN 2, STRING_REFERENCE 93 |
 | [`plants.source.ts`](./plants.source.ts) | 101 | 11 | CALL 1, EXPORTS 5, PASS 1, READ 1, STRING_REFERENCE 51 |
@@ -29,7 +29,7 @@ Pfad: `src/config/`
 | [`sources.test.ts`](./sources.test.ts) | 177 | 0 | CALL 141, IMPORTS 8, PASS 128, READ 132, RETURN 1, STRING_REFERENCE 31 |
 | [`vector_logic.source.ts`](./vector_logic.source.ts) | 167 | 10 | CALL 1, EXPORTS 11, PASS 1, READ 2, RETURN 2, STRING_REFERENCE 32 |
 | [`vector_visual.source.ts`](./vector_visual.source.ts) | 31 | 4 | CALL 1, EXPORTS 4, IMPORTS 1, PASS 1, READ 1, RETURN 1, STRING_REFERENCE 49 |
-| [`world.source.ts`](./world.source.ts) | 29 | 6 | CALL 3, EXPORTS 5, PASS 3, READ 2, RETURN 3 |
+| [`world.source.ts`](./world.source.ts) | 29 | 5 | CALL 3, EXPORTS 5, PASS 3, READ 2, RETURN 3 |
 
 ## Öffentliche Symbole
 
@@ -56,7 +56,7 @@ Pfad: `src/config/`
 | `BEETLE_PIGMENT_SCATTER` | const | `src/config/beetlePhenotype.source.ts` | 145 |
 | `BEETLE_PIGMENT_SHIFT` | const | `src/config/beetlePhenotype.source.ts` | 126 |
 | `BREEDING` | const | `src/config/phenotype.source.ts` | 179 |
-| `BROOD_SEED_NAMESPACE` | const | `src/config/beetles.source.ts` | 168 |
+| `BROOD_SEED_NAMESPACE` | const | `src/config/beetles.source.ts` | 166 |
 | `BeetleAxis` | type | `src/config/beetlePhenotype.source.ts` | 27 |
 | `BeetleBearing` | type | `src/config/beetlePhenotype.source.ts` | 18 |
 | `BeetleMotion` | type | `src/config/beetlePhenotype.source.ts` | 14 |
@@ -175,7 +175,7 @@ Pfad: `src/config/`
 | `WUCHS_THICKNESS` | const | `src/config/ballistics.source.ts` | 68 |
 | `WaveSchedule` | interface | `src/config/enemies.source.ts` | 62 |
 | `beetleInteractionOf` | function | `src/config/beetlePhenotype.source.ts` | 178 |
-| `beetleWavesToUnlock` | function | `src/config/beetles.source.ts` | 151 |
+| `beetleWavesToUnlock` | function | `src/config/beetles.source.ts` | 149 |
 | `dist` | function | `src/config/world.source.ts` | 27 |
 | `driftFor` | function | `src/config/phenotype.source.ts` | 237 |
 | `generateWaveSchedule` | function | `src/config/enemies.source.ts` | 71 |

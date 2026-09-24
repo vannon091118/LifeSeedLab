@@ -6,14 +6,14 @@ Pfad: `src/components/`
 
 ## Umfang
 
-57 Dateien · importiert `bus`, `meta`, `render` +2 · wird importiert von `bus`, `meta`, `render` +2
+58 Dateien · importiert `bus`, `meta`, `render` +2 · wird importiert von `bus`, `meta`, `render` +2
 
 ## Dateien
 
 | Datei | LOC | Importiert von | Beziehungen |
 |---|---|---|---|
 | [`BeetleLab.tsx`](./BeetleLab.tsx) | 239 | 0 | CALL 77, EXPORTS 1, IMPORTS 9, PASS 80, READ 163, RETURN 6, STRING_REFERENCE 137 |
-| [`Codex.tsx`](./Codex.tsx) | 158 | 0 | CALL 48, EXPORTS 1, IMPORTS 5, PASS 42, READ 61, RETURN 2, STRING_REFERENCE 116 |
+| [`Codex.tsx`](./Codex.tsx) | 166 | 0 | CALL 47, EXPORTS 2, IMPORTS 5, PASS 41, READ 59, RETURN 4, STRING_REFERENCE 116 |
 | [`CreatedBy.tsx`](./CreatedBy.tsx) | 140 | 0 | CALL 2, EXPORTS 5, IMPORTS 3, PASS 1, READ 16, RETURN 3, STRING_REFERENCE 47 |
 | [`ErrorBoundary.tsx`](./ErrorBoundary.tsx) | 65 | 1 | CALL 2, EXPORTS 1, IMPORTS 1, PASS 1, READ 19, RETURN 3, STRING_REFERENCE 27 |
 | [`FieldToast.tsx`](./FieldToast.tsx) | 122 | 2 | CALL 4, EXPORTS 4, IMPORTS 3, PASS 3, READ 6, RETURN 5, STRING_REFERENCE 41 |
@@ -32,6 +32,7 @@ Pfad: `src/components/`
 | [`ScreenTransition.tsx`](./ScreenTransition.tsx) | 45 | 0 | CALL 13, EXPORTS 1, IMPORTS 1, PASS 15, READ 5, RETURN 3, STRING_REFERENCE 11 |
 | [`SeedShop.tsx`](./SeedShop.tsx) | 138 | 0 | CALL 31, EXPORTS 1, IMPORTS 8, PASS 29, READ 39, RETURN 1, STRING_REFERENCE 86 |
 | [`StartScreen.tsx`](./StartScreen.tsx) | 213 | 1 | CALL 12, EXPORTS 1, IMPORTS 5, PASS 11, READ 20, RETURN 1, STRING_REFERENCE 129 |
+| [`codexClipboard.test.ts`](./codexClipboard.test.ts) | 24 | 0 | CALL 21, IMPORTS 2, PASS 18, READ 13, STRING_REFERENCE 12 |
 | [`components_tutorial.test.ts`](./components_tutorial.test.ts) | 283 | 0 | CALL 384, IMPORTS 6, PASS 352, READ 345, RETURN 2, STRING_REFERENCE 217 |
 | [`createdBy.test.ts`](./createdBy.test.ts) | 52 | 0 | CALL 51, IMPORTS 3, PASS 48, READ 49, STRING_REFERENCE 21 |
 | [`fieldNotice.ts`](./fieldNotice.ts) | 53 | 3 | EXPORTS 2, IMPORTS 1, READ 7, RETURN 3, STRING_REFERENCE 8 |
@@ -81,7 +82,7 @@ Pfad: `src/components/`
 | `BookIcon` | function | `src/components/MenuIcons.tsx` | 39 |
 | `BugIcon` | function | `src/components/MenuIcons.tsx` | 58 |
 | `CUE_SELECTORS` | const | `src/components/tutorial/script.ts` | 72 |
-| `Codex` | function | `src/components/Codex.tsx` | 24 |
+| `Codex` | function | `src/components/Codex.tsx` | 33 |
 | `CodexGlyph` | function | `src/components/GameIcons.tsx` | 66 |
 | `CreatedBy` | function | `src/components/CreatedBy.tsx` | 68 |
 | `ErrorBoundary` | class | `src/components/ErrorBoundary.tsx` | 9 |
@@ -154,6 +155,7 @@ Pfad: `src/components/`
 | `canAfford` | function | `src/components/shopPools.ts` | 52 |
 | `cardPress` | function | `src/components/PlacementTray.tsx` | 219 |
 | `cardsWithStock` | function | `src/components/PlacementTray.tsx` | 202 |
+| `copyDiscoveryText` | function | `src/components/Codex.tsx` | 13 |
 | `countsAsPlacement` | function | `src/components/placementSignal.ts` | 10 |
 | `cueSelector` | function | `src/components/tutorial/script.ts` | 84 |
 | `findVariant` | function | `src/components/greenhouse/greenhouseHelpers.ts` | 33 |

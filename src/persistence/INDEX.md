@@ -13,34 +13,42 @@ Pfad: `src/persistence/`
 | Datei | LOC | Importiert von | Beziehungen |
 |---|---|---|---|
 | [`persistence_resume.test.ts`](./persistence_resume.test.ts) | 137 | 0 | CALL 97, IMPORTS 5, PASS 81, READ 75, RETURN 3, STRING_REFERENCE 32 |
-| [`runSave.ts`](./runSave.ts) | 70 | 5 | CALL 3, EXPORTS 4, IMPORTS 3, PASS 3, READ 15, RETURN 1, STRING_REFERENCE 8 |
-| [`runSaveAutor.ts`](./runSaveAutor.ts) | 50 | 1 | CALL 13, EXPORTS 1, IMPORTS 1, PASS 9, READ 21, STRING_REFERENCE 4 |
-| [`storage.ts`](./storage.ts) | 190 | 2 | CALL 78, EXPORTS 6, PASS 60, READ 80, RETURN 25, STRING_REFERENCE 13 |
+| [`runSave.ts`](./runSave.ts) | 87 | 5 | CALL 13, EXPORTS 6, IMPORTS 3, PASS 12, READ 51, RETURN 13, STRING_REFERENCE 18 |
+| [`runSaveAutor.ts`](./runSaveAutor.ts) | 70 | 1 | CALL 20, EXPORTS 1, IMPORTS 1, PASS 13, READ 39, RETURN 2, STRING_REFERENCE 4 |
+| [`storage.ts`](./storage.ts) | 239 | 2 | CALL 83, EXPORTS 10, PASS 70, READ 103, RETURN 44, STRING_REFERENCE 52 |
 | [`testDom.ts`](./testDom.ts) | 30 | 5 | CALL 6, EXPORTS 2, PASS 3, READ 7, RETURN 2, STRING_REFERENCE 1 |
 | [`worldAutor.ts`](./worldAutor.ts) | 92 | 1 | CALL 20, EXPORTS 1, IMPORTS 3, PASS 15, READ 58, STRING_REFERENCE 13 |
-| [`worldSave.ts`](./worldSave.ts) | 46 | 1 | CALL 6, EXPORTS 3, IMPORTS 3, PASS 4, READ 1, RETURN 3, STRING_REFERENCE 4 |
+| [`worldSave.ts`](./worldSave.ts) | 61 | 1 | CALL 7, EXPORTS 5, IMPORTS 3, PASS 4, READ 10, RETURN 7, STRING_REFERENCE 18 |
 | [`world_autor.test.ts`](./world_autor.test.ts) | 94 | 0 | CALL 55, IMPORTS 5, PASS 40, READ 36, STRING_REFERENCE 34 |
 
 ## Öffentliche Symbole
 
 | Symbol | Art | Datei | Zeile |
 |---|---|---|---|
+| `LoadResult` | type | `src/persistence/storage.ts` | 31 |
 | `RunSave` | interface | `src/persistence/runSave.ts` | 19 |
 | `RunSaveAutor` | class | `src/persistence/runSaveAutor.ts` | 13 |
 | `WorldAutor` | class | `src/persistence/worldAutor.ts` | 23 |
-| `clearRun` | function | `src/persistence/runSave.ts` | 68 |
+| `WorldLoadResult` | type | `src/persistence/worldSave.ts` | 30 |
+| `WriteResult` | type | `src/persistence/storage.ts` | 30 |
+| `clearRun` | function | `src/persistence/runSave.ts` | 85 |
 | `clearTestStorage` | function | `src/persistence/testDom.ts` | 28 |
 | `ensureLocalStorage` | function | `src/persistence/testDom.ts` | 13 |
-| `ensureWorld` | function | `src/persistence/worldSave.ts` | 40 |
-| `idbGet` | function | `src/persistence/storage.ts` | 159 |
-| `idbRemove` | function | `src/persistence/storage.ts` | 179 |
-| `idbSet` | function | `src/persistence/storage.ts` | 146 |
-| `load` | function | `src/persistence/storage.ts` | 110 |
-| `loadRun` | function | `src/persistence/runSave.ts` | 62 |
-| `loadWorld` | function | `src/persistence/worldSave.ts` | 30 |
-| `remove` | function | `src/persistence/storage.ts` | 124 |
-| `save` | function | `src/persistence/storage.ts` | 120 |
-| `saveRun` | function | `src/persistence/runSave.ts` | 39 |
+| `ensureWorld` | function | `src/persistence/worldSave.ts` | 50 |
+| `idbGet` | function | `src/persistence/storage.ts` | 220 |
+| `idbGetResult` | function | `src/persistence/storage.ts` | 192 |
+| `idbRemove` | function | `src/persistence/storage.ts` | 225 |
+| `idbSet` | function | `src/persistence/storage.ts` | 176 |
+| `isValidRunSave` | function | `src/persistence/runSave.ts` | 39 |
+| `load` | function | `src/persistence/storage.ts` | 144 |
+| `loadResult` | function | `src/persistence/storage.ts` | 124 |
+| `loadRun` | function | `src/persistence/runSave.ts` | 80 |
+| `loadRunResult` | function | `src/persistence/runSave.ts` | 74 |
+| `loadWorld` | function | `src/persistence/worldSave.ts` | 44 |
+| `loadWorldResult` | function | `src/persistence/worldSave.ts` | 36 |
+| `remove` | function | `src/persistence/storage.ts` | 154 |
+| `save` | function | `src/persistence/storage.ts` | 149 |
+| `saveRun` | function | `src/persistence/runSave.ts` | 51 |
 | `saveWorld` | function | `src/persistence/worldSave.ts` | 20 |
 
 ## Datenfluss

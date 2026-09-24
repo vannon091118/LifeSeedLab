@@ -19,7 +19,7 @@ Pfad: `src/render/`
 | [`beetleVisibility.test.ts`](./beetleVisibility.test.ts) | 167 | 0 | CALL 108, IMPORTS 6, PASS 110, READ 142, RETURN 4, STRING_REFERENCE 19 |
 | [`beetles.ts`](./beetles.ts) | 405 | 1 | CALL 134, EXPORTS 5, IMPORTS 4, PASS 87, READ 270, RETURN 3, STRING_REFERENCE 18 |
 | [`camera.ts`](./camera.ts) | 48 | 6 | CALL 4, EXPORTS 1, IMPORTS 1, PASS 2, READ 31, RETURN 1, STRING_REFERENCE 2 |
-| [`gameRuntime.ts`](./gameRuntime.ts) | 434 | 1 | CALL 134, EXPORTS 1, IMPORTS 32, PASS 96, READ 335, RETURN 12, STRING_REFERENCE 64 |
+| [`gameRuntime.ts`](./gameRuntime.ts) | 433 | 1 | CALL 132, EXPORTS 1, IMPORTS 32, PASS 95, READ 337, RETURN 12, STRING_REFERENCE 64 |
 | [`layers/enemies.ts`](./layers/enemies.ts) | 76 | 0 | CALL 20, EXPORTS 4, IMPORTS 6, PASS 12, READ 31, STRING_REFERENCE 9 |
 | [`layers/enemyStatus.test.ts`](./layers/enemyStatus.test.ts) | 70 | 0 | CALL 50, IMPORTS 2, PASS 45, READ 37, RETURN 1, STRING_REFERENCE 17 |
 | [`layers/feedback.ts`](./layers/feedback.ts) | 257 | 2 | CALL 72, EXPORTS 2, IMPORTS 1, PASS 55, READ 260, RETURN 9, STRING_REFERENCE 21 |

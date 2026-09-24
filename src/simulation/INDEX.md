@@ -6,7 +6,7 @@ Pfad: `src/simulation/`
 
 ## Umfang
 
-44 Dateien · importiert `bus`, `components`, `dev` +7 · wird importiert von `bus`, `components`, `dev` +7
+42 Dateien · importiert `bus`, `components`, `dev` +7 · wird importiert von `bus`, `components`, `dev` +7
 
 ## Dateien
 
@@ -22,12 +22,10 @@ Pfad: `src/simulation/`
 | [`gateB.test.ts`](./gateB.test.ts) | 346 | 0 | CALL 217, IMPORTS 12, PASS 182, READ 246, RETURN 1, STRING_REFERENCE 114 |
 | [`juggling.test.ts`](./juggling.test.ts) | 186 | 0 | CALL 191, IMPORTS 4, PASS 132, READ 165, RETURN 3, STRING_REFERENCE 65 |
 | [`killReactor.ts`](./killReactor.ts) | 54 | 0 | CALL 6, EXPORTS 2, IMPORTS 4, PASS 6, READ 25, STRING_REFERENCE 8 |
-| [`mapSystem.ts`](./mapSystem.ts) | 318 | 1 | CALL 52, EXPORTS 11, IMPORTS 4, PASS 50, READ 124, RETURN 38, STRING_REFERENCE 37 |
+| [`mapSystem.ts`](./mapSystem.ts) | 346 | 1 | CALL 63, EXPORTS 11, IMPORTS 4, PASS 60, READ 147, RETURN 43, STRING_REFERENCE 37 |
 | [`maze_balance.test.ts`](./maze_balance.test.ts) | 128 | 0 | CALL 99, IMPORTS 7, PASS 87, READ 57, RETURN 5, STRING_REFERENCE 25 |
 | [`maze_loan.test.ts`](./maze_loan.test.ts) | 112 | 0 | CALL 76, IMPORTS 9, PASS 61, READ 72, RETURN 4, STRING_REFERENCE 25 |
 | [`maze_plants.test.ts`](./maze_plants.test.ts) | 145 | 0 | CALL 104, IMPORTS 6, PASS 89, READ 64, RETURN 4, STRING_REFERENCE 22 |
-| [`observationSerializer.test.ts`](./observationSerializer.test.ts) | 89 | 0 | CALL 82, IMPORTS 8, PASS 71, READ 75, RETURN 1, STRING_REFERENCE 35 |
-| [`observationSerializer.ts`](./observationSerializer.ts) | 118 | 0 | CALL 14, EXPORTS 3, IMPORTS 4, PASS 14, READ 48, RETURN 2, STRING_REFERENCE 25 |
 | [`pipeline.ts`](./pipeline.ts) | 84 | 0 | CALL 9, EXPORTS 1, IMPORTS 8, PASS 7, READ 28, RETURN 1, STRING_REFERENCE 12 |
 | [`placementRules.ts`](./placementRules.ts) | 53 | 1 | CALL 3, EXPORTS 2, IMPORTS 2, PASS 3, READ 5, RETURN 5, STRING_REFERENCE 7 |
 | [`placement_map.test.ts`](./placement_map.test.ts) | 395 | 0 | CALL 330, IMPORTS 5, PASS 268, READ 277, RETURN 1, STRING_REFERENCE 134 |
@@ -40,7 +38,7 @@ Pfad: `src/simulation/`
 | [`projectile_ballistics.test.ts`](./projectile_ballistics.test.ts) | 132 | 0 | CALL 72, IMPORTS 8, PASS 72, READ 53, RETURN 3, STRING_REFERENCE 39 |
 | [`qa_p14_resume_route.test.ts`](./qa_p14_resume_route.test.ts) | 35 | 0 | CALL 16, IMPORTS 2, PASS 10, READ 17, STRING_REFERENCE 7 |
 | [`resume.ts`](./resume.ts) | 59 | 0 | CALL 3, EXPORTS 2, IMPORTS 2, PASS 3, READ 37, STRING_REFERENCE 4 |
-| [`root.ts`](./root.ts) | 359 | 7 | CALL 67, EXPORTS 2, IMPORTS 22, PASS 57, READ 182, RETURN 10, STRING_REFERENCE 44 |
+| [`root.ts`](./root.ts) | 359 | 8 | CALL 67, EXPORTS 2, IMPORTS 22, PASS 57, READ 182, RETURN 10, STRING_REFERENCE 44 |
 | [`rootCommands.ts`](./rootCommands.ts) | 241 | 0 | CALL 45, EXPORTS 2, IMPORTS 11, PASS 33, READ 181, STRING_REFERENCE 63 |
 | [`routeMetrics.ts`](./routeMetrics.ts) | 44 | 0 | CALL 7, EXPORTS 2, IMPORTS 1, PASS 7, READ 13, RETURN 5, STRING_REFERENCE 1 |
 | [`scoreSystem.ts`](./scoreSystem.ts) | 56 | 0 | CALL 10, EXPORTS 1, IMPORTS 3, PASS 10, READ 22, STRING_REFERENCE 8 |
@@ -48,11 +46,11 @@ Pfad: `src/simulation/`
 | [`simulation_resume.test.ts`](./simulation_resume.test.ts) | 250 | 0 | CALL 228, IMPORTS 8, PASS 186, READ 243, RETURN 1, STRING_REFERENCE 53 |
 | [`snapshot.test.ts`](./snapshot.test.ts) | 42 | 0 | CALL 37, IMPORTS 4, PASS 34, READ 18, STRING_REFERENCE 21 |
 | [`snapshot.ts`](./snapshot.ts) | 77 | 4 | CALL 14, EXPORTS 6, IMPORTS 2, PASS 14, READ 57, RETURN 5, STRING_REFERENCE 9 |
-| [`state.ts`](./state.ts) | 210 | 10 | CALL 1, EXPORTS 9, IMPORTS 3, PASS 1, READ 5, RETURN 1, STRING_REFERENCE 10 |
+| [`state.ts`](./state.ts) | 210 | 11 | CALL 1, EXPORTS 9, IMPORTS 3, PASS 1, READ 5, RETURN 1, STRING_REFERENCE 10 |
 | [`statusSystem.ts`](./statusSystem.ts) | 79 | 0 | CALL 11, EXPORTS 1, IMPORTS 3, PASS 11, READ 37, STRING_REFERENCE 12 |
 | [`vectorAttractor.ts`](./vectorAttractor.ts) | 84 | 0 | CALL 11, EXPORTS 1, IMPORTS 4, PASS 11, READ 45, RETURN 4, STRING_REFERENCE 5 |
 | [`vectorSystem.ts`](./vectorSystem.ts) | 220 | 0 | CALL 56, EXPORTS 1, IMPORTS 6, PASS 49, READ 129, RETURN 11, STRING_REFERENCE 12 |
-| [`vector_engine_gate.test.ts`](./vector_engine_gate.test.ts) | 429 | 0 | CALL 269, IMPORTS 9, PASS 208, READ 271, RETURN 4, STRING_REFERENCE 86 |
+| [`vector_engine_gate.test.ts`](./vector_engine_gate.test.ts) | 417 | 0 | CALL 269, IMPORTS 9, PASS 208, READ 236, RETURN 4, STRING_REFERENCE 86 |
 | [`waveSystem.ts`](./waveSystem.ts) | 113 | 0 | CALL 15, EXPORTS 1, IMPORTS 6, PASS 14, READ 105, RETURN 16, STRING_REFERENCE 19 |
 | [`waveTiming.ts`](./waveTiming.ts) | 42 | 3 | CALL 3, EXPORTS 3, IMPORTS 2, PASS 3, READ 8, RETURN 7, STRING_REFERENCE 3 |
 | [`wave_flow.test.ts`](./wave_flow.test.ts) | 191 | 0 | CALL 167, IMPORTS 7, PASS 127, READ 142, RETURN 1, STRING_REFERENCE 52 |
@@ -67,14 +65,13 @@ Pfad: `src/simulation/`
 | `CommandContext` | interface | `src/simulation/rootCommands.ts` | 20 |
 | `EFFECT_SIM_SUPPORT` | const | `src/simulation/effectSupport.ts` | 43 |
 | `EVENT_STREAM_VERSION` | const | `src/simulation/snapshot.ts` | 8 |
-| `EXPAND_STEP` | const | `src/simulation/mapSystem.ts` | 302 |
+| `EXPAND_STEP` | const | `src/simulation/mapSystem.ts` | 330 |
 | `EnemyEntity` | interface | `src/simulation/state.ts` | 32 |
 | `EnemySystem` | class | `src/simulation/enemySystem.ts` | 30 |
-| `MAX_WORLD_COLS` | const | `src/simulation/mapSystem.ts` | 303 |
-| `MAX_WORLD_ROWS` | const | `src/simulation/mapSystem.ts` | 304 |
+| `MAX_WORLD_COLS` | const | `src/simulation/mapSystem.ts` | 331 |
+| `MAX_WORLD_ROWS` | const | `src/simulation/mapSystem.ts` | 332 |
 | `MapSystem` | class | `src/simulation/mapSystem.ts` | 74 |
 | `MapTiles` | type | `src/simulation/state.ts` | 100 |
-| `OBSERVATION_VERSION` | const | `src/simulation/observationSerializer.ts` | 18 |
 | `POT_TILE` | const | `src/simulation/potBoost.ts` | 16 |
 | `PlantEntity` | interface | `src/simulation/state.ts` | 11 |
 | `PlantSystem` | class | `src/simulation/plantSystem.ts` | 79 |
@@ -99,11 +96,10 @@ Pfad: `src/simulation/`
 | `autoStartDue` | function | `src/simulation/waveTiming.ts` | 33 |
 | `autoStartSecondsLeft` | function | `src/simulation/waveTiming.ts` | 39 |
 | `autoStartTicksLeft` | function | `src/simulation/waveTiming.ts` | 25 |
-| `canBuildAt` | function | `src/simulation/mapSystem.ts` | 309 |
+| `canBuildAt` | function | `src/simulation/mapSystem.ts` | 337 |
 | `cellRejectReason` | function | `src/simulation/placementRules.ts` | 38 |
 | `chainAftermath` | function | `src/simulation/killReactor.ts` | 41 |
 | `deserializeSnapshot` | function | `src/simulation/snapshot.ts` | 70 |
-| `eventsForAgent` | function | `src/simulation/observationSerializer.ts` | 57 |
 | `executeCommand` | function | `src/simulation/rootCommands.ts` | 31 |
 | `exitCorner` | function | `src/simulation/mapSystem.ts` | 42 |
 | `freshState` | function | `src/simulation/pipeline.ts` | 18 |
@@ -119,7 +115,6 @@ Pfad: `src/simulation/`
 | `resolvePlantStats` | function | `src/simulation/plantSystem.ts` | 44 |
 | `routeIdealTiles` | function | `src/simulation/routeMetrics.ts` | 38 |
 | `routeWalkTiles` | function | `src/simulation/routeMetrics.ts` | 26 |
-| `serializeObservation` | function | `src/simulation/observationSerializer.ts` | 67 |
 | `serializeSnapshot` | function | `src/simulation/snapshot.ts` | 43 |
 | `snapshotHash` | function | `src/simulation/snapshot.ts` | 39 |
 | `spawnCorner` | function | `src/simulation/mapSystem.ts` | 39 |

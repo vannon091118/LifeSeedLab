@@ -6,15 +6,15 @@ Pfad: `src/discovery/`
 
 ## Umfang
 
-9 Dateien · importiert `components`, `genome` · wird importiert von `components`, `genome`
+9 Dateien · importiert ``, `components`, `genome` · wird importiert von ``, `components`, `genome`
 
 ## Dateien
 
 | Datei | LOC | Importiert von | Beziehungen |
 |---|---|---|---|
 | [`chain.test.ts`](./chain.test.ts) | 130 | 0 | CALL 117, IMPORTS 3, PASS 113, READ 56, RETURN 1, STRING_REFERENCE 93 |
-| [`chain.ts`](./chain.ts) | 253 | 2 | CALL 46, EXPORTS 12, IMPORTS 5, PASS 46, READ 129, RETURN 34, STRING_REFERENCE 26 |
-| [`codex.ts`](./codex.ts) | 152 | 2 | CALL 36, EXPORTS 6, IMPORTS 6, PASS 32, READ 44, RETURN 15, STRING_REFERENCE 14 |
+| [`chain.ts`](./chain.ts) | 242 | 3 | CALL 46, EXPORTS 11, IMPORTS 5, PASS 46, READ 129, RETURN 33, STRING_REFERENCE 25 |
+| [`codex.ts`](./codex.ts) | 149 | 2 | CALL 35, EXPORTS 6, IMPORTS 6, PASS 31, READ 44, RETURN 15, STRING_REFERENCE 14 |
 | [`codex_migration.ts`](./codex_migration.ts) | 98 | 0 | CALL 11, EXPORTS 2, IMPORTS 1, PASS 11, READ 19, RETURN 10, STRING_REFERENCE 8 |
 | [`epoch.test.ts`](./epoch.test.ts) | 195 | 0 | CALL 116, IMPORTS 5, PASS 120, READ 73, RETURN 1, STRING_REFERENCE 90 |
 | [`genomeWorker.ts`](./genomeWorker.ts) | 26 | 0 | CALL 6, IMPORTS 1, PASS 6, READ 10, STRING_REFERENCE 7 |
@@ -26,7 +26,7 @@ Pfad: `src/discovery/`
 
 | Symbol | Art | Datei | Zeile |
 |---|---|---|---|
-| `AppendDiscoveryInput` | interface | `src/discovery/codex.ts` | 94 |
+| `AppendDiscoveryInput` | interface | `src/discovery/codex.ts` | 93 |
 | `DiscoveryEntry` | interface | `src/discovery/chain.ts` | 48 |
 | `DiscoveryEntryType` | type | `src/discovery/chain.ts` | 46 |
 | `ParsedShare` | type | `src/discovery/share.ts` | 14 |
@@ -34,29 +34,28 @@ Pfad: `src/discovery/`
 | `ShareResult` | type | `src/discovery/share.ts` | 18 |
 | `WorkerRequest` | type | `src/discovery/share.ts` | 129 |
 | `WorkerResponse` | type | `src/discovery/share.ts` | 130 |
-| `appendDiscovery` | function | `src/discovery/codex.ts` | 108 |
+| `appendDiscovery` | function | `src/discovery/codex.ts` | 107 |
 | `canonicalGenome` | function | `src/discovery/chain.ts` | 25 |
 | `createEntry` | function | `src/discovery/chain.ts` | 111 |
 | `createEntry` | function | `src/discovery/chain.ts` | 112 |
 | `createEntry` | function | `src/discovery/chain.ts` | 113 |
 | `formatShareText` | function | `src/discovery/share.ts` | 78 |
-| `getPlayerId` | function | `src/discovery/codex.ts` | 55 |
+| `getPlayerId` | function | `src/discovery/codex.ts` | 54 |
 | `hashEntry` | function | `src/discovery/chain.ts` | 102 |
 | `hashGenome` | function | `src/discovery/chain.ts` | 37 |
 | `legacyGenomeHash` | function | `src/discovery/chain.ts` | 42 |
-| `loadCodex` | function | `src/discovery/codex.ts` | 73 |
+| `loadCodex` | function | `src/discovery/codex.ts` | 72 |
 | `migrateToPlantRef` | function | `src/discovery/codex_migration.ts` | 67 |
 | `migrateV1Entries` | function | `src/discovery/codex_migration.ts` | 37 |
 | `parseShare` | function | `src/discovery/share.ts` | 90 |
 | `plantRefOf` | function | `src/discovery/plantRef.ts` | 38 |
 | `reconstructShare` | function | `src/discovery/share.ts` | 109 |
 | `reconstructShareInWorker` | function | `src/discovery/share.ts` | 135 |
-| `seedShareText` | function | `src/discovery/codex.ts` | 141 |
+| `seedShareText` | function | `src/discovery/codex.ts` | 138 |
 | `shareTextForEntry` | function | `src/discovery/share.ts` | 122 |
-| `syncEntryStub` | function | `src/discovery/chain.ts` | 251 |
 | `tryAppend` | function | `src/discovery/chain.ts` | 229 |
 | `verifyChain` | function | `src/discovery/chain.ts` | 186 |
-| `verifyLocalChain` | function | `src/discovery/codex.ts` | 136 |
+| `verifyLocalChain` | function | `src/discovery/codex.ts` | 133 |
 
 ## Datenfluss
 

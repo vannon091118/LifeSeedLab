@@ -6,7 +6,7 @@ Pfad: `src/core/`
 
 ## Umfang
 
-7 Dateien · importiert `bus`, `components`, `config` +10 · wird importiert von `bus`, `components`, `config` +10
+7 Dateien · importiert ``, `bus`, `components` +10 · wird importiert von ``, `bus`, `components` +10
 
 ## Dateien
 
@@ -15,10 +15,10 @@ Pfad: `src/core/`
 | [`clock.ts`](./clock.ts) | 107 | 7 | CALL 3, EXPORTS 6, PASS 2, READ 55, RETURN 6, STRING_REFERENCE 6 |
 | [`color.ts`](./color.ts) | 36 | 8 | CALL 16, EXPORTS 5, PASS 16, READ 7, RETURN 7, STRING_REFERENCE 3 |
 | [`core.test.ts`](./core.test.ts) | 200 | 0 | CALL 175, IMPORTS 5, PASS 137, READ 97, STRING_REFERENCE 85 |
-| [`hash.ts`](./hash.ts) | 112 | 10 | CALL 56, EXPORTS 5, IMPORTS 2, PASS 56, READ 91, RETURN 5, STRING_REFERENCE 9 |
+| [`hash.ts`](./hash.ts) | 112 | 11 | CALL 56, EXPORTS 5, IMPORTS 2, PASS 56, READ 91, RETURN 5, STRING_REFERENCE 9 |
 | [`ids.ts`](./ids.ts) | 46 | 20 | CALL 9, EXPORTS 5, PASS 9, READ 16, RETURN 3, STRING_REFERENCE 12 |
 | [`order.ts`](./order.ts) | 27 | 3 | EXPORTS 1, RETURN 2 |
-| [`rng.ts`](./rng.ts) | 127 | 33 | CALL 29, EXPORTS 7, IMPORTS 1, PASS 24, READ 21, RETURN 16, STRING_REFERENCE 22 |
+| [`rng.ts`](./rng.ts) | 127 | 32 | CALL 29, EXPORTS 7, IMPORTS 1, PASS 24, READ 21, RETURN 16, STRING_REFERENCE 22 |
 
 ## Öffentliche Symbole
 

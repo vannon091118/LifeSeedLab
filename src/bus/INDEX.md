@@ -6,22 +6,20 @@ Pfad: `src/bus/`
 
 ## Umfang
 
-10 Dateien · importiert `components`, `dev`, `meta` +5 · wird importiert von `components`, `dev`, `meta` +5
+8 Dateien · importiert `components`, `dev`, `meta` +5 · wird importiert von `components`, `dev`, `meta` +5
 
 ## Dateien
 
 | Datei | LOC | Importiert von | Beziehungen |
 |---|---|---|---|
-| [`bus.ts`](./bus.ts) | 46 | 2 | CALL 10, EXPORTS 1, IMPORTS 1, PASS 9, READ 20, RETURN 3, STRING_REFERENCE 1 |
+| [`bus.ts`](./bus.ts) | 49 | 2 | CALL 11, EXPORTS 1, IMPORTS 1, PASS 10, READ 20, RETURN 3, STRING_REFERENCE 1 |
 | [`bus_audience.test.ts`](./bus_audience.test.ts) | 141 | 0 | CALL 56, IMPORTS 8, PASS 48, READ 48, STRING_REFERENCE 89 |
 | [`bus_commands.test.ts`](./bus_commands.test.ts) | 84 | 0 | CALL 89, IMPORTS 6, PASS 76, READ 53, STRING_REFERENCE 35 |
-| [`bus_events.test.ts`](./bus_events.test.ts) | 62 | 0 | CALL 39, IMPORTS 3, PASS 36, READ 23, STRING_REFERENCE 36 |
+| [`bus_events.test.ts`](./bus_events.test.ts) | 75 | 0 | CALL 52, IMPORTS 3, PASS 47, READ 31, STRING_REFERENCE 41 |
 | [`commands.ts`](./commands.ts) | 111 | 12 | CALL 1, EXPORTS 6, IMPORTS 1, PASS 1, READ 7, RETURN 4, STRING_REFERENCE 19 |
 | [`eventAudience.ts`](./eventAudience.ts) | 170 | 1 | CALL 6, EXPORTS 4, IMPORTS 1, PASS 6, READ 5, STRING_REFERENCE 98 |
-| [`events.ts`](./events.ts) | 200 | 27 | CALL 4, EXPORTS 16, PASS 4, READ 19, RETURN 1, STRING_REFERENCE 73 |
+| [`events.ts`](./events.ts) | 202 | 25 | CALL 2, EXPORTS 16, PASS 2, READ 18, RETURN 1, STRING_REFERENCE 72 |
 | [`reject_reasons.test.ts`](./reject_reasons.test.ts) | 73 | 0 | CALL 41, IMPORTS 3, PASS 34, READ 27, RETURN 2, STRING_REFERENCE 28 |
-| [`transport.test.ts`](./transport.test.ts) | 49 | 0 | CALL 36, IMPORTS 3, PASS 32, READ 27, STRING_REFERENCE 26 |
-| [`transport.ts`](./transport.ts) | 55 | 0 | CALL 5, EXPORTS 3, IMPORTS 1, PASS 4, READ 17, RETURN 1, STRING_REFERENCE 1 |
 
 ## Öffentliche Symbole
 
@@ -39,8 +37,6 @@ Pfad: `src/bus/`
 | `FX_EVENT_TYPES` | const | `src/bus/eventAudience.ts` | 160 |
 | `FertilizeRejectReason` | type | `src/bus/events.ts` | 57 |
 | `GameEvent` | type | `src/bus/events.ts` | 142 |
-| `LocalTransport` | class | `src/bus/transport.ts` | 28 |
-| `MockRemoteTransport` | class | `src/bus/transport.ts` | 38 |
 | `NOTICE_EVENT_TYPES` | const | `src/bus/eventAudience.ts` | 163 |
 | `NoticeReason` | type | `src/bus/events.ts` | 80 |
 | `OBSERVED_EVENT_TYPES` | const | `src/bus/eventAudience.ts` | 170 |
@@ -50,7 +46,6 @@ Pfad: `src/bus/`
 | `RejectReason` | type | `src/bus/events.ts` | 82 |
 | `RouteRejectReason` | type | `src/bus/events.ts` | 69 |
 | `RunEndReason` | type | `src/bus/events.ts` | 76 |
-| `TRANSPORT_VERSION` | const | `src/bus/transport.ts` | 8 |
 | `TileRejectReason` | type | `src/bus/events.ts` | 65 |
 | `UiRejectReason` | type | `src/bus/events.ts` | 74 |
 | `assertEventContract` | function | `src/bus/events.ts` | 185 |
@@ -66,8 +61,9 @@ nicht Projektrelation, und würde den Datenfluss mit fremdem Code fluten.
 
 | Quelle | Zeile | Ausdruck | Position | Ziel | Symbol |
 |---|---|---|---|---|---|
-| `src/bus/bus.ts` | 20 | `event` | 1 | [`src/bus/bus.ts`](bus.ts) | h |
-| `src/bus/bus.ts` | 30 | `type` | 1 | [`src/bus/bus.ts`](bus.ts) | unsubscribe |
+| `src/bus/bus.ts` | 15 | `event` | 1 | [`src/bus/bus.ts`](bus.ts) | assertEventContract |
+| `src/bus/bus.ts` | 23 | `event` | 1 | [`src/bus/bus.ts`](bus.ts) | h |
+| `src/bus/bus.ts` | 33 | `type` | 1 | [`src/bus/bus.ts`](bus.ts) | unsubscribe |
 | `src/bus/bus_audience.test.ts` | 60 | `7` | 1 | [`src/bus/bus_audience.test.ts`](bus_audience.test.ts) | makeEvent |
 | `src/bus/bus_audience.test.ts` | 62 | `'B29 — Event-Audience: jede Zeile ist entschieden'` | 1 | [`src/bus/bus_audience.test.ts`](bus_audience.test.ts) | describe |
 | `src/bus/bus_audience.test.ts` | 63 | `'jedes Event hat eine Einordnung mit Begründung'` | 1 | [`src/bus/bus_audience.test.ts`](bus_audience.test.ts) | it |
@@ -105,4 +101,3 @@ nicht Projektrelation, und würde den Datenfluss mit fremdem Code fluten.
 | `src/bus/bus_commands.test.ts` | 12 | `'Phase 3.3 Commands'` | 1 | [`src/bus/bus_commands.test.ts`](bus_commands.test.ts) | describe |
 | `src/bus/bus_commands.test.ts` | 13 | `'command schema is complete and stable'` | 1 | [`src/bus/bus_commands.test.ts`](bus_commands.test.ts) | it |
 | `src/bus/bus_commands.test.ts` | 14 | `7` | 1 | [`src/bus/bus_commands.test.ts`](bus_commands.test.ts) | makeCommand |
-| `src/bus/bus_commands.test.ts` | 15 | `c.commandId` | 1 | [`src/bus/bus_commands.test.ts`](bus_commands.test.ts) | expect |

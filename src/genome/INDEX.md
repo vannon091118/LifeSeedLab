@@ -15,7 +15,7 @@ Pfad: `src/genome/`
 | [`ballistics.test.ts`](./ballistics.test.ts) | 227 | 0 | CALL 243, IMPORTS 8, PASS 242, READ 115, STRING_REFERENCE 181 |
 | [`ballistics.ts`](./ballistics.ts) | 132 | 3 | CALL 25, EXPORTS 5, IMPORTS 3, PASS 28, READ 21, RETURN 9, STRING_REFERENCE 11 |
 | [`bases.ts`](./bases.ts) | 30 | 6 | CALL 6, EXPORTS 1, IMPORTS 3, PASS 6, READ 18, RETURN 2, STRING_REFERENCE 14 |
-| [`beetle.ts`](./beetle.ts) | 188 | 8 | CALL 35, EXPORTS 9, IMPORTS 8, PASS 34, READ 96, RETURN 16, STRING_REFERENCE 13 |
+| [`beetle.ts`](./beetle.ts) | 188 | 9 | CALL 35, EXPORTS 9, IMPORTS 8, PASS 34, READ 96, RETURN 16, STRING_REFERENCE 13 |
 | [`beetlePhenotype.test.ts`](./beetlePhenotype.test.ts) | 156 | 0 | CALL 151, IMPORTS 8, PASS 152, READ 136, RETURN 1, STRING_REFERENCE 58 |
 | [`beetlePhenotype.ts`](./beetlePhenotype.ts) | 274 | 8 | CALL 123, EXPORTS 4, IMPORTS 8, PASS 118, READ 172, RETURN 8, STRING_REFERENCE 45 |
 | [`breeding.test.ts`](./breeding.test.ts) | 201 | 0 | CALL 153, IMPORTS 6, PASS 150, READ 101, RETURN 5, STRING_REFERENCE 54 |
