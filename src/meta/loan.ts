@@ -30,8 +30,8 @@ export function isLoanVariant(variantId: string): boolean {
  * Die Leih-Pflanze für einen Run — deterministisch aus dem Spiel-Seed + runId.
  * Dasselbe runId ⇒ dieselbe Pflanze (immer, überall, Replay-sicher).
  */
-export function deriveLoanPlant(runId: number): PlantVariant {
-  const seed = deriveSeed(EPOCH_ROOT, 'plant', 'loan', runId);
+export function deriveLoanPlant(runId: number, rootSeed: number = EPOCH_ROOT): PlantVariant {
+  const seed = deriveSeed(rootSeed, 'plant', 'loan', runId);
   const rng = makeRng('plant', seed);
 
   // Basis-Form: IMMER der Spross — die einzige fest codierte Pflanze und die schwächste

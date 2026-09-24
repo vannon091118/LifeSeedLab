@@ -8,6 +8,7 @@ import { startRun, devValue } from './helpers/harness';
  * dreifach kopiert im Baum und drifteten auseinander.
  */
 
+// E2E-COVERAGE: src/render/ src/dev/ src/simulation/ src/bus/ src/core/
 test.describe('Mechanik-Schnellchecks', () => {
 
   test('Pause/Resume 5 Zyklen', async ({ page }) => {

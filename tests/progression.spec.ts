@@ -31,6 +31,7 @@ import {
 
 // ── 1. SPIELVERLUST ──────────────────────────────────────────────────────────
 
+// E2E-COVERAGE: src/meta/ src/meta.ts src/genome/ src/genome.ts src/persistence/ src/simulation/ src/bus/ src/components/greenhouse/ src/components/Greenhouse.tsx src/components/BeetleLab.tsx src/components/SeedShop.tsx src/components/PhenotypeCanvas.tsx
 test.describe('Progression — Spielverlust', () => {
   test('Leak-getriebenes Game-Over: Overlay, Meta-Banking, kein Resume', async ({ page }) => {
     test.setTimeout(60_000);

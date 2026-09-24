@@ -13,7 +13,7 @@ Pfad: `src/testing/`
 | Datei | LOC | Importiert von | Beziehungen |
 |---|---|---|---|
 | [`testkit.test.ts`](./testkit.test.ts) | 125 | 0 | CALL 108, IMPORTS 5, PASS 93, READ 56, STRING_REFERENCE 29 |
-| [`testkit.ts`](./testkit.ts) | 163 | 33 | CALL 35, EXPORTS 13, IMPORTS 11, PASS 23, READ 52, RETURN 9, STRING_REFERENCE 18 |
+| [`testkit.ts`](./testkit.ts) | 163 | 32 | CALL 35, EXPORTS 13, IMPORTS 11, PASS 23, READ 52, RETURN 9, STRING_REFERENCE 18 |
 
 ## Öffentliche Symbole
 

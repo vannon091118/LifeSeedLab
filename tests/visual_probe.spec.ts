@@ -26,6 +26,7 @@ import { vectorForEffect } from '../src/config/vector_logic.source';
  */
 
 /** Tinte (`observers/visualObserver.ts`, `#2b2b26`) — die Farbe der Schadenszahl am Treffer. */
+// E2E-COVERAGE: src/observers/ src/visual/ src/render/ src/config/effects.source.ts src/config/vector_visual.source.ts src/config/vector_logic.source.ts src/simulation/
 const INK = '#2b2b26';
 
 test.describe('Visuelle Belege (Canvas-Sonde)', () => {

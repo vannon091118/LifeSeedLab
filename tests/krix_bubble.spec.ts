@@ -6,6 +6,7 @@ import { startRun } from './helpers/harness';
 // Vertrag bei 390×844 (die gebrochene Fläche): die sichtbare Blase liegt vollständig im
 // Viewport (nichts hängt ins Unklickbare) und verdeckt keine der Tray-Karten.
 
+// E2E-COVERAGE: src/components/tutorial/ src/i18n/ src/i18n.tsx
 test.describe('P-5: Krix-Blase bei 390×844', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 

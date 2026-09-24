@@ -1,7 +1,8 @@
-import type { PlantType, PlantVariant, CrossResult } from '../types';
+import type { PlantType, PlantVariant, Genome, CrossResult } from '../types';
 import { EPOCH_ROOT } from '../config';
-import { deriveSeed, makeRng } from '../core/rng';
+import { deriveSeed, makeRng, type Rng } from '../core/rng';
 import { crossGenomes, deriveStats, deriveTraits, deriveColor, generateName } from './cross';
+import { genomePower } from './breeding';
 
 // Owner: Source (gacha machine). LOC ≤ 200.
 // ALLE Zufälligkeit via core/rng ('plant'-Namespace). Kein Math.random.
@@ -15,7 +16,7 @@ export interface GachaRoll {
 }
 
 export function variantPower(v: PlantVariant): number {
-  return v.genome.reduce((s, g) => s + g.power * (g.dominant ? 1.3 : 1), 0);
+  return genomePower(v.genome);
 }
 
 export function rollGachaCross(owned: PlantVariant[], seed: number, crossIndex: number): GachaRoll | null {
@@ -38,7 +39,7 @@ export function rollGachaCross(owned: PlantVariant[], seed: number, crossIndex: 
   const parentA = pick(null);
   const parentB = pick(parentA);
 
-  const childGenome = crossGenomes(parentA.genome, parentB.genome, rng);
+  const childGenome = deriveChildGenome(parentA, parentB, crossIndex, EPOCH_ROOT, rng);
   const t = rng.next();
   const childType: PlantType = t < 0.4 ? parentA.type : t < 0.7 ? parentB.type : 'shooter';
 
@@ -60,8 +61,8 @@ export function rollGachaCross(owned: PlantVariant[], seed: number, crossIndex: 
   return { parentA, parentB, child, probability: 1, crossIndex };
 }
 
-export function deriveGachaSeed(generation: number): number {
-  return deriveSeed(EPOCH_ROOT, 'plant', 'gacha', 'roll', generation);
+export function deriveGachaSeed(generation: number, rootSeed: number = EPOCH_ROOT): number {
+  return deriveSeed(rootSeed, 'plant', 'gacha', 'roll', generation);
 }
 
 /**
@@ -70,11 +71,22 @@ export function deriveGachaSeed(generation: number): number {
  * beiden Eltern-IDs abgeleitet). Das Kind ist bei der Aussaat fest — die Reifung ist
  * nur der Timer, kein zweiter Wurf.
  */
-export function crossPair(parentA: PlantVariant, parentB: PlantVariant, generation: number): GachaRoll {
-  const seed = deriveSeed(EPOCH_ROOT, 'plant', parentA.id, `${parentB.id}`, generation);
+export function deriveChildGenome(
+  parentA: Pick<PlantVariant, 'id' | 'genome'>,
+  parentB: Pick<PlantVariant, 'id' | 'genome'>,
+  generation: number,
+  rootSeed: number = EPOCH_ROOT,
+  rng?: Rng,
+): Genome {
+  const stream = rng ?? makeRng('plant', deriveBreedSeed(parentA.id, parentB.id, generation, rootSeed));
+  return crossGenomes(parentA.genome, parentB.genome, stream);
+}
+
+export function crossPair(parentA: PlantVariant, parentB: PlantVariant, generation: number, rootSeed: number = EPOCH_ROOT): GachaRoll {
+  const seed = deriveSeed(rootSeed, 'plant', parentA.id, `${parentB.id}`, generation);
   const rng = makeRng('plant', seed);
 
-  const childGenome = crossGenomes(parentA.genome, parentB.genome, rng);
+  const childGenome = deriveChildGenome(parentA, parentB, generation, rootSeed, rng);
   const t = rng.next();
   const childType: PlantType = t < 0.4 ? parentA.type : t < 0.7 ? parentB.type : 'shooter';
 
@@ -95,7 +107,7 @@ export function crossPair(parentA: PlantVariant, parentB: PlantVariant, generati
   return { parentA, parentB, child, probability: 1, crossIndex: generation };
 }
 
-export function deriveBreedSeed(parentAId: string, parentBId: string, generation: number): number {
-  return deriveSeed(EPOCH_ROOT, 'plant', parentAId, `${parentBId}`, generation);
+export function deriveBreedSeed(parentAId: string, parentBId: string, generation: number, rootSeed: number = EPOCH_ROOT): number {
+  return deriveSeed(rootSeed, 'plant', parentAId, `${parentBId}`, generation);
 }
 

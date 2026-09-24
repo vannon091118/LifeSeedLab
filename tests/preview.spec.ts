@@ -11,6 +11,7 @@ import { test, expect } from '@playwright/test';
  * Suite); im Gate-Lauf bleibt die Ausgabe ruhig.
  */
 
+// E2E-COVERAGE: src/main.tsx src/App.tsx src/index.css src/i18n.tsx src/i18n/ src/dev/ src/version.ts src/components/StartScreen.tsx src/components/ScreenTransition.tsx src/components/ErrorBoundary.tsx src/components/MenuScreenShell.tsx src/components/CreatedBy.tsx src/components/NavIndicators.tsx
 const VIEWPORTS = [
   { name: 'desktop', width: 1280, height: 800 },
   { name: 'mobile-390x844', width: 390, height: 844 },

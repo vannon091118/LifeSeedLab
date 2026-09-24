@@ -2,10 +2,19 @@
 // Meta- und Breeding-Typen. Entity-/Sim-Typen leben in simulation/state.ts (eine Wahrheit).
 
 // ── Genome & Traits ──────────────────────────────────────────
-export type Gene = {
+export type Allele = {
   id: string;
   power: number;
   dominant: boolean;
+};
+
+/**
+ * Ein Gen-Slot mit zwei vererbbaren Allelen. Die Top-Level-Felder sind der Rückwärts-
+ * kompatible, ausgeprägte Allel-Snapshot; `alleles` ist die vollständige Genotyp-Wahrheit.
+ * Alte Saves dürfen die Top-Level-Form ohne `alleles` weiterlesen.
+ */
+export type Gene = Allele & {
+  alleles?: [Allele, Allele];
 };
 
 export type Genome = Gene[];
@@ -48,6 +57,12 @@ export type BredStatsEntry = {
   ballistics?: BallisticProfile;
 };
 
+export type PlantParentSnapshot = {
+  id: string;
+  type: PlantType;
+  genome: Genome;
+};
+
 export type PlantVariant = {
   id: string;
   name: string;
@@ -83,12 +98,11 @@ export type PlantVariant = {
 // ── v7 (B21.3): `tutorialVersion` ersetzt das Ja/Nein. Die Tour begann früher erst im Feld;
 //    jetzt startet sie auf dem Titel-Screen. Ein Bool konnte diesen Umbau nicht ausdrücken:
 //    wer die alte Tour gesehen hatte, hätte die neue nie zu sehen bekommen.
-// ── v9 (Besitz-Modell 19.09.2026): `materialGranted` — das faire Startmaterial (Tiles, Deko,
-//    Feld) ist BESITZ, kein Run-Geschenk. Das Flag hält fest, dass JEDES Profil es genau
-//    einmal erhalten hat; ohne es müsste die Heilung raten (und würde verbautes Material
-//    bei jedem Load neu schenken).
+// ── v10 (Run-Seed 24.09.2026): `runSeed` ist der öffentliche, run-lokale Wurzelwert.
+//    Er wird bei jedem Run erzeugt und persistiert; die globale EPOCH_ROOT ist nur noch
+//    Migrations-/Test-Anker.
 export type MetaSave = {
-  version: 9;
+  version: 10;
   /** Produktversion beim letzten Schreiben (Diagnose: Altsaves zuordnen, Support-Fälle klären). */
   appVersion?: string;
   nektar: number;
@@ -96,6 +110,8 @@ export type MetaSave = {
   runs: number;
   /** Authoritative run identity counter — one authority (QUALITY_SPEC B1). */
   runId: number;
+  /** Öffentlicher Run-Seed: lokal deterministisch, nicht global vorhersagbar. */
+  runSeed: number;
   /** Persisted breed generation counter — breeding determinism across reloads. */
   breedGeneration: number;
   variantCounts: Record<string, number>;
@@ -154,6 +170,8 @@ export type PendingCross = {
   child?: PlantVariant;
   parentAId?: string;
   parentBId?: string;
+  /** Run-Wurzel, mit der das Kind bei Legacy-Rekonstruktion abgeleitet wurde. */
+  rootSeed?: number;
 };
 
 /**

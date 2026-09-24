@@ -18,6 +18,7 @@ import {
  * (eine Quelle) — vorher lagen sie hier UND in mechanics/gamebreaker/progression kopiert.
  */
 
+// E2E-COVERAGE: src/components/GameView.tsx src/components/gameViewStyles.ts src/components/GameTopBar.tsx src/components/PlacementTray.tsx src/components/placementController.ts src/components/placementSignal.ts src/components/ghostPreview.ts src/components/waveButton.ts src/components/hudSnapshot.ts src/components/fieldNotice.ts src/components/FieldToast.tsx src/components/GameOverlays.tsx src/components/GameDevPanel.tsx src/components/plantLabels.ts src/components/numberFormat.ts src/render/ src/simulation/ src/world/ src/bus/ src/core/ src/types.ts src/config/ src/config.ts
 test.describe('Run', () => {
   test('Canvas rendert und die Sim-Ticks laufen', async ({ page }) => {
     await startRun(page);

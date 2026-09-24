@@ -5,6 +5,7 @@ import { rollBrood, resolveAncestor, type BeetleParentRef } from '../genome/beet
 import { BEETLE_BREED } from '../config/beetles.source';
 import { LOAN_PLANT_ID } from './loan';
 import { resumeCostFor } from '../config/economy.source';
+import { freshRunSeed } from '../config';
 import { POOL_KEYS } from '../config/map.source';
 
 // Owner: PersistenceSystem (meta run/variant ops). LOC ≤ 200.
@@ -68,7 +69,7 @@ export function reserveRunId(meta: MetaSave): MetaSave {
  * Regel: persistiert wird **nie eine Kopie** — jeder Meta-Schreibvorgang geht von `loadMeta()` aus.
  */
 export function beginRun(): MetaSave {
-  const reserved = reserveRunId(loadMeta());
+  const reserved = { ...reserveRunId(loadMeta()), runSeed: freshRunSeed() };
   // Einstiegs-Leihe: entliehen wird, wenn im RUN nichts PLATZIERBAR ist — nicht, wenn „irgendwas
   // besessen" ist. Grund (Dead-Game-Befund 19.09.2026): `variantCounts` führt Pflanzen UND
   // Bau-Material in einem Eimer. Der alte Test `!some(n > 0)` verdrängte die Leihe damit schon

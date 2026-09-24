@@ -208,8 +208,8 @@ describe('B34 — Der Kern-Loop dreht immer', () => {
     expect(kept!.pendingCrosses.length).toBe(PENDING_CROSSES_MAX - 1);
   });
 
-  it('MetaSave-Version bleibt auf der aktuellen Fassung (v9) — der Loop dreht auf dem neuen Schema', () => {
-    expect(META_VERSION).toBe(9);
+  it('MetaSave-Version bleibt auf der aktuellen Fassung (v10) — der Loop dreht auf dem neuen Schema', () => {
+    expect(META_VERSION).toBe(10);
     resetTestState();
     expect(loadMeta().version).toBe(META_VERSION);
   });

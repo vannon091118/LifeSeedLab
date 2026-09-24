@@ -9,6 +9,8 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ## Unreleased (Arbeitsstand 19.–24.09.2026)
 
+- [Meta/Genom/Tests] Kreuzung, Reifung, Wirtschaft, i18n und die zugehörigen E2E-Specs werden als zusammengehöriger Vertragsstand nachgezogen. Die lokalen Unit- und Integrationsprüfungen bleiben vollständig im normalen Testpfad; Browserläufe bleiben davon getrennt und werden nur auf ausdrückliche Anweisung gestartet.
+
 - [Produktpfad] Der lokale Produkt-Slice bündelt die überarbeiteten UI-, Konfigurations- und Simulationsverträge mit ihren Dokumentations- und Testanpassungen. Die Änderungen bleiben im bestehenden Single-Owner-Modell; automatische CLI- und Gate-Läufe führen weiterhin keine Playwright-E2E-Tests aus.
 
 - [Cleanup/Gate] Tote Browser-Use-/dotenv-Abhängigkeiten und die ungenutzte LLM-Bridge werden aus dem Produktpfad entfernt; der Golden-Anker bleibt lokal sichtbar überspringbar und in CI fail-closed. Der Index-/Doku-Vertrag bekommt dafür die passende Commit-Grenze.

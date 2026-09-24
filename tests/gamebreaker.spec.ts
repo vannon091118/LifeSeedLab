@@ -8,6 +8,7 @@ import { startRun, devValue } from './helpers/harness';
  * dreifach kopiert im Baum und drifteten auseinander.
  */
 
+// E2E-COVERAGE: src/simulation/ src/bus/ src/core/ src/meta/ src/meta.ts src/persistence/ src/genome/
 test.describe('Game-Breaker-Schnellchecks', () => {
 
   test('Tick steigt nach Start', async ({ page }) => {

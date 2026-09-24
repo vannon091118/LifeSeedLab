@@ -7,6 +7,8 @@ import {
   healRipeness, sanitizePots,
 } from './metaInvariants';
 import { STARTING_MATERIAL } from '../config/map.source';
+import { EPOCH_ROOT, RUN_SEED_VERSION } from '../config';
+import { deriveSeed } from '../core/rng';
 import { createBaseVariants } from '../genome/bases';
 import { genomeEffectIds } from '../genome/visualMap';
 import { ballisticsOf } from '../genome/ballistics';
@@ -14,7 +16,7 @@ import { ballisticsOf } from '../genome/ballistics';
 // Owner: PersistenceSystem (meta store — the only persistence owner remains storage.ts).
 
 export const META_KEY = 'lifegamelab_meta';
-export const META_VERSION = 9;
+export const META_VERSION = 10;
 
 
 /** Zucht-Stats EINE Quelle: beim Besitz-Eintrag abgeleitet (B1 — früher nie geschrieben,
@@ -44,12 +46,13 @@ export function defaultMeta(): MetaSave {
   // wäre die Bauphase (der Kern des Spiels) auf einer leeren Karte tot, und die Shop-Preise
   // hätten kein Gegenstück in einem Konto.
   return {
-    version: 9,
+    version: 10,
     appVersion: APP_VERSION,
     nektar: STARTING_NEKTAR,
     bestWave: 0,
     runs: 0,
     runId: 0,
+    runSeed: EPOCH_ROOT,
     breedGeneration: 0,
     variantCounts: { ...STARTING_MATERIAL },
     materialGranted: true,
@@ -105,6 +108,9 @@ function toCurrent(base: MetaSave, raw: Partial<MetaSave>): MetaSave {
     bestWave: typeof raw.bestWave === 'number' ? raw.bestWave : 0,
     runs: typeof raw.runs === 'number' ? raw.runs : 0,
     runId: typeof raw.runId === 'number' ? raw.runId : 0,
+    runSeed: typeof raw.runSeed === 'number' && Number.isFinite(raw.runSeed)
+      ? raw.runSeed
+      : deriveSeed(EPOCH_ROOT, 'world', 'run', typeof raw.runId === 'number' ? raw.runId : 0, RUN_SEED_VERSION),
     breedGeneration: typeof raw.breedGeneration === 'number' ? raw.breedGeneration : 0,
     // Besitz-Modell-Heilung: ein Save aus der Zeit VOR dem Besitz-Modell kennt kein Material
     // (die Map-Pools waren Run-Gaben) — der bekommt das faire Startmaterial genau einmal.
@@ -161,10 +167,14 @@ function healEntryLoop(meta: MetaSave): MetaSave {
   // v9: dasselbe Muster für das Startmaterial — die Heilung deckt Saves ab, die nie durch die
   // Migration liefen (gleiche Envelope-Version, Feld fehlt). Idempotent über das Flag.
   const material = grantStartingMaterial(meta.variantCounts ?? {}, meta.materialGranted);
+  const runSeed = typeof meta.runSeed === 'number' && Number.isFinite(meta.runSeed)
+    ? meta.runSeed
+    : deriveSeed(EPOCH_ROOT, 'world', 'run', meta.runId, RUN_SEED_VERSION);
   return {
     ...meta,
     variantCounts: material.counts,
     materialGranted: material.granted,
+    runSeed,
     rearingSlots: slots,
     pots: sanitizePots(meta.pots),
     seedlings: Array.isArray(meta.seedlings) ? meta.seedlings.filter((s): s is string => typeof s === 'string') : [],

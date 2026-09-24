@@ -38,6 +38,7 @@ async function tagAt(page: import('@playwright/test').Page, p: { x: number; y: n
   );
 }
 
+// E2E-COVERAGE: src/components/gameViewStyles.ts src/components/PlacementTray.tsx src/components/GameView.tsx src/render/
 test.describe('Layout-Regie P-24/P-25 (mobil 390×844 — die gebrochene Fläche)', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 

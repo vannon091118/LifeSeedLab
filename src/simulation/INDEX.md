@@ -6,7 +6,7 @@ Pfad: `src/simulation/`
 
 ## Umfang
 
-46 Dateien · importiert `bus`, `components`, `dev` +7 · wird importiert von `bus`, `components`, `dev` +7
+44 Dateien · importiert `bus`, `components`, `dev` +7 · wird importiert von `bus`, `components`, `dev` +7
 
 ## Dateien
 
@@ -22,8 +22,6 @@ Pfad: `src/simulation/`
 | [`gateB.test.ts`](./gateB.test.ts) | 346 | 0 | CALL 217, IMPORTS 12, PASS 182, READ 246, RETURN 1, STRING_REFERENCE 114 |
 | [`juggling.test.ts`](./juggling.test.ts) | 186 | 0 | CALL 191, IMPORTS 4, PASS 132, READ 165, RETURN 3, STRING_REFERENCE 65 |
 | [`killReactor.ts`](./killReactor.ts) | 54 | 0 | CALL 6, EXPORTS 2, IMPORTS 4, PASS 6, READ 25, STRING_REFERENCE 8 |
-| [`llmBridge.test.ts`](./llmBridge.test.ts) | 164 | 0 | CALL 152, IMPORTS 4, PASS 126, READ 135, RETURN 4, STRING_REFERENCE 51 |
-| [`llmBridge.ts`](./llmBridge.ts) | 163 | 0 | CALL 17, EXPORTS 5, IMPORTS 4, PASS 14, READ 28, RETURN 23, STRING_REFERENCE 30 |
 | [`mapSystem.ts`](./mapSystem.ts) | 318 | 1 | CALL 52, EXPORTS 11, IMPORTS 4, PASS 50, READ 124, RETURN 38, STRING_REFERENCE 37 |
 | [`maze_balance.test.ts`](./maze_balance.test.ts) | 128 | 0 | CALL 99, IMPORTS 7, PASS 87, READ 57, RETURN 5, STRING_REFERENCE 25 |
 | [`maze_loan.test.ts`](./maze_loan.test.ts) | 112 | 0 | CALL 76, IMPORTS 9, PASS 61, READ 72, RETURN 4, STRING_REFERENCE 25 |
@@ -54,7 +52,7 @@ Pfad: `src/simulation/`
 | [`statusSystem.ts`](./statusSystem.ts) | 79 | 0 | CALL 11, EXPORTS 1, IMPORTS 3, PASS 11, READ 37, STRING_REFERENCE 12 |
 | [`vectorAttractor.ts`](./vectorAttractor.ts) | 84 | 0 | CALL 11, EXPORTS 1, IMPORTS 4, PASS 11, READ 45, RETURN 4, STRING_REFERENCE 5 |
 | [`vectorSystem.ts`](./vectorSystem.ts) | 220 | 0 | CALL 56, EXPORTS 1, IMPORTS 6, PASS 49, READ 129, RETURN 11, STRING_REFERENCE 12 |
-| [`vector_engine_gate.test.ts`](./vector_engine_gate.test.ts) | 424 | 0 | CALL 268, IMPORTS 9, PASS 207, READ 266, RETURN 4, STRING_REFERENCE 84 |
+| [`vector_engine_gate.test.ts`](./vector_engine_gate.test.ts) | 429 | 0 | CALL 269, IMPORTS 9, PASS 208, READ 271, RETURN 4, STRING_REFERENCE 86 |
 | [`waveSystem.ts`](./waveSystem.ts) | 113 | 0 | CALL 15, EXPORTS 1, IMPORTS 6, PASS 14, READ 105, RETURN 16, STRING_REFERENCE 19 |
 | [`waveTiming.ts`](./waveTiming.ts) | 42 | 3 | CALL 3, EXPORTS 3, IMPORTS 2, PASS 3, READ 8, RETURN 7, STRING_REFERENCE 3 |
 | [`wave_flow.test.ts`](./wave_flow.test.ts) | 191 | 0 | CALL 167, IMPORTS 7, PASS 127, READ 142, RETURN 1, STRING_REFERENCE 52 |
@@ -63,9 +61,6 @@ Pfad: `src/simulation/`
 
 | Symbol | Art | Datei | Zeile |
 |---|---|---|---|
-| `AGENT_SYSTEM_PROMPT` | const | `src/simulation/llmBridge.ts` | 23 |
-| `AgentCommand` | type | `src/simulation/llmBridge.ts` | 162 |
-| `AgentCommandPayloads` | type | `src/simulation/llmBridge.ts` | 163 |
 | `AttractorEntity` | interface | `src/simulation/state.ts` | 82 |
 | `BeetleDeploySpec` | interface | `src/simulation/enemySystem.ts` | 16 |
 | `ComboSystem` | class | `src/simulation/comboSystem.ts` | 10 |
@@ -115,12 +110,10 @@ Pfad: `src/simulation/`
 | `getPlantStats` | function | `src/simulation/plantSystem.ts` | 64 |
 | `inWorldBounds` | function | `src/simulation/mapSystem.ts` | 67 |
 | `ownedInventory` | function | `src/simulation/state.ts` | 110 |
-| `parseDecision` | function | `src/simulation/llmBridge.ts` | 76 |
 | `placementRejectReason` | function | `src/simulation/placementRules.ts` | 47 |
 | `plantStatsAt` | function | `src/simulation/plantSystem.ts` | 56 |
 | `potBoostAt` | function | `src/simulation/potBoost.ts` | 28 |
 | `potColorAt` | function | `src/simulation/potBoost.ts` | 22 |
-| `processDecision` | function | `src/simulation/llmBridge.ts` | 104 |
 | `reactToKills` | function | `src/simulation/killReactor.ts` | 28 |
 | `resolvePlantShot` | function | `src/simulation/plantShot.ts` | 46 |
 | `resolvePlantStats` | function | `src/simulation/plantSystem.ts` | 44 |

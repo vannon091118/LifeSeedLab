@@ -35,8 +35,12 @@ export interface MetaView {
   totalWavesSurvived?: number;
   bestWave?: number;
   seedStash?: number;
+  nektar?: number;
+  pots?: Array<string | null>;
+  seedlings?: string[];
   pendingCrosses?: Array<{ crossIndex: number; startedWave: number; neededWaves: number }>;
   variantCounts?: Record<string, number>;
+  savedVariants?: Array<{ id: string; name: string }>;
   loadout?: string[];
 }
 
@@ -45,17 +49,28 @@ export interface MetaView {
  *
  * WARTEN AUF DAS OVERLAY (nicht raten): Der Run-Start liest zuerst die persistierte Welt
  * (`App.syncWorld`) — der Feld-Screen mountet also einen Tick später als der Klick. Vorher lasen
- * die Specs den ersten Messwert direkt nach `simBound()` und trafen gelegentlich eine Seite, die
- * das DevGate noch nicht gezeichnet hatte („DevGate-Wert nicht gefunden“, flaky). `simBound`
+ * die Specs den ersten Messwert direkt nach `expectSimBound()` und trafen gelegentlich eine Seite, die
+ * das DevGate noch nicht gezeichnet hatte („DevGate-Wert nicht gefunden“, flaky). `expectSimBound`
  * beweist nur, dass der Sim-Root existiert — nicht, dass sein Overlay schon im DOM steht.
  */
+export async function expectSimBound(page: Page): Promise<void> {
+  // Der Canvas entsteht vor dem useEffect, das die DevGate-Brücke bindet. Nach dem Lazy-Import
+  // ist deshalb ein einzelner evaluate() zu früh; poll ist die echte Read-first-Wartebedingung.
+  await expect.poll(
+    () => page.evaluate(
+      () => Boolean((window as unknown as { __simRootRef?: { current: unknown } }).__simRootRef?.current),
+    ),
+    { timeout: 10_000, message: 'Sim-Brücke ist nicht gebunden (Run-Screen gemountet?)' },
+  ).toBe(true);
+}
+
 export async function startRun(page: Page): Promise<void> {
   await page.goto('/?dev=1');
   await page.waitForLoadState('networkidle');
   await page.getByRole('button', { name: /start game/i }).click();
   await page.getByRole('button', { name: /endless/i }).first().click();
   await expect(page.locator('canvas')).toHaveCount(1);
-  await expect.simBound(page);
+  await expectSimBound(page);
   await expect(page.locator('[aria-label="Dev Overlay"]')).toBeVisible();
 }
 
@@ -72,25 +87,6 @@ export async function bootToMenu(page: Page): Promise<void> {
   await page.getByRole('button', { name: /start game/i }).click();
   await expect(page.getByRole('button', { name: /endless/i }).first()).toBeVisible();
 }
-
-/** Sim-Brücke gebunden? (Run-Screen mounted, `__simRootRef.current` gesetzt) */
-declare module '@playwright/test' {
-  interface Assertions {
-    simBound(page: Page): Promise<void>;
-  }
-}
-
-expect.extend({
-  async simBound(page: Page) {
-    const bound = await page.evaluate(
-      () => Boolean((window as unknown as { __simRootRef?: { current: unknown } }).__simRootRef?.current),
-    );
-    return {
-      pass: bound,
-      message: () => `Sim-Brücke ${bound ? 'ist' : 'ist NICHT'} gebunden (Run-Screen gemountet?)`,
-    };
-  },
-});
 
 // ── Fast-Forward (der einzige Takt der Tests) ────────────────────────────────
 
@@ -321,7 +317,7 @@ export async function backToMenu(page: Page): Promise<void> {
 export async function pumpWave(page: Page): Promise<void> {
   await page.getByRole('button', { name: /endless/i }).first().click();
   await expect(page.locator('canvas')).toHaveCount(1);
-  await expect.simBound(page);
+  await expectSimBound(page);
   await runToGameOver(page);
   await backToMenu(page);
 }

@@ -13,6 +13,7 @@ import { test, expect, type Page } from '@playwright/test';
  * weil die auch auf den Unterscreens existieren.
  */
 
+// E2E-COVERAGE: src/components/MainMenu.tsx src/components/MenuIcons.tsx src/components/GameIcons.tsx src/components/mainMenuStyles.ts src/components/Greenhouse.tsx src/components/greenhouse/ src/components/BeetleLab.tsx src/components/SeedShop.tsx src/components/Codex.tsx src/components/PhenotypeCanvas.tsx src/components/shopPools.ts src/discovery/ src/genome/ src/genome.ts
 const RUN_CARD = /endless/i;
 
 /**

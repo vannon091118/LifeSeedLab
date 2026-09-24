@@ -7,8 +7,8 @@ import { attachLedger, driveRun, readLedger, ledgerTable } from './helpers/runLe
  *
  * Warum separat: im normalen E2E-Lauf hat dieses Instrument nichts zu suchen (es misst kein
  * Verhalten, es erzeugt Zahlen), aber es muss DIESELBEN Werkzeuge nutzen wie die Specs — sonst
- * messen Balance und Tests zwei verschiedene Apps. Deshalb eine Spec, die standardmäßig
- * übersprungen wird:
+ * messen Balance und Tests zwei verschiedene Apps. Deshalb fällt die Spec im Standardlauf über
+ * `testIgnore` (playwright.config.ts) aus der Sammlung und wird nicht als „skipped" geführt:
  *
  *   BALANCE=1 node node_modules/@playwright/test/cli.js test tests/balance_run.spec.ts
  *
@@ -20,8 +20,10 @@ import { attachLedger, driveRun, readLedger, ledgerTable } from './helpers/runLe
  * genau), frisches Browser-Profil (eigener Lauf/Seed, NICHT der Seed einer laufenden Partie).
  */
 
+// E2E-COVERAGE: INSTRUMENT
+// (Der Kopf ist Pflicht für jede Spec — hier der Instrument-Marker: die Lane nimmt diese Spec
+// nie mit, sie läuft nur explizit mit `BALANCE=1`.)
 test.describe('Balance-Lauf (Instrument)', () => {
-  test.skip(!process.env.BALANCE, 'Balance-Instrument: nur mit BALANCE=1');
   test.setTimeout(600_000);
 
   test('Ein Leih-Spross: Welle für Welle bis Ausgang', async ({ page }) => {

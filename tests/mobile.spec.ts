@@ -34,6 +34,7 @@ async function cellCenter(page: Page2, gx: number, gy: number): Promise<{ x: num
 }
 type Page2 = Parameters<Parameters<typeof test>['0']>[1];
 
+// E2E-COVERAGE: src/components/GameTopBar.tsx src/components/PlacementTray.tsx src/components/placementController.ts src/components/ghostPreview.ts src/components/GameView.tsx src/render/ src/simulation/
 test.describe('Mobile 390×844 (DoD)', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 

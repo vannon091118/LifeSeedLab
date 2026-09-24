@@ -95,7 +95,15 @@ function capped(queue: PendingCross[]): PendingCross[] {
  * return null` machte die Zucht-Schleife unerreichbar (A13.12-Regression). Die
  * Aussaat ist jetzt frei; die Kosten liegen im Elternverbrauch beim Keep (2→1,  * test-gelockt in cross_lifecycle.test.ts).
  */
-export function consumeSeedAndEnqueueCross(gachaSeed: number, crossIndex: number, currentWave: number, child: PlantVariant, parentAId: string, parentBId: string): MetaSave | null {
+export function consumeSeedAndEnqueueCross(
+  gachaSeed: number,
+  crossIndex: number,
+  currentWave: number,
+  child: PlantVariant,
+  parentAId: string,
+  parentBId: string,
+  rootSeed: number = EPOCH_ROOT,
+): MetaSave | null {
   const meta = loadMeta();
   // B19: das Kind + Eltern werden beim Aussaat persistiert — der Claim hängt nur am
   // globalen Wellen-Timer (isMatured), nie am zufälligen Eltern-Bestand.
@@ -107,6 +115,7 @@ export function consumeSeedAndEnqueueCross(gachaSeed: number, crossIndex: number
     child,
     parentAId,
     parentBId,
+    rootSeed,
   };
   return updateMeta({
     pendingCrosses: capped([...meta.pendingCrosses, entry]),
