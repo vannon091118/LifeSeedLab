@@ -15,6 +15,7 @@ import {
   vectorFieldCellsOf,
   describeFirstFieldDeviation,
 } from './testkit';
+import { testVectorDeposit } from './vectorHooks';
 
 describe('TestKit — Kontrakt (B32.2)', () => {
   beforeEach(() => {
@@ -99,7 +100,7 @@ describe('TestKit — Kontrakt (B32.2)', () => {
     const root = makeRun({ runId: 1 });
     pushCommand(root, 'START_WAVE', {});
     root.stepOnce(); // → phase 'wave' (Muster der Vector-Gate-Suite)
-    root.vectorDeposit(4, 6, 'VECTOR_HEAT', 1.0);
+    testVectorDeposit(root, 4, 6, 'VECTOR_HEAT', 1.0);
     drainTicks(root, 1); // Deposit verarbeiten
     const cells = vectorFieldCellsOf(root);
     expect(cells.length).toBeGreaterThan(0);

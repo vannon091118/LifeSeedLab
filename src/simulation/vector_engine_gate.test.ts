@@ -23,6 +23,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { makeCommand } from '../bus/commands';
 import { makeRoot, resetFullTestState, hashOfRoot, vectorFieldCellsOf, describeFirstFieldDeviation, type VectorCellView } from '../testing/testkit';
+import { testAttractorSpawn, testTraceCharge, testVectorDeposit } from '../testing/vectorHooks';
 import type { SimulationRoot } from './root';
 import type { SimState } from './state';
 import { VECTOR_IDS, VECTOR_LOGIC_SOURCE, VECTOR_DIR_TABLE, VECTOR_ATTRACTOR_CONFIG } from '../config/vector_logic.source';
@@ -68,7 +69,7 @@ describe('Gate (a) — NIE NICHTS: Vector-Kombinationen', () => {
   it('jedes Elementar-Deposit landet im Feld — kein stiller Drop wie in der alten if-Kette', () => {
     for (const id of ELEMENTAR) {
       const root = vectorRoot();
-      root.vectorDeposit(CENTER.x, CENTER.y, id, 1.0);
+      testVectorDeposit(root, CENTER.x, CENTER.y, id, 1.0);
       expect(intensityOf(root, CENTER.x, CENTER.y, id), `${id} wurde verworfen`).toBeGreaterThan(0);
     }
   });
@@ -77,8 +78,8 @@ describe('Gate (a) — NIE NICHTS: Vector-Kombinationen', () => {
     for (const b of ELEMENTAR) {
       it(`${a} × ${b}: Addition statt Verwerfen, Delta über 60 Ticks ≠ 0, Zahlen gesund`, () => {
         const root = vectorRoot();
-        root.vectorDeposit(CENTER.x, CENTER.y, a, 1.0);
-        root.vectorDeposit(CENTER.x, CENTER.y, b, 1.0);
+        testVectorDeposit(root, CENTER.x, CENTER.y, a, 1.0);
+        testVectorDeposit(root, CENTER.x, CENTER.y, b, 1.0);
         // Einzelpreis je Vector an der Mitte: 1.0 (Faktor 1).
         // Selbst-Kombination (a×a) addiert auf 2.0 — Überschreiben ergäbe 1.0,
         // also ist 2.0 hier der strenge Additions-Beweis statt nur Plausibilität.
@@ -121,8 +122,8 @@ describe('Gate (b) — Bridging über 4 Tiles', () => {
     const root = vectorRoot();
     // Quellen bei (4,6) und (8,6) — 4 Tiles Abstand, Lücke genau bei (6,6). Radius 2
     // erreicht die Mitte von beiden Seiten mit Faktor 0.6: 0.6 + 0.6 = 1.2 = threshold.
-    root.vectorDeposit(4, 6, 'VECTOR_HEAT', 1.0);
-    root.vectorDeposit(8, 6, 'VECTOR_HEAT', 1.0);
+    testVectorDeposit(root, 4, 6, 'VECTOR_HEAT', 1.0);
+    testVectorDeposit(root, 8, 6, 'VECTOR_HEAT', 1.0);
 
     const bridge = intensityOf(root, 6, 6, 'VECTOR_HEAT');
     const threshold = VECTOR_LOGIC_SOURCE.VECTOR_HEAT.threshold ?? Infinity;
@@ -135,8 +136,8 @@ describe('Gate (b) — Bridging über 4 Tiles', () => {
     const root = vectorRoot();
     for (let t = 0; t < 60; t++) {
       if (t % 10 === 0) { // Quellen feuern kadenzhaft (später: PlantSystem als Produzent)
-        root.vectorDeposit(4, 6, 'VECTOR_HEAT', 1.0);
-        root.vectorDeposit(8, 6, 'VECTOR_HEAT', 1.0);
+        testVectorDeposit(root, 4, 6, 'VECTOR_HEAT', 1.0);
+        testVectorDeposit(root, 8, 6, 'VECTOR_HEAT', 1.0);
       }
       root.stepOnce();
       expect(intensityOf(root, 6, 6, 'VECTOR_HEAT'), `Brücke gefallen bei Tick ${t}`).toBeGreaterThan(0);
@@ -149,9 +150,9 @@ describe('Gate (b) — Bridging über 4 Tiles', () => {
 describe('Gate (c) — Blitz leitet in die Wasser-Pfütze', () => {
   it('traceCharge: Dijkstra wählt die WET-Zelle (cost 1/0.9) statt trocken (10) — Ableiter emergent', () => {
     const root = vectorRoot();
-    root.vectorDeposit(1, 6, 'VECTOR_WET', 1.0); // Leiter
+    testVectorDeposit(root, 1, 6, 'VECTOR_WET', 1.0); // Leiter
     // Ein freier Korridor ohne Umwege: Start links (0,6) → WET (1,6) → Ziel (6,6)
-    const trace = root.vectorSystem.traceCharge(root.getSnapshot(), 0, 6, 6, 6);
+    const trace = testTraceCharge(root, root.getSnapshot(), 0, 6, 6, 6);
     expect(trace).not.toBeNull();
     expect(trace!.path.some(p => p.x === 1 && p.y === 6)).toBe(true);
     expect(trace!.cost, 'Pfad über WET ist billiger als das trockene Feld').toBeLessThan(50);
@@ -159,14 +160,14 @@ describe('Gate (c) — Blitz leitet in die Wasser-Pfütze', () => {
 
   it('traceCharge: ohne Leiter ist der direkte Pfad billigster (Fallback zu trocken)', () => {
     const root = vectorRoot();
-    const trace = root.vectorSystem.traceCharge(root.getSnapshot(), 0, 6, 4, 6);
+    const trace = testTraceCharge(root, root.getSnapshot(), 0, 6, 4, 6);
     expect(trace).not.toBeNull();
     expect(trace!.path.length).toBeGreaterThan(1);
   });
 
   it('traceCharge: OOB-Koordinaten liefern null statt eines Pfads (fail-closed)', () => {
     const root = vectorRoot();
-    const trace = root.vectorSystem.traceCharge(root.getSnapshot(), -1, 0, 6, 6);
+    const trace = testTraceCharge(root, root.getSnapshot(), -1, 0, 6, 6);
     expect(trace).toBeNull();
   });
 });
@@ -177,7 +178,7 @@ describe('Gate (d) — TTL: alles fällt, nichts bleibt', () => {
   for (const id of ELEMENTAR) {
     it(`${id}: Zelle lebt bei ttl/2 und ist nach spätestens 180 Ticks fort`, () => {
       const root = vectorRoot();
-      root.vectorDeposit(CENTER.x, CENTER.y, id, 1.0);
+      testVectorDeposit(root, CENTER.x, CENTER.y, id, 1.0);
       const ttl = VECTOR_LOGIC_SOURCE[id].ttl;
       expect(ttl).toBeLessThanOrEqual(180);
 
@@ -194,7 +195,7 @@ describe('Gate (d) — TTL: alles fällt, nichts bleibt', () => {
 
   it('Attraktor-ENTITY (Gravity): ttl-geführt, nach 180 Ticks weg — OP vergänglich', () => {
     const root = vectorRoot();
-    root.attractorSpawn(CENTER.x, CENTER.y, 1.0, 3, 180);
+    testAttractorSpawn(root, CENTER.x, CENTER.y, 1.0, 3, 180);
     for (let i = 0; i < 90; i++) root.stepOnce();
     expect(root.getSnapshot().attractors.length, 'Attraktor fiel vorzeitig').toBe(1);
     for (let i = 90; i < 181; i++) root.stepOnce();
@@ -214,7 +215,7 @@ describe('Gate (d) — TTL: alles fällt, nichts bleibt', () => {
   // ══ TTL → nach 180 Ticks 0 (OP vergänglich, peinlich genau) ════════════════════════════
   it('TTL-60-180: jede Elementar-Zelle ist nach 180 Ticks fort — OP-Prüfstück', () => {
     const root = vectorRoot();
-    for (const id of ELEMENTAR) root.vectorDeposit(6, 6, id, 1.0);
+    for (const id of ELEMENTAR) testVectorDeposit(root, 6, 6, id, 1.0);
     for (let i = 0; i < 181; i++) root.stepOnce();
     const s = root.getSnapshot();
     const rest = Object.values(s.vectors).flat().filter(c => (ELEMENTAR as string[]).includes(c.vectorId));
@@ -224,16 +225,16 @@ describe('Gate (d) — TTL: alles fällt, nichts bleibt', () => {
   // ══ shuffle(activeCells) → gleicher Hash (Determinismus der Hash-Projektion) ════════════
   it('shuffle der aktiven Zellen ändert die Feld-Projektion nicht (Read-Order deterministisch)', () => {
     const r1 = vectorRoot();
-    r1.vectorDeposit(1, 1, 'VECTOR_HEAT', 1.0);
-    r1.vectorDeposit(8, 10, 'VECTOR_WET', 1.0);
-    r1.vectorDeposit(5, 5, 'VECTOR_OIL', 1.0);
+    testVectorDeposit(r1,1, 1, 'VECTOR_HEAT', 1.0);
+    testVectorDeposit(r1,8, 10, 'VECTOR_WET', 1.0);
+    testVectorDeposit(r1,5, 5, 'VECTOR_OIL', 1.0);
     r1.stepOnce();
     const h1 = hashOfRoot(r1);
     // Zweiter Run: dieselben Deposits in umgekehrter Sort-Order
     const r2 = vectorRoot();
-    r2.vectorDeposit(5, 5, 'VECTOR_OIL', 1.0);
-    r2.vectorDeposit(8, 10, 'VECTOR_WET', 1.0);
-    r2.vectorDeposit(1, 1, 'VECTOR_HEAT', 1.0);
+    testVectorDeposit(r2,5, 5, 'VECTOR_OIL', 1.0);
+    testVectorDeposit(r2,8, 10, 'VECTOR_WET', 1.0);
+    testVectorDeposit(r2,1, 1, 'VECTOR_HEAT', 1.0);
     r2.stepOnce();
     expect(hashOfRoot(r2)).toBe(h1);
   });
@@ -254,7 +255,7 @@ describe('Gate (d) — TTL: alles fällt, nichts bleibt', () => {
     // 12×12: 36 sparse Deposits, 20 Ticks — gesund beobachtet: 512 von 1764 (0.29)
     const tiny = vectorRoot();
     let d = 0;
-    for (let gx = 0; gx < 12; gx++) for (let gy = 0; gy < 12; gy++) if ((gx + gy) % 4 === 0) { tiny.vectorDeposit(gx, gy, 'VECTOR_HEAT', 1.0); d++; }
+    for (let gx = 0; gx < 12; gx++) for (let gy = 0; gy < 12; gy++) if ((gx + gy) % 4 === 0) { testVectorDeposit(tiny,gx, gy, 'VECTOR_HEAT', 1.0); d++; }
     for (let i = 0; i < 20; i++) tiny.stepOnce();
     const cTiny = Object.keys(tiny.getSnapshot().vectors).length;
     expect(cTiny, `12×12: ${cTiny} Zellen > Fußabdruck ${fussabdruck(d)} — Feld akkumuliert oder explodiert`).toBeLessThanOrEqual(fussabdruck(d));
@@ -265,7 +266,7 @@ describe('Gate (d) — TTL: alles fällt, nichts bleibt', () => {
     const large = vectorRoot();
     let dLarge = 0;
     let lmax = 0;
-    for (let t = 0; t < 20; t++) { large.vectorDeposit((t * 6) % 64, (t * 6) % 64, 'VECTOR_HEAT', 1.0); dLarge++; large.stepOnce(); lmax = Math.max(lmax, Object.keys(large.getSnapshot().vectors).length); }
+    for (let t = 0; t < 20; t++) { testVectorDeposit(large,(t * 6) % 64, (t * 6) % 64, 'VECTOR_HEAT', 1.0); dLarge++; large.stepOnce(); lmax = Math.max(lmax, Object.keys(large.getSnapshot().vectors).length); }
     expect(lmax, `64×64 aktiv: ${lmax} Zellen > Fußabdruck ${fussabdruck(dLarge)} — Feld akkumuliert oder explodiert`).toBeLessThanOrEqual(fussabdruck(dLarge));
     expect(lmax).toBeGreaterThan(0);
   });
@@ -291,7 +292,7 @@ describe('Gate (e) — Attraktor: ziehen statt fangen', () => {
     const last = new Map<string, { x: number; y: number }>();
     const step: Record<string, number> = {};
     for (let i = 0; i < 600; i++) {
-      if (renew && i % 30 === 0) root.attractorSpawn(anchor.x, anchor.y, SPAWN.strength, SPAWN.radius, SPAWN.ttl);
+      if (renew && i % 30 === 0) testAttractorSpawn(root, anchor.x, anchor.y, SPAWN.strength, SPAWN.radius, SPAWN.ttl);
       root.stepOnce();
       const s = root.getSnapshot();
       for (const e of s.enemies) {
@@ -348,11 +349,11 @@ describe('Determinismus — gleicher Seed, gleiche Deposits, gleiche Welt', () =
 
   function anchorScene(root: SimulationRoot): void {
     // Reproduzierbares Szenario: Brücke + Kombination + Attraktor, dann 30 Ticks Wellenlauf.
-    root.vectorDeposit(4, 6, 'VECTOR_HEAT', 1.0);
-    root.vectorDeposit(8, 6, 'VECTOR_HEAT', 1.0);
-    root.vectorDeposit(6, 6, 'VECTOR_OIL', 1.0);
-    root.vectorDeposit(6, 6, 'VECTOR_WET', 1.0);
-    root.attractorSpawn(6, 6, 1.0, 3, 180);
+    testVectorDeposit(root, 4, 6, 'VECTOR_HEAT', 1.0);
+    testVectorDeposit(root, 8, 6, 'VECTOR_HEAT', 1.0);
+    testVectorDeposit(root, 6, 6, 'VECTOR_OIL', 1.0);
+    testVectorDeposit(root, 6, 6, 'VECTOR_WET', 1.0);
+    testAttractorSpawn(root, 6, 6, 1.0, 3, 180);
     for (let i = 0; i < 30; i++) root.stepOnce();
   }
 
@@ -367,11 +368,11 @@ describe('Determinismus — gleicher Seed, gleiche Deposits, gleiche Welt', () =
 
   it('Deposit-Reihenfolge an verschiedenen Zellen ist gleichgültig (keine versteckte Ordnung)', () => {
     const r1 = vectorRoot();
-    r1.vectorDeposit(2, 2, 'VECTOR_OIL', 1.0);
-    r1.vectorDeposit(9, 9, 'VECTOR_WET', 1.0);
+    testVectorDeposit(r1,2, 2, 'VECTOR_OIL', 1.0);
+    testVectorDeposit(r1,9, 9, 'VECTOR_WET', 1.0);
     const r2 = vectorRoot();
-    r2.vectorDeposit(9, 9, 'VECTOR_WET', 1.0);
-    r2.vectorDeposit(2, 2, 'VECTOR_OIL', 1.0);
+    testVectorDeposit(r2,9, 9, 'VECTOR_WET', 1.0);
+    testVectorDeposit(r2,2, 2, 'VECTOR_OIL', 1.0);
     for (let i = 0; i < 10; i++) { r1.stepOnce(); r2.stepOnce(); }
     expect(fieldOf(r1)).toBe(fieldOf(r2));
   });

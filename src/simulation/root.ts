@@ -282,19 +282,19 @@ export class SimulationRoot {
     executeCommand(this.commandContext(), state, cmd);
   }
 
-  get vectorSystem(): VectorSystem { return this.vectors; }
-  get attractorSystem(): VectorAttractor { return this.attractors; }
+  private get vectorSystem(): VectorSystem { return this.vectors; }
+  private get attractorSystem(): VectorAttractor { return this.attractors; }
 
   // ── Vector-Emissions-Naht (Phase 5) ───────────────────────────
   // Produzenten (Pflanze/Projektil, später Käfer-Aura) und die Gate-Tests brauchen denselben
   // Weg in den EINEN Vector-Writer — der Live-State verlässt den Root nie. Deposit mutiert
   // nur Flags (kein RNG, kein Event) und wird ZWISCHEN Ticks gerufen; die Tick-Reihenfolge
   // in stepOnce bleibt der einzige Motor.
-  vectorDeposit(gx: number, gy: number, vectorId: string, intensity: number): void {
+  private vectorDeposit(gx: number, gy: number, vectorId: string, intensity: number): void {
     this.vectors.deposit(this.state, gx, gy, vectorId, intensity);
   }
 
-  attractorSpawn(x: number, y: number, strength: number, radius: number, ttl: number): void {
+  private attractorSpawn(x: number, y: number, strength: number, radius: number, ttl: number): void {
     this.attractors.spawn(this.state, x, y, strength, radius, ttl);
   }
 

@@ -16,6 +16,7 @@ import { makeCommand, type CommandPayloads } from '../bus/commands';
 import { deriveSeed } from '../core/rng';
 import { EPOCH_ROOT, RUN_SEED_VERSION } from '../config';
 import { createInitialWorld, worldSnapshotOf } from '../world/world_state';
+export { testAttractorSpawn, testTraceCharge, testVectorDeposit } from './vectorHooks';
 
 /** Leert Meta-Speicher + Test-Storage (Standard-Setup der meisten Tests). */
 export function resetTestState(): void {

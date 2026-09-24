@@ -9,6 +9,8 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ## Unreleased (Arbeitsstand 19.–24.09.2026)
 
+- [Simulation/Ownership] Root-Vektorwriter sind privat; Tests greifen nur über eine test-only Brücke zu, während die Produktion keinen Neben-Writer exportiert. Beleg: `src/simulation/root.ts`, `src/testing/vectorHooks.ts`, `vector_engine_gate.test.ts` (59 Tests), `tsc -b --noEmit`.
+
 - [Slop/Identität] Test-only Transport-/ObservationSerializer-Dateien, der tote `maxLibrary`-Wert und der No-op-Discovery-Sync werden entfernt; echte Discovery- und Identitätstests bleiben. Beleg: `src/meta/identity_invariants.test.ts`, `src/discovery/chain.ts`, `src/config/beetles.source.ts`; Voll-Suite und Build grün.
 
 - [Gate/Codex] Untracked-Quellen werden als dauerhafter `untracked-inputs`-Check behandelt; Index- und Codex-Änderungen sind getrennt testbar, Clipboard-Erfolg ist ehrlich und technische Hashes liegen in Details. Belege: `tools/shinon/checks/untracked-input-check.ts`, `tools/indexer/input-policy.ts`, `src/components/Codex.tsx`, `tests/codex_clipboard.spec.ts`; Tools-Suite 82/82, Build grün.
