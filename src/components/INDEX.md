@@ -6,14 +6,14 @@ Pfad: `src/components/`
 
 ## Umfang
 
-56 Dateien · importiert `bus`, `meta`, `render` +2 · wird importiert von `bus`, `meta`, `render` +2
+57 Dateien · importiert `bus`, `meta`, `render` +2 · wird importiert von `bus`, `meta`, `render` +2
 
 ## Dateien
 
 | Datei | LOC | Importiert von | Beziehungen |
 |---|---|---|---|
-| [`BeetleLab.tsx`](./BeetleLab.tsx) | 239 | 1 | CALL 77, EXPORTS 1, IMPORTS 9, PASS 80, READ 163, RETURN 6, STRING_REFERENCE 137 |
-| [`Codex.tsx`](./Codex.tsx) | 127 | 1 | CALL 29, EXPORTS 1, IMPORTS 5, PASS 25, READ 55, RETURN 2, STRING_REFERENCE 103 |
+| [`BeetleLab.tsx`](./BeetleLab.tsx) | 239 | 0 | CALL 77, EXPORTS 1, IMPORTS 9, PASS 80, READ 163, RETURN 6, STRING_REFERENCE 137 |
+| [`Codex.tsx`](./Codex.tsx) | 158 | 0 | CALL 48, EXPORTS 1, IMPORTS 5, PASS 42, READ 61, RETURN 2, STRING_REFERENCE 116 |
 | [`CreatedBy.tsx`](./CreatedBy.tsx) | 140 | 0 | CALL 2, EXPORTS 5, IMPORTS 3, PASS 1, READ 16, RETURN 3, STRING_REFERENCE 47 |
 | [`ErrorBoundary.tsx`](./ErrorBoundary.tsx) | 65 | 1 | CALL 2, EXPORTS 1, IMPORTS 1, PASS 1, READ 19, RETURN 3, STRING_REFERENCE 27 |
 | [`FieldToast.tsx`](./FieldToast.tsx) | 122 | 2 | CALL 4, EXPORTS 4, IMPORTS 3, PASS 3, READ 6, RETURN 5, STRING_REFERENCE 41 |
@@ -21,30 +21,30 @@ Pfad: `src/components/`
 | [`GameIcons.tsx`](./GameIcons.tsx) | 76 | 0 | EXPORTS 7, RETURN 7, STRING_REFERENCE 141 |
 | [`GameOverlays.tsx`](./GameOverlays.tsx) | 74 | 0 | CALL 11, EXPORTS 1, IMPORTS 5, PASS 10, READ 15, RETURN 1, STRING_REFERENCE 71 |
 | [`GameTopBar.tsx`](./GameTopBar.tsx) | 123 | 0 | CALL 17, EXPORTS 1, IMPORTS 3, PASS 16, READ 30, RETURN 1, STRING_REFERENCE 26 |
-| [`GameView.tsx`](./GameView.tsx) | 398 | 1 | CALL 124, EXPORTS 1, IMPORTS 24, PASS 123, READ 173, RETURN 7, STRING_REFERENCE 63 |
-| [`Greenhouse.tsx`](./Greenhouse.tsx) | 268 | 1 | CALL 82, EXPORTS 1, IMPORTS 17, PASS 80, READ 109, RETURN 1, STRING_REFERENCE 42 |
-| [`MainMenu.tsx`](./MainMenu.tsx) | 217 | 1 | CALL 53, EXPORTS 1, IMPORTS 13, PASS 53, READ 73, RETURN 3, STRING_REFERENCE 54 |
-| [`MenuIcons.tsx`](./MenuIcons.tsx) | 78 | 0 | EXPORTS 7, RETURN 7, STRING_REFERENCE 125 |
+| [`GameView.tsx`](./GameView.tsx) | 400 | 0 | CALL 124, EXPORTS 1, IMPORTS 24, PASS 123, READ 173, RETURN 7, STRING_REFERENCE 63 |
+| [`Greenhouse.tsx`](./Greenhouse.tsx) | 271 | 0 | CALL 78, EXPORTS 1, IMPORTS 18, PASS 76, READ 107, RETURN 1, STRING_REFERENCE 39 |
+| [`MainMenu.tsx`](./MainMenu.tsx) | 222 | 1 | CALL 53, EXPORTS 1, IMPORTS 14, PASS 53, READ 74, RETURN 3, STRING_REFERENCE 55 |
+| [`MenuIcons.tsx`](./MenuIcons.tsx) | 68 | 0 | EXPORTS 6, RETURN 6, STRING_REFERENCE 108 |
 | [`MenuScreenShell.tsx`](./MenuScreenShell.tsx) | 112 | 1 | CALL 3, EXPORTS 1, IMPORTS 6, PASS 2, READ 7, RETURN 2, STRING_REFERENCE 41 |
 | [`NavIndicators.tsx`](./NavIndicators.tsx) | 198 | 1 | CALL 21, EXPORTS 2, IMPORTS 7, PASS 19, READ 39, RETURN 3, STRING_REFERENCE 80 |
 | [`PhenotypeCanvas.tsx`](./PhenotypeCanvas.tsx) | 88 | 0 | CALL 12, EXPORTS 2, IMPORTS 8, PASS 17, READ 14, RETURN 5, STRING_REFERENCE 18 |
 | [`PlacementTray.tsx`](./PlacementTray.tsx) | 279 | 0 | CALL 40, EXPORTS 3, IMPORTS 7, PASS 37, READ 48, RETURN 10, STRING_REFERENCE 132 |
 | [`ScreenTransition.tsx`](./ScreenTransition.tsx) | 45 | 0 | CALL 13, EXPORTS 1, IMPORTS 1, PASS 15, READ 5, RETURN 3, STRING_REFERENCE 11 |
-| [`SeedShop.tsx`](./SeedShop.tsx) | 138 | 1 | CALL 31, EXPORTS 1, IMPORTS 8, PASS 29, READ 39, RETURN 1, STRING_REFERENCE 86 |
+| [`SeedShop.tsx`](./SeedShop.tsx) | 138 | 0 | CALL 31, EXPORTS 1, IMPORTS 8, PASS 29, READ 39, RETURN 1, STRING_REFERENCE 86 |
 | [`StartScreen.tsx`](./StartScreen.tsx) | 213 | 1 | CALL 12, EXPORTS 1, IMPORTS 5, PASS 11, READ 20, RETURN 1, STRING_REFERENCE 129 |
-| [`components_tutorial.test.ts`](./components_tutorial.test.ts) | 272 | 0 | CALL 370, IMPORTS 5, PASS 338, READ 328, RETURN 2, STRING_REFERENCE 211 |
+| [`components_tutorial.test.ts`](./components_tutorial.test.ts) | 283 | 0 | CALL 384, IMPORTS 6, PASS 352, READ 345, RETURN 2, STRING_REFERENCE 217 |
 | [`createdBy.test.ts`](./createdBy.test.ts) | 52 | 0 | CALL 51, IMPORTS 3, PASS 48, READ 49, STRING_REFERENCE 21 |
 | [`fieldNotice.ts`](./fieldNotice.ts) | 53 | 3 | EXPORTS 2, IMPORTS 1, READ 7, RETURN 3, STRING_REFERENCE 8 |
 | [`gameIcons.test.tsx`](./gameIcons.test.tsx) | 30 | 0 | CALL 17, IMPORTS 3, PASS 17, READ 8, STRING_REFERENCE 14 |
 | [`gameViewStyles.ts`](./gameViewStyles.ts) | 56 | 0 | EXPORTS 1, IMPORTS 1, STRING_REFERENCE 110 |
 | [`ghostPreview.ts`](./ghostPreview.ts) | 25 | 1 | CALL 1, EXPORTS 1, IMPORTS 2, PASS 1, READ 13, RETURN 2, STRING_REFERENCE 2 |
-| [`greenhouse/ParentSelection.tsx`](./greenhouse/ParentSelection.tsx) | 45 | 0 | CALL 8, EXPORTS 1, IMPORTS 5, PASS 8, READ 16, RETURN 2, STRING_REFERENCE 13 |
+| [`greenhouse/ParentSelection.tsx`](./greenhouse/ParentSelection.tsx) | 46 | 0 | CALL 8, EXPORTS 1, IMPORTS 5, PASS 8, READ 16, RETURN 2, STRING_REFERENCE 14 |
 | [`greenhouse/PendingQueue.tsx`](./greenhouse/PendingQueue.tsx) | 96 | 0 | CALL 21, EXPORTS 1, IMPORTS 6, PASS 22, READ 38, RETURN 4, STRING_REFERENCE 21 |
 | [`greenhouse/PotRow.tsx`](./greenhouse/PotRow.tsx) | 62 | 0 | CALL 7, EXPORTS 1, IMPORTS 5, PASS 7, READ 7, RETURN 2, STRING_REFERENCE 11 |
 | [`greenhouse/ResultCard.tsx`](./greenhouse/ResultCard.tsx) | 66 | 0 | CALL 21, EXPORTS 1, IMPORTS 5, PASS 21, READ 30, RETURN 4, STRING_REFERENCE 14 |
 | [`greenhouse/SeedlingTray.tsx`](./greenhouse/SeedlingTray.tsx) | 39 | 0 | CALL 6, EXPORTS 1, IMPORTS 5, PASS 6, READ 7, RETURN 2, STRING_REFERENCE 12 |
 | [`greenhouse/SlotBuyButton.tsx`](./greenhouse/SlotBuyButton.tsx) | 50 | 0 | CALL 11, EXPORTS 1, IMPORTS 3, PASS 11, READ 11, RETURN 1, STRING_REFERENCE 12 |
-| [`greenhouse/greenhouseHelpers.ts`](./greenhouse/greenhouseHelpers.ts) | 34 | 0 | CALL 12, EXPORTS 4, IMPORTS 3, PASS 11, READ 20, RETURN 5, STRING_REFERENCE 5 |
+| [`greenhouse/greenhouseHelpers.ts`](./greenhouse/greenhouseHelpers.ts) | 34 | 0 | CALL 12, EXPORTS 4, IMPORTS 3, PASS 11, READ 21, RETURN 5, STRING_REFERENCE 5 |
 | [`greenhouse/greenhouseStyles.ts`](./greenhouse/greenhouseStyles.ts) | 52 | 0 | EXPORTS 1, IMPORTS 1, STRING_REFERENCE 141 |
 | [`hudSnapshot.test.ts`](./hudSnapshot.test.ts) | 81 | 0 | CALL 82, IMPORTS 4, PASS 65, READ 76, STRING_REFERENCE 19 |
 | [`hudSnapshot.ts`](./hudSnapshot.ts) | 56 | 2 | CALL 3, EXPORTS 2, IMPORTS 3, PASS 3, READ 22, RETURN 1, STRING_REFERENCE 4 |
@@ -58,6 +58,7 @@ Pfad: `src/components/`
 | [`plantLabels.ts`](./plantLabels.ts) | 34 | 0 | EXPORTS 4, IMPORTS 3, READ 11, RETURN 4, STRING_REFERENCE 4 |
 | [`qa_befunde.test.ts`](./qa_befunde.test.ts) | 144 | 0 | CALL 108, IMPORTS 7, PASS 98, READ 66, RETURN 1, STRING_REFERENCE 50 |
 | [`shopPools.ts`](./shopPools.ts) | 54 | 1 | CALL 5, EXPORTS 3, IMPORTS 3, PASS 5, READ 11, RETURN 4, STRING_REFERENCE 4 |
+| [`tutorial/NotesReview.tsx`](./tutorial/NotesReview.tsx) | 91 | 1 | CALL 18, EXPORTS 3, IMPORTS 5, PASS 16, READ 27, RETURN 3, STRING_REFERENCE 63 |
 | [`tutorial/SpeechBubble.tsx`](./tutorial/SpeechBubble.tsx) | 269 | 0 | CALL 5, EXPORTS 4, IMPORTS 2, PASS 5, READ 22, RETURN 5, STRING_REFERENCE 85 |
 | [`tutorial/Stickman.tsx`](./tutorial/Stickman.tsx) | 146 | 0 | CALL 7, EXPORTS 1, IMPORTS 1, PASS 7, READ 25, RETURN 4, STRING_REFERENCE 172 |
 | [`tutorial/TutorialLayer.tsx`](./tutorial/TutorialLayer.tsx) | 154 | 1 | CALL 31, EXPORTS 2, IMPORTS 6, PASS 33, READ 24, RETURN 5, STRING_REFERENCE 9 |
@@ -78,7 +79,7 @@ Pfad: `src/components/`
 | `BeetleGlyph` | function | `src/components/GameIcons.tsx` | 52 |
 | `BeetleLab` | function | `src/components/BeetleLab.tsx` | 28 |
 | `BookIcon` | function | `src/components/MenuIcons.tsx` | 39 |
-| `BugIcon` | function | `src/components/MenuIcons.tsx` | 68 |
+| `BugIcon` | function | `src/components/MenuIcons.tsx` | 58 |
 | `CUE_SELECTORS` | const | `src/components/tutorial/script.ts` | 72 |
 | `Codex` | function | `src/components/Codex.tsx` | 24 |
 | `CodexGlyph` | function | `src/components/GameIcons.tsx` | 66 |
@@ -92,16 +93,17 @@ Pfad: `src/components/`
 | `GameTopBar` | function | `src/components/GameTopBar.tsx` | 40 |
 | `GameView` | function | `src/components/GameView.tsx` | 52 |
 | `GitHubIcon` | function | `src/components/MenuIcons.tsx` | 16 |
-| `Greenhouse` | function | `src/components/Greenhouse.tsx` | 32 |
+| `Greenhouse` | function | `src/components/Greenhouse.tsx` | 33 |
 | `GreenhouseGlyph` | function | `src/components/GameIcons.tsx` | 26 |
 | `HudSnapshot` | interface | `src/components/hudSnapshot.ts` | 9 |
 | `LivesChipIcon` | function | `src/components/GameIcons.tsx` | 11 |
-| `MainMenu` | function | `src/components/MainMenu.tsx` | 32 |
+| `MainMenu` | function | `src/components/MainMenu.tsx` | 35 |
 | `MarginMark` | function | `src/components/CreatedBy.tsx` | 53 |
 | `MenuScreen` | type | `src/components/NavIndicators.tsx` | 26 |
 | `MenuScreenShell` | function | `src/components/MenuScreenShell.tsx` | 20 |
 | `NavIndicators` | function | `src/components/NavIndicators.tsx` | 34 |
 | `NektarChipIcon` | function | `src/components/GameIcons.tsx` | 17 |
+| `NotesReview` | function | `src/components/tutorial/NotesReview.tsx` | 22 |
 | `ParentSelection` | function | `src/components/greenhouse/ParentSelection.tsx` | 16 |
 | `PendingQueue` | function | `src/components/greenhouse/PendingQueue.tsx` | 21 |
 | `PlaceMode` | type | `src/components/placementController.ts` | 28 |
@@ -114,10 +116,11 @@ Pfad: `src/components/`
 | `PoolOffer` | interface | `src/components/shopPools.ts` | 20 |
 | `PotRow` | function | `src/components/greenhouse/PotRow.tsx` | 15 |
 | `ResultCard` | function | `src/components/greenhouse/ResultCard.tsx` | 17 |
+| `ReviewNote` | interface | `src/components/tutorial/NotesReview.tsx` | 7 |
 | `SCREEN_RANK` | const | `src/components/tutorial/script.ts` | 38 |
 | `SIGNATURE_FRAGMENTS` | const | `src/components/CreatedBy.tsx` | 37 |
 | `ScreenTransition` | function | `src/components/ScreenTransition.tsx` | 13 |
-| `SeedIcon` | function | `src/components/MenuIcons.tsx` | 59 |
+| `SeedIcon` | function | `src/components/MenuIcons.tsx` | 49 |
 | `SeedShop` | function | `src/components/SeedShop.tsx` | 22 |
 | `SeedlingTray` | function | `src/components/greenhouse/SeedlingTray.tsx` | 15 |
 | `ShopGlyph` | function | `src/components/GameIcons.tsx` | 39 |
@@ -127,7 +130,6 @@ Pfad: `src/components/`
 | `StartScreen` | function | `src/components/StartScreen.tsx` | 23 |
 | `Stickman` | function | `src/components/tutorial/Stickman.tsx` | 51 |
 | `StickmanPose` | type | `src/components/tutorial/script.ts` | 6 |
-| `SwordIcon` | function | `src/components/MenuIcons.tsx` | 49 |
 | `TOAST_TICKS` | const | `src/components/FieldToast.tsx` | 14 |
 | `TUTORIAL_STEPS` | const | `src/components/tutorial/script.ts` | 49 |
 | `TUTORIAL_VERSION` | const | `src/components/tutorial/script.ts` | 47 |
@@ -169,6 +171,7 @@ Pfad: `src/components/`
 | `prefersReducedMotion` | function | `src/components/tutorial/useTypewriter.ts` | 44 |
 | `rectsOverlap` | function | `src/components/tutorial/bubbleLayout.ts` | 15 |
 | `rejectTextKey` | function | `src/components/FieldToast.tsx` | 65 |
+| `reviewNotes` | function | `src/components/tutorial/NotesReview.tsx` | 14 |
 | `screenRank` | function | `src/components/tutorial/script.ts` | 40 |
 | `styles` | const | `src/components/greenhouse/greenhouseStyles.ts` | 3 |
 | `tileLabelFallback` | function | `src/components/plantLabels.ts` | 32 |

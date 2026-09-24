@@ -1,23 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
+import { lazy, Suspense, useState, useEffect, useCallback } from 'react';
 import type { MetaSave, GameMode } from './types';
 import { loadMeta, beginRun, updateMeta, deriveLoanPlant, deriveRunStats, LOAN_PLANT_ID } from './meta';
 import { I18nProvider, detectLangFromMeta } from './i18n';
-import { deriveSeed } from './core/rng';
-import { EPOCH_ROOT, RUN_SEED_VERSION } from './config';
 import { PLANTS_SOURCE } from './config/plants.source';
 import { clearRun, loadRun, type RunSave } from './persistence/runSave';
 import { ensureWorld, loadWorld } from './persistence/worldSave';
 import type { WorldState } from './world/world_state';
 import { StartScreen } from './components/StartScreen';
 import { MainMenu } from './components/MainMenu';
-import { GameView } from './components/GameView';
-import { Greenhouse } from './components/Greenhouse';
-import { SeedShop } from './components/SeedShop';
-import { BeetleLab } from './components/BeetleLab';
-import { Codex } from './components/Codex';
 import { MenuScreenShell } from './components/MenuScreenShell';
 import { TutorialProvider } from './components/tutorial/TutorialLayer';
 import { TUTORIAL_VERSION } from './components/tutorial/script';
+import { NotesReview } from './components/tutorial/NotesReview';
 import { APP_VERSION_LABEL } from './version';
 import type { MenuScreen } from './components/NavIndicators';
 
@@ -32,11 +26,20 @@ import type { MenuScreen } from './components/NavIndicators';
 
 type Screen = 'start' | MenuScreen | 'run';
 
+// Sekundäre Screens werden erst bei Navigation geladen. Die Simulation/Renderer bleiben
+// dadurch eine echte Run-Chunk statt ungeplanter Initial-Ballast.
+const GameView = lazy(async () => ({ default: (await import('./components/GameView')).GameView }));
+const Greenhouse = lazy(async () => ({ default: (await import('./components/Greenhouse')).Greenhouse }));
+const SeedShop = lazy(async () => ({ default: (await import('./components/SeedShop')).SeedShop }));
+const BeetleLab = lazy(async () => ({ default: (await import('./components/BeetleLab')).BeetleLab }));
+const Codex = lazy(async () => ({ default: (await import('./components/Codex')).Codex }));
+
 function AppInner() {
   const [meta, setMeta] = useState<MetaSave | null>(null);
   const [screen, setScreen] = useState<Screen>('start');
   const [pendingRun, setPendingRun] = useState<RunSave | null>(null);
   const [resuming, setResuming] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
   // R2: die PERSISTENTE WELT — einmal pro App-Start geladen, jeden Run überdauernd.
   // Fehlt sie (erster Start), wird sie EINMAL explizit erzeugt und sofort persistiert;
   // Korruption bleibt sichtbar (null ⇒ Ladeschirm), nie stiller Ersatz.
@@ -57,7 +60,7 @@ function AppInner() {
   useEffect(() => {
     if (!meta) return;
     let alive = true;
-    const runSeed = deriveSeed(EPOCH_ROOT, 'world', 'run', meta.runId, RUN_SEED_VERSION);
+    const runSeed = meta.runSeed;
     void loadRun().then(save => {
       if (!alive) return;
       const matches = save !== null && meta.runId > 0 && save.runId === meta.runId && save.seed === runSeed;
@@ -126,11 +129,11 @@ function AppInner() {
   const renderScreen = () => {
     switch (screen) {
       case 'run': {
-        const runSeed = deriveSeed(EPOCH_ROOT, 'world', 'run', meta.runId, RUN_SEED_VERSION);
+        const runSeed = meta.runSeed;
         // Leih-Spross (falls aktiv): die Variante muss dem Run bekannt sein, damit sie
         // platzierbar ist — ohne savedVariants-Eintrag wäre resolvePlantStats blind.
         const hasLoan = (meta.variantCounts[LOAN_PLANT_ID] ?? 0) > 0;
-        const runVariants = hasLoan ? [...meta.savedVariants, deriveLoanPlant(meta.runId)] : meta.savedVariants;
+        const runVariants = hasLoan ? [...meta.savedVariants, deriveLoanPlant(meta.runId, runSeed)] : meta.savedVariants;
         // D2: Die Leih-Pflanze muss im RUN platzierbar sein — ownedInventory (state.ts) baut
         // das Inventar aus Loadout × Besitz; ohne Loadout-Eintrag zeigt die Tray ×0 und
         // PLACE_PLANT lehnt ab. Nur der Run-Loadout wird erweitert, das Meta-Loadout bleibt sauber.
@@ -140,7 +143,7 @@ function AppInner() {
         // place() mit no_inventory ab (Stats-Check läuft VOR der Inventar-Prüfung). Die
         // deterministische Leih-Variante trägt ihre eigenen Stats — als Run-bredStats
         // beigemischt (nur Run-Sicht, das Meta-Objekt bleibt unangetastet).
-        const loanVariant = deriveLoanPlant(meta.runId);
+        const loanVariant = deriveLoanPlant(meta.runId, runSeed);
         const loanStats = loanVariant.stats;
         // Role → Basis-Verankerung: die Effects kommen aus der PLANTS_SOURCE-Basis
         // (shooter→sprout, wall→rootwall, support→mycelia) — eine Stats-Quelle.
@@ -202,8 +205,10 @@ function AppInner() {
                 onNavigate={handleNavigate}
                 resumeWave={pendingRun?.waveNumber ?? null}
                 onResume={pendingRun ? handleResumeRun : undefined}
+                onReviewNotes={() => setNotesOpen(true)}
               />
             )}
+            {notesOpen && menuScreen === 'menu' && <NotesReview onClose={() => setNotesOpen(false)} />}
             {menuScreen === 'greenhouse' && (
               <Greenhouse meta={meta} onMetaChange={setMeta} onClose={() => setScreen('menu')} />
             )}
@@ -224,7 +229,7 @@ function AppInner() {
 
   return (
     <TutorialProvider screen={screen} seenVersion={meta.tutorialVersion} onDone={handleTutorialDone}>
-      {renderScreen()}
+      <Suspense fallback={<div role="status">…</div>}>{renderScreen()}</Suspense>
     </TutorialProvider>
   );
 }

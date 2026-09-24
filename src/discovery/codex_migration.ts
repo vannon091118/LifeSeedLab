@@ -40,9 +40,10 @@ export function migrateV1Entries(chain: DiscoveryEntry[]): DiscoveryEntry[] {
   const legacy = chain as unknown as (Record<string, unknown> & Partial<EnrichedV2>)[];
   // Vollständige v2-Kette: nichts zu tun (idempotent). Die drei Felder gemeinsam sind das
   // Merkmal der Anreicherung — fehlt EINES, war der Eintrag v1.
-  const complete = legacy.every(
-    (e) => e.epoch_id !== undefined && e.type !== undefined && e.schema_version !== undefined,
-  );
+  const complete = legacy.every((e) => {
+    const version = (e as Record<string, unknown>).schema_version;
+    return e.epoch_id !== undefined && e.type !== undefined && (version === 3 || version === 4);
+  });
   if (complete) return chain;
 
   const enriched: EnrichedV2[] = legacy.map((e) => ({
@@ -67,7 +68,7 @@ export function migrateToPlantRef(chain: DiscoveryEntry[]): DiscoveryEntry[] {
   if (!Array.isArray(chain)) return [];
 
   const entries = chain as unknown as (Record<string, unknown> & { schema_version?: number })[];
-  const complete = entries.every((e) => e.schema_version === 3 && e.plant_hmac === undefined);
+  const complete = entries.every((e) => (e.schema_version === 3 || e.schema_version === 4) && e.plant_hmac === undefined);
   if (complete) return chain;
 
   const renamed = entries.map((entry) => {

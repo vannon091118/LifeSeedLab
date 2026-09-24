@@ -40,7 +40,8 @@ export function plantRefOf(
   parentAId: string,
   parentBId: string,
   generation: number,
+  rootSeed: number = EPOCH_ROOT,
 ): PlantRef {
-  const raw = fnv1aHex(`pr|epoch:${EPOCH_ROOT}|a:${parentAId}|b:${parentBId}|gen:${generation}|seed:${seed}`);
+  const raw = fnv1aHex(`pr|root:${rootSeed}|a:${parentAId}|b:${parentBId}|gen:${generation}|seed:${seed}`);
   return `pr-${raw}`;
 }

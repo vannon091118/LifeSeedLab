@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import type { MetaSave } from './types';
 import { translations, type TranslationKey, type Lang } from './i18n/translations';
+import { updateMeta } from './meta';
 
 // Regel 3: `Lang` wohnt EINMAL in i18n/translations.ts (Barrel) — importiert für den
 // eigenen Gebrauch und als Re-Export weitergereicht (bestehende Importe bleiben stabil).
@@ -24,7 +25,7 @@ export function I18nProvider({ children, initialLang }: { children: ReactNode; i
 
   const setLang = useCallback((l: Lang) => {
     setLangState(l);
-    import('./meta').then(m => m.updateMeta({ language: l }));
+    updateMeta({ language: l });
   }, []);
 
   const t = useCallback((key: TranslationKey): string => {

@@ -1,114 +1,94 @@
-// Owner: DiscoveryChain (append-only, hash-linked). LOC ≤ 250.
-// Blockchain-lite ohne Blockchain: deterministischer RNG ist der Beweis,
-// FNV-Hash-Chain ist die Verkettung. Keine externen Deps, kein Mining,
-// kein Token. Supabase-Spiegel via UNIQUE(genome_hash) — erste Entdeckung gewinnt.
+// Owner: DiscoveryChain (append-only, hash-linked). LOC ≤ 300.
+// Neue Discovery-Einträge verwenden SHA-256 via WebCrypto. FNV bleibt für die Verkettung
+// (entry_hash) und für ausdrücklich als Legacy markierte lokale Käfer-Anker erhalten.
 //
-// P2' (Plan „Seed-Identität, Pflanzenschutz & Ghost-Map-Multiplayer" §1.2):
-// NEUE Einträge tragen `plant_ref` statt des Klartext-Zucht-Seeds — der Seed ist der
-// PRIVATE Teil, die Referenz der ÖFFENTLICHE Identifier. Gründer-Einträge (Epoche 0, vor
-// P2') behalten ihren historischen `seed` — das ist dokumentierte Herkunft, kein Leck:
-// ihre Wurzel ist ohnehin öffentlich. Die Ableitung der Referenz lebt NICHT hier (Single
-// Writer): gacha.ts bleibt der einzige Seed-Writer, `plantRefOf` mixt seinen Wert.
-// Der Payload bleibt ADDITIV-KONDITIONAL: ohne Feld hashen alte Einträge unverändert.
-//
-// SCHEMA v3 (Befund 20.09.2026): Das Feld hieß bis v2 `plant_hmac` und behauptete damit
-// einen HMAC, den die Funktion nie war. Da der FELDNAME Teil des gehashten Payloads ist,
-// ist die Umbenennung keine kosmetische Änderung: jede gespeicherte Kette wird beim Laden
-// EINMAL neu gehasht und neu verkettet (`codex_migration.ts#migrateToPlantRef`), genau wie
-// beim v1→v2-Schritt. Kein stiller Bruch — der Vertrag steht dort dokumentiert.
+// Schemaregel: alte Einträge (Schema 3, `hyb-...`) bleiben lesbar. Run-Einträge (Schema 4)
+// tragen den öffentlichen Run-Seed, den Elternkontext und einen SHA-256-Genom-Hash. Das ist
+// absichtlich additiv: ein gespeicherter alter Fund wird nicht so umgeschrieben, dass seine
+// Herkunft plötzlich wie ein SHA-Beweis aussieht.
 
-import type { Genome } from '../types';
-import { fnv1aHex } from '../core/hash';
-// Kanonische Sortierung: Code-Units statt Locale — sonst hinge `genome_hash` an der
-// Browsersprache (Befund 20.09.2026, Begründung in `core/order.ts`).
+import type { Allele, Genome, PlantParentSnapshot } from '../types';
+import { fnv1aHex, sha256Hex } from '../core/hash';
 import { compareCodeUnits } from '../core/order';
 import { EPOCH_ID } from '../config';
 import { plantRefOf } from './plantRef';
 
-// ── Genome-Hash (einzige Wahrheit für eine Kreuzung) ─────────────────
-/** Kanonische Darstellung: Gene sortiert nach id, power auf 1e-4 quantisiert. */
-function canonicalGenome(genome: Genome): string {
-  const sorted = [...genome].sort((a, b) => compareCodeUnits(a.id, b.id));
-  return sorted.map(g => `${g.id}:${(Math.round(g.power * 10000) / 10000).toFixed(4)}:${g.dominant ? 'D' : 'r'}`).join('|');
+function formatPower(power: number): string {
+  return (Math.round(power * 10000) / 10000).toFixed(4);
 }
 
-/** Deterministischer genome_hash — gleicher Seed + gleiche Eltern ⇒ gleicher Hash. */
-export function hashGenome(genome: Genome): string {
-  return `hyb-${fnv1aHex(canonicalGenome(genome))}`;
+function canonicalAllele(allele: Allele): string {
+  return `${allele.id}:${formatPower(allele.power)}:${allele.dominant ? 'D' : 'r'}`;
 }
 
-// ── Discovery-Entry ──────────────────────────────────────────────────
-/**
- * Eintragstyp (P2, plan-discovery-chain.md): versioniert die HERKUNFT eines Fundes.
- * `cross` = aus zwei Eltern gekreuzt (heute der einzige Typ). Der Ticket-Worker (P4) ergänzt
- * später `found` (Feldfund) — das Feld ist die Migrations-Naht, nicht ein Platzhalter.
- */
+/** Kanonische Genomdarstellung — gemeinsame Wahrheit für Hash und Share-Kontext. */
+export function canonicalGenome(genome: Genome, includeGenotype = true): string {
+  return [...genome]
+    .sort((a, b) => compareCodeUnits(a.id, b.id))
+    .map(g => {
+      const expressed = canonicalAllele(g);
+      if (!includeGenotype || !g.alleles) return expressed;
+      return `${expressed}[${g.alleles.map(canonicalAllele).join(',')}]`;
+    })
+    .join('|');
+}
+
+/** SHA-256 des Genoms; der Prefix macht den Hashvertrag im Drahtformat erkennbar. */
+export async function hashGenome(genome: Genome): Promise<string> {
+  return `sha256-${await sha256Hex(canonicalGenome(genome))}`;
+}
+
+/** Legacy-FNV für alte Einträge und lokale Käfer-Anker — niemals als SHA ausgeben. */
+export function legacyGenomeHash(genome: Genome): string {
+  return `hyb-${fnv1aHex(canonicalGenome(genome, false))}`;
+}
+
 export type DiscoveryEntryType = 'cross' | 'found';
 
 export interface DiscoveryEntry {
-  /** entry_hash — SHA256-lite (FNV-Hex) über alle Felder außer sich selbst. */
+  /** FNV-Verkettung über den übrigen Payload; kein kryptografischer Genom-Hash. */
   entry_hash: string;
-  /** FNV-Hex des Genoms — UNIQUE in Supabase, erste Entdeckung gewinnt. */
+  /** SHA-256 (Schema 4) oder historisches `hyb-` (Schema 3). */
   genome_hash: string;
-  /** Eltern-Varianten-IDs (sortiert kanonisch für deterministischen Hash). */
+  /** Eltern-IDs; die Reihenfolge ist für die Zuchtableitung relevant. */
   parents: [string, string];
-  /** Gacha-/Breed-Seed, der das Kind deterministisch erzeugt hat.
-   *  NUR an Gründer-Einträgen (Epoche 0, vor P2') — neue Einträge tragen statt dessen
-   *  `plant_ref` (siehe unten). Ein Seed im Entry ist Herkunfts-Dokumentation, kein
-   *  Share-Format: die Wurzel der Gründer-Epoche ist öffentlich, neuere nicht. */
+  /** Historischer Klartext-Seed nur für alte Gründer-Einträge. */
   seed?: number;
-  /** ÖFFENTLICHER Pflanzen-Identifier (Mischwert über den Zucht-Kontext) — das Share-Format
-   *  und der Codex-Beleg neuer Einträge. Nicht umkehrbar, kein Klartext-Seed und — anders als
-   *  der frühere Name `plant_hmac` suggerierte — KEIN kryptografischer HMAC (s. `plantRef.ts`). */
+  /** Öffentliche Referenz, kein HMAC. */
   plant_ref?: string;
+  /** Öffentlicher, run-lokaler Wurzelwert; in Schema 4 Pflicht. */
+  run_seed?: number;
+  /** Elternkontext für den Worker: IDs, Rollen und Genome der beiden Eltern. */
+  parent_context?: [PlantParentSnapshot, PlantParentSnapshot];
   generation: number;
-  /** Spieler-Identität — organisch sichtbar, kein Prestige-System. */
   player_id: string;
-  /** Logischer Zeitstempel (deterministisch aus Seed+Generation abgeleitet, KEINE Uhr) —
-   *  derselbe Wert wie in `DiscoveryInput.timestamp`; er identifiziert das Zucht-EREIGNIS,
-   *  nicht einen Kalendertag. */
   timestamp: number;
-  /** Epoche des Fundes — identifiziert die Wurzel, aus der `seed` abgeleitet wurde.
-   *  Ohne sie ist ein Eintrag nach einem Wurzel-Wechsel nicht mehr nachrechenbar (P1-Vertrag). */
   epoch_id: number;
-  /** Herkunfts-Typ des Eintrags (siehe DiscoveryEntryType). */
   type: DiscoveryEntryType;
-  /** Schema-Version der EINTRAGS-Struktur (unabhängig von der Codex-Speicher-Version). */
-  schema_version: 3;
-  /** Hash des Vorgängers — null beim Genesis-Eintrag. */
+  schema_version: 3 | 4;
   prev_hash: string | null;
 }
 
-/** Eingabe zum Erzeugen eines Eintrags — abgeleitete Felder werden hier gesetzt. */
 interface DiscoveryInput {
   genome: Genome;
   parents: [string, string];
-  /** Der private Zucht-Seed — wird NUR zur Referenz-Ableitung und für den logischen
-   *  Zeitstempel genutzt, verlässt die Entry-Bildung nie ins Share-Format. Die
-   *  Gründer-Migration setzt stattdessen den Seed direkt in den Eintrag. */
+  parentContext?: [PlantParentSnapshot, PlantParentSnapshot];
   seed: number;
   generation: number;
   player_id: string;
-  /** Logischer Zeitstempel (deterministisch, KEIN Date.now()). Caller muss liefern. */
   timestamp: number;
-  /** Epoche des Fundes — default: die aktive (EPOCH_ID). */
   epoch_id?: number;
-  /** Herkunfts-Typ — default: 'cross'. */
+  rootSeed?: number;
   type?: DiscoveryEntryType;
 }
 
-/** Stabile Serialisierung für den Entry-Hash (Feldreihenfolge fix). */
 function entryPayload(e: Omit<DiscoveryEntry, 'entry_hash'>): string {
   return JSON.stringify({
-    // ADDITIV-KONDITIONAL (D8-Muster, plan-discovery-chain.md §2): die neuen Felder hängen nur
-    // an, wenn vorhanden — Epoche-0-Einträge alter Struktur hashen damit UNVERÄNDERT weiter,
-    // neue Einträge tragen ihre Herkunft mit. Kein bestehender Hash bricht.
     genome_hash: e.genome_hash,
-    parents: [...e.parents].sort(),
-    // P2'-Verdichtung: genau EINE Seed-Form je Eintrag. Neue Einträge haben keinen
-    // Klartext-Seed (privat), Gründer keine Referenz (historisch) — beides wäre eine
-    // zweite Wahrheit über dieselbe Herkunft.
+    parents: [...e.parents].sort(compareCodeUnits),
     ...(e.plant_ref !== undefined ? { plant_ref: e.plant_ref } : { seed: e.seed }),
+    ...(e.run_seed !== undefined ? { run_seed: e.run_seed } : {}),
+    ...(e.parent_context !== undefined ? { parent_context: e.parent_context } : {}),
     generation: e.generation,
     player_id: e.player_id,
     timestamp: e.timestamp,
@@ -123,19 +103,37 @@ export function hashEntry(entry: Omit<DiscoveryEntry, 'entry_hash'>): string {
   return fnv1aHex(entryPayload(entry));
 }
 
-/** Erzeugt einen neuen Chain-Eintrag verkettet an `prev` — mit Epoche, Typ und Schema (P2)
- *  und dem öffentlichen `plant_ref` statt des Klartext-Seeds (P2', Schema v3). */
-export function createEntry(input: DiscoveryInput, prev: DiscoveryEntry | null): DiscoveryEntry {
-  const genome_hash = hashGenome(input.genome);
-  const timestamp = input.timestamp; // required, deterministic — no Date.now()
-  const parents: [string, string] = [...input.parents].sort() as [string, string];
+/**
+ * Erzeugt einen Eintrag. Ohne `rootSeed` bleibt der historische Test-/Migrationspfad
+ * (Schema 3 + FNV) erhalten. Der Produktionspfad übergibt Run-Seed und Elternkontext und
+ * schreibt damit Schema 4 + SHA-256.
+ */
+export function createEntry(input: DiscoveryInput & { rootSeed?: undefined }, prev: DiscoveryEntry | null): DiscoveryEntry;
+export function createEntry(input: DiscoveryInput & { rootSeed: number }, prev: DiscoveryEntry | null): Promise<DiscoveryEntry>;
+export function createEntry(input: DiscoveryInput, prev: DiscoveryEntry | null): DiscoveryEntry | Promise<DiscoveryEntry> {
+  if (input.rootSeed === undefined) return createLegacyEntry(input, prev);
+  return createRunEntry(input as DiscoveryInput & { rootSeed: number }, prev);
+}
+
+function validateContext(input: DiscoveryInput): void {
+  if (input.parentContext && (
+    input.parentContext[0].id !== input.parents[0] || input.parentContext[1].id !== input.parents[1]
+  )) {
+    throw new Error('Elternkontext und Eltern-IDs stimmen nicht überein.');
+  }
+}
+
+function createLegacyEntry(input: DiscoveryInput, prev: DiscoveryEntry | null): DiscoveryEntry {
+  validateContext(input);
+  const parents: [string, string] = [...input.parents] as [string, string];
+  const referenceParents = [...parents].sort(compareCodeUnits) as [string, string];
   const base: Omit<DiscoveryEntry, 'entry_hash'> = {
-    genome_hash,
+    genome_hash: legacyGenomeHash(input.genome),
     parents,
-    plant_ref: plantRefOf(input.seed, parents[0]!, parents[1]!, input.generation),
+    plant_ref: plantRefOf(input.seed, referenceParents[0]!, referenceParents[1]!, input.generation),
     generation: input.generation,
     player_id: input.player_id,
-    timestamp,
+    timestamp: input.timestamp,
     epoch_id: input.epoch_id ?? EPOCH_ID,
     type: input.type ?? 'cross',
     schema_version: 3,
@@ -144,36 +142,77 @@ export function createEntry(input: DiscoveryInput, prev: DiscoveryEntry | null):
   return { ...base, entry_hash: hashEntry(base) };
 }
 
-// ── Chain-Verifikation ───────────────────────────────────────────────
+async function createRunEntry(input: DiscoveryInput & { rootSeed: number }, prev: DiscoveryEntry | null): Promise<DiscoveryEntry> {
+  if (!input.parentContext) throw new Error('Run-Discovery benötigt den öffentlichen Elternkontext.');
+  validateContext(input);
+  const parents: [string, string] = [...input.parents] as [string, string];
+  const referenceParents = [...parents].sort(compareCodeUnits) as [string, string];
+  const base: Omit<DiscoveryEntry, 'entry_hash'> = {
+    genome_hash: await hashGenome(input.genome),
+    parents,
+    plant_ref: plantRefOf(input.seed, referenceParents[0]!, referenceParents[1]!, input.generation, input.rootSeed),
+    generation: input.generation,
+    player_id: input.player_id,
+    timestamp: input.timestamp,
+    epoch_id: input.epoch_id ?? EPOCH_ID,
+    type: input.type ?? 'cross',
+    schema_version: 4,
+    run_seed: input.rootSeed,
+    parent_context: input.parentContext,
+    prev_hash: prev ? prev.entry_hash : null,
+  };
+  return { ...base, entry_hash: hashEntry(base) };
+}
+
 type VerifyResult = { valid: true } | { valid: false; reason: string; index: number };
+
+function validGenomeHash(hash: string, schema: 3 | 4): boolean {
+  return schema === 4
+    ? /^sha256-[0-9a-f]{64}$/.test(hash)
+    : /^hyb-[0-9a-f]{8}$/.test(hash);
+}
+
+function validParentContext(context: unknown): context is [PlantParentSnapshot, PlantParentSnapshot] {
+  if (!Array.isArray(context) || context.length !== 2) return false;
+  return context.every(parent => {
+    if (!parent || typeof parent !== 'object') return false;
+    const p = parent as Partial<PlantParentSnapshot>;
+    return typeof p.id === 'string' && typeof p.type === 'string' && Array.isArray(p.genome)
+      && p.genome.every(g => typeof g?.id === 'string' && Number.isFinite(g?.power)
+        && typeof g?.dominant === 'boolean');
+  });
+}
 
 export function verifyChain(chain: DiscoveryEntry[]): VerifyResult {
   const seenGenome = new Set<string>();
   for (let i = 0; i < chain.length; i++) {
-    const e = chain[i];
-    // Hash-Integrität
-    const { entry_hash, ...rest } = e;
+    const e = chain[i]!;
+    const { entry_hash: _entryHash, ...rest } = e;
     const expected = hashEntry(rest);
-    if (entry_hash !== expected) {
-      return { valid: false, reason: `hash mismatch at ${i}: expected ${expected} got ${entry_hash}`, index: i };
+    if (e.entry_hash !== expected) {
+      return { valid: false, reason: `hash mismatch at ${i}: expected ${expected} got ${e.entry_hash}`, index: i };
     }
-    // Verkettung
-    const expectedPrev = i === 0 ? null : chain[i - 1].entry_hash;
+    const expectedPrev = i === 0 ? null : chain[i - 1]!.entry_hash;
     if (e.prev_hash !== expectedPrev) {
       return { valid: false, reason: `prev_hash mismatch at ${i}`, index: i };
     }
-    // genome_hash darf in einer ehrlichen lokalen Chain nicht doppelt vorkommen;
-    // global gilt UNIQUE — hier als Warnung, nicht als Invalid (Fork wird vom Server abgelehnt).
     if (seenGenome.has(e.genome_hash)) {
       return { valid: false, reason: `duplicate genome_hash ${e.genome_hash} at ${i}`, index: i };
     }
     seenGenome.add(e.genome_hash);
-    // Felder plausibel
-    if (!e.genome_hash.startsWith('hyb-') || e.parents.length !== 2 || !e.player_id) {
+    if (!validGenomeHash(e.genome_hash, e.schema_version) || e.parents.length !== 2 || !e.player_id) {
       return { valid: false, reason: `malformed entry at ${i}`, index: i };
     }
-    // P2'-Regel: genau EINE Seed-Form je Eintrag. Ein Eintrag mit BEIDEN wäre eine zweite
-    // Wahrheit über dieselbe Herkunft; ein Eintrag mit KEINER hat keinen Identitäts-Beleg.
+    if (e.schema_version === 4) {
+      if (!Number.isInteger(e.run_seed) || !validParentContext(e.parent_context)) {
+        return { valid: false, reason: `run context malformed at ${i}`, index: i };
+      }
+      if (e.parent_context![0].id !== e.parents[0] || e.parent_context![1].id !== e.parents[1]) {
+        return { valid: false, reason: `parent context mismatch at ${i}`, index: i };
+      }
+    } else if (e.run_seed !== undefined || e.parent_context !== undefined) {
+      return { valid: false, reason: `legacy entry carries run context at ${i}`, index: i };
+    }
     if (e.plant_ref !== undefined && e.seed !== undefined) {
       return { valid: false, reason: `both plant_ref and seed at ${i}`, index: i };
     }
@@ -187,25 +226,20 @@ export function verifyChain(chain: DiscoveryEntry[]): VerifyResult {
   return { valid: true };
 }
 
-/** Append mit Deduplizierung — UNIQUE(genome_hash) lokal erzwungen. */
 export function tryAppend(chain: DiscoveryEntry[], entry: DiscoveryEntry): { chain: DiscoveryEntry[]; appended: boolean; reason?: string } {
   if (chain.some(e => e.genome_hash === entry.genome_hash)) {
     return { chain, appended: false, reason: `genome_hash ${entry.genome_hash} already in chain — first discovery wins` };
   }
-  const expectedPrev = chain.length === 0 ? null : chain[chain.length - 1].entry_hash;
+  const expectedPrev = chain.length === 0 ? null : chain[chain.length - 1]!.entry_hash;
   if (entry.prev_hash !== expectedPrev) {
-    return { chain, appended: false, reason: `prev_hash does not match tip` };
+    return { chain, appended: false, reason: 'prev_hash does not match tip' };
   }
-  const { entry_hash, ...rest } = entry;
-  if (hashEntry(rest) !== entry_hash) {
-    return { chain, appended: false, reason: `entry_hash invalid` };
+  const { entry_hash: entryHash, ...rest } = entry;
+  if (hashEntry(rest) !== entryHash) {
+    return { chain, appended: false, reason: 'entry_hash invalid' };
   }
   return { chain: [...chain, entry], appended: true };
 }
-
-// ── Supabase-Sync-Stub (local-first) ─────────────────────────────────
-// Der echte Sync ist ein einziger INSERT mit UNIQUE(genome_hash).
-// Lokal ist die Chain bereits autoritativ; der Stub dokumentiert die Grenze.
 
 interface SyncResult {
   ok: boolean;
@@ -213,8 +247,7 @@ interface SyncResult {
   remoteRejectedAsDuplicate?: boolean;
 }
 
-/** Stub — ersetzt durch echten Supabase-Insert wenn `supabaseUrl` konfiguriert ist. */
+/** Kein Online-Sync behauptet: Der lokale Codex ist die einzige aktive Quelle. */
 export async function syncEntryStub(_entry: DiscoveryEntry): Promise<SyncResult> {
-  // Kein Backend konfiguriert → lokal-first, kein Fehler.
-  return { ok: true };
+  return { ok: false, reason: 'Online-Sync ist nicht konfiguriert; der Fund bleibt lokal.' };
 }

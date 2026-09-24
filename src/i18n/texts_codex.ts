@@ -18,10 +18,10 @@ export const codexTexts = {
     'beetle.library': 'Brut-Lager',
     'gacha.result': 'Der Samen wird:',
     'gacha.parents': 'Eltern gewürfelt:',
-    'codex.title': 'Öffentlicher Codex',
+    'codex.title': 'Lokaler Codex',
     // B25 (Befund 8): „Chain valid"/„First by" klangen nach Onlinedienst. Das Ding hier heißt
     // jetzt beim Namen: dein Laborbuch auf diesem Gerät — kein Upload, kein Account.
-    'codex.subtitle': 'Dein Laborbuch: jede Kreuzung bleibt hier auf diesem Gerät — die erste Zucht einer Sorte trägt deinen Namen.',
+    'codex.subtitle': 'Dein lokales Laborbuch: jede Kreuzung bleibt auf diesem Gerät — die erste Zucht einer Sorte trägt deinen Namen.',
     'codex.empty': 'Noch keine Entdeckungen. Züchte die erste!',
     'codex.firstBy': 'Erst gezüchtet von',
     'codex.share': 'Fund teilen',
@@ -54,7 +54,6 @@ export const codexTexts = {
     'trait.titan': 'Titan',
     'trait.bloom': 'Blüte',
     'trait.vortex': 'Wirbel',
-    'pvp.comingSoon': 'Duelle kommen bald — erst der Endlos-Modus will gemeistert sein!',
     // B25 (Befund 8): der Codex nannte seine Zähler wie eine Kryptowährung. Spielerisch benennen.
     'codex.countOne': 'Entdeckung',
     'codex.countMany': 'Entdeckungen',
@@ -65,6 +64,12 @@ export const codexTexts = {
     'codex.noteSeed': 'Funde tragen einen öffentlichen Beleg — jede geteilte Zeile',
     'codex.noteSeedLoad': 'findet dieselbe Pflanze im Codex. Der Zuchtweg bleibt dein.',
     'codex.noteVerify': 'Die Prüfung rechnet alles lokal nach — kein Online-Abgleich.',
+    'codex.verifyTitle': 'Share lokal nachrechnen',
+    'codex.verifyPlaceholder': 'lifeseed:runSeed:beleg:gen:hash',
+    'codex.verify': 'Nachrechnen',
+    'codex.verifyBusy': 'Worker rechnet …',
+    'codex.verifyOk': 'Hash stimmt — das Kind ist reproduzierbar.',
+    'codex.verifyError': 'Share konnte nicht gelesen werden.',
   },
   en: {
     'beetle.title': 'Brood Chamber — Breeding',
@@ -79,10 +84,10 @@ export const codexTexts = {
     'beetle.library': 'Brood library',
     'gacha.result': 'The seed becomes:',
     'gacha.parents': 'Parents rolled:',
-    'codex.title': 'Public Codex',
+    'codex.title': 'Local Codex',
     // B25 (finding 8): "chain valid"/"first by" read like an online service. Name the thing:
     // your lab notebook on this device — no upload, no account.
-    'codex.subtitle': 'Your lab notebook: every crossing stays on this device — the first breeder of a strain is named on it.',
+    'codex.subtitle': 'Your local lab notebook: every crossing stays on this device — the first breeder of a strain is named on it.',
     'codex.empty': 'No discoveries yet. Breed the first one!',
     'codex.firstBy': 'First bred by',
     'codex.share': 'Share discovery',
@@ -112,7 +117,6 @@ export const codexTexts = {
     'trait.titan': 'Titan',
     'trait.bloom': 'Bloom',
     'trait.vortex': 'Vortex',
-    'pvp.comingSoon': 'PvP coming soon — master Endless first!',
     'codex.countOne': 'discovery',
     'codex.countMany': 'discoveries',
     'codex.discoveryOf': 'Breeding of',
@@ -122,5 +126,11 @@ export const codexTexts = {
     'codex.noteSeed': 'Discoveries carry a public proof — every shared line',
     'codex.noteSeedLoad': 'finds the same plant in the Codex. Your breeding path stays yours.',
     'codex.noteVerify': 'Verification is computed locally — no online check.',
+    'codex.verifyTitle': 'Reconstruct a share locally',
+    'codex.verifyPlaceholder': 'lifeseed:runSeed:beleg:gen:hash',
+    'codex.verify': 'Reconstruct',
+    'codex.verifyBusy': 'Worker calculating …',
+    'codex.verifyOk': 'Hash matches — the child is reproducible.',
+    'codex.verifyError': 'The share could not be read.',
   },
 };

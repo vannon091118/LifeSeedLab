@@ -6,39 +6,57 @@ Pfad: `src/discovery/`
 
 ## Umfang
 
-6 Dateien · importiert `components`, `genome` · wird importiert von `components`, `genome`
+9 Dateien · importiert `components`, `genome` · wird importiert von `components`, `genome`
 
 ## Dateien
 
 | Datei | LOC | Importiert von | Beziehungen |
 |---|---|---|---|
 | [`chain.test.ts`](./chain.test.ts) | 130 | 0 | CALL 117, IMPORTS 3, PASS 113, READ 56, RETURN 1, STRING_REFERENCE 93 |
-| [`chain.ts`](./chain.ts) | 220 | 2 | CALL 23, EXPORTS 8, IMPORTS 5, PASS 21, READ 65, RETURN 18, STRING_REFERENCE 17 |
-| [`codex.ts`](./codex.ts) | 189 | 1 | CALL 36, EXPORTS 5, IMPORTS 5, PASS 31, READ 37, RETURN 16, STRING_REFERENCE 12 |
-| [`codex_migration.ts`](./codex_migration.ts) | 97 | 0 | CALL 11, EXPORTS 2, IMPORTS 1, PASS 11, READ 19, RETURN 9, STRING_REFERENCE 8 |
+| [`chain.ts`](./chain.ts) | 253 | 2 | CALL 46, EXPORTS 12, IMPORTS 5, PASS 46, READ 129, RETURN 34, STRING_REFERENCE 26 |
+| [`codex.ts`](./codex.ts) | 152 | 2 | CALL 36, EXPORTS 6, IMPORTS 6, PASS 32, READ 44, RETURN 15, STRING_REFERENCE 14 |
+| [`codex_migration.ts`](./codex_migration.ts) | 98 | 0 | CALL 11, EXPORTS 2, IMPORTS 1, PASS 11, READ 19, RETURN 10, STRING_REFERENCE 8 |
 | [`epoch.test.ts`](./epoch.test.ts) | 195 | 0 | CALL 116, IMPORTS 5, PASS 120, READ 73, RETURN 1, STRING_REFERENCE 90 |
-| [`plantRef.ts`](./plantRef.ts) | 46 | 0 | CALL 1, EXPORTS 1, IMPORTS 2, PASS 1, RETURN 1, STRING_REFERENCE 2 |
+| [`genomeWorker.ts`](./genomeWorker.ts) | 26 | 0 | CALL 6, IMPORTS 1, PASS 6, READ 10, STRING_REFERENCE 7 |
+| [`plantRef.ts`](./plantRef.ts) | 47 | 0 | CALL 1, EXPORTS 1, IMPORTS 2, PASS 1, RETURN 1, STRING_REFERENCE 2 |
+| [`share.test.ts`](./share.test.ts) | 80 | 0 | CALL 64, IMPORTS 7, PASS 64, READ 70, STRING_REFERENCE 24 |
+| [`share.ts`](./share.ts) | 153 | 0 | CALL 44, EXPORTS 10, IMPORTS 3, PASS 40, READ 84, RETURN 17, STRING_REFERENCE 47 |
 
 ## Öffentliche Symbole
 
 | Symbol | Art | Datei | Zeile |
 |---|---|---|---|
+| `AppendDiscoveryInput` | interface | `src/discovery/codex.ts` | 94 |
 | `DiscoveryEntry` | interface | `src/discovery/chain.ts` | 48 |
 | `DiscoveryEntryType` | type | `src/discovery/chain.ts` | 46 |
-| `appendDiscovery` | function | `src/discovery/codex.ts` | 146 |
-| `createEntry` | function | `src/discovery/chain.ts` | 128 |
-| `getPlayerId` | function | `src/discovery/codex.ts` | 63 |
-| `hashEntry` | function | `src/discovery/chain.ts` | 122 |
-| `hashGenome` | function | `src/discovery/chain.ts` | 36 |
-| `loadCodex` | function | `src/discovery/codex.ts` | 102 |
-| `migrateToPlantRef` | function | `src/discovery/codex_migration.ts` | 66 |
+| `ParsedShare` | type | `src/discovery/share.ts` | 14 |
+| `ShareParentContext` | type | `src/discovery/share.ts` | 12 |
+| `ShareResult` | type | `src/discovery/share.ts` | 18 |
+| `WorkerRequest` | type | `src/discovery/share.ts` | 129 |
+| `WorkerResponse` | type | `src/discovery/share.ts` | 130 |
+| `appendDiscovery` | function | `src/discovery/codex.ts` | 108 |
+| `canonicalGenome` | function | `src/discovery/chain.ts` | 25 |
+| `createEntry` | function | `src/discovery/chain.ts` | 111 |
+| `createEntry` | function | `src/discovery/chain.ts` | 112 |
+| `createEntry` | function | `src/discovery/chain.ts` | 113 |
+| `formatShareText` | function | `src/discovery/share.ts` | 78 |
+| `getPlayerId` | function | `src/discovery/codex.ts` | 55 |
+| `hashEntry` | function | `src/discovery/chain.ts` | 102 |
+| `hashGenome` | function | `src/discovery/chain.ts` | 37 |
+| `legacyGenomeHash` | function | `src/discovery/chain.ts` | 42 |
+| `loadCodex` | function | `src/discovery/codex.ts` | 73 |
+| `migrateToPlantRef` | function | `src/discovery/codex_migration.ts` | 67 |
 | `migrateV1Entries` | function | `src/discovery/codex_migration.ts` | 37 |
+| `parseShare` | function | `src/discovery/share.ts` | 90 |
 | `plantRefOf` | function | `src/discovery/plantRef.ts` | 38 |
-| `seedShareText` | function | `src/discovery/codex.ts` | 185 |
-| `syncEntryStub` | function | `src/discovery/chain.ts` | 217 |
-| `tryAppend` | function | `src/discovery/chain.ts` | 191 |
-| `verifyChain` | function | `src/discovery/chain.ts` | 150 |
-| `verifyLocalChain` | function | `src/discovery/codex.ts` | 178 |
+| `reconstructShare` | function | `src/discovery/share.ts` | 109 |
+| `reconstructShareInWorker` | function | `src/discovery/share.ts` | 135 |
+| `seedShareText` | function | `src/discovery/codex.ts` | 141 |
+| `shareTextForEntry` | function | `src/discovery/share.ts` | 122 |
+| `syncEntryStub` | function | `src/discovery/chain.ts` | 251 |
+| `tryAppend` | function | `src/discovery/chain.ts` | 229 |
+| `verifyChain` | function | `src/discovery/chain.ts` | 186 |
+| `verifyLocalChain` | function | `src/discovery/codex.ts` | 136 |
 
 ## Datenfluss
 
@@ -52,19 +70,19 @@ nicht Projektrelation, und würde den Datenfluss mit fremdem Code fluten.
 | `src/discovery/chain.test.ts` | 8 | `'gleicher Seed + gleiche Eltern ⇒ gleicher genome_hash (Beweis)'` | 1 | [`src/discovery/chain.test.ts`](chain.test.ts) | it |
 | `src/discovery/chain.test.ts` | 9 | `'fire'` | 1 | [`src/discovery/chain.test.ts`](chain.test.ts) | g |
 | `src/discovery/chain.test.ts` | 10 | `'rapid'` | 1 | [`src/discovery/chain.test.ts`](chain.test.ts) | g |
-| `src/discovery/chain.test.ts` | 11 | `hashGenome(a)` | 1 | [`src/discovery/chain.test.ts`](chain.test.ts) | expect |
+| `src/discovery/chain.test.ts` | 11 | `await hashGenome(a)` | 1 | [`src/discovery/chain.test.ts`](chain.test.ts) | expect |
 | `src/discovery/chain.test.ts` | 11 | `a` | 1 | [`src/discovery/chain.test.ts`](chain.test.ts) | hashGenome |
 | `src/discovery/chain.test.ts` | 14 | `'ändert sich bei anderem Genom'` | 1 | [`src/discovery/chain.test.ts`](chain.test.ts) | it |
 | `src/discovery/chain.test.ts` | 15 | `'fire'` | 1 | [`src/discovery/chain.test.ts`](chain.test.ts) | g |
 | `src/discovery/chain.test.ts` | 16 | `'ice'` | 1 | [`src/discovery/chain.test.ts`](chain.test.ts) | g |
-| `src/discovery/chain.test.ts` | 17 | `hashGenome(a)` | 1 | [`src/discovery/chain.test.ts`](chain.test.ts) | expect |
+| `src/discovery/chain.test.ts` | 17 | `await hashGenome(a)` | 1 | [`src/discovery/chain.test.ts`](chain.test.ts) | expect |
 | `src/discovery/chain.test.ts` | 17 | `a` | 1 | [`src/discovery/chain.test.ts`](chain.test.ts) | hashGenome |
 | `src/discovery/chain.test.ts` | 20 | `'ist stabil über Quantisierung (1e-4)'` | 1 | [`src/discovery/chain.test.ts`](chain.test.ts) | it |
 | `src/discovery/chain.test.ts` | 21 | `'fire'` | 1 | [`src/discovery/chain.test.ts`](chain.test.ts) | g |
 | `src/discovery/chain.test.ts` | 22 | `'fire'` | 1 | [`src/discovery/chain.test.ts`](chain.test.ts) | g |
-| `src/discovery/chain.test.ts` | 24 | `hashGenome(a)` | 1 | [`src/discovery/chain.test.ts`](chain.test.ts) | expect |
+| `src/discovery/chain.test.ts` | 24 | `await hashGenome(a)` | 1 | [`src/discovery/chain.test.ts`](chain.test.ts) | expect |
 | `src/discovery/chain.test.ts` | 24 | `a` | 1 | [`src/discovery/chain.test.ts`](chain.test.ts) | hashGenome |
-| `src/discovery/chain.test.ts` | 26 | `hashGenome([g('fire', 0.123451)])` | 1 | [`src/discovery/chain.test.ts`](chain.test.ts) | expect |
+| `src/discovery/chain.test.ts` | 26 | `await hashGenome([g('fire', 0.123451)])` | 1 | [`src/discovery/chain.test.ts`](chain.test.ts) | expect |
 | `src/discovery/chain.test.ts` | 26 | `'fire'` | 1 | [`src/discovery/chain.test.ts`](chain.test.ts) | g |
 | `src/discovery/chain.test.ts` | 26 | `[g('fire', 0.123451)]` | 1 | [`src/discovery/chain.test.ts`](chain.test.ts) | hashGenome |
 | `src/discovery/chain.test.ts` | 30 | `'Discovery-Chain — Hash-Chain & Verifikation'` | 1 | [`src/discovery/chain.test.ts`](chain.test.ts) | describe |

@@ -31,9 +31,21 @@ export interface HashableState {
   combo: { count: number; multiplier: number; timer: number; highest: number };
 }
 
+/** SHA-256 über WebCrypto — asynchron, weil `crypto.subtle.digest` bewusst asynchron ist. */
+export async function sha256Hex(input: string): Promise<string> {
+  const subtle = (globalThis as unknown as { crypto?: { subtle?: { digest: (algorithm: string, data: BufferSource) => Promise<ArrayBuffer> } } }).crypto?.subtle;
+  if (!subtle) throw new Error('WebCrypto SHA-256 ist in dieser Laufzeit nicht verfügbar.');
+  const bytes = new TextEncoder().encode(input);
+  const digest = new Uint8Array(await subtle.digest('SHA-256', bytes));
+  let out = '';
+  for (const byte of digest) out += byte.toString(16).padStart(2, '0');
+  return out;
+}
+
 /**
- * Canonical FNV-1a as 8-digit hex — the one shared implementation for all hash
- * identities (discovery genome/entry hashes). One hash core, one truth.
+ * Canonical FNV-1a as 8-digit hex — bleibt für State-/Migrations- und Referenzhashes.
+ * Der UNIQUE-Genom-Hash nutzt dagegen `sha256Hex`; zwei verschiedene Hash-Verträge dürfen
+ * nicht als derselbe Identifier missverstanden werden.
  */
 export function fnv1aHex(input: string): string {
   return fnv1a(0x811c9dc5, input).toString(16).padStart(8, '0');

@@ -5,25 +5,25 @@ import type { Genome } from '../types';
 function g(id: string, power: number, dominant = true): Genome[0] { return { id, power, dominant }; }
 
 describe('Discovery-Chain — genome_hash Determinismus', () => {
-  it('gleicher Seed + gleiche Eltern ⇒ gleicher genome_hash (Beweis)', () => {
+  it('gleicher Seed + gleiche Eltern ⇒ gleicher genome_hash (Beweis)', async () => {
     const a: Genome = [g('fire', 0.52), g('rapid', 0.31)];
     const b: Genome = [g('rapid', 0.31), g('fire', 0.52)]; // Reihenfolge vertauscht
-    expect(hashGenome(a)).toBe(hashGenome(b));
+    expect(await hashGenome(a)).toBe(await hashGenome(b));
   });
 
-  it('ändert sich bei anderem Genom', () => {
+  it('ändert sich bei anderem Genom', async () => {
     const a: Genome = [g('fire', 0.52), g('rapid', 0.31)];
     const b: Genome = [g('ice', 0.52), g('rapid', 0.31)];
-    expect(hashGenome(a)).not.toBe(hashGenome(b));
+    expect(await hashGenome(a)).not.toBe(await hashGenome(b));
   });
 
-  it('ist stabil über Quantisierung (1e-4)', () => {
+  it('ist stabil über Quantisierung (1e-4)', async () => {
     const a: Genome = [g('fire', 0.12345)];
     const b: Genome = [g('fire', 0.12344)];
     // 0.12345 vs 0.12344 unterscheiden sich in 1e-4 ⇒ bewusst verschieden
-    expect(hashGenome(a)).not.toBe(hashGenome(b));
+    expect(await hashGenome(a)).not.toBe(await hashGenome(b));
     // Rundung auf 1e-4: 0.123451 und 0.123453 fallen ins selbe 1e-4-Band -> gleicher Hash
-    expect(hashGenome([g('fire', 0.123451)])).toBe(hashGenome([g('fire', 0.123453)]));
+    expect(await hashGenome([g('fire', 0.123451)])).toBe(await hashGenome([g('fire', 0.123453)]));
   });
 });
 
