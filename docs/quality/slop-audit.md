@@ -58,7 +58,7 @@ Diese Spezifikation definiert für das Werkzeug **Shinon** 22 prüfbare Erkennun
 - **Audit-Prüffrage:** *Wurde ein diagnostisch relevanter oder fachlich unmöglicher Fehlerzustand stillschweigend in einen gültigen Wert verwandelt?*
 - **Shinon-Detektionslogik:** AST-Pattern `CatchClause` oder `NullishCoalescing` an Systemgrenzen ohne Logging oder Invalidierungs-Signal.
 - **Empirischer Befund in LifeSeedLab:**
-  - In [llmBridge.ts](../../src/simulation/llmBridge.ts#L81): `try { const d = JSON.parse(raw) ... } catch { return null; }` -> Fail-closed! Verwirft unlesbares LLM-JSON sauber und gibt `ok: false, reason: 'unparseable'` zurück.
+  - Die frühere `llmBridge.ts`-Beobachtung ist historisch: Die tote Decision-Bridge wurde entfernt; der Befund bleibt als Audit-Historie, nicht als aktiver Vertrag.
   - In [gameRuntime.ts](../../src/render/gameRuntime.ts#L221): `try { recordRunEnd(...) } catch { /* meta persist must never break the run screen */ }` -> Stummes Catchen im Event-Handler.
   - **Bewertung:** **WARNUNG (LOG001).** Das stumme Catchen in `gameRuntime.ts` verhindert zwar einen UI-Absturz beim Rundenende, maskiert aber Speicherfehler im Meta-System ohne DevGate-Logging.
 
@@ -78,7 +78,7 @@ Diese Spezifikation definiert für das Werkzeug **Shinon** 22 prüfbare Erkennun
 - **Shinon-Detektionslogik:** Grep/AST-Rule `TSAsExpression` direkt nach `JSON.parse`, `localStorage.getItem` oder `fetch`.
 - **Empirischer Befund in LifeSeedLab:**
   - In [snapshot.ts](../../src/simulation/snapshot.ts#L54): `const env = JSON.parse(raw) as SnapshotEnvelope;` -> Ungeprüfte Assertion von Savegames!
-  - In [llmBridge.ts](../../src/simulation/llmBridge.ts#L78): `const d = JSON.parse(raw) as AgentDecision;`
+  - Der frühere `llmBridge.ts`-Boundary-Befund ist historisch; der Bridge-Owner wurde entfernt.
   - **Bewertung:** **TRUE POSITIVE (AST001 / Boundary Laundering).** `snapshot.ts#L54` und `llmBridge.ts#L78` casten rohes JSON mittels `as`. Während `llmBridge.ts` direkt in den Folgezeilen 79–80 die Typen (`version === 1`, `typeof strategy === 'string'`, `Array.isArray(actions)`) valide prüft, benötigt `snapshot.ts` eine strukturierte Schema-Prüfung vor der Zustands-Restauration.
 
 ### 7. API Shape Drift & Konverter-Dschungel
@@ -160,7 +160,7 @@ Diese Spezifikation definiert für das Werkzeug **Shinon** 22 prüfbare Erkennun
 - **Audit-Prüffrage:** *Ist die Logik sicher bei n=0, n=1, Duplikaten und gelöschten Entitäten?*
 - **Shinon-Detektionslogik:** Grep nach `[0]` ohne vorherige Length-Prüfung oder `!` Non-Null Assertion auf `.find()`.
 - **Empirischer Befund in LifeSeedLab:**
-  - In [llmBridge.ts](../../src/simulation/llmBridge.ts#L112): `if (decision.actions.length > MAX_ACTIONS)` und saubere Handhabung von `actions.length === 0` -> Fail-closed.
+  - Der frühere `llmBridge.ts`-Corner-Case-Befund ist historisch; es gibt keinen aktiven Bridge-Code mehr.
 
 ### 16. Dead Infrastructure & Geister-Code
 
@@ -168,7 +168,7 @@ Diese Spezifikation definiert für das Werkzeug **Shinon** 22 prüfbare Erkennun
 - **Audit-Prüffrage:** *Existieren exportierte Funktionen/Typen/Events, die keinen aktiven Konsumenten im Projekt besitzen?*
 - **Shinon-Detektionslogik:** Dependency Graph Dead Export Sweep via AST-Analyse.
 - **Empirischer Befund in LifeSeedLab:**
-  - In [llmBridge.ts](../../src/simulation/llmBridge.ts#L153): `// PROPAGATE_PLANT, DEPLOY_BEETLE... bewusst nicht bedienbar.`
+  - Der frühere `llmBridge.ts`-Dead-Infrastructure-Befund ist historisch; die tote Infrastruktur wurde entfernt.
   - Untracked Tools `tools/shinon/mutate.ts` im Worktree vorhanden.
 
 ### 17. Generic Name Density (Cognitive Overlap Indicator)

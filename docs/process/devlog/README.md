@@ -62,6 +62,7 @@ und korrigiert die alte Stelle, statt eine neue Wahrheit daneben zu legen.
 | 21 | 20.09.2026 | [Käfer-Sichtbarkeit](2026-09-20_21_kaefer-sichtbarkeit.md) | Brutkandidaten sind sichtbar verschieden (Median 15,7 % Pixel, vorher 89,6 % gleiche Farbe): Sichtbarkeits-Gewinn der Zeichenmaße + Pigment-Weg um die Palette, Karte mit Farbfeld und Stat-Deltas; Grenze und offene Balance-Frage benannt |
 | 22 | 20.09.2026 | [Drei von vier Pflanzen tun nichts](2026-09-20_22_pflanzen-und-bericht.md) | Tank/Boss fressen die Mauer (300→0 in 30 Bissen, 472 stehende Ticks bei 1200; Welle 1 bleibt 300), Reflex + Heilung greifen, Grunt zieht vorbei — alle Zahlen nur hier |
 | 23 | 23.09.2026 | [Krix redet nur, wenn etwas passiert](2026-09-23_23_krix-dialoge.md) | 20 Einträge als 10 Prompt/Reaktion-Paare (`TUTORIAL_VERSION 5`): Reaktion nur nach echtem Ereignis, Texte DE 1512/EN 1351 Zeichen, Papierhintergrund + Avoid-Layout, Dev-Leak nur im Gate; 709 Tests, 38 E2E |
+| 24 | 24.09.2026 | [Blindlauf: Notizen, Shop, Greenhouse, Leih-Run](2026-09-24_24_blindlauf-notizen-und-produktpfad.md) | P-15 Review sticky/read-only; Produktloop-Test korrigiert (echte Leih-Pflanze, Source-Reifungsschwelle, Meta-Felder); E2E-Harness-Phantom-API und Indexer-Asset-Probe behoben; Blindlauf Desktop/390×844; P-36 als offene/onboarding-Frage dokumentiert |
 
 Die frühen Runden 01–05 lagen zuletzt unter `qa/archiv/`; sie stehen hier, weil ein Archiv
 nichts ist, was man zweimal liest. Berichte der externen Spieltest-Reihe (19.09.2026,

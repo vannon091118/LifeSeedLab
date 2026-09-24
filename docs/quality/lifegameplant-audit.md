@@ -57,7 +57,7 @@ Execution Prompt nennt das Ziel **`LifegamePlant`**, das Repository heißt **`Li
 | `src/meta.ts` | Persistence | **Façade/Barrel** (6 LOC); Logik in `meta/{store,economy,run}.ts` (je ≤102); `storage.ts` bleibt einziger Storage-Owner | `persistence/storage` + `genome/bases` | 6 | **DONE (SPLIT)** — 2026-09-14, kein Cap-Erhöhen, keine Dopplung |
 | `src/types.ts` | Source | Meta-/Breeding-Typen (Entity-Typen bewusst in `simulation/state.ts`) | — | 103 | **REUSE** |
 | `src/genome.ts` | Source | **Façade/Barrel** (18 LOC); Logik in `genome/{pool,cross,gacha,bases}.ts` (je ≤117) | `core/rng` | 18 | **DONE (SPLIT)** — 2026-09-14, einzige Import-Fläche bleibt `./genome` |
-| `src/i18n.tsx` | UI | Provider-only (45 LOC); Übersetzungen ausgelagert in `i18n/translations.ts` (202 LOC, reine Daten) | `meta` (lazy) | 45 | **DONE (SPLIT)** — 2026-09-14 |
+| `src/i18n.tsx` | UI | Provider-only (45 LOC); Übersetzungen ausgelagert in `i18n/translations.ts` (202 LOC, reine Daten) | `meta` (statisch; Provider liegt im Initial-Chunk) | 45 | **DONE (SPLIT)** — 2026-09-14, Build-Warnungsquelle am 24.09. bereinigt |
 | `src/discovery/chain.ts` | DiscoveryChain | append-only hash-chain, `hashGenome` (FNV kanonisch), `prev_hash` verkettet, UNIQUE lokal | — | 155 | **REUSE** — §41/§42 Vorb. |
 | `src/discovery/codex.ts` | DiscoveryCodex | Spieler-ID + Codex-Persistenz + `appendDiscovery` + `lifeseed:` Share-Text + Sync-Stub | `persistence/storage` + `discovery/chain` | 141 | **REUSE** — lokal-first, Supabase-Spiegel |
 | `src/components/GameView.tsx` | UI | Pointer-Workflow `idle→selected→ghost→placed/rejected`, 390×844, `visibilitychange` + Resume-Overlay, HUD ≤5, DevGate-Mount | `simulation/root` + `render/*` + `dev/*` | 341 | **REUSE** — kein Gameplay-Write, ≤400 |

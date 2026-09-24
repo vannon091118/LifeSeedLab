@@ -11,7 +11,7 @@
 
 | Ebene | Technologie | Status | Begründung |
 |---|---|---|---|
-| **UI & Build** | React 19 + Vite + TypeScript (strict) | Fest | Moderner reaktiver DOM-Shell, instant HMR, null Overhead. |
+| **UI & Build** | React 19 + Vite + TypeScript (strict) | Fest | Moderner reaktiver DOM-Shell, instant HMR, null Overhead; Sekundär-Screens sind echte Lazy-Chunks und jede Vite-Build-Warnung ist ein harter Fehler. |
 | **Simulation** | Eigene deterministische Core-Runtime | Fest | Single-Thread/Worker-fähig, Fixed-Timestep (30 TPS), FNV-1a Hash-Kette. |
 | **Rendering** | **HTML5 Canvas 2D (handgeschrieben)** | Fest | **Keine externe Engine** (Pixi/Phaser abgelehnt). Pure Zeichenroutinen (`Path2D`, Bezier-Konturen) + vorgebackene Offscreen-Papercraft-Texturen aus dem `visual`-Namespace. Maximale FPS bei minimalem Speicherfootprint auf Mobile (390×844). |
 | **Audio** | Web Audio API (`observers/audioObserver.ts`) | Fest | SFX synthetisiert via Oszillatoren + Noise-Buffer, gesteuert durch `soundProfile`. 0 Audio-Assets, 0 Byte Ladezeit. Read-only Bus-Abonnent (FX ON/OFF ändert keinen einzigen RNG-Tick). |

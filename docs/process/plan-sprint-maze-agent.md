@@ -66,16 +66,11 @@ Owner neu: `src/simulation/observationSerializer.ts` (neu, ≤ 200). **`snapshot
 
 ## Arbeitspaket 5 — Phase 3 Decision-Bridge (M)
 
-Owner neu: `src/simulation/llmBridge.ts` (neu, ≤ 200).
+**Bewusst verworfen:** Die frühere Decision-Bridge-Idee ist nicht Teil des aktuellen Produkts.
+Es gibt keinen `llmBridge`-Owner, keine externe LLM-Abhängigkeit und keinen dev-only
+Umweg im Spielpfad. Die Bridge wurde vollständig entfernt; der Plan bleibt als historische
+Entscheidung ohne ausführbaren Auftrag erhalten.
 
-| # | Schritt | Detail |
-|---|---|---|
-| 5.1 | **Validator** (binding): `PLACE_PLANT` (variantId ∈ inventory, gx/gy buildable+unoccupied+nicht on_path, Energie), `FERTILIZE_PLANT` (plantId ∈ state.plants — KEINE Koordinaten), `START_WAVE`. Max 3 Actions, striktes JSON v1. | Plan §7; `FERTILIZE_PLANT`-String per grep bestätigt (`rootCommands.ts:83`) |
-| 5.2 | **Reject-Fallback:** Validation fail ⇒ `actions = []`, `strategy = "stabilize"`. Kein Blindflug. | Plan §7 |
-| 5.3 | **Command-Logger:** Valide Actions → `makeCommand(...)` in die bestehende Queue (1:1 rootCommands-Vokabular). LLM-Compute-Marker als Command-Payload-Präfix (`source: 'llm'`), damit Replay den Ursprung trägt — Command-Log bleibt die Determinismus-Wahrheit. | Plan §6 |
-| 5.4 | **Scope-Grenze:** `PROPAGATE_PLANT`, `DEPLOY_BEETLE` bewusst NICHT als Agent-Actions (Plan §5). | — |
-| 5.5 | **System-Prompt** als Konstante in llmBridge (Plan §9, unverändert übernehmen). | — |
-| 5.6 | Tests: Validator-Tabelle (valid/reject je Regel), Reject-Fallback, Command-Log-Replay bit-identisch (Voyager-Prinzip: LLM entscheidet, Sim execuciert). | neu: `llmBridge.test.ts` |
 
 ## Arbeitspaket 6 — Abschluss (Sprint-Ende, verbindlich)
 

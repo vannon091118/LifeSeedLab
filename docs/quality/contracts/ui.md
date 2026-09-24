@@ -275,6 +275,23 @@ ihr Nachweis liegt jetzt an einer Stelle (B21.4/B21.5), damit hier keine zweite 
       `platzierung`) hält die Sim an, nicht mehr die alte Zwei-Schritt-Fassung; `hold` steht im
       Schrittmodell (`script.ts`) und ist damit prüfbar.
 
+### B21.7 P-15 — freiwilliges Nachlesen (24.09.2026)
+
+**Spezifikation.** Nach dem bewussten Überspringen bleibt `tutorialVersion` der einzige
+Gesehen-Stand; der Hub bietet danach `Krix-Notizen` als freiwilligen, read-only Review. Der Review
+liest `TUTORIAL_STEPS` und `tutorialTexts`, zeigt alle 20 Notizen in DE/EN und schreibt weder
+Meta noch Simulation. Er startet keinen neuen Provider/Controller und wird nicht durch `?tutorial=1`
+erzwungen.
+
+**Belege.** `src/components/tutorial/NotesReview.tsx`, `src/App.tsx`, `src/components/MainMenu.tsx`,
+`src/components/components_tutorial.test.ts`, `tests/notes_review.spec.ts`; P-15 steht im
+ROADMAP als BEHOBEN. Der scrollbare Review hält seinen Schließen-Header sichtbar; damit bleibt
+die Aktion auch auf 390×844 erreichbar, ohne eine zweite Modal- oder State-Wahrheit einzuführen.
+
+**Abgrenzung.** Der Blindlauf hat keine neue Wirtschaftsregel erfunden: Eine Center-Platzierung
+der Leihpflanze kann weiterhin 0 Nektar ergeben. Diese Onboarding-Frage ist als P-36 im
+ROADMAP offen; B21.7 behauptet nur das read-only Nachlesen, keine garantierte Erstplatzierung.
+
 ---
 
 ## B22. Leere Tray beim Betreten des Runs (Befund: Erstspieler-Test)

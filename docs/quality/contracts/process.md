@@ -84,7 +84,7 @@ Stellen gleichzeitig landen — eine vergessene Stelle prüfte still eine andere
 ### B24.2 Spec
 
 1. **`tests/helpers/harness.ts`** ist die einzige Quelle für alle gemeinsamen E2E-Werkzeuge:
-   `startRun` (inkl. `?tutorial=0`), `bootMenu`, `ffUntil`, `pumpWave`, `freeCells`,
+   `startRun` (DevGate `?dev=1`), `bootToMenu`, `ffUntil`, `pumpWave`, `freeCells`,
    Sim-Bindungsprüfung, Game-Over-Warten.
 2. Specs enthalten **nur noch Tests und ihre Kommentare** — kein Werkzeug, kein Selektor, keine
    Geometrie.
@@ -96,8 +96,24 @@ Stellen gleichzeitig landen — eine vergessene Stelle prüfte still eine andere
 - [x] `rg "async function startRun" tests/` findet genau eine Definition (im Harness)
 - [x] Playwright erkennt dieselbe Testanzahl wie vorher (27)
 - [x] Suite grün; Progression-Laufzeit von ~5 min auf ~31 s gesenkt (kein reales Wellen-Warten mehr)
+- [x] Die Sim-Bindungsprüfung ist eine normale async Assertion-Funktion (`expectSimBound`) und
+      nicht die nicht existente Playwright-API `expect.simBound`; der separate TypeScript-Lauf
+      der neuen Specs bleibt fehlerfrei.
 
-### B24.4 Visuelle Belege — die dritte Stufe des Sprint-Abschlusses (21.09.2026)
+### B24.4 Build-Warnungen sind blockierend (24.09.2026)
+
+`vite.config.ts` behandelt jede Vite-Warnung im Build als Fehler. Die Produktionsgrenze wird
+zusätzlich durch echte Screen-Chunks statt wirkungsloser Dynamic-Import-Grenzen eingehalten:
+`App.tsx` lädt Run und Nebenscreens lazy, während innerhalb eines Screens benötigte Writer
+statisch bleiben. Ein Build mit `(!)`-Ausgabe ist damit kein gültiger Abschluss; der
+Regressionstest `tests/buildWarningGate.test.ts` prüft Build-Block und unberührten Dev-Server.
+
+Für den Produktloop ist ein eigener Single-Run-Modus definiert: `PW_SINGLE_RUN=1` erzwingt
+`workers=1`, `retries=0`, `trace: 'on'` und `test-results/single-run/`. Das ist die einzige
+zulässige E2E-Ausführung des nächsten Sprints; nach Rot wird der Trace ausgewertet, nicht
+ungeplant wiederholt.
+
+### B24.5 Visuelle Belege — die dritte Stufe des Sprint-Abschlusses (21.09.2026)
 
 `tests/helpers/canvasProbe.ts` ist das Instrument für „Silence is not feedback": Frame-Freeze,
 Farb-Centroid, Regionen-Vergleich (Details und Messwerte in `contracts/visual.md` B5.2,
