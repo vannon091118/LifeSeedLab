@@ -54,15 +54,15 @@ Owner neu: `src/simulation/pipeline.ts` (neu, ≤ 200).
 
 **Test:** komplette Suite muss unverändert grün bleiben (Pipeline ist reine Verschiebung, semantik-identisch — das Determinismus-Replay (`determinism.test.ts`) ist der Beweis).
 
-## Arbeitspaket 4 — Phase 2 Observation (S)
+## Arbeitspaket 4 — Phase 2 Observation (historisch verworfen)
 
-Owner neu: `src/simulation/observationSerializer.ts` (neu, ≤ 200). **`snapshot.ts` bleibt unangetastet** (Ledger-Entscheidung: Hash/Envelope-Rolle, nicht Wahrnehmung).
+Der geplante ObservationSerializer hatte keinen Produktionskonsumenten und wurde zusammen mit seiner test-only Suite entfernt. `snapshot.ts` bleibt der einzige Runtime-Snapshot-Vertrag.
 
 | # | Schritt | Detail |
 |---|---|---|
-| 4.1 | `serializeObservation(state, recentEvents)` → JSON v1 exakt nach verifiziertem Schema: `tick, phase, wave, grid (12×12 = 144 Zellen!), route { waypointCount, quality }, inventory, combat (combo, enemies mit echten TypeIds grunt|fast|tank|swarm|boss), recentEvents`. | Kein `agent.pos`, kein `perceptionRadius`, `route.quality` echt aus Phase 1 |
-| 4.2 | Event-Diff: `recentEvents` = Events seit letztem Agent-Tick (aus dem bestehenden `getEventLog()`-Kanal, gefiltert auf `notice`-Audience via `eventAudience.ts`). | B29-Infrastruktur wiederverwendet |
-| 4.3 | Test: Serializer golden test — Observation für frischen Run (Seed 2447771834) gegen Fixtur-JSON; jede Observation-Eigenschaft hat einen benannten Writer (DoD). | neu: `observationSerializer.test.ts` |
+| 4.1 | Historischer Plan ohne aktive Runtime-Implementierung. | Beobachtungs-Serializer war test-only und wurde entfernt. |
+| 4.2 | Entfällt mit dem entfernten Serializer. | Kein Eventkanal für eine nicht ausgelieferte API. |
+| 4.3 | Entfällt mit dem entfernten Serializer. | Kein Test für nicht vorhandene Produktionslogik. |
 
 ## Arbeitspaket 5 — Phase 3 Decision-Bridge (M)
 
@@ -102,3 +102,4 @@ Entscheidung ohne ausführbaren Auftrag erhalten.
 | Determinismus-Replay bricht durch Phase 1 (Route ändert sich) | Erwartung: Replay bleibt grün (gleiche Commands ⇒ gleiche Route); nur wenn Route-Hash gepinnt ist, neu pinnen — dokumentieren wie B30-Muster |
 | E2E-Laufzeit-Regression (Lektion 13-min-Lauf) | Preview-Server stoppen vor E2E; Playwright verwaltet Dev-Server selbst |
 | Agent-Validator zu streng (Spieler-Commands identisch blockiert) | Validator nur im LLM-Pfad — Spieler-Command-Pfad unverändert |
+Pfad unverändert |

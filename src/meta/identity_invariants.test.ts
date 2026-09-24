@@ -21,101 +21,79 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { clearTestStorage } from '../persistence/testDom';
 import { createBaseVariants } from '../genome/bases';
+import { rollBrood } from '../genome/beetle';
 import { loadMeta, updateMeta } from './store';
 import { keepCross, registerVariant, claimBrood, enqueueBrood } from './run';
 
 const BASES = createBaseVariants();
+const LEGACY_VARIANT_CAP = 60;
+const LEGACY_BROOD_CAP = 40;
 
 describe('B16.8 — Identität ist unverletzlich (keine Kappung)', () => {
   beforeEach(() => { clearTestStorage(); });
 
-  // QA-Lane: 100 Register-Operationen × Storage-Schreiben messen unter paralleler Last >5 s.
-  // Der Timeout wird angehoben, die Zusicherung NICHT abgeschwächt (kein Test wird billiger).
-  it('100 Register-Operationen: kein Eintrag verlässt die Bibliothek', { timeout: 30000 }, () => {
-    for (let i = 0; i < 100; i++) {
-      registerVariant({ ...BASES[0], id: `cross_cap_${i}`, name: `P${i}` });
+  it(`${LEGACY_VARIANT_CAP + 1} Register-Operationen: Library, Besitz, bredStats und Loadout bleiben konsistent`, { timeout: 30000 }, () => {
+    const loadoutId = 'cross_cap_loadout';
+    updateMeta({ loadout: [loadoutId] });
+    for (let i = 0; i <= LEGACY_VARIANT_CAP; i++) {
+      registerVariant({ ...BASES[0], id: i === LEGACY_VARIANT_CAP ? loadoutId : `cross_cap_${i}`, name: `P${i}` });
     }
+
     const meta = loadMeta();
-    expect(meta.savedVariants.length).toBe(100);
+    expect(meta.savedVariants).toHaveLength(LEGACY_VARIANT_CAP + 1);
     expect(meta.savedVariants.every(v => (meta.variantCounts[v.id] ?? 0) > 0)).toBe(true);
     expect(meta.savedVariants.every(v => meta.bredStats?.[v.id] !== undefined)).toBe(true);
-  });
-
-  it('Invariante: jede ID im Loadout existiert in der Bibliothek (auch nach 60+)', { timeout: 30000 }, () => {
-    updateMeta({ loadout: ['cross_loadout'] });
-    for (let i = 0; i < 70; i++) {
-      registerVariant({ ...BASES[1], id: `cross_${i}`, name: `V${i}` });
-    }
-    registerVariant({ ...BASES[0], id: 'cross_loadout', name: 'L' });
-
-    const meta = loadMeta();
-    expect(meta.savedVariants.length).toBe(71);
-    for (const id of meta.loadout) {
-      expect(meta.savedVariants.some(v => v.id === id), `Loadout verweist auf ${id}, das nicht existiert`).toBe(true);
-    }
-  });
-
-  // Dieselbe Storage-Last wie die direkten Nachbartests (65 Register-Schreiben) — unter
-  // paralleler Lane-Last gemessen >5 s. Timeout angehoben wie in den drei anderen Tests
-  // dieser Gruppe, die Zusicherung bleibt UNVERÄNDERT (ein Flake darf den Vertrag nicht
-  // verwässern — dieselbe Regel, die die Gruppe oben schon dokumentiert).
-  it('Invariante: bredStats kennt keine Bibliotheks-Fremd-ID', { timeout: 30000 }, () => {
-    for (let i = 0; i < 65; i++) {
-      registerVariant({ ...BASES[2], id: `cross_${i}`, name: `V${i}` });
-    }
-    const meta = loadMeta();
+    expect(meta.loadout.every(id => meta.savedVariants.some(v => v.id === id))).toBe(true);
     for (const id of Object.keys(meta.bredStats ?? {})) {
       expect(meta.savedVariants.some(v => v.id === id) || (meta.variantCounts[id] ?? 0) > 0).toBe(true);
     }
   });
 
-  it('Invariante: beetleDeployed verweist nie auf eine entfernte Specimen-ID', { timeout: 30000 }, () => {
-    // 45 Bruten durchlaufen lassen (mehr als das alte 40er-Cap). Specimen-IDs aus
-    // BEETLES_SOURCE (swarmborn/taunt/phoenix/broodhost/carapace) — der erste
-    // Versuch dieses Tests nutzte erfundene IDs; fail-closed hat sie korrekt
-    // abgewiesen und der Test zeigte 0 statt 45. Das ist das Gate, nicht der Bug.
-    updateMeta({ totalWavesSurvived: 1000, nektar: 5000 });   // B39: 45 Bruten müssen bezahlbar sein
-    for (let i = 0; i < 45; i++) {
-      // Eltern rotieren durch die echten Basen (leafhopper/shellbeetle/bumble) —
-      // auch Hybride landen im Lager, die Identität bleibt vollständig.
-      const parents = [['leafhopper', 'shellbeetle'], ['bumble', 'leafhopper'], ['shellbeetle', 'bumble']][i % 3];
-      enqueueBrood(parents[0], parents[1], 1);
-      // startedWave = Zählerstand beim Enqueue ⇒ reifen lassen: Zähler +1, dann claim.
-      // (Erste Version dieses Tests ließ den Zähler stehen — fail-closed wies korrekt ab.)
-      updateMeta({ totalWavesSurvived: 1001 + i });
-      const meta = loadMeta();
-      const entry = meta.pendingBroods[meta.pendingBroods.length - 1];
-      claimBrood(entry.broodIndex, 0);
-    }
+  it(`${LEGACY_BROOD_CAP + 1} Käfer: die deployed-Referenz überlebt das historische Cap`, () => {
+    const existing = Array.from({ length: LEGACY_BROOD_CAP }, (_, index) =>
+      rollBrood('leafhopper', 'shellbeetle', index)[0]!);
+    const deployedId = existing[0]!.id;
+    updateMeta({
+      beetles: existing,
+      beetleDeployed: deployedId,
+      broodGeneration: LEGACY_BROOD_CAP,
+      totalWavesSurvived: 1000,
+      nektar: 5000,
+    });
+
+    enqueueBrood('leafhopper', 'shellbeetle', 1);
+    updateMeta({ totalWavesSurvived: 1001 });
+    const broods = loadMeta().pendingBroods;
+    const pending = broods[broods.length - 1];
+    expect(pending).toBeDefined();
+    claimBrood(pending!.broodIndex, 0);
 
     const meta = loadMeta();
-    expect(meta.beetles.length).toBe(45);
-    if (meta.beetleDeployed) {
-      expect(meta.beetles.some(b => b.id === meta.beetleDeployed)).toBe(true);
-    }
+    expect(meta.beetles).toHaveLength(LEGACY_BROOD_CAP + 1);
+    expect(meta.beetleDeployed).toBe(deployedId);
+    expect(meta.beetles.some(beetle => beetle.id === meta.beetleDeployed)).toBe(true);
   });
 
-  it('Keep-Kette: 70 Keeps erzeugen 70 Identitäten, Elternverbrauch bleibt korrekt', () => {
-    // genug Elternbestand: 140× sprout (2 je Keep für a===b-Fall nicht nötig —
-    // wir kreuzen sprout × rootwall, also je 1)
+  it(`${LEGACY_VARIANT_CAP + 1} Keeps: keine Identität und kein Queue-Eintrag verschwindet`, { timeout: 30000 }, () => {
+    const batch = LEGACY_VARIANT_CAP + 1;
     updateMeta({
-      variantCounts: { sprout: 70, rootwall: 70 }, savedVariants: [], bredStats: {},
-      pendingCrosses: Array.from({ length: 70 }, (_, i) => ({
-        crossIndex: i, seed: 1000 + i, neededWaves: 1, startedWave: 0,
+      variantCounts: { sprout: batch, rootwall: batch }, savedVariants: [], bredStats: {},
+      pendingCrosses: Array.from({ length: batch }, (_, index) => ({
+        crossIndex: index, seed: 1000 + index, neededWaves: 1, startedWave: 0,
       })),
       totalWavesSurvived: 1000,
     });
 
-    for (let i = 0; i < 70; i++) {
-      const childK = { ...BASES[0], id: `cross_keep_${i}`, name: `K${i}` };
-      const m = keepCross(childK, 'sprout', 'rootwall', i);
-      expect(m).not.toBeNull();
+    for (let index = 0; index < batch; index++) {
+      const child = { ...BASES[0], id: `cross_keep_${index}`, name: `K${index}` };
+      expect(keepCross(child, 'sprout', 'rootwall', index)).not.toBeNull();
     }
 
     const meta = loadMeta();
-    expect(meta.savedVariants.length).toBe(70);
-    expect(meta.variantCounts['sprout']).toBe(0);
-    expect(meta.variantCounts['rootwall']).toBe(0);
+    expect(meta.savedVariants).toHaveLength(batch);
+    expect(meta.savedVariants.map(variant => variant.id)).toContain('cross_keep_60');
+    expect(meta.variantCounts.sprout).toBe(0);
+    expect(meta.variantCounts.rootwall).toBe(0);
     expect(meta.pendingCrosses).toEqual([]);
   });
 });

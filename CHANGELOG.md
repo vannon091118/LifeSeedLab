@@ -9,6 +9,8 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ## Unreleased (Arbeitsstand 19.–24.09.2026)
 
+- [Slop/Identität] Test-only Transport-/ObservationSerializer-Dateien, der tote `maxLibrary`-Wert und der No-op-Discovery-Sync werden entfernt; echte Discovery- und Identitätstests bleiben. Beleg: `src/meta/identity_invariants.test.ts`, `src/discovery/chain.ts`, `src/config/beetles.source.ts`; Voll-Suite und Build grün.
+
 - [Gate/Codex] Untracked-Quellen werden als dauerhafter `untracked-inputs`-Check behandelt; Index- und Codex-Änderungen sind getrennt testbar, Clipboard-Erfolg ist ehrlich und technische Hashes liegen in Details. Belege: `tools/shinon/checks/untracked-input-check.ts`, `tools/indexer/input-policy.ts`, `src/components/Codex.tsx`, `tests/codex_clipboard.spec.ts`; Tools-Suite 82/82, Build grün.
 
 - [Roadmap T1–T9] Persistenz- und Meta-Grenzen liefern jetzt Ergebnisverträge, Source-Preise und atomare Schreibpfade; Laufweg-, Event- und Welt-Guards sind fail-closed. Die Route-Probe nutzt für die reine Existenzfrage BFS statt Dijkstra. Belege: `src/persistence/storage.ts`, `src/persistence/runSave.ts`, `src/meta/economy.ts`, `src/bus/bus.ts`, `src/world/world_state.ts`, `src/simulation/mapSystem.ts`; Voll-Suite 75 Dateien / 718 Tests, Build grün. T10 bleibt bis zur Produktentscheidung gesperrt, T11 bleibt externe Eigentümeraktion.

@@ -102,8 +102,6 @@ export const BEETLE_IDS = Object.keys(BEETLES_SOURCE);
 export const BEETLE_BREED = {
   /** Brutlinge pro Brutvorgang: 3 Kandidaten, einer wird behalten (Pflanzen-Gacha-Parallele). */
   broodSize: 3,
-  /** Max. gezüchtete Specimen im Meta-Lager (Library-Kappung wie savedVariants). */
-  maxLibrary: 40,
   /** Gleichzeitige eingesetzte Käfer pro Run. */
   deploySlots: 1,
   /** Nektar-Kosten je Einsatz im Run (Energie). */

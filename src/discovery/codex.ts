@@ -9,7 +9,6 @@ import {
   hashGenome,
   tryAppend,
   verifyChain,
-  syncEntryStub,
   type DiscoveryEntry,
 } from './chain';
 import { fnv1aHex } from '../core/hash';
@@ -126,8 +125,6 @@ export async function appendDiscovery(input: AppendDiscoveryInput): Promise<Appe
   const res = tryAppend(chain, entry);
   if (res.appended) {
     saveCodex(res.chain);
-    // Fire-and-forget: Ein fehlender Online-Sync darf den lokalen Fund nicht zurückrollen.
-    void syncEntryStub(entry);
     return { entry, appended: true, chain: res.chain, genome_hash: genomeHash };
   }
   return { entry: null, appended: false, reason: res.reason, chain, genome_hash: genomeHash };

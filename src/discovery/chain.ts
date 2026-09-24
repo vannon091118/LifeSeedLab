@@ -240,14 +240,3 @@ export function tryAppend(chain: DiscoveryEntry[], entry: DiscoveryEntry): { cha
   }
   return { chain: [...chain, entry], appended: true };
 }
-
-interface SyncResult {
-  ok: boolean;
-  reason?: string;
-  remoteRejectedAsDuplicate?: boolean;
-}
-
-/** Kein Online-Sync behauptet: Der lokale Codex ist die einzige aktive Quelle. */
-export async function syncEntryStub(_entry: DiscoveryEntry): Promise<SyncResult> {
-  return { ok: false, reason: 'Online-Sync ist nicht konfiguriert; der Fund bleibt lokal.' };
-}
