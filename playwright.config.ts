@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const singleRun = process.env.PW_SINGLE_RUN === '1';
 /**
  * P-35 (23.09.2026) — Last-Vorbedingung: unter paralleler Last (zweite Playwright-Instanz im
  * selben Worktree) meldete die Lane Zeitüberschreitungen, die isoliert grün sind; ein roter
@@ -18,6 +19,10 @@ export default defineConfig({
   /* Playwright hört NUR auf *.spec.ts — die *.test.ts in `tests/` (z. B. der P-35-
    * Garde-Vertragstest) gehören der Vitest-Suite. */
   testMatch: '**/*.spec.ts',
+  /* Kein Skip im Standardlauf: Das Balance-Instrument misst Zahlen, kein Verhalten, und gehört
+   * deshalb nicht in die Lane — es wird per `testIgnore` gar nicht erst eingesammelt (statt als
+   * „skipped“ geführt). Aufruf: `BALANCE=1 … test tests/balance_run.spec.ts`. */
+  testIgnore: process.env.BALANCE ? [] : ['**/balance_run.spec.ts'],
   /* P-35: Last-Vorbedingung — siehe Kommentar oben. */
   globalSetup: './tests/e2eLock.ts',
   /* Maximum time one test can run for. */
@@ -32,13 +37,21 @@ export default defineConfig({
     timeout: 10000
   },
   /* Run tests in files in parallel */
-  fullyParallel: false,
+  fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
-  /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
+  /* Retry on CI only; der explizite Single-Runmodus hat niemals einen Retry. */
+  retries: singleRun ? 0 : (process.env.CI ? 2 : 0),
   /* Opt out of parallel tests on CI. */
-  workers: 1, // Restrict to single worker as requested
+  /* P-35 bleibt die Instanz-Garde (`e2eLock`); innerhalb EINES Laufs dürfen die unabhängigen
+   * Specs parallel laufen (jede Spec hat ihren eigenen Browser-Kontext). PW_WORKERS steuert die
+   * Zahl, CI bleibt bei 1.
+   *
+   * 2 statt 4 (24.09.2026, gemessen): bei 4 Workern schlugen Canvas-lastige Specs flaky fehl
+   * (CPU-Sättigung), und der Lauf war NICHT kürzer (1m47 vs. 1m45) — mehr Parallelität kauft
+   * auf dieser Maschine nur Unsicherheit. Die Verkürzung kommt aus der Auswahl, nicht aus
+   * Worker-Zahl: `scripts/e2e-lane.mjs` fährt im Commit-Pfad nur die betroffenen Specs. */
+  workers: singleRun ? 1 : Number(process.env.PW_WORKERS ?? (process.env.CI ? 1 : 2)),
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/test-classes. */
@@ -48,8 +61,8 @@ export default defineConfig({
     /* Base URL to use in actions like `await page.goto('/')`. */
     baseURL: 'http://localhost:5173',
 
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: 'on-first-retry',
+    /* Single-Run: Trace IMMER aufzeichnen; Normalbetrieb bleibt retry-basiert. */
+    trace: singleRun ? 'on' : 'on-first-retry',
     /* Headed mode - show browser window.
      * Gate-Standard ist headless (reproduzierbar, ohne Fenster-Fokus); sichtbar via
      * `npm run test:e2e:show` (--headed) oder `PW_HEADED=1`. */
@@ -64,8 +77,8 @@ export default defineConfig({
     },
   ],
 
-  /* Folder for test artifacts such as screenshots, videos, traces, etc. */
-  // outputDir: 'test-results/',
+  /* Single-Run-Artefakte bleiben getrennt vom normalen Test-Output. */
+  outputDir: singleRun ? 'test-results/single-run' : 'test-results',
 
   /* Run your local dev server before starting the tests */
   webServer: {
@@ -73,16 +86,8 @@ export default defineConfig({
     port: 5173,
     timeout: 120 * 1000,
     reuseExistingServer: !process.env.CI,
-    // Ensure server is ready before tests
-    stdout: pipe => {
-      pipe.on('data', data => {
-        process.stdout.write(data);
-      });
-    },
-    stderr: pipe => {
-      pipe.on('data', data => {
-        process.stderr.write(data);
-      });
-    }
+    // Playwright owns the server pipes; callbacks are not a valid TestConfigWebServer shape.
+    stdout: 'pipe',
+    stderr: 'pipe',
   },
 });

@@ -1,22 +1,10 @@
 // Owner: IndexerSystem (Inventar). LOC <= 200.
 //
 // Schritt 1 des Builds: das Repository einlesen. Das ist bewusst KEIN
-// Verzeichnisbaum-Walk, sondern `git ls-files` — der Index des Versions-
-// systems ist die ehrlichste Liste dessen, was wirklich zum Projekt gehört.
-// Ein Walk über die Platte zählt Dateien mit, die niemand committen wird
-// (Build-Artefakte, Editor-Reste, Nachbarordner) und wäre damit eine
-// Quelle, die der Codebestand nicht kennt.
-//
-// Zwei Dinge kommen hier heraus und nichts sonst: die Dateiliste und die
-// Modulzuordnung. Die Modulzuordnung ist die Längster-passender-Pfad-Regel —
-// dieselbe Mechanik, die später der Architecture-Check verwendet, damit
-// Indexer und Validator sich nicht unterschiedlich verhalten.
-//
-// Folge für neue Dateien: `git ls-files` sieht nur Gestagtes/Gepatchtes —
-// eine neue Datei wird erst nach `git add` Teil des Index. Der Index beschreibt
-// damit den Commit-Bestand, nicht die Platte; wer eine Datei neu anlegt, stagt
-// sie VOR `index:build` (Fund des ersten Krix-Slice: der neue bubbleLayout-Eintrag
-// fehlte im committeten Index, weil er beim Build noch untracked war).
+// Verzeichnisbaum-Walk, sondern der Git-Arbeitsbestand: versionierte Dateien
+// aus `git ls-files` plus untracked Dateien aus `git status`. Dadurch bleibt der
+// Build klein und deterministisch, während `index:check` eine neue Datei nicht
+// mehr als unsichtbar bestätigen kann.
 
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
@@ -50,6 +38,26 @@ export function trackedFiles(repoRoot: string): string[] {
     .sort(compareCodeUnits);
 }
 
+/** Holt untracked Dateien, die Git als einzelne Pfade meldet. */
+export function untrackedFiles(repoRoot: string): string[] {
+  const output = execFileSync('git', ['status', '--porcelain=v1', '-z', '--untracked-files=all'], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  return output
+    .split('\0')
+    .filter((entry) => entry.startsWith('?? '))
+    .map((entry) => entry.slice(3))
+    .filter((file) => file.length > 0)
+    .sort(compareCodeUnits);
+}
+
+/** Der vollständige, stabile Dateibestand für den Indexer. */
+export function repositoryFiles(repoRoot: string): string[] {
+  return [...new Set([...trackedFiles(repoRoot), ...untrackedFiles(repoRoot)])].sort(compareCodeUnits);
+}
+
 /** Code-Units-Vergleich — sprachneutral, deterministisch, ohne `localeCompare`. */
 function compareCodeUnits(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
@@ -73,9 +81,9 @@ export function toRepoFile(repoPath: string): RepoFile {
   };
 }
 
-/** Alle versionierten Quellcodedateien, die in ein Ownership-Modul fallen. */
+/** Alle Quellcodedateien des Arbeitsbestands, die in ein Ownership-Modul fallen. */
 export function sourceFiles(repoRoot: string): RepoFile[] {
-  return trackedFiles(repoRoot)
+  return repositoryFiles(repoRoot)
     .filter((repoPath) => {
       const file = toRepoFile(repoPath);
       if (!SOURCE_EXTENSIONS.has(file.ext)) return false;

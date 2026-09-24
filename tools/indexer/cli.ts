@@ -17,7 +17,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
 import { extractFile, type ExtractContext } from './extract.ts';
-import { moduleIds, sourceFiles, toRepoRelative, trackedFiles, toRepoFile, compareCodeUnits } from './inventory.ts';
+import {
+  compareCodeUnits, moduleIds, repositoryFiles, sourceFiles, toRepoFile, toRepoRelative, untrackedFiles,
+} from './inventory.ts';
 import { renderIndexJson, renderModuleIndex, renderRootIndex } from './render.ts';
 import { INDEX_VERSION, type FileEntry, type Index, type ModuleEntry } from './repo.ts';
 
@@ -48,20 +50,22 @@ function extractionContext(program: ts.Program, repoFiles: string[]): ExtractCon
   return { checker: program.getTypeChecker(), byPath, byResolved, knownAssets, knownModules, program };
 }
 
+/** Endungen, die als Dateiimport sinnvoll sind, aber kein TS-Programm sind. */
+const ASSET_EXTENSIONS = new Set(['css', 'json', 'mjs', 'js', 'svg', 'png']);
+
 /**
  * Nicht-TypeScript-Dateien, die der Code importieren kann (Styles, JSON,
  * Source-Wahrheiten, Skripte). Sie gehören zum Repository und damit zu den
  * Kanten — sie tragen nur keine Symbol-Relationen.
  */
-function assetFiles(): string[] {
-  return trackedFiles(REPO_ROOT).filter((repoPath) => {
-    const file = toRepoFile(repoPath);
-    return ASSET_EXTENSIONS.has(file.ext) || file.name.includes('.source.');
-  });
+function isAssetFile(repoPath: string): boolean {
+  const file = toRepoFile(repoPath);
+  return ASSET_EXTENSIONS.has(file.ext) || file.name.includes('.source.');
 }
 
-/** Endungen, die als Dateiimport sinnvoll sind, aber kein TS-Programm sind. */
-const ASSET_EXTENSIONS = new Set(['css', 'json', 'mjs', 'js', 'svg', 'png']);
+function assetFiles(): string[] {
+  return repositoryFiles(REPO_ROOT).filter(isAssetFile);
+}
 
 /** Fasst die Extraktion zu Modulen zusammen und berechnet Fan-in und Aufrufe. */
 function aggregate(files: FileEntry[]): { modules: ModuleEntry[]; hotspots: Index['hotspots'] } {
@@ -230,6 +234,15 @@ function checkIndex(index: Index): number {
   }
 
   const problems: string[] = [];
+  const untrackedSources = untrackedFiles(REPO_ROOT).filter((repoPath) => {
+    const file = toRepoFile(repoPath);
+    return !repoPath.endsWith('INDEX.md') && (file.ext === 'ts' || file.ext === 'tsx' || isAssetFile(repoPath));
+  });
+  if (untrackedSources.length > 0) {
+    problems.push(
+      `untracked: ${untrackedSources.join(', ')} (git add ausführen, danach index:build)`,
+    );
+  }
   for (const [file, content] of expected) {
     if (!fs.existsSync(file)) {
       problems.push(`fehlt: ${toRepoRelative(REPO_ROOT, file)} (index:build ausführen)`);

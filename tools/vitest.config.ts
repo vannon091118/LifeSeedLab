@@ -15,7 +15,7 @@ export default defineConfig({
   root: fileURLToPath(new URL('.', import.meta.url)),
   cacheDir: fileURLToPath(new URL('../node_modules/.vite', import.meta.url)),
   test: {
-    include: ['shinon/**/*.test.ts'],
+    include: ['shinon/**/*.test.ts', 'indexer/**/*.test.ts'],
     environment: 'node',
     testTimeout: 30_000,
     hookTimeout: 30_000,

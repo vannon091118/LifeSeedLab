@@ -9,6 +9,8 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ## Unreleased (Arbeitsstand 19.–24.09.2026)
 
+- [Cleanup/Gate] Tote Browser-Use-/dotenv-Abhängigkeiten und die ungenutzte LLM-Bridge werden aus dem Produktpfad entfernt; der Golden-Anker bleibt lokal sichtbar überspringbar und in CI fail-closed. Der Index-/Doku-Vertrag bekommt dafür die passende Commit-Grenze.
+
 - [Zucht/Meta] Die Genom-Kreuzung und der Meta-Lifecycle werden als getrennter Slice mit zehn vererbbaren Slots, run-lokalem Seed und fail-closed Reifung belegt. Die Tests prüfen nicht nur grüne Mutation, sondern auch die Lebenszyklus-Grenzen; unklare +50%-Gameplay-Behauptungen werden nicht als Beweis verkauft.
 
 - [Slice Discovery/Codex] Run-lokaler Seed, SHA-256-Share-Format, Worker-Rekonstruktion und die ehrliche lokale Codex-Oberfläche werden als ein prüfbarer Produktpfad gebündelt. Die README-/i18n-Texte beschreiben genau den lokalen Nachweis, nicht erfundene Online-Garantien.
