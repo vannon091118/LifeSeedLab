@@ -1,5 +1,6 @@
 import { CommitMessageCheck } from './commit-message-check.ts';
 import { ForbiddenPatternCheck } from './forbidden-pattern-check.ts';
+import { UntrackedInputCheck } from './untracked-input-check.ts';
 import { LocCapCheck } from './loc-cap-check.ts';
 import { TypecheckCheck } from './typecheck-check.ts';
 import { TestCheck } from './test-check.ts';
@@ -26,6 +27,7 @@ export function buildChecks(config: ShinonConfig, only: string[] = []): ShinonCh
     new CommitMessageCheck(),
     new LocCapCheck(),
     new ForbiddenPatternCheck(),
+    new UntrackedInputCheck(),
     new TypecheckCheck(),
     new TestCheck(),
     new E2eCheck(),
@@ -40,6 +42,7 @@ export function buildChecks(config: ShinonConfig, only: string[] = []): ShinonCh
     'commit-message': config.gate.checks.commitMessage,
     'loc-caps': config.gate.checks.locCaps,
     'forbidden-patterns': config.gate.checks.forbiddenPatterns,
+    'untracked-inputs': config.gate.checks.untrackedInputs,
     typecheck: config.gate.checks.typecheck,
     tests: config.gate.checks.tests,
     e2e: config.gate.checks.e2e,
@@ -58,6 +61,7 @@ export function knownCheckIds(): string[] {
     'commit-message',
     'loc-caps',
     'forbidden-patterns',
+    'untracked-inputs',
     'typecheck',
     'tests',
     'e2e',

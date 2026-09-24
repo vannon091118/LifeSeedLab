@@ -1,6 +1,5 @@
 ﻿// Owner: UI (Codex — public discovery chain). LOC ≤ 400.
-// Read-only chain view. No login needed. Local-first, Supabase-mirror
-// via UNIQUE(genome_hash). First discovery wins — organic prestige.
+// Read-only chain view. No login needed. Local-first Codex; discoveries stay on this device.
 
 import { useMemo, useState } from 'react';
 import { useI18n } from '../i18n';
@@ -9,6 +8,16 @@ import { CodexGlyph } from './GameIcons';
 import type { DiscoveryEntry } from '../discovery/chain';
 
 type Props = { onClose: () => void };
+
+/** Kopiert den Share-Beleg und meldet nur bei tatsächlichem Zugriff Erfolg. */
+export async function copyDiscoveryText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Anzeige des EREIGNIS-Zeitstempels, nicht einer Uhrzeit: der Eintrag trägt einen logischen
@@ -38,13 +47,9 @@ export function Codex({ onClose }: Props) {
     // (vor P2') behalten ihren historischen Seed — ihre Epoche-0-Wurzel ist öffentlich.
     const text = shareTextForEntry(entry);
 
-    try {
-      await navigator.clipboard.writeText(text);
+    if (await copyDiscoveryText(text)) {
       setCopied(entry.entry_hash);
       setTimeout(() => setCopied(null), 1500);
-    } catch {
-      // fallback — select hack
-      setCopied(entry.entry_hash);
     }
   };
 
@@ -89,13 +94,16 @@ export function Codex({ onClose }: Props) {
             {display.map((e) => (
               <div key={e.entry_hash} style={styles.card}>
                 <div style={styles.cardTop}>
-                  <span style={styles.genomeHash} title={e.genome_hash}>{e.genome_hash}</span>
                   <span style={styles.genBadge}>Gen {e.generation}</span>
                 </div>
                 <div style={styles.cardMeta}>
                   <span style={styles.metaLine}>{t('codex.firstBy')}: <strong style={styles.player}>{e.player_id}</strong> · {formatOrigin(e)}</span>
                   <span style={styles.metaLine}>{t('codex.parents')}: {e.parents[0]} × {e.parents[1]} · {e.plant_ref ?? `Seed ${e.seed ?? '?'}`}</span>
-                  <span style={styles.metaLineSmall} title={e.entry_hash}>{e.entry_hash.slice(0, 8)}… ← {e.prev_hash ? e.prev_hash.slice(0, 6) : 'GENESIS'}</span>
+                  <details style={styles.techDetails}>
+                    <summary>{t('codex.techDetails')}</summary>
+                    <span style={styles.metaLineSmall} title={e.genome_hash}>{e.genome_hash}</span>
+                    <span style={styles.metaLineSmall} title={e.entry_hash}>{e.entry_hash} ← {e.prev_hash ? e.prev_hash : 'GENESIS'}</span>
+                  </details>
                 </div>
                 <div style={styles.cardActions}>
                   <button onClick={() => handleCopy(e)} style={styles.actionBtn}>
@@ -143,8 +151,8 @@ const styles: Record<string, React.CSSProperties> = {
   list: { display: 'flex', flexDirection: 'column' as const, gap: 10, contentVisibility: 'auto' } as React.CSSProperties,
   card: { padding: 14, background: '#fff', border: '2px solid var(--ink)', borderRadius: 8, boxShadow: '2px 2px 0 var(--ink)' },
   cardTop: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 },
-  genomeHash: { fontFamily: 'ui-monospace, monospace', fontSize: 13, fontWeight: 700, color: 'var(--leaf-dark)', letterSpacing: 0.3 },
-  genBadge: { marginLeft: 'auto', padding: '3px 8px', background: '#fdeec9', border: '2px solid var(--ink)', borderRadius: 99, color: '#8a6d1f', fontSize: 11, fontWeight: 800 },
+  techDetails: { display: 'flex', flexDirection: 'column', gap: 2, marginTop: 2 },
+  genBadge: { padding: '3px 8px', background: '#fdeec9', border: '2px solid var(--ink)', borderRadius: 99, color: '#8a6d1f', fontSize: 11, fontWeight: 800 },
   cardMeta: { display: 'flex', flexDirection: 'column' as const, gap: 2, marginBottom: 10 },
   metaLine: { fontSize: 12, color: '#6b6250', fontWeight: 600 },
   metaLineSmall: { fontSize: 11, color: '#8a8065', fontFamily: 'ui-monospace, monospace' },

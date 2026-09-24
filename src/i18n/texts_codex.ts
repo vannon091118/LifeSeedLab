@@ -59,6 +59,7 @@ export const codexTexts = {
     'codex.countMany': 'Entdeckungen',
     'codex.discoveryOf': 'Zucht von',
     'codex.parents': 'Eltern',
+    'codex.techDetails': 'Technische Details',
     'codex.noteTitle': 'Deine Entdeckungen bleiben auf diesem Gerät.',
     // P2': geteilt wird der öffentliche Fund-Beleg (plant_ref), nie der private Zucht-Seed.
     'codex.noteSeed': 'Funde tragen einen öffentlichen Beleg — jede geteilte Zeile',
@@ -121,6 +122,7 @@ export const codexTexts = {
     'codex.countMany': 'discoveries',
     'codex.discoveryOf': 'Breeding of',
     'codex.parents': 'Parents',
+    'codex.techDetails': 'Technical details',
     'codex.noteTitle': 'Your discoveries stay on this device.',
     // P2': sharing carries the public proof (plant_ref), never the private breed seed.
     'codex.noteSeed': 'Discoveries carry a public proof — every shared line',

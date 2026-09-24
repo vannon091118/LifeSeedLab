@@ -45,6 +45,8 @@ export interface CommandSpec {
 interface GateChecks {
   locCaps: boolean;
   forbiddenPatterns: boolean;
+  /** Untracked source/asset inputs are never valid index sources. */
+  untrackedInputs: boolean;
   typecheck: boolean;
   tests: boolean;
   /**
@@ -163,6 +165,7 @@ export function defaultConfig(root: string): ShinonConfig {
       checks: {
         locCaps: true,
         forbiddenPatterns: true,
+        untrackedInputs: true,
         typecheck: true,
         tests: true,
         e2e: true,

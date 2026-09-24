@@ -1,12 +1,22 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { execFileSync, spawnSync } from 'node:child_process';
-import { afterEach, describe, expect, it } from 'vitest';
-import { repositoryFiles, sourceFiles, untrackedFiles } from './inventory.ts';
-
-const ROOT = path.resolve(new URL('../..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
+import { execFileSync } from 'node:child_process';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { checkIndex, writeIndex } from './cli.ts';
+import { repositoryFiles, sourceFiles, untrackedFiles, untrackedSourceFiles } from './inventory.ts';
+import { INDEX_VERSION, type Index } from './repo.ts';
 const temporaryDirectories: string[] = [];
+const EMPTY_INDEX: Index = {
+  version: INDEX_VERSION,
+  modules: [],
+  files: [],
+  symbols: [],
+  relations: [],
+  strings: [],
+  unresolvedCount: 0,
+  hotspots: [],
+};
 
 function git(cwd: string, args: string[]): string {
   return execFileSync('git', args, { cwd, encoding: 'utf8' });
@@ -25,37 +35,59 @@ afterEach(() => {
 });
 
 describe('Indexer-Inventar', () => {
-  it('sieht eine untracked Quelldatei, ohne sie als versioniert auszugeben', () => {
+  it('nimmt nur versionierte Quellen in den Index auf und meldet untracked Tests separat', () => {
     const directory = temporaryRepo();
     fs.writeFileSync(path.join(directory, 'src/tracked.ts'), 'export const tracked = 1;\n');
     git(directory, ['add', 'src/tracked.ts']);
     fs.writeFileSync(path.join(directory, 'src/new.ts'), 'export const fresh = 1;\n');
+    fs.writeFileSync(path.join(directory, 'src/new.test.ts'), 'import { fresh } from "./new";\n');
 
-    expect(untrackedFiles(directory)).toEqual(['src/new.ts']);
-    expect(sourceFiles(directory).map(file => file.path)).toEqual(['src/new.ts', 'src/tracked.ts']);
-    expect(repositoryFiles(directory)).toEqual(['src/new.ts', 'src/tracked.ts']);
+    expect(untrackedFiles(directory)).toEqual(['src/new.test.ts', 'src/new.ts']);
+    expect(sourceFiles(directory).map(file => file.path)).toEqual(['src/tracked.ts']);
+    expect(repositoryFiles(directory)).toEqual(['src/new.test.ts', 'src/new.ts', 'src/tracked.ts']);
+    expect(untrackedSourceFiles(directory)).toEqual(['src/new.test.ts', 'src/new.ts']);
   });
 });
 
-describe('index:check', () => {
-  it('meldet untracked Quell- und Asset-Dateien als Abweichung und beendet sich rot', () => {
-    const marker = `src/indexer_untracked_probe_${process.pid}.ts`;
-    const assetMarker = `src/indexer_untracked_probe_${process.pid}.source.txt`;
-    fs.writeFileSync(path.join(ROOT, marker), 'export const probe = true;\n');
-    fs.writeFileSync(path.join(ROOT, assetMarker), 'source truth\n');
+describe('untracked inventory', () => {
+  it('meldet Quell- und Asset-Dateien, ignoriert aber gewöhnliche untracked Notizen', () => {
+    const directory = temporaryRepo();
+    const sourceMarker = 'src/indexer_untracked_probe.ts';
+    const sourceAssetMarker = 'src/indexer_untracked_probe.source.txt';
+    const jsonMarker = 'src/indexer_untracked_probe.json';
+    const noteMarker = 'src/indexer_untracked_probe.txt';
+    fs.writeFileSync(path.join(directory, sourceMarker), 'export const probe = true;\n');
+    fs.writeFileSync(path.join(directory, sourceAssetMarker), 'source truth\n');
+    fs.writeFileSync(path.join(directory, jsonMarker), '{ "probe": true }\n');
+    fs.writeFileSync(path.join(directory, noteMarker), 'not an index input\n');
+
+    const all = [sourceMarker, sourceAssetMarker, jsonMarker, noteMarker].sort();
+    const indexInputs = [sourceMarker, sourceAssetMarker, jsonMarker].sort();
+    expect(untrackedFiles(directory)).toEqual(all);
+    expect(untrackedSourceFiles(directory)).toEqual(indexInputs);
+  });
+
+  it('meldet untracked Quellen auch über den echten index:check-Entry-Point', () => {
+    const directory = temporaryRepo();
+    const sourceMarker = 'src/indexer_check_probe.ts';
+    fs.writeFileSync(path.join(directory, sourceMarker), 'export const probe = true;\n');
+    const emptyIndex = EMPTY_INDEX;
+    const errors: string[] = [];
+    const error = vi.spyOn(console, 'error').mockImplementation((message?: unknown) => {
+      errors.push(String(message));
+    });
+
     try {
-      const result = spawnSync(process.execPath, ['tools/indexer/cli.ts', 'check'], {
-        cwd: ROOT,
-        encoding: 'utf8',
-      });
-      const output = `${result.stdout}${result.stderr}`;
-      expect(result.status).not.toBe(0);
-      expect(output).toContain('untracked:');
-      expect(output).toContain(marker);
-      expect(output).toContain(assetMarker);
+      expect(checkIndex(emptyIndex, directory)).toBe(1);
+      expect(errors.join('\n')).toContain(`untracked: ${sourceMarker}`);
     } finally {
-      fs.rmSync(path.join(ROOT, marker), { force: true });
-      fs.rmSync(path.join(ROOT, assetMarker), { force: true });
+      error.mockRestore();
     }
-  }, 90_000);
+  });
+
+  it('schreibt unveränderte Indexausgaben nicht erneut', () => {
+    const directory = temporaryRepo();
+    expect(writeIndex(EMPTY_INDEX, directory)).toHaveLength(2);
+    expect(writeIndex(EMPTY_INDEX, directory)).toEqual([]);
+  });
 });

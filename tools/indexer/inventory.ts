@@ -9,6 +9,7 @@
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import type { RepoFile } from './repo.ts';
+import { isAssetFile, isIndexInput } from './input-policy.ts';
 
 /** Dateiendungen, die als Quellcode gelten (und damit Relationsdaten tragen). */
 const SOURCE_EXTENSIONS = new Set(['ts', 'tsx']);
@@ -53,9 +54,14 @@ export function untrackedFiles(repoRoot: string): string[] {
     .sort(compareCodeUnits);
 }
 
-/** Der vollständige, stabile Dateibestand für den Indexer. */
+/** Der vollständige Arbeitsbestand für Inventar- und Diagnosezwecke. */
 export function repositoryFiles(repoRoot: string): string[] {
   return [...new Set([...trackedFiles(repoRoot), ...untrackedFiles(repoRoot)])].sort(compareCodeUnits);
+}
+
+/** Untracked Quell- und Asset-Dateien, die der Index vor dem Build melden muss. */
+export function untrackedSourceFiles(repoRoot: string): string[] {
+  return untrackedFiles(repoRoot).filter(isIndexInput);
 }
 
 /** Code-Units-Vergleich — sprachneutral, deterministisch, ohne `localeCompare`. */
@@ -81,9 +87,9 @@ export function toRepoFile(repoPath: string): RepoFile {
   };
 }
 
-/** Alle Quellcodedateien des Arbeitsbestands, die in ein Ownership-Modul fallen. */
+/** Nur versionierte Quellcodedateien sind gültige Indexquellen. */
 export function sourceFiles(repoRoot: string): RepoFile[] {
-  return repositoryFiles(repoRoot)
+  return trackedFiles(repoRoot)
     .filter((repoPath) => {
       const file = toRepoFile(repoPath);
       if (!SOURCE_EXTENSIONS.has(file.ext)) return false;
@@ -167,4 +173,4 @@ export function toRepoRelative(repoRoot: string, absolute: string): string {
   return relative.split(path.sep).join('/');
 }
 
-export { compareCodeUnits };
+export { compareCodeUnits, isAssetFile };

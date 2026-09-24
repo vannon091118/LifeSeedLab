@@ -2,13 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { buildChecks, knownCheckIds } from '../checks/index.ts';
 import { CommitSizeCheck } from '../checks/commit-size-check.ts';
 import { VersionFilesCheck } from '../checks/version-files-check.ts';
+import { UntrackedInputCheck } from '../checks/untracked-input-check.ts';
 import { ShinonGate } from '../gate.ts';
 import { runMessageSelfTest, validateMessage } from '../checks/commit-message-check.ts';
 import { ForbiddenPatternCheck } from '../checks/forbidden-pattern-check.ts';
 import { LocCapCheck } from '../checks/loc-cap-check.ts';
 import { defaultConfig } from '../config.ts';
 import { ShinonGitHelfer } from '../git-helfer.ts';
-import { makeLines, tempDir, write } from './helpers.ts';
+import { contextFor, gitIt, initTempRepo, makeLines, tempDir, write } from './helpers.ts';
 import type { CheckContext } from '../checks/check.ts';
 
 function contextIn(dir: string, changedFiles: string[]): CheckContext {
@@ -43,6 +44,13 @@ describe('Gate-Registry', () => {
     expect(config.gate.checks.commitSize).toBe(true);
     expect(buildChecks(config).map((check) => check.id)).toContain('commit-size');
     expect(knownCheckIds()).toContain('commit-size');
+  });
+
+  it('Untracked-Indexquellen sind ein Default-Check', () => {
+    const config = defaultConfig('/tmp/shinon');
+    expect(config.gate.checks.untrackedInputs).toBe(true);
+    expect(buildChecks(config).map((check) => check.id)).toContain('untracked-inputs');
+    expect(knownCheckIds()).toContain('untracked-inputs');
   });
 });
 
@@ -125,6 +133,24 @@ describe('Versions-Wahrheit bleibt uncommittet (VRF)', () => {
     expect(config.gate.checks.versionFiles).toBe(true);
     expect(buildChecks(config).map((check) => check.id)).toContain('version-files');
     expect(knownCheckIds()).toContain('version-files');
+  });
+});
+
+describe('Untracked-Indexquellen', () => {
+  it('blockiert Source-/Asset-Dateien, lässt tracked und gewöhnliche Notizen durch', async () => {
+    const { dir, git, config } = initTempRepo('untracked-inputs');
+    write(dir, 'src/tracked.ts', 'export const tracked = true;\n');
+    gitIt(dir, ['add', 'src/tracked.ts']);
+    write(dir, 'src/pending.test.ts', 'export const pending = true;\n');
+    write(dir, 'src/pending.source.txt', 'source truth\n');
+    write(dir, 'notes.txt', 'not an index input\n');
+
+    const ctx = contextFor(git, config);
+    const findings = new UntrackedInputCheck().run(ctx);
+    expect(findings.map((item) => item.file)).toEqual(['src/pending.source.txt', 'src/pending.test.ts']);
+    expect(findings.every((item) => item.code === 'UNP001' && item.severity === 'error')).toBe(true);
+    expect(findings.some((item) => item.file === 'notes.txt')).toBe(false);
+    expect((await new ShinonGate([new UntrackedInputCheck()]).run(ctx)).passed).toBe(false);
   });
 });
 
