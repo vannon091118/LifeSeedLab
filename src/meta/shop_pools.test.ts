@@ -81,6 +81,13 @@ describe('Shop — drei getrennte kaufbare Pools', () => {
     expect(buyPoolItem('does_not_exist')).toBeNull();
   });
 
+  it('Menge und Source-Preis werden nicht vom Aufrufer umgangen', () => {
+    updateMeta({ nektar: 1000 });
+    expect(buyPoolItem('pot', 1.5)).toBeNull();
+    expect(buyPoolItem('pot', -1)).toBeNull();
+    expect(buyPoolItem('pot', 1)).not.toBeNull();
+  });
+
   it('Karten-Besitz kommt aus der Source (Preis und gezählte Stücke)', () => {
     updateMeta({ variantCounts: { pot: 4, decor: 2 }, nektar: 500 });
     const meta = loadMeta();

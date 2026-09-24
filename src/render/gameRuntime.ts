@@ -12,7 +12,7 @@
 
 import { SimulationRoot, makeCommand } from '../simulation/root';
 import type { PlacementDecision } from '../components/placementController';
-import { saveRun, type RunSave, clearRun } from '../persistence/runSave';
+import { type RunSave } from '../persistence/runSave';
 import { RunSaveAutor } from '../persistence/runSaveAutor';
 import { WorldAutor } from '../persistence/worldAutor';
 import { worldSnapshotOf } from '../world/world_state';
@@ -249,7 +249,7 @@ export class RunRuntime {
       this.pausedRef.current = true; root.clock.setPaused(true);
       // B35: Suspended-Save geht durch den Autor (direkter Snapshot-Schreibpfad bleibt
       // bewusst: Tab-Hidden ist kein Event am Bus, sondern ein Render-Lifecycle-Moment).
-      saveRun(root.getSnapshot()); this.cbs.onSuspended();
+      this.saveAutor.saveNow(root.getSnapshot()); this.cbs.onSuspended();
     };
     document.addEventListener('visibilitychange', this.onVisibility);
 
@@ -411,7 +411,6 @@ export class RunRuntime {
     // bevor der Run-Snapshot geschrieben wird.
     this.worldAutor.destroy();
     this.saveAutor.destroy();
-    saveRun(this.root.getSnapshot());
     unbindSimRoot(this.root);
   }
 
@@ -426,7 +425,7 @@ export class RunRuntime {
       // Kein advanceCrossMaturation hier: jede angebrochene Welle hat WAVE_STARTED bereits
       // gezählt (B17.4, ein Writer). Der frühere Zusatz-Call addierte die erreichte Welle
       // ein ZWEITES Mal — ein Abbruch in Welle 3 buchte die Wellen doppelt (+3 Drift).
-      void clearRun(); // Abbruch darf nicht wieder auferstehen (verwaister SAVE)
+      void this.saveAutor.finalize(); // Abbruch darf nicht wieder auferstehen (verwaister SAVE)
       this.cbs.onMetaChange(next);
       return next;
     } catch { return null; }

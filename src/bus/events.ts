@@ -192,9 +192,11 @@ export function assertEventContract(e: GameEvent): void {
   if (e.payload == null || typeof e.payload !== 'object') {
     throw new Error(`Event ${e.eventId} missing payload`);
   }
-  // eventId must be derivable from its parts (stability guarantee)
-  const expected = `${e.tick}:${e.sourceId}:${e.type}:${e.eventId.split(':').slice(3).join(':')}`;
-  if (e.eventId !== expected) {
+  // eventId must be derivable from its parts (stability guarantee).
+  // sourceId may itself contain ':' (e.g. system:score), therefore a split-based
+  // reconstruction is ambiguous; validate the stable prefix and a non-empty sequence.
+  const prefix = `${e.tick}:${e.sourceId}:${e.type}:`;
+  if (!e.eventId.startsWith(prefix) || e.eventId.length === prefix.length) {
     throw new Error(`Event ${e.eventId} id not composed of tick/source/type/seq`);
   }
 }

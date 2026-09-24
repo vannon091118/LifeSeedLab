@@ -9,6 +9,8 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ## Unreleased (Arbeitsstand 19.–24.09.2026)
 
+- [Roadmap T1–T9] Persistenz- und Meta-Grenzen liefern jetzt Ergebnisverträge, Source-Preise und atomare Schreibpfade; Laufweg-, Event- und Welt-Guards sind fail-closed. Die Route-Probe nutzt für die reine Existenzfrage BFS statt Dijkstra. Belege: `src/persistence/storage.ts`, `src/persistence/runSave.ts`, `src/meta/economy.ts`, `src/bus/bus.ts`, `src/world/world_state.ts`, `src/simulation/mapSystem.ts`; Voll-Suite 75 Dateien / 718 Tests, Build grün. T10 bleibt bis zur Produktentscheidung gesperrt, T11 bleibt externe Eigentümeraktion.
+
 - [CI] Der nächste frischen-Checkout-Befund ist ebenfalls behoben: `scripts/e2e-lane-map.mjs` wird als Vertragsdatei der Vitest-Suite sichtbar gemacht, ohne den manuellen Playwright-Lauf wieder zu aktivieren.
 
 - [CI] Der GitHub-CI-Contract wird wieder aus einem frischen Checkout heraus ausführbar: Der bereits vorhandene Golden-Hash ist als Repository-Secret hinterlegt, das von der Test-Lane benötigte `scripts/test-lane-verdict.mjs` ist nicht mehr ignoriert, und die Quality-Register-Prüfung hat ihren eindeutigen B5.1-Contract-Stand.

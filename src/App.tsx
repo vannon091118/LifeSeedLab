@@ -44,10 +44,13 @@ function AppInner() {
   // Fehlt sie (erster Start), wird sie EINMAL explizit erzeugt und sofort persistiert;
   // Korruption bleibt sichtbar (null ⇒ Ladeschirm), nie stiller Ersatz.
   const [world, setWorld] = useState<WorldState | null>(null);
+  const [worldError, setWorldError] = useState<string | null>(null);
 
   useEffect(() => {
     setMeta(loadMeta());
-    void ensureWorld().then(w => { if (w) setWorld(w); });
+    void ensureWorld()
+      .then(w => { if (w) { setWorld(w); setWorldError(null); } })
+      .catch(() => setWorldError('Die Welt konnte nicht geladen werden. Bitte Speicher prüfen oder zurücksetzen.'));
   }, []);
 
   // Version im Fenstertitel: der Tab ist der einzige immer sichtbare Ort — auch
@@ -86,8 +89,13 @@ function AppInner() {
    * Fail-closed: ohne lesbare Welt bleibt die bisherige Sicht stehen — nie eine leere Karte.
    */
   const syncWorld = useCallback(async () => {
-    const saved = await loadWorld();
-    if (saved) setWorld(saved);
+    try {
+      const saved = await loadWorld();
+      if (saved) { setWorld(saved); setWorldError(null); }
+      else setWorldError('Die Welt konnte nicht geladen werden.');
+    } catch {
+      setWorldError('Die Welt konnte nicht geladen werden. Bitte Speicher prüfen oder zurücksetzen.');
+    }
   }, []);
 
   const handleNavigate = useCallback((s: MenuScreen) => setScreen(s), []);
@@ -122,6 +130,9 @@ function AppInner() {
     void syncWorld().then(() => setScreen('run'));
   }, [pendingRun, syncWorld]);
 
+  if (worldError) {
+    return <div role="alert" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b91c1c', padding: 24, textAlign: 'center' }}>{worldError}</div>;
+  }
   if (!meta || !world) {
     return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}>…</div>;
   }

@@ -1,5 +1,5 @@
 import type { SimState } from '../simulation/state';
-import { idbSet, idbGet, idbRemove } from './storage';
+import { idbSet, idbGetResult, idbRemove, type LoadResult, type WriteResult } from './storage';
 import { APP_VERSION } from '../version';
 
 // Owner: PersistenceSystem (run schema adapter). LOC ≤ 200.
@@ -36,8 +36,20 @@ export interface RunSave {
   rows: number;
 }
 
-export function saveRun(state: SimState): void {
-  if (state.phase === 'gameover') return; // game over runs are not resumable
+export function isValidRunSave(raw: unknown): raw is RunSave {
+  if (!raw || typeof raw !== 'object') return false;
+  const s = raw as Partial<RunSave>;
+  if (s.version !== 3 || typeof s.appVersion !== 'string') return false;
+  const numeric = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+  if (!numeric(s.runId) || !numeric(s.seed) || !numeric(s.tick) || !numeric(s.waveNumber) || !numeric(s.lives) || !numeric(s.score) || !numeric(s.nektarEarned) || !numeric(s.cols) || !numeric(s.rows)) return false;
+  if (s.runId < 0 || s.seed < 0 || s.tick < 0 || s.waveNumber < 0 || s.lives < 0 || s.score < 0 || s.cols < 4 || s.rows < 4) return false;
+  if (!s.combo || typeof s.combo !== 'object' || !Array.isArray(s.plants) || !s.inventory || typeof s.inventory !== 'object') return false;
+  if (!Array.isArray(s.discoveredVariants) || !s.bredStats || typeof s.bredStats !== 'object') return false;
+  return Object.values(s.inventory).every(v => typeof v === 'number' && Number.isFinite(v) && v >= 0);
+}
+
+export function saveRun(state: SimState): Promise<WriteResult> {
+  if (state.phase === 'gameover') return Promise.resolve({ status: 'skipped' }); // game over runs are not resumable
   const s: RunSave = {
     version: 3,
     appVersion: APP_VERSION,
@@ -56,15 +68,20 @@ export function saveRun(state: SimState): void {
     cols: state.cols,
     rows: state.rows,
   };
-  void idbSet(RUN_KEY, s, RUN_VERSION);
+  return idbSet(RUN_KEY, s, RUN_VERSION);
+}
+
+export async function loadRunResult(): Promise<LoadResult<RunSave>> {
+  const result = await idbGetResult<RunSave>(RUN_KEY, { version: RUN_VERSION, fallback: () => null as never });
+  if (result.status === 'valid' && !isValidRunSave(result.value)) return { status: 'corrupt' };
+  return result;
 }
 
 export async function loadRun(): Promise<RunSave | null> {
-  const opts = { version: RUN_VERSION, fallback: () => null };
-  const result = await idbGet<RunSave | null>(RUN_KEY, opts);
-  return result ?? null;
+  const result = await loadRunResult();
+  return result.status === 'valid' ? result.value : null;
 }
 
-export async function clearRun(): Promise<void> {
-  await idbRemove(RUN_KEY);
+export async function clearRun(): Promise<WriteResult> {
+  return idbRemove(RUN_KEY);
 }

@@ -1,6 +1,6 @@
 import type { MetaSave, PendingCross, PlantVariant } from '../types';
-import { loadMeta, updateMeta } from './store';
-import { registerVariant } from './run';
+import { loadMeta, persistMeta, updateMeta } from './store';
+import { applyRegisterVariant } from './run';
 import { wavesToUnlockFor, PENDING_CROSSES_MAX, GREENHOUSE_POT_SLOTS, rearingSlotGate, SEED_PRICE } from '../config/economy.source';
 import { EPOCH_ROOT } from '../config';
 import { deriveSeed } from '../core/rng';
@@ -12,10 +12,12 @@ import { poolPriceOf } from '../config/shop.source';
 // Atomare Meta-Operationen: consume+enqueue sind EIN Persistenzschritt (kein Zwischenzustand,
 // in dem Seed verbrannt, aber kein Cross gequeued ist — Tab-Konkurrenz/Error-Safety).
 
-export function buySeed(price: number): MetaSave | null {
+export function buySeed(_requestedPrice: number): MetaSave | null {
   const meta = loadMeta();
+  const price = SEED_PRICE;
   if (meta.nektar < price) return null;
-  return updateMeta({ nektar: meta.nektar - price, seedStash: meta.seedStash + 1 });
+  const write = persistMeta({ ...meta, nektar: meta.nektar - price, seedStash: meta.seedStash + 1 });
+  return write.status === 'written' ? loadMeta() : null;
 }
 
 /**
@@ -28,14 +30,16 @@ export function buySeed(price: number): MetaSave | null {
  * Gegenstand ⇒ unveränderter Save.
  */
 export function buyPoolItem(key: string, amount = 1): MetaSave | null {
-  if (amount < 1 || !POOL_KEYS.includes(key)) return null;
+  if (!Number.isInteger(amount) || amount < 1 || !POOL_KEYS.includes(key)) return null;
   const meta = loadMeta();
   const price = poolPriceOf(key) * amount;
   if (meta.nektar < price) return null;
-  return updateMeta({
+  const write = persistMeta({
+    ...meta,
     nektar: meta.nektar - price,
     variantCounts: { ...meta.variantCounts, [key]: (meta.variantCounts[key] ?? 0) + amount },
   });
+  return write.status === 'written' ? loadMeta() : null;
 }
 
 /**
@@ -44,13 +48,14 @@ export function buyPoolItem(key: string, amount = 1): MetaSave | null {
  * für ein bloßes Ticket, der zweite keimte es kostenlos (Nektar-Drift). Fail-closed:
  * zu wenig Nektar ODER Register-Verweigerung ⇒ null, nichts passiert.
  */
-export function buySeedAndGerminate(price: number, index: number): MetaSave | null {
+export function buySeedAndGerminate(_requestedPrice: number, index: number): MetaSave | null {
   const meta = loadMeta();
+  const price = SEED_PRICE;
   if (meta.nektar < price) return null;
   const variant = germinateVariant(index);
-  const registered = registerVariant(variant);
-  if (!registered) return null;
-  return updateMeta({ nektar: meta.nektar - price });
+  const registered = applyRegisterVariant(meta, variant);
+  const write = persistMeta({ ...registered, nektar: registered.nektar - price });
+  return write.status === 'written' ? loadMeta() : null;
 }
 
 /**
@@ -66,7 +71,9 @@ export function germinateSeed(index: number): MetaSave | null {
   const meta = loadMeta();
   if (meta.seedStash <= 0) return null;
   const variant = germinateVariant(index);
-  return registerVariant(variant) ? updateMeta({ seedStash: meta.seedStash - 1 }) : null;
+  const registered = applyRegisterVariant(meta, variant);
+  const write = persistMeta({ ...registered, seedStash: meta.seedStash - 1 });
+  return write.status === 'written' ? loadMeta() : null;
 }
 
 /**
@@ -105,6 +112,7 @@ export function consumeSeedAndEnqueueCross(
   rootSeed: number = EPOCH_ROOT,
 ): MetaSave | null {
   const meta = loadMeta();
+  if (meta.pendingCrosses.some(c => c.crossIndex === crossIndex)) return null;
   // B19: das Kind + Eltern werden beim Aussaat persistiert — der Claim hängt nur am
   // globalen Wellen-Timer (isMatured), nie am zufälligen Eltern-Bestand.
   const entry: PendingCross = {
@@ -186,13 +194,14 @@ export function buySeedling(): MetaSave | null {
   if (meta.nektar < SEED_PRICE) return null;
   const index = meta.breedGeneration; // deterministischer Keim-Index (B17.3-Vertrag)
   const variant = germinateVariant(index);
-  const registered = registerVariant(variant);
-  if (!registered) return null;
-  return updateMeta({
-    nektar: meta.nektar - SEED_PRICE,
+  const registered = applyRegisterVariant(meta, variant);
+  const write = persistMeta({
+    ...registered,
+    nektar: registered.nektar - SEED_PRICE,
     breedGeneration: index + 1,
     seedlings: [...meta.seedlings, variant.id],
   });
+  return write.status === 'written' ? loadMeta() : null;
 }
 
 /**

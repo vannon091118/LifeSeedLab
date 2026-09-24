@@ -45,6 +45,19 @@ describe('Phase 3.1/3.2 EventBus + contract', () => {
     expect(() => assertEventContract(broken)).toThrow();
   });
 
+  it('publish erzwingt den Event-Contract vor jedem Downstream-Listener', () => {
+    const bus = new EventBus();
+    let hits = 0;
+    bus.subscribe('WAVE_STARTED', () => hits++);
+    const valid = makeEvent(1, 'WAVE_STARTED', 'system:wave', 1, { wave: 1, enemyCount: 5 });
+    const broken = { ...valid, sourceId: '' } as typeof valid;
+
+    expect(() => bus.publish(broken)).toThrow();
+    expect(hits).toBe(0);
+    expect(bus.publishCount).toBe(0);
+    expect(bus.getRecent()).toHaveLength(0);
+  });
+
   it('events carry version 1', () => {
     const e = makeEvent(0, 'WAVE_STARTED', 'system:run', 0, { wave: 1, enemyCount: 3 });
     expect(e.version).toBe(1);

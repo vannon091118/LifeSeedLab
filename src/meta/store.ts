@@ -181,27 +181,40 @@ function healEntryLoop(meta: MetaSave): MetaSave {
   };
 }
 
+function hasUniqueCrosses(meta: MetaSave): boolean {
+  const crosses = new Set(meta.pendingCrosses.map(c => c.crossIndex));
+  const broods = new Set(meta.pendingBroods.map(b => b.broodIndex));
+  return crosses.size === meta.pendingCrosses.length && broods.size === meta.pendingBroods.length;
+}
+
 export function loadMeta(): MetaSave {
   // B17: Invarianten werden bei JEDEM Load hergestellt, nicht nur bei der Migration. Die
   // Storage-Schicht reicht Saves der aktuellen Version unverändert durch — eine Heilung nur im
   // Migrationspfad liefe für genau die Saves nie, die sie brauchen.
-  return healEntryLoop(normalizeRipeness(load<MetaSave>(META_KEY, {
+  const loaded = healEntryLoop(normalizeRipeness(load<MetaSave>(META_KEY, {
     version: META_VERSION,
     migrate,
     fallback: defaultMeta,
   })));
+  // Ein doppelter Queue-Identifier ist keine reparierbare Mehrdeutigkeit: der erste Treffer
+  // würde entscheiden, welche Buchung ein Claim verbraucht. Fail-closed statt first-match.
+  return hasUniqueCrosses(loaded) ? loaded : defaultMeta();
 }
 
-export function persistMeta(meta: MetaSave): void {
+export function persistMeta(meta: MetaSave): import('../persistence/storage').WriteResult {
   // Produktversion beim JEDEN Schreiben aktualisieren — sie zeigt, mit welcher App-Fassung
   // dieser Stand zuletzt geschrieben wurde (Altsave-Diagnose, Support-Fälle).
-  save(META_KEY, { ...meta, appVersion: APP_VERSION }, META_VERSION);
+  return save(META_KEY, { ...meta, appVersion: APP_VERSION }, META_VERSION);
+}
+
+export function updateMetaResult(patch: Partial<MetaSave>): { ok: boolean; meta: MetaSave } {
+  const next = { ...loadMeta(), ...patch };
+  const write = persistMeta(next);
+  return { ok: write.status === 'written', meta: next };
 }
 
 export function updateMeta(patch: Partial<MetaSave>): MetaSave {
-  const next = { ...loadMeta(), ...patch };
-  persistMeta(next);
-  return next;
+  return updateMetaResult(patch).meta;
 }
 
 export function resetMeta(): void {

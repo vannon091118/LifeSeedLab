@@ -1,6 +1,6 @@
 // Owner: BusSystem. LOC ≤ 300. Transport only — contains no gameplay rules.
 
-import type { GameEvent, EventType } from './events';
+import { assertEventContract, type GameEvent, type EventType } from './events';
 
 type Handler = (e: GameEvent) => void;
 
@@ -10,6 +10,9 @@ export class EventBus {
   private recent: GameEvent[] = []; // debug ring buffer (Phase 18.2)
 
   publish(event: GameEvent): void {
+    // Laufzeitgrenze: Typen allein lassen sich an einem Cast vorbeischummern.
+    // Der Bus ist die einzige Publisher-Grenze und muss den Contract dort erzwingen.
+    assertEventContract(event);
     this.seq++;
     this.recent.push(event);
     if (this.recent.length > 200) this.recent.shift();

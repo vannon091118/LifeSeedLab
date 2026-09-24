@@ -130,7 +130,7 @@ export function recordRunEnd(waveReached: number, nektarEarned: number, remainin
  * B1-Verkabelung: Zucht-Stats werden beim Besitz-Eintrag abgeleitet (früher nie geschrieben —
  * gezüchtete Pflanzen waren im Run dadurch unplatzierbar).
  */
-function applyRegisterVariant(meta: MetaSave, variant: PlantVariant): MetaSave {
+export function applyRegisterVariant(meta: MetaSave, variant: PlantVariant): MetaSave {
   // Kanonische ID (Altsaves mit base_*-Eltern erzeugen sonst Geister-Varianten)
   const canonical: PlantVariant = { ...variant, id: canonicalVariantId(variant.id) };
   const counts = { ...meta.variantCounts };

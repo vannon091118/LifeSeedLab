@@ -27,6 +27,13 @@ interface Envelope {
   data: unknown;
 }
 
+export type WriteResult = { status: 'written' } | { status: 'skipped' } | { status: 'failed'; error?: unknown };
+export type LoadResult<T> =
+  | { status: 'valid'; value: T }
+  | { status: 'missing' }
+  | { status: 'corrupt' }
+  | { status: 'failed'; error?: unknown };
+
 /**
  * Kanonische Serialisierung: Objekt-Keys sortiert, Array-Reihenfolge bleibt (sie ist fachlich).
  * Die Integritätsprüfung muss am INHALT hängen, nicht an der Darstellung — sonst quarantäniert
@@ -64,16 +71,23 @@ function quarantine(key: string, raw: string): void {
  * A18.4: Envelope-Validierung existierte doppelt (load + idbGet, ~15 Zeilen je Stelle).
  * Eine Wahrheit: parse/Defekt/Checksum ⇒ Quarantäne + null; sonst der Envelope.
  */
+function isEnvelope(value: unknown): value is Envelope {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as { v?: unknown; checksum?: unknown; data?: unknown };
+  return typeof candidate.v === 'number' && typeof candidate.checksum === 'number' && candidate.data != null;
+}
+
 function validateEnvelope(raw: string, key: string): Envelope | null {
-  let env: Envelope;
-  try { env = JSON.parse(raw) as Envelope; } catch {
+  let parsed: unknown;
+  try { parsed = JSON.parse(raw); } catch {
     quarantine(key, raw);
     return null;
   }
-  if (typeof env.v !== 'number' || typeof env.checksum !== 'number' || env.data == null) {
+  if (!isEnvelope(parsed)) {
     quarantine(key, raw);
     return null;
   }
+  const env = parsed;
   if (!checksumMatches(env)) {
     // integrity failure → quarantine, never trust partial data
     quarantine(key, raw);
@@ -107,18 +121,34 @@ function resolveVersion<T>(key: string, env: Envelope, raw: string, opts: StoreO
 }
 
 // ── localStorage backend (sync — meta) ───────────────────────
-export function load<T>(key: string, opts: StoreOptions<T>): T {
-  let raw: string | null = null;
-  try { raw = localStorage.getItem(key); } catch { return opts.fallback(); }
-  if (!raw) return opts.fallback();
+export function loadResult<T>(key: string, opts: StoreOptions<T>): LoadResult<T> {
+  let raw: string | null;
+  try { raw = localStorage.getItem(key); } catch (error) { return { status: 'failed', error }; }
+  if (!raw) return { status: 'missing' };
 
   const env = validateEnvelope(raw, key);
-  if (!env) return opts.fallback();
-  return resolveVersion(key, env, raw, opts, (migrated) => save(key, migrated, opts.version));
+  if (!env) return { status: 'corrupt' };
+  try {
+    if (env.v === opts.version) return { status: 'valid', value: env.data as T };
+    if (env.v > opts.version) { quarantine(key, raw); return { status: 'corrupt' }; }
+    if (!opts.migrate) { quarantine(key, raw); return { status: 'corrupt' }; }
+    const migrated = opts.migrate(env.data, env.v);
+    if (migrated === null) { quarantine(key, raw); return { status: 'corrupt' }; }
+    const write = save(key, migrated, opts.version);
+    return write.status === 'written' ? { status: 'valid', value: migrated } : { status: 'failed', ...('error' in write ? { error: write.error } : {}) };
+  } catch (error) {
+    return { status: 'failed', error };
+  }
 }
 
-export function save<T>(key: string, value: T, version: number): void {
-  try { localStorage.setItem(key, encode(value, version)); } catch { /* full/private mode */ }
+export function load<T>(key: string, opts: StoreOptions<T>): T {
+  const result = loadResult(key, opts);
+  return result.status === 'valid' ? result.value : opts.fallback();
+}
+
+export function save<T>(key: string, value: T, version: number): WriteResult {
+  try { localStorage.setItem(key, encode(value, version)); return { status: 'written' }; }
+  catch (error) { return { status: 'failed', error }; }
 }
 
 export function remove(key: string): void {
@@ -143,7 +173,7 @@ function openIdb(): Promise<IDBDatabase> {
   });
 }
 
-export async function idbSet(key: string, value: unknown, version: number): Promise<void> {
+export async function idbSet(key: string, value: unknown, version: number): Promise<WriteResult> {
   try {
     const db = await openIdb();
     await new Promise<void>((resolve, reject) => {
@@ -153,38 +183,57 @@ export async function idbSet(key: string, value: unknown, version: number): Prom
       tx.onerror = () => reject(tx.error);
     });
     db.close();
-  } catch { /* storage unavailable — skip */ }
+    return { status: 'written' };
+  } catch (error) {
+    return { status: 'failed', error };
+  }
 }
 
-export async function idbGet<T>(key: string, opts: StoreOptions<T>): Promise<T> {
+export async function idbGetResult<T>(key: string, opts: StoreOptions<T>): Promise<LoadResult<T>> {
+  let db: IDBDatabase | undefined;
+  let raw: string | undefined;
   try {
-    const db = await openIdb();
-    const raw = await new Promise<string | undefined>((resolve, reject) => {
-      const tx = db.transaction(IDB_STORE, 'readonly');
+    db = await openIdb();
+    raw = await new Promise<string | undefined>((resolve, reject) => {
+      const tx = db!.transaction(IDB_STORE, 'readonly');
       const req = tx.objectStore(IDB_STORE).get(key);
       req.onsuccess = () => resolve(req.result as string | undefined);
       req.onerror = () => reject(req.error);
     });
-    db.close();
-    if (!raw) return opts.fallback();
-
-    const env = validateEnvelope(raw, key);
-    if (!env) return opts.fallback();
-    return resolveVersion(key, env, raw, opts, (migrated) => idbSet(key, migrated, opts.version));
-  } catch {
-    return opts.fallback();
+  } catch (error) {
+    return { status: 'failed', error };
+  } finally {
+    if (db) db.close();
   }
+  if (!raw) return { status: 'missing' };
+  const env = validateEnvelope(raw, key);
+  if (!env) return { status: 'corrupt' };
+  if (env.v === opts.version) return { status: 'valid', value: env.data as T };
+  if (env.v > opts.version) { quarantine(key, raw); return { status: 'corrupt' }; }
+  if (!opts.migrate) { quarantine(key, raw); return { status: 'corrupt' }; }
+  const migrated = opts.migrate(env.data, env.v);
+  if (migrated === null) { quarantine(key, raw); return { status: 'corrupt' }; }
+  const write = await idbSet(key, migrated, opts.version);
+  return write.status === 'written' ? { status: 'valid', value: migrated } : { status: 'failed', ...('error' in write ? { error: write.error } : {}) };
 }
 
-export async function idbRemove(key: string): Promise<void> {
+export async function idbGet<T>(key: string, opts: StoreOptions<T>): Promise<T> {
+  const result = await idbGetResult(key, opts);
+  return result.status === 'valid' ? result.value : opts.fallback();
+}
+
+export async function idbRemove(key: string): Promise<WriteResult> {
   try {
     const db = await openIdb();
-    await new Promise<void>((resolve) => {
+    await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(IDB_STORE, 'readwrite');
       tx.objectStore(IDB_STORE).delete(key);
       tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
+      tx.onerror = () => reject(tx.error);
     });
     db.close();
-  } catch { /* ignore */ }
+    return { status: 'written' };
+  } catch (error) {
+    return { status: 'failed', error };
+  }
 }

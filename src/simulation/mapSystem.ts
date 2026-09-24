@@ -166,7 +166,9 @@ export class MapSystem {
     const key = `${this.mapRev}:${gx},${gy},${tile}`;
     const cached = this.probeCache.get(key);
     if (cached !== undefined) return cached;
-    const closes = this.computeRoute(state, { gx, gy, tile }) === null;
+    // Integrität ist eine Existenzfrage, keine Gewichtungsfrage. Für die Hover-Probe
+    // genügt daher eine BFS-Suche (O(V+E)); der Dijkstra bleibt für den sichtbaren Laufweg.
+    const closes = !this.routeExists(state, { gx, gy, tile });
     if (this.probeCache.size >= MapSystem.PROBE_CACHE_MAX) this.probeCache.clear();
     this.probeCache.set(key, closes);
     return closes;
@@ -193,6 +195,32 @@ export class MapSystem {
       gx, gy, tile,
     }));
     return { ok: true, tile };
+  }
+
+  private routeExists(state: SimState, override?: TileOverride): boolean {
+    const spawn = spawnCorner(state.cols);
+    const exit = exitCorner(state.rows);
+    const blocked = (gx: number, gy: number): boolean => {
+      if (override && override.gx === gx && override.gy === gy) {
+        return override.tile === null ? false : !MAP_TILES_SOURCE[override.tile as MapTileType]?.walkable;
+      }
+      return tileBlocked(state.mapTiles, gx, gy);
+    };
+    if (blocked(spawn.gx, spawn.gy)) return false;
+    const queue: [number, number][] = [[spawn.gx, spawn.gy]];
+    const seen = new Set<string>([tileKey(spawn.gx, spawn.gy)]);
+    while (queue.length > 0) {
+      const [x, y] = queue.shift()!;
+      if (x === exit.gx && y === exit.gy) return true;
+      for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]] as [number, number][]) {
+        if (nx < 0 || nx >= state.cols || ny < 0 || ny >= state.rows || blocked(nx, ny)) continue;
+        const key = tileKey(nx, ny);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        queue.push([nx, ny]);
+      }
+    }
+    return false;
   }
 
   /**

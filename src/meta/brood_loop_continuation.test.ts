@@ -153,10 +153,10 @@ describe('B34 — Der Kern-Loop dreht immer', () => {
   it('voller Loop: kaufen → aussäen → Wellen überleben → abholen → im Bestand', () => {
     // Loop-Test braucht Kaufkraft für ZWEI Keime — Start-Nektar ist bewusst genau EIN Samen
     // (Einstiegs-Leihe), hier bewusst über Schreibzugriff aufgestockt, nicht via defaultMeta.
-    updateMeta({ nektar: 60 });
-    // Kaufen keimt direkt (B17.3): Bestand wächst.
-    expect(buySeedAndGerminate(30, 0)).not.toBeNull();
-    expect(buySeedAndGerminate(30, 1)).not.toBeNull();
+    updateMeta({ nektar: 80 });
+    // Kaufen keimt direkt (B17.3): Bestand wächst; der Preis kommt ausschließlich aus der Source.
+    expect(buySeedAndGerminate(40, 0)).not.toBeNull();
+    expect(buySeedAndGerminate(40, 1)).not.toBeNull();
 
     // Aussäen (frei, Kosten beim Behalten).
     let meta = loadMeta();

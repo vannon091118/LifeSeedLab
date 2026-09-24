@@ -189,6 +189,15 @@ describe('B14 — Reife-Gate (fail-closed)', () => {
     expect(advanceCrossMaturation(3)).toBeUndefined();
   });
 
+  it('weist doppelte crossIndex beim Load fail-closed ab', () => {
+    updateMeta({
+      seedStash: 1,
+      totalWavesSurvived: 0,
+      pendingCrosses: [REIF, REIF],
+    });
+    expect(loadMeta().pendingCrosses).toEqual([]);
+  });
+
   it('begrenzt die Queue auf PENDING_CROSSES_MAX Einträge', () => {
     updateMeta({ seedStash: 100, totalWavesSurvived: 0, pendingCrosses: [] });
     for (let i = 0; i < 20; i++) {
