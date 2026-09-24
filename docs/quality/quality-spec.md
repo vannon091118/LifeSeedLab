@@ -38,7 +38,7 @@ Klassen der Befunde: `DEFECT` (kaputt/falsch) · `INCOMPLETE` (Vertrag existiert
 | `B29.5` | [core.md](./contracts/core.md) | DoD für B29 |
 | `A4` | [simulation.md](./contracts/simulation.md) | `src/simulation/root.ts` + systems — INCOMPLETE (effect pipeline), 4 DEFECTs |
 | `B6` | [simulation.md](./contracts/simulation.md) | Effect chain (sim → visuals, first real pass) |
-| `B38` | [simulation.md](./contracts/simulation.md) | Maze-Balance-Datensatz — PLANT_ROUTE_COST als Tuning-Basis (Messung 2026-09-18) |
+| `B38` | [simulation.md](./contracts/simulation.md) | Maze-Balance-Datensatz — PLANT_ROUTE_COST als Tuning-Basis (Neumessung 2026-09-21) |
 | `A2` | [genome.md](./contracts/genome.md) | `src/genome.ts` — WRONG core, KEEP math |
 | `A15` | [genome.md](./contracts/genome.md) | INCOMPLETE (verifiziert, gemessen) — Genom-Mutation: drei Achsen, ein falsches Nein |
 | `B16` | [genome.md](./contracts/genome.md) | Route sichtbar machen & Genom-Modell schärfen (Auftrag aus A14/A15/A16) |
@@ -113,6 +113,7 @@ Klassen der Befunde: `DEFECT` (kaputt/falsch) · `INCOMPLETE` (Vertrag existiert
 | `B4` | [visual.md](./contracts/visual.md) | Plant visual identity from genome (renderer + generator) |
 | `B5` | [visual.md](./contracts/visual.md) | Event → FX execution matrix (visualObserver + FeedbackLayer + manga) |
 | `B5.1` | [visual.md](./contracts/visual.md) | Reward flight |
+| `B5.2` | [visual.md](./contracts/visual.md) | Pixelbelege (21.09.2026) — die Behauptung ist jetzt messbar |
 | `B8` | [visual.md](./contracts/visual.md) | Audio (new `observers/audioObserver.ts` ≤ 250 LOC) |
 | `B10` | [visual.md](./contracts/visual.md) | World & entity render specification (renderer rewrite) |
 | `B11` | [visual.md](./contracts/visual.md) | Wave dramaturgy timeline (per wave, driven by events only) |
@@ -135,8 +136,9 @@ Klassen der Befunde: `DEFECT` (kaputt/falsch) · `INCOMPLETE` (Vertrag existiert
 | `B21.2` | [ui.md](./contracts/ui.md) | Spec |
 | `B21.3` | [ui.md](./contracts/ui.md) | Schrittfolge (eine Quelle: `script.ts`) |
 | `B21.4` | [ui.md](./contracts/ui.md) | DoD für B21 |
-| `B21.5` | [ui.md](./contracts/ui.md) | Nachtrag — E2E-Beweis zurückgebaut |
+| `B21.5` | [ui.md](./contracts/ui.md) | Nachtrag — Sichtprüfung und E2E |
 | `B21.6` | [ui.md](./contracts/ui.md) | Nachtrag — die Tour begann zu spät (Befund: Erstspieler-Test) |
+| `B21.7` | [ui.md](./contracts/ui.md) | P-15 — freiwilliges Nachlesen (24.09.2026) |
 | `B22` | [ui.md](./contracts/ui.md) | Leere Tray beim Betreten des Runs (Befund: Erstspieler-Test) |
 | `B22.1` | [ui.md](./contracts/ui.md) | Befund |
 | `B22.2` | [ui.md](./contracts/ui.md) | Spec |
@@ -166,6 +168,8 @@ Klassen der Befunde: `DEFECT` (kaputt/falsch) · `INCOMPLETE` (Vertrag existiert
 | `B24.1` | [process.md](./contracts/process.md) | Befund |
 | `B24.2` | [process.md](./contracts/process.md) | Spec |
 | `B24.3` | [process.md](./contracts/process.md) | DoD für B24 |
+| `B24.4` | [process.md](./contracts/process.md) | Build-Warnungen sind blockierend (24.09.2026) |
+| `B24.5` | [process.md](./contracts/process.md) | Visuelle Belege — die dritte Stufe des Sprint-Abschlusses (21.09.2026) |
 | `B32` | [process.md](./contracts/process.md) | Test-Suite-Konsolidierung — Baseline, Testkit und Abdeckungswache (Plan: `plan/refactor-test-suite-consolidation-1.md`) |
 | `B32.1` | [process.md](./contracts/process.md) | Befund |
 | `B32.2` | [process.md](./contracts/process.md) | Spec |

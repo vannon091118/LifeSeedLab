@@ -91,7 +91,7 @@ Observer payloads now carry `color`/`accent` resolved from effect source — UI 
 
 `REWARD_GRANTED` + world position → 3–5 GLOW particles; quadratic curve to HUD anchor (screen-space target = energy icon position passed in from HUD once per resize); on arrival HUD energy counter punches (scale 1→1.25→1). Resource is already authoritative — flight is display-only.
 
-### B5.1 Umsetzung (21.09.2026) — **UMGESETZT**, mit einer ehrlichen Korrektur
+### Umsetzung (21.09.2026) — **UMGESETZT**, mit einer ehrlichen Korrektur
 
 Der Befund war schärfer als der Vertragstext: die Belohnung hatte **keine Reise, kein Ziel und einen erfundenen Ursprung**.
 

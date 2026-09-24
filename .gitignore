@@ -57,6 +57,7 @@ docs/art/
 # referenziert — dieselbe Begründung wie oben: ein Verweis auf ein ignoriertes Skript ist für
 # jeden frischen Klon tot (Befund 20.09.2026, der Doku-Referenz-Check hat es gefunden).
 !/scripts/test-count.mjs
+!/scripts/test-lane-verdict.mjs
 # Shinon-Werkzeug: der Code liegt getrackt unter tools/, Laufzeit-Artefakte bleiben lokal.
 tools/.tmp/
 tools/.shinon-state.json
