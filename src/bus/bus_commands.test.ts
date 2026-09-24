@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 
-// Owner: Bus-Tests — Sub-Domäne „Commands“ (Phase 3.3). Die Transport-Contract-Tests
-// wohnen jetzt in transport.test.ts — Code und Beweis in derselben Domäne.
+// Owner: Bus-Tests — Sub-Domäne „Commands“ (Phase 3.3). Der frühere Transport-Vertrag
+// hatte keinen Produktionskonsumenten und wurde entfernt; Command-Queue-Tests bleiben hier.
 
 import { CommandQueue, makeCommand } from './commands';
 import { nextScopedId, resetIds } from '../core/ids';

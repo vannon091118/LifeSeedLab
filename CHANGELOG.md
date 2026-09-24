@@ -9,6 +9,8 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ## Unreleased (Arbeitsstand 19.–24.09.2026)
 
+- [Worktree/Source] Die verbleibenden lokalen Änderungen werden übernommen: Versionswahrheit 0.0.99, entfernte ungenutzte Dependencies, lokale-only Discovery-Dokumentation, bereinigte Test-Helfer und die vom Shinon-Status erzeugte README-Zeile. Dadurch bleibt der Arbeitsbaum nach dem Abschluss tatsächlich sauber.
+
 - [Worktree/Index] Die lokale Arbeitskopie wird vollständig konsolidiert: generierte Index-Ausgaben, Versionswahrheit `0.0.99`, Index-Skripte und die bereinigten Source-/Testverweise werden in getrennten Shinon-Slices übernommen. Fremde/generated Änderungen werden nicht mehr absichtlich im Worktree stehen gelassen.
 
 - [E2E-Vertrag] Die Canvas-Sonde veröffentlicht Test-Events nun mit einer ableitbaren Event-ID und vollständigem `REWARD_GRANTED`-Payload; der gezielte Chromium-Single-Run für Visual-/Layout-/Erstsession-Specs ist 11/11 grün. Belege: `tests/helpers/canvasProbe.ts`, `tests/visual_probe.spec.ts`.

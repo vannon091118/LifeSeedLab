@@ -16,7 +16,7 @@ Aktuelle empirische Studien zur Qualität von KI-generiertem Code belegen eindeu
 - **Test-Orakel-Fehlverhalten (arXiv:2410.21136):** LLMs neigen dazu, Test-Orakel zu generieren, die das *tatsächlich vorhandene* (potentiell fehlerhafte) Verhalten spiegeln, anstatt das fachlich erwartete Verhalten unabhängig zu spezifizieren.
 - **OWASP Top 10:2025 (A10 Mishandling of Exceptional Conditions):** Das Maskieren von Ausnahme- und Beschädigungszuständen als gültige Rückgabewerte („Failing Open“) wird 2025 ausdrücklich als kritische Sicherheits- und System-Schwachstelle geführt.
 
-Diese Spezifikation definiert für das Werkzeug **Shinon** 22 prüfbare Erkennungsmuster inklusive mathematischer/logischer Beweisführung, False-Positive-Kriterien, Systeminvarianten und konkreter Audit-Befunde aus dem LifeSeedLab-Repository.
+Diese Spezifikation beschreibt 22 Audit-Themen für das Werkzeug **Shinon**. Die automatisierte Gate-Konfiguration enthält dafür aktuell sieben konkrete `forbiddenPatterns`; die übrigen Themen bleiben manuelle bzw. nachzurüstende Prüfungen.
 
 ---
 

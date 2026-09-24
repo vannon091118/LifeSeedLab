@@ -14,8 +14,8 @@ import {
   pushCommand,
   vectorFieldCellsOf,
   describeFirstFieldDeviation,
+  testVectorDeposit,
 } from './testkit';
-import { testVectorDeposit } from './vectorHooks';
 
 describe('TestKit — Kontrakt (B32.2)', () => {
   beforeEach(() => {

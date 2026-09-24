@@ -81,7 +81,7 @@ LifeSeedLab verbindet **Plants vs. Zombies**-Gameplay mit **Binding of Isaac**-E
 | 5 | **Observer-Purity** | `observers/` — lesen nur Events, emittieren Visual-Commands, mutieren nie State |
 | 6 | **Source = Content Truth** | `config/*.source.ts` — **keine** Gameplay-Constants im Code |
 | 7 | **Resume-Vertrag (ehrlich)** | `persistence/` — Enemies/Projectiles absichtlich NICHT gespeichert, Wave-Neustart |
-| 8 | **Discovery-Chain** | `discovery/chain.ts` — FNV-1a Hash-Chain, `lifeseed:` Sharing, Supabase-Spiegel |
+| 8 | **Discovery-Chain** | `discovery/chain.ts` — FNV-1a Hash-Chain und `lifeseed:`-Sharing, ausschließlich lokal |
 | 9 | **Paper + Pop Art Direction** | `../quality/contracts/visual.md` B0, B10 (Art Direction & Render) · B9 in `../quality/contracts/ui.md` — verbindlich, testbar (Grayscale-Test) |
 | 10 | **Mobile-First (390×844)** | Alle Touch-Targets ≥44px, kein Hover-Pflicht, Portrait-Layout |
 

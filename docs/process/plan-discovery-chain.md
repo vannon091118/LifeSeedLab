@@ -14,7 +14,7 @@
 
 | # | Behauptung | Beleg | Urteil |
 |---|---|---|---|
-| 1 | `syncEntryStub` gibt `{ ok: true }` zurück und tut sonst nichts | `src/discovery/chain.ts:143-145` | **bestätigt** — kein Backend-Pfad |
+| 1 | Ein aktiver Online-Sync existiert nicht | `src/discovery/chain.ts` und `src/discovery/codex.ts` | **bestätigt** — der frühere No-op-Stub wurde entfernt; der Codex bleibt lokal |
 | 2 | Supabase ist ein Register, keine Kette | `supabase/migrations/001_discoveries.sql:29` (`genome_hash … unique`); `prev_hash` je Zeile, kein serverseitiger Tip | **bestätigt** — global eine MENGE mit Ordnung je Spieler |
 | 3 | Die Migration nennt Hash-Squatting selbst | `001_discoveries.sql:11-17` („RESTRISIKO … Anzeige-Spiegel, kein Beweis") | **bestätigt** |
 | 4 | Der Server rechnet `entry_hash` nicht nach | ebenda: nur CHECKs auf **Form** (`^[0-9a-f]{8}$`, Eltern-Arity, `player_id`-Muster) | **bestätigt** |

@@ -22,7 +22,7 @@ Execution Prompt nennt das Ziel **`LifegamePlant`**, das Repository heißt **`Li
 | `src/bus/bus.ts` | BusSystem | Transport only, `publish/subscribe`, Ring-Buffer | `bus/events` | 46 | **REUSE** |
 | `src/bus/events.ts` | BusSystem | Event-Contract v1 (`eventId/tick/type/sourceId/version/payload`) + Ownership-Tabelle | — | 118 | **REUSE** — §11 erfüllt; kein Hidden-Logic |
 | `src/bus/commands.ts` | CommandSystem | Command-Contract v1 + `CommandQueue` (Phase 12 Input→Command→Bus) | `bus/events` | 95 | **REUSE** |
-| `src/bus/transport.ts` | BusSystem | versionierter `CommandTransport` (Local/MockRemote), Tick-sortiert | `bus/commands` | 55 | **REUSE** — Gate E |
+| `src/discovery/chain.ts` | DiscoveryChain | append-only hash-chain, `hashGenome` (FNV kanonisch), `prev_hash` verkettet, UNIQUE lokal | — | 155 | **REUSE** — §41/§42 Vorb. |
 | `src/simulation/state.ts` | SimulationRoot | kanon. `SimState` (runSeed/clock/phase/wave/resources/plants/enemies/projectiles/score/combo) | `core/clock` | 99 | **REUSE** — §8 erfüllt |
 | `src/simulation/root.ts` | SimulationRoot | deterministischer Step: drain→clock→ Systeme→ Events (einzige Verdrahtung) | alle Systeme + bus/clock | 279 | **REUSE** — Eigentümer aller Slices, §3/§4 ok (≤300) |
 | `src/simulation/plantSystem.ts` | PlantSystem | Plant-State, Lifecycle (growing/mature, fertilize/cooldown, weakened/withered) | `state` + source | 286 | **REUSE** — `tickLifecycle` vor allen Systemen, Bus-only Cross-Slice |
@@ -59,7 +59,7 @@ Execution Prompt nennt das Ziel **`LifegamePlant`**, das Repository heißt **`Li
 | `src/genome.ts` | Source | **Façade/Barrel** (18 LOC); Logik in `genome/{pool,cross,gacha,bases}.ts` (je ≤117) | `core/rng` | 18 | **DONE (SPLIT)** — 2026-09-14, einzige Import-Fläche bleibt `./genome` |
 | `src/i18n.tsx` | UI | Provider-only (45 LOC); Übersetzungen ausgelagert in `i18n/translations.ts` (202 LOC, reine Daten) | `meta` (statisch; Provider liegt im Initial-Chunk) | 45 | **DONE (SPLIT)** — 2026-09-14, Build-Warnungsquelle am 24.09. bereinigt |
 | `src/discovery/chain.ts` | DiscoveryChain | append-only hash-chain, `hashGenome` (FNV kanonisch), `prev_hash` verkettet, UNIQUE lokal | — | 155 | **REUSE** — §41/§42 Vorb. |
-| `src/discovery/codex.ts` | DiscoveryCodex | Spieler-ID + Codex-Persistenz + `appendDiscovery` + `lifeseed:` Share-Text + Sync-Stub | `persistence/storage` + `discovery/chain` | 141 | **REUSE** — lokal-first, Supabase-Spiegel |
+| `src/discovery/codex.ts` | DiscoveryCodex | Spieler-ID + Codex-Persistenz + `appendDiscovery` + `lifeseed:` Share-Text; lokal-only | `persistence/storage` + `discovery/chain` | 141 | **REUSE** — lokale Kette, kein Remote-Pfad |
 | `src/components/GameView.tsx` | UI | Pointer-Workflow `idle→selected→ghost→placed/rejected`, 390×844, `visibilitychange` + Resume-Overlay, HUD ≤5, DevGate-Mount | `simulation/root` + `render/*` + `dev/*` | 341 | **REUSE** — kein Gameplay-Write, ≤400 |
 | `src/components/MainMenu.tsx` | UI | Menu + Greenhouse + Codex Einstieg — Papier-Panels mit Büroklammer, SVG-Icons, selbstironische Kopie (§40) | `genome` + `discovery` | 305 | **DONE (ADAPT)** — Trash-Polish 2026-09-14 |
 | `src/components/Greenhouse.tsx` | UI | Samen kaufen→würfeln→reifen→behalten + Discovery-Append + Share | `genome` + `meta` + `discovery` | 246 | **REUSE** |

@@ -88,23 +88,21 @@ Aus dem technisch tragfähigen Singleplayer-Prototyp wird schrittweise ein deter
 
 ### Phase E — Multiplayer-nahtfähige Runtime ohne Netzwerk
 
-- [x] Versioniertes `CommandTransport`-Interface definieren — `src/bus/transport.ts` `TRANSPORT_VERSION=1`, `TransportEnvelope{version,tick,actorId,seq,command}`.
-- [x] Lokalen Transport als Standardadapter auf die bestehende `CommandQueue` setzen — `LocalTransport(queue).send()` → `queue.push()`.
-- [x] Remote-/Snapshot-Adapter nur als typisierte Mock-Grenze ergänzen — `MockRemoteTransport` puffert, `drain()` sortiert nach Tick (Command-Sortierung nach Tick), `flushTo(queue)`.
+- [x] Command-Transport-Experiment entfernt: Es gab keinen Produktionskonsumenten; die test-only `CommandTransport`-Dateien wurden nach Referenzprüfung gelöscht.
 - [x] Deterministische IDs um Run-/Match-Kontext und Sequenz vorbereiten, ohne UUID-/Zufallszustand einzuführen — `nextScopedId(runOrMatchId, kind, seq)` via FNV, deterministisch.
-- [x] Snapshot-Serialisierung, Event-Stream-Version und State-Hash als öffentliche Runtime-Verträge prüfen — `src/simulation/snapshot.ts` (`SNAPSHOT_VERSION`, `EVENT_STREAM_VERSION`, `serialize/deserialize`, Hash-Check), Tests in `transport.test.ts`.
+- [x] Snapshot-Serialisierung, Event-Stream-Version und State-Hash als öffentliche Runtime-Verträge prüfen — `src/simulation/snapshot.ts` (`SNAPSHOT_VERSION`, `EVENT_STREAM_VERSION`, `serialize/deserialize`, Hash-Check).
 
-**Gate E:** ✅ `SimulationRoot` kennt keinen Transport und kein Netzwerk; lokale Commands und Mock-Remote-Commands erreichen denselben Queue-Eingang (Gate-Test `transport.test.ts` 8/8).
+**Gate E:** ✅ `SimulationRoot` kennt keinen Transport und kein Netzwerk; der tote test-only Transport wurde nicht als Produktionsarchitektur ausgeliefert.
 
 ### Phase F — Discovery-Chain & Sharing (implementiert, lokal-first)
 
-- [x] `src/discovery/chain.ts` — `hashGenome` (FNV kanonisch), `createEntry`, `verifyChain`, `tryAppend` (UNIQUE genome_hash), `syncEntryStub` (Supabase-ready). Loc ≤ 250, 0 Deps, test-locked `src/discovery/chain.test.ts` (10 Tests).
-- [x] `src/discovery/codex.ts` — Spieler-Identität (`getPlayerId`, persistiert), Codex-Persistenz (`loadCodex`/`saveCodex`), `appendDiscovery`, `seedShareText` (`lifeseed:seed:gen:hash`), Supabase-Mirror-Stub.
-- [x] `supabase/migrations/001_discoveries.sql` — `discoveries` mit `genome_hash UNIQUE`, `parents jsonb`, `seed`, `generation`, `prev_hash`, `entry_hash`, RLS public read, erste Entdeckung gewinnt.
+- [x] `src/discovery/chain.ts` — `hashGenome` (FNV kanonisch), `createEntry`, `verifyChain`, `tryAppend` (UNIQUE genome_hash). Loc ≤ 250, 0 Deps, test-locked `src/discovery/chain.test.ts` (10 Tests).
+- [x] `src/discovery/codex.ts` — Spieler-Identität (`getPlayerId`, persistiert), Codex-Persistenz (`loadCodex`/`saveCodex`), `appendDiscovery`, `seedShareText` (`lifeseed:seed:gen:hash`). Lokale-only; kein aktiver Remote-Sync.
+- [ ] `supabase/migrations/001_discoveries.sql` — bleibt als inaktives Schema-Archiv für eine mögliche spätere Backend-Entscheidung; kein aktiver Client- oder Runtime-Pfad.
 - [x] UI: `Greenhouse` schreibt beim Claim in die Kette + `⧉ Seed teilen` (Clipboard); `MainMenu` → `📖 Öffentlicher Codex` (read-only Chain, Verifikation, organische Spieler-ID-Sichtbarkeit).
 - [x] i18n: `codex.*` + `discovery.*` (DE/EN), deterministische Tests grün (100/100).
 
-**Gate F:** ✅ Kette lokal append-only + hash-linked, Duplikate abgelehnt, Verifikation grün, Seeds teilbar (gleicher Seed ⇒ gleiche Pflanze), Supabase-Schema liegt bereit — lokal-first, kein Token/Blockchain.
+**Gate F:** ✅ Kette lokal append-only + hash-linked, Duplikate abgelehnt, Verifikation grün, Seeds teilbar (gleicher Seed ⇒ gleiche Pflanze). Kein Backend- oder Blockchain-Pfad ist aktiv.
 
 ### Phase G — Multiplayer-Backend (bewusst zurückgestellt)
 

@@ -16,7 +16,7 @@
 | **Rendering** | **HTML5 Canvas 2D (handgeschrieben)** | Fest | **Keine externe Engine** (Pixi/Phaser abgelehnt). Pure Zeichenroutinen (`Path2D`, Bezier-Konturen) + vorgebackene Offscreen-Papercraft-Texturen aus dem `visual`-Namespace. Maximale FPS bei minimalem Speicherfootprint auf Mobile (390×844). |
 | **Audio** | Web Audio API (`observers/audioObserver.ts`) | Fest | SFX synthetisiert via Oszillatoren + Noise-Buffer, gesteuert durch `soundProfile`. 0 Audio-Assets, 0 Byte Ladezeit. Read-only Bus-Abonnent (FX ON/OFF ändert keinen einzigen RNG-Tick). |
 | **Persistenz** | Eigenes `persistence/storage.ts` (0 Deps) | Fest | Einziger Storage-Owner. Checksummen (FNV-1a), Quarantäne bei Korruption (`.corrupt`), atomare Saves, synchrone Meta-Hydration vor erstem Paint. |
-| **Discovery** | Lokale Append-Only Hash-Chain + Supabase | Fest | Kryptografischer Genom-Beweis (`genome_hash`) via FNV-1a. Teilen per Link/String ohne Blockchain-Token. |
+| **Discovery** | Lokale Append-Only Hash-Chain | Fest | Kryptografischer Genom-Beweis (`genome_hash`) via FNV-1a. Teilen per Link/String ohne Blockchain-Token. |
 | **Tests** | Vitest + Playwright (E2E) | Fest | Vitest im Shared-Worker-Modus (`isolate: false`, ~5s Voll-Suite), Playwright für 390×844 Portrait & Progression. |
 
 ---
@@ -206,7 +206,7 @@ Jede Domäne im Verzeichnis `src/` unterliegt einem strikten Vertrag hinsichtlic
 - **Garantien:** FNV-1a Validierung; kein stiller Datenverlust bei Schema-Änderungen.
 
 ### 5.10 Domäne `discovery` (`src/discovery/`)
-- **Verantwortung:** Hash-Kette gefundener Mutationen, lokales Labor-Notizbuch (Codex), Remote-Spiegelung nach Supabase.
+- **Verantwortung:** Hash-Kette gefundener Mutationen und lokales Labor-Notizbuch (Codex). Entdeckungen bleiben auf diesem Gerät; es gibt keinen aktiven Remote-Sync.
 - **Autoritativer Writer:** `chain.ts` (hängt deterministische Entdeckungs-Blöcke an).
 - **Erlaubte Reader:** `Codex.tsx`, Meta-Store.
 - **LOC-Cap:** 300 Code-Zeilen je Datei.

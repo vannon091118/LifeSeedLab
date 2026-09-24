@@ -226,12 +226,12 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Kennzahl | Stand |
 |---|---|
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `e559ccc` — chore(tooling): tote Infrastruktur entfernen und Anker ehrlich schützen |
-| Arbeitsbaum | 0 gestaged, 50 geändert, 0 neu |
-| Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
+| HEAD | `9dc37f6` — fix(ci): E2E-Lane-Vertrag aus dem frischen Checkout laden |
+| Arbeitsbaum | 20 gestaged, 52 geändert, 0 neu |
+| Letztes Gate | ✅ offen (preflight, 0 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `e559ccc` chore(tooling): tote Infrastruktur entfernen und Anker ehrlich schützen |
+| Letzter Shinon-Commit | `9dc37f6` fix(ci): E2E-Lane-Vertrag aus dem frischen Checkout laden |
 | Letzter Push | ✅ origin/main |
-| LOC-Hotspots | `src/simulation/plantSystem.ts` 261/300 (87 %)<br>`src/simulation/enemySystem.ts` 256/300 (85 %)<br>`src/meta/run.ts` 159/200 (80 %)<br>`src/components/GameView.tsx` 315/400 (79 %)<br>`src/render/renderer.ts` 312/400 (78 %) |
+| LOC-Hotspots | `src/persistence/storage.ts` 184/200 (92 %)<br>`src/simulation/plantSystem.ts` 261/300 (87 %)<br>`src/simulation/enemySystem.ts` 256/300 (85 %)<br>`src/meta/run.ts` 159/200 (80 %)<br>`src/components/GameView.tsx` 315/400 (79 %) |
 <!-- SHINON:STATUS:END -->
 ->
