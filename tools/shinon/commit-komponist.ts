@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { readMessage, validateMessage } from './checks/commit-message-check.ts';
+import { hasBlocking, type Finding } from './checks/check.ts';
 import { nowIso } from './state.ts';
-import type { Finding } from './checks/check.ts';
 import type { ShinonConfig } from './config.ts';
 import type { ShinonGitHelfer } from './git-helfer.ts';
 import type { ShinonStateStore } from './state.ts';
@@ -31,7 +31,12 @@ interface CommitOptions {
   message?: string;
   /** Pfad zur Nachrichtendatei, überschreibt `commit.messageFile`. */
   messageFile?: string;
+  /** Explizite Entscheidung für den post-commit Push; undefined übernimmt die Hook-Konfiguration. */
+  pushAfterCommit?: boolean;
+  /** true ⇒ validiert Index und Nachricht, führt aber keinen Git-Commit aus. */
+  dryRun?: boolean;
 }
+
 
 export class ShinonCommitKomponist {
   private readonly git: ShinonGitHelfer;
@@ -104,11 +109,24 @@ export class ShinonCommitKomponist {
     }
 
     const findings = validateMessage(message, this.config);
-    if (findings.some((item) => item.severity === 'error')) {
+    if (hasBlocking(findings, this.config.gate.enforcement)) {
       return fail(findings, 'Nachricht entspricht nicht der vereinbarten Form', message);
     }
 
-    const result = this.git.commitWithMessage(message);
+    if (options.dryRun === true) {
+      const subject = message.split(/\r?\n/, 1)[0]?.trim() ?? '';
+      return {
+        ok: true,
+        hash: null,
+        subject,
+        messageFile,
+        verbatim: message,
+        findings,
+        detail: `Commit-Probelauf erfolgreich — kein Commit ausgeführt (${subject})`,
+      };
+    }
+
+    const result = this.git.commitWithMessage(message, { pushAfterCommit: options.pushAfterCommit });
     if (!result.ok) {
       return fail(
         [

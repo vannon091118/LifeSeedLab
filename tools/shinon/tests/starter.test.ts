@@ -24,6 +24,18 @@ describe('ShinonStarter', () => {
     expect(status.hotspots.some((spot) => spot.file.endsWith('src/simulation/plant.ts'))).toBe(true);
   });
 
+  it('weist eine ungültige Check-Auswahl ab, bevor der README-Block verändert wird', async () => {
+    const { dir, git, config } = initTempRepo('starter-invalid-selection');
+    const readme = path.join(dir, 'README.md');
+    write(dir, 'README.md', '# unverändert\n');
+    const before = fs.readFileSync(readme, 'utf8');
+
+    await expect(makeStarter(git, config).prepare({ only: ['does-not-exist'] })).rejects.toThrow('Unbekannte Check-ID');
+
+    expect(fs.readFileSync(readme, 'utf8')).toBe(before);
+    expect(fs.existsSync(path.join(dir, 'tools', '.shinon-state.json'))).toBe(false);
+  });
+
   it('aktualisiert den markierten README-Block und ist idempotent', () => {
     const { dir, git, config } = initTempRepo('starter-readme');
     write(dir, 'README.md', `# Test\n\n${config.starter.beginMarker}\nveraltet\n${config.starter.endMarker}\n\n## Ende\n`);

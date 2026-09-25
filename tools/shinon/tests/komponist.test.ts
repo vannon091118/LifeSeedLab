@@ -47,6 +47,21 @@ describe('ShinonCommitKomponist', () => {
     expect(gitIt(dir, ['log', '--oneline']).stdout.trim()).toBe('');
   });
 
+  it('verwendet im Komponist dieselbe Strict-Blocking-Regel wie Hook und CLI', () => {
+    const { dir, git, config } = initTempRepo('komponist-strict-warning');
+    const message = longMessage(
+      'fix(shinon): Dieser ausführliche Betreff ist absichtlich länger als die siebenundseinzig Zeichen erlaubten Grenze',
+    );
+    write(dir, 'src/thing.ts', 'export const thing = 1;\n');
+    gitIt(dir, ['add', '-A']);
+
+    const result = new ShinonCommitKomponist(git, config, stateFor(git)).commit({ message });
+
+    expect(result.ok).toBe(false);
+    expect(result.findings.some((item) => item.code === 'MSG003' && item.severity === 'warn')).toBe(true);
+    expect(gitIt(dir, ['log', '--oneline']).stdout.trim()).toBe('');
+  });
+
   it('bricht bei leerem Index ab', () => {
     const { git, config } = initTempRepo('komponist-empty-index');
     const result = new ShinonCommitKomponist(git, config, stateFor(git)).commit({ message: longMessage('feat(x): ok') });

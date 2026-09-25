@@ -22,6 +22,38 @@ export { VersionFilesCheck } from './version-files-check.ts';
  * Registry: die Reihenfolge ist die Gate-Reihenfolge (billig vor teuer). Neue Prüfklassen
  * werden hier eingetragen — ShinonGate kennt keine konkrete Prüfung.
  */
+function enabledCheckIds(config: ShinonConfig): Record<string, boolean> {
+  return {
+    'commit-message': config.gate.checks.commitMessage,
+    'loc-caps': config.gate.checks.locCaps,
+    'forbidden-patterns': config.gate.checks.forbiddenPatterns,
+    'untracked-inputs': config.gate.checks.untrackedInputs,
+    typecheck: config.gate.checks.typecheck,
+    tests: config.gate.checks.tests,
+    e2e: config.gate.checks.e2e,
+    build: config.gate.checks.build,
+    changelog: config.gate.checks.changelog,
+    'doc-links': config.gate.checks.docLinks,
+    'commit-size': config.gate.checks.commitSize,
+    'version-files': config.gate.checks.versionFiles,
+  };
+}
+
+export function validateCheckSelection(config: ShinonConfig, only: string[]): string[] {
+  const enabled = enabledCheckIds(config);
+  const requested = [...new Set(only)].sort();
+  const known = new Set(knownCheckIds());
+  const unknown = requested.filter((id) => !known.has(id));
+  if (unknown.length > 0) {
+    throw new Error(`Unbekannte Check-ID(s): ${unknown.join(', ')}`);
+  }
+  const disabled = requested.filter((id) => enabled[id] !== true);
+  if (disabled.length > 0) {
+    throw new Error(`Check-ID(s) sind in dieser Konfiguration deaktiviert: ${disabled.join(', ')}`);
+  }
+  return requested;
+}
+
 export function buildChecks(config: ShinonConfig, only: string[] = []): ShinonCheck[] {
   const candidates: ShinonCheck[] = [
     new CommitMessageCheck(),
@@ -38,22 +70,9 @@ export function buildChecks(config: ShinonConfig, only: string[] = []): ShinonCh
     new VersionFilesCheck(),
   ];
 
-  const enabled: Record<string, boolean> = {
-    'commit-message': config.gate.checks.commitMessage,
-    'loc-caps': config.gate.checks.locCaps,
-    'forbidden-patterns': config.gate.checks.forbiddenPatterns,
-    'untracked-inputs': config.gate.checks.untrackedInputs,
-    typecheck: config.gate.checks.typecheck,
-    tests: config.gate.checks.tests,
-    e2e: config.gate.checks.e2e,
-    build: config.gate.checks.build,
-    changelog: config.gate.checks.changelog,
-    'doc-links': config.gate.checks.docLinks,
-    'commit-size': config.gate.checks.commitSize,
-    'version-files': config.gate.checks.versionFiles,
-  };
-
-  return candidates.filter((check) => enabled[check.id] === true && (only.length === 0 || only.includes(check.id)));
+  const enabled = enabledCheckIds(config);
+  const requested = validateCheckSelection(config, only);
+  return candidates.filter((check) => enabled[check.id] === true && (requested.length === 0 || requested.includes(check.id)));
 }
 
 export function knownCheckIds(): string[] {

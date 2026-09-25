@@ -11,6 +11,11 @@ export class UntrackedInputCheck implements ShinonCheck {
   readonly title = 'Untracked-Indexquellen';
 
   run(ctx: CheckContext) {
+    // Untracked-Quellen gehören zur Index-Vorbereitung. Im Pre-Commit ist der Index bereits der
+    // bewusst gewählte Slice; eine nicht gestagte Nachbardatei kann weder mitcommittet noch von
+    // dieser Prüfung erfunden werden. Der Preflight darf sie dagegen weiterhin fail-closed melden.
+    if (ctx.phase !== 'preflight') return [];
+
     return ctx.git.status().untracked
       .filter(isIndexInput)
       .sort()

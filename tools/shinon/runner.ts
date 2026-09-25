@@ -23,6 +23,8 @@ export interface SpawnOptions {
   /** true ⇒ nicht-null Exit ist kein Fehler (z. B. `git diff --quiet`). */
   allowFailure?: boolean;
   cwd?: string;
+  /** Zusätzliche Environment-Werte; der Rest wird aus dem aktuellen Prozess geerbt. */
+  env?: Record<string, string | undefined>;
 }
 
 /** Quotiert ein Argument nur, wenn es das braucht (Leerzeichen oder Anführungszeichen). */
@@ -31,7 +33,12 @@ export function quoteArgument(argument: string): string {
 }
 
 export function runProcess(command: string, args: string[], options: SpawnOptions = {}): CommandResult {
-  const base = { cwd: options.cwd, input: options.input, encoding: 'utf8' };
+  const base = {
+    cwd: options.cwd,
+    input: options.input,
+    encoding: 'utf8' as const,
+    env: options.env === undefined ? undefined : { ...process.env, ...options.env },
+  };
   let result = spawnSync(command, args, base);
   let label = [command, ...args].join(' ');
 

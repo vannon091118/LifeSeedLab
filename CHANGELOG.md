@@ -9,6 +9,8 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ## Unreleased (Arbeitsstand 19.–24.09.2026)
 
+- [Shinon/Entry] Der Shinon-Einstieg wird als Plain-Node-Grenze mit zentraler Argument-, Phase- und Check-Auswahl fail-closed ausgeführt; Hooks, Changelog-Prüfung und State-Sanitizing greifen auf dieselben Regeln zu. Belege: `tools/shinon/hook-entry.mjs`, `tools/shinon/cli-args.ts`, `tools/shinon/checks/`, `tools/shinon/state.ts` und die zugehörigen Tooling-Tests.
+
 - [Worktree/Source] Die verbleibenden lokalen Änderungen werden übernommen: Versionswahrheit 0.0.99, entfernte ungenutzte Dependencies, lokale-only Discovery-Dokumentation, bereinigte Test-Helfer und die vom Shinon-Status erzeugte README-Zeile. Dadurch bleibt der Arbeitsbaum nach dem Abschluss tatsächlich sauber.
 
 - [Worktree/Index] Die lokale Arbeitskopie wird vollständig konsolidiert: generierte Index-Ausgaben, Versionswahrheit `0.0.99`, Index-Skripte und die bereinigten Source-/Testverweise werden in getrennten Shinon-Slices übernommen. Fremde/generated Änderungen werden nicht mehr absichtlich im Worktree stehen gelassen.

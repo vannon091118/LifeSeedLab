@@ -50,6 +50,14 @@ interface PushResult {
   stderr: string;
 }
 
+interface CommitHookOptions {
+  /** Explizite Push-Entscheidung für den post-commit Hook; undefined = Konfiguration entscheidet. */
+  pushAfterCommit?: boolean;
+}
+
+/** Einziger Name für die interne Übergabe zwischen Komponist und post-commit Hook. */
+export const PUSH_AFTER_COMMIT_ENV = 'SHINON_PUSH_AFTER_COMMIT';
+
 export class ShinonGitHelfer {
   readonly root: string;
   private readonly github: GitHubHelfer;
@@ -112,7 +120,9 @@ export class ShinonGitHelfer {
   }
 
   status(): GitStatus {
-    const tokens = this.git(['status', '--porcelain=v1', '-z']).stdout.split('\0');
+    // Ohne `--untracked-files=all` faltet Git neue Quellverzeichnisse zu `src/` zusammen.
+    // Gate und Starter würden dann eine einzelne Datei übersehen; der Status muss Dateien liefern.
+    const tokens = this.git(['status', '--porcelain=v1', '--untracked-files=all', '-z']).stdout.split('\0');
     const staged: string[] = [];
     const modified: string[] = [];
     const untracked: string[] = [];
@@ -166,6 +176,38 @@ export class ShinonGitHelfer {
     };
   }
 
+  /** Fortschritt für `git push <remote> <branch>`: vergleicht den lokalen Branch, nicht HEAD. */
+  aheadBehindLocalBranch(remote: string, branch: string): AheadBehind {
+    const localRef = this.git(['rev-parse', '--verify', `refs/heads/${branch}`]);
+    if (!localRef.ok) return { ahead: 0, behind: 0, upstream: null };
+    const target = `${remote}/${branch}`;
+    const remoteRef = this.git(['rev-parse', '--verify', target]);
+    if (!remoteRef.ok) return { ahead: 0, behind: 0, upstream: null };
+    const result = this.git(['rev-list', '--left-right', '--count', `${target}...${branch}`]);
+    if (!result.ok) return { ahead: 0, behind: 0, upstream: null };
+    const [behindText, aheadText] = result.stdout.trim().split(/\s+/);
+    const configuredUpstream = this.git([
+      'for-each-ref', '--format=%(upstream:short)', `refs/heads/${branch}`,
+    ]).stdout.trim();
+    return {
+      ahead: Number(aheadText ?? 0) || 0,
+      behind: Number(behindText ?? 0) || 0,
+      // Nur der tatsächlich konfigurierte Upstream zählt als Upstream. Ein
+      // vorhandener Remote-Ref allein darf den Push nicht als eingerichtet
+      // ausgeben; sonst würde --set-upstream bei einem No-op still fehlen.
+      upstream: configuredUpstream === target ? configuredUpstream : null,
+    };
+  }
+
+  /** true ⇔ der Live-Remote-Branch existiert bereits exakt auf dem lokalen Commit. */
+  remoteBranchMatchesLocal(remote: string, branch: string): boolean {
+    const local = this.git(['rev-parse', '--verify', `refs/heads/${branch}`]).stdout.trim();
+    if (local === '') return false;
+    const result = this.git(['ls-remote', '--exit-code', '--heads', remote, `refs/heads/${branch}`]);
+    if (!result.ok) return false;
+    return result.stdout.trim().split(/\s+/)[0] === local;
+  }
+
   remotes(): RemoteRef[] {
     const seen = new Map<string, string>();
     for (const line of this.git(['remote', '-v']).stdout.split('\n')) {
@@ -188,7 +230,7 @@ export class ShinonGitHelfer {
   }
 
   configSet(key: string, value: string): CommandResult {
-    return this.git(['config', key, value]);
+    return this.git(['config', '--local', key, value]);
   }
 
   diffStats(): { files: number; insertions: number; deletions: number } {
@@ -231,8 +273,15 @@ export class ShinonGitHelfer {
   }
 
   /** Der einzige Commit-Pfad: exakt dieser Inhalt, unverändert, via `git commit -F -`. */
-  commitWithMessage(message: string): CommandResult {
-    return this.git(['commit', '-F', '-', '--cleanup=verbatim'], { input: message });
+  commitWithMessage(message: string, options: CommitHookOptions = {}): CommandResult {
+    const spawnOptions: SpawnOptions = { input: message };
+    if (options.pushAfterCommit !== undefined) {
+      spawnOptions.env = {
+        ...process.env,
+        [PUSH_AFTER_COMMIT_ENV]: options.pushAfterCommit ? '1' : '0',
+      };
+    }
+    return this.git(['commit', '-F', '-', '--cleanup=verbatim'], spawnOptions);
   }
 
   push(options: PushOptions = {}): PushResult {

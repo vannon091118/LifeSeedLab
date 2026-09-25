@@ -8,12 +8,10 @@ import { contextFor, initTempRepo, write } from './helpers.ts';
  * Die drei Pfade der neuen Implementierung werden über echte Temp-Repos gefahren:
  * - CHG000 (info):    Exit 1  ⇒ Differenz zum HEAD ⇒ Eintrag vorhanden (Erfolgsfall).
  * - CHG001 (error):   Exit 0  ⇒ keine Differenz ⇒ kein Eintrag.
- * - CHG002 (error):   Status weder 0 noch 1 (z. B. Exit 128 in einem Repo ohne Commit —
- *   „bad revision 'HEAD'“) ⇒ echter Prüffehler mit Git-stderr in der Meldung.
+ * - CHG002 (error):   Status weder 0 noch 1 ⇒ echter Prüffehler mit Git-stderr in der Meldung.
  *
- * Genau der CHG002-Pfad ist der Grund für den Umbau: die alte execSync-Variante hätte die
- * Exception mit err.status !== 1 stillschweigend als "Fehler" gemeldet — jetzt ist er
- * explizit getestet, damit kein Refactor ihn wieder einrissen lässt.
+ * Ein unborn Branch wird vor dem HEAD-Diff bewusst separat behandelt: Dort ist ein vorhandenes
+ * untracked CHANGELOG ein gültiger Preflight-Eintrag, ein fehlendes File bleibt CHG001.
  */
 describe('Changelog-Prüfung', () => {
   it('meldet eine Änderung an CHANGELOG.md als Erfolgsfall (CHG000, info)', () => {
@@ -44,18 +42,55 @@ describe('Changelog-Prüfung', () => {
     expect(findings[0].severity).toBe('error');
   });
 
-  it('liefert CHG002 (error) in einem Repo ohne Commit — der Fehlerpfad des Umbaus', () => {
-    // Frisches Repo ohne jeden Commit: `git diff HEAD` endet mit Exit 128
-    // ("bad revision 'HEAD'") — weder 0 noch 1, also der CHG002-Pfad.
+  it('bewertet im Pre-Commit nur den Index und ignoriert einen ungestagten Worktree-Eintrag', () => {
+    const { dir, git, config } = initTempRepo('changelog-index-only');
+    write(git.root, 'CHANGELOG.md', '# Log\n');
+    git.git(['add', 'CHANGELOG.md']);
+    git.git(['commit', '-m', 'init', '--no-gpg-sign']);
+    write(dir, 'src/thing.ts', 'export const thing = 1;\n');
+    git.git(['add', 'src/thing.ts']);
+    write(git.root, 'CHANGELOG.md', '# Log\nnur ungestaged\n');
+
+    const findings = new ChangelogCheck().run(contextFor(git, config, { phase: 'pre-commit', quiet: true }));
+
+    expect(findings[0]?.code).toBe('CHG001');
+    expect(findings[0]?.severity).toBe('error');
+  });
+
+  it('akzeptiert im Pre-Commit einen gestagten Eintrag, auch wenn der Worktree wieder HEAD entspricht', () => {
+    const { dir, git, config } = initTempRepo('changelog-staged-reverted');
+    write(git.root, 'CHANGELOG.md', '# Log\n');
+    git.git(['add', 'CHANGELOG.md']);
+    git.git(['commit', '-m', 'init', '--no-gpg-sign']);
+    write(git.root, 'CHANGELOG.md', '# Log\n\n- [Gate] Im Index.\n');
+    git.git(['add', 'CHANGELOG.md']);
+    write(dir, 'CHANGELOG.md', '# Log\n');
+
+    const findings = new ChangelogCheck().run(contextFor(git, config, { phase: 'pre-commit', quiet: true }));
+
+    expect(findings[0]?.code).toBe('CHG000');
+    expect(findings[0]?.severity).toBe('info');
+  });
+
+  it('behandelt ein Repo ohne Commit und ohne CHANGELOG als normalen fehlenden Eintrag', () => {
     const { git, config } = initTempRepo('changelog-no-head');
 
     const findings = new ChangelogCheck().run(contextFor(git, config, { quiet: true }));
 
     expect(findings).toHaveLength(1);
-    expect(findings[0].code).toBe('CHG002');
+    expect(findings[0].code).toBe('CHG001');
     expect(findings[0].severity).toBe('error');
-    // Der Git-Fehlertext muss in der Meldung ankommen (Diagnose statt stiller 128).
-    expect(findings[0].message).toContain('bad revision');
+  });
+
+  it('akzeptiert ein untracked CHANGELOG auf einem unborn Branch', () => {
+    const { git, config } = initTempRepo('changelog-unborn-entry');
+    write(git.root, 'CHANGELOG.md', '# Log\n\n- [Gate] unborn branch\n');
+
+    const findings = new ChangelogCheck().run(contextFor(git, config, { quiet: true }));
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0].code).toBe('CHG000');
+    expect(findings[0].severity).toBe('info');
   });
 });
 

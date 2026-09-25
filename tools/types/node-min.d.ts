@@ -1,7 +1,7 @@
 /**
  * Minimale Ambient-Deklarationen für die Node-APIs, die Shinon tatsächlich benutzt.
  *
- * Grund: `git-noir/` ist lokales Agent-Tooling und darf die `package.json` des Projekts nicht
+ * Grund: `tools/` ist lokales Agent-Tooling und darf die `package.json` des Projekts nicht
  * verändern (neue Dependency ⇒ Auswirkung auf alle Klone, und `@types/node` würde die globalen
  * Typen des Spielcodes mitverschieben). Deshalb deklariert Shinon hier nur den genutzten Teil —
  * bewusst klein, bewusst lokal. Wächst die Nutzung, wächst diese Datei, nicht das Projekt.
@@ -36,6 +36,7 @@ interface ImportMeta {
 declare module 'node:process' {
   const process: {
     argv: string[];
+    execPath: string;
     env: Record<string, string | undefined>;
     exitCode: number | undefined;
     platform: string;
@@ -51,6 +52,7 @@ declare module 'node:child_process' {
     cwd?: string;
     input?: string;
     encoding?: string;
+    env?: Record<string, string | undefined>;
     /** Kurzform `'pipe'`/`'inherit'` UND die Array-Form sind in Node beide gültig. */
     stdio?: string | Array<string | number>;
     shell?: boolean;

@@ -14,11 +14,18 @@ interface ContextOptions {
   quiet?: boolean;
 }
 
+const GATE_PHASES = new Set<ShinonPhase>(['preflight', 'pre-commit', 'pre-push']);
+
 export function createCheckContext(
   git: ShinonGitHelfer,
   config: ShinonConfig,
   options: ContextOptions = {},
 ): CheckContext {
+  const phase = options.phase ?? 'preflight';
+  if (!GATE_PHASES.has(phase)) {
+    throw new Error(`Ungültige Gate-Phase: ${String(phase)} (erlaubt: ${[...GATE_PHASES].join(', ')})`);
+  }
+
   const status = git.status();
   const changedFiles = [...new Set([...status.staged, ...status.modified, ...status.untracked, ...git.changedFiles()])]
     .filter((file) => file !== '')
@@ -28,7 +35,7 @@ export function createCheckContext(
     root: git.root,
     git,
     config,
-    phase: options.phase ?? 'preflight',
+    phase,
     stagedFiles: [...status.staged].sort(),
     changedFiles,
     message: options.message,

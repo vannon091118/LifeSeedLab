@@ -52,6 +52,18 @@ describe('Gate-Registry', () => {
     expect(buildChecks(config).map((check) => check.id)).toContain('untracked-inputs');
     expect(knownCheckIds()).toContain('untracked-inputs');
   });
+
+  it('weist unbekannte und deaktivierte --only-IDs fail-closed ab', () => {
+    const config = defaultConfig('/tmp/shinon');
+    expect(() => buildChecks(config, ['does-not-exist'])).toThrow('Unbekannte Check-ID');
+    config.gate.checks.commitMessage = false;
+    expect(() => buildChecks(config, ['commit-message'])).toThrow('deaktiviert');
+  });
+
+  it('lehnt eine ungültige Phase ab, bevor Repository-Zustand gelesen wird', () => {
+    const { git, config } = initTempRepo('gate-invalid-phase');
+    expect(() => contextFor(git, config, { phase: 'not-a-phase' as never })).toThrow('Ungültige Gate-Phase');
+  });
 });
 
 describe('Commit-Größe (Slice-Regel)', () => {
@@ -151,6 +163,10 @@ describe('Untracked-Indexquellen', () => {
     expect(findings.every((item) => item.code === 'UNP001' && item.severity === 'error')).toBe(true);
     expect(findings.some((item) => item.file === 'notes.txt')).toBe(false);
     expect((await new ShinonGate([new UntrackedInputCheck()]).run(ctx)).passed).toBe(false);
+
+    const precommit = contextFor(git, config, { phase: 'pre-commit' });
+    expect(new UntrackedInputCheck().run(precommit)).toEqual([]);
+    expect((await new ShinonGate([new UntrackedInputCheck()]).run(precommit)).passed).toBe(true);
   });
 });
 

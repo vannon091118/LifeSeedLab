@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import process from 'node:process';
 import { loadConfig, writeConfigOverride } from './config.ts';
-import { ShinonGitHelfer } from './git-helfer.ts';
+import { PUSH_AFTER_COMMIT_ENV, ShinonGitHelfer } from './git-helfer.ts';
 import { ShinonStateStore } from './state.ts';
 import { ShinonGate, formatGateReport, snapshotOf } from './gate.ts';
 import { buildChecks, knownCheckIds } from './checks/index.ts';
@@ -14,25 +14,20 @@ import { ShinonInit, describeInitReport } from './init.ts';
 import { describeHookInstall, installHooks } from './hooks.ts';
 import { allowedForms, readMessage, runMessageSelfTest, validateMessage } from './checks/commit-message-check.ts';
 import { isBlocking } from './checks/check.ts';
+import { has, parseCliArgs, text } from './cli-args.ts';
 import type { ShinonPhase } from './checks/check.ts';
 
 /**
- * Shinon CLI — der einzige Einstieg in den Git-Abschluss.
+ * Shinon CLI — Implementierung des einzigen ausführbaren Einstiegs `hook-entry.mjs`.
  *
  * Agent → Shinon bereitet vor und prüft → Gate entscheidet → Komponist committet → Push-Executor
  * pusht. Die Hooks rufen exakt dieselben Stufen auf, die hier von Hand gestartet werden können;
  * damit gibt es keinen zweiten Weg am Gate vorbei.
  */
 
-interface ParsedArgs {
-  command: string;
-  flags: Map<string, string | true>;
-  positional: string[];
-}
-
 const USAGE = `⛩️  Shinon — Commit + Push Executor
 
-Aufruf: node tools/shinon/cli.ts <Befehl> [Optionen]
+Aufruf: node tools/shinon/hook-entry.mjs <Befehl> [Optionen]
 
 Befehle
   status          Projektstatus lesen (nur lesend, kein Gate, keine README-Änderung)
@@ -58,7 +53,7 @@ Optionen
   --all                 Vor dem Commit alles stagen (git add -A)
   --no-prepare          Ohne Starter/Gate-Preflight arbeiten
   --no-push             Push-Stufe überspringen
-  --dry-run             Nur vorbereiten und prüfen
+  --dry-run             Read-only für prepare/gate/commit/push/finish
   --auto                Push im Hook-Kontext (Fehler blockieren den Commit nicht)
   --quiet               Ausgabe reduzieren (Hook-Kontext)
   --json                Befund als JSON
@@ -69,33 +64,9 @@ Optionen
   --branch=<name>       Branch-Override
   --remote=<name>       Remote-Override
   --write-config        Konfigurationsvorlage schreiben
+  --no-hooks            Hooks nicht installieren (init)
   --root=<pfad>         Repository-Root-Override
 `;
-
-function parseArgs(argv: string[]): ParsedArgs {
-  const flags = new Map<string, string | true>();
-  const positional: string[] = [];
-  let command = 'help';
-
-  for (const token of argv) {
-    if (token.startsWith('--')) {
-      const [key, ...rest] = token.slice(2).split('=');
-      if (key !== undefined && key !== '') flags.set(key, rest.length > 0 ? rest.join('=') : true);
-    } else if (command === 'help' && positional.length === 0) {
-      command = token === '' ? 'help' : token;
-    } else {
-      positional.push(token);
-    }
-  }
-  return { command, flags, positional };
-}
-
-const text = (args: ParsedArgs, name: string): string | undefined => {
-  const value = args.flags.get(name);
-  return typeof value === 'string' ? value : undefined;
-};
-
-const has = (args: ParsedArgs, name: string): boolean => args.flags.has(name);
 
 function readStdin(): string {
   try {
@@ -106,17 +77,15 @@ function readStdin(): string {
 }
 
 async function main(): Promise<number> {
-  const args = parseArgs(process.argv.slice(2));
+  const args = parseCliArgs(process.argv.slice(2));
   const quiet = has(args, 'quiet');
   const json = has(args, 'json');
+  const dryRun = has(args, 'dry-run');
   const cwd = text(args, 'root') ?? ShinonGitHelfer.detectRoot(process.cwd()) ?? process.cwd();
   const { config, source } = loadConfig(cwd);
+  const only = args.only;
   const git = new ShinonGitHelfer(config.repository.root);
   const state = new ShinonStateStore(git.root);
-  const only = (text(args, 'only') ?? '')
-    .split(',')
-    .map((entry) => entry.trim())
-    .filter((entry) => entry !== '');
 
   switch (args.command) {
     case 'help':
@@ -144,7 +113,7 @@ async function main(): Promise<number> {
     }
 
     case 'prepare': {
-      const result = await new ShinonStarter(git, config, state).prepare({ quiet, only });
+      const result = await new ShinonStarter(git, config, state).prepare({ quiet, only, dryRun });
       process.stdout.write(`${json ? JSON.stringify(result.report, null, 2) : formatPrepareResult(result, quiet)}\n`);
       return result.report?.passed === false ? 1 : 0;
     }
@@ -155,7 +124,7 @@ async function main(): Promise<number> {
       const message = text(args, 'message') ?? (messageFile ? (readMessage(messageFile).content ?? '') : undefined);
       const ctx = createCheckContext(git, config, { phase, quiet, message });
       const report = await new ShinonGate(buildChecks(config, only)).run(ctx);
-      state.patch({ lastGate: snapshotOf(report) });
+      if (!dryRun) state.patch({ lastGate: snapshotOf(report) });
       process.stdout.write(`${formatGateReport(report, { quiet, json })}\n`);
       return report.passed ? 0 : 1;
     }
@@ -192,9 +161,9 @@ async function main(): Promise<number> {
 
     case 'commit': {
       if (has(args, 'gate')) {
-        const ctx = createCheckContext(git, config, { phase: 'preflight', quiet });
+        const ctx = createCheckContext(git, config, { phase: 'pre-commit', quiet });
         const report = await new ShinonGate(buildChecks(config, only)).run(ctx);
-        state.patch({ lastGate: snapshotOf(report) });
+        if (!dryRun) state.patch({ lastGate: snapshotOf(report) });
         if (!report.passed) {
           process.stdout.write(`${formatGateReport(report, { quiet })}\n`);
           return 1;
@@ -203,6 +172,7 @@ async function main(): Promise<number> {
       const result = new ShinonCommitKomponist(git, config, state).commit({
         message: text(args, 'message'),
         messageFile: text(args, 'message-file'),
+        dryRun,
       });
       const notes = result.findings
         .filter((item) => item.severity !== 'info')
@@ -214,15 +184,23 @@ async function main(): Promise<number> {
     }
 
     case 'push': {
+      const automatic = has(args, 'auto');
+      const hookDecision = process.env[PUSH_AFTER_COMMIT_ENV];
+      const pushEnabled = hookDecision === '1' || (hookDecision === undefined && config.push.autoAfterCommit);
+      if (automatic && !pushEnabled) {
+        if (!quiet) process.stdout.write('⏭️ Push übersprungen (push.autoAfterCommit=false).\n');
+        return 0;
+      }
+
       const outcome = new ShinonPushExecutor(git, config, state).run({
         dryRun: has(args, 'dry-run'),
-        lenient: has(args, 'auto'),
+        lenient: automatic,
         remote: text(args, 'remote'),
         branch: text(args, 'branch'),
       });
       if (!quiet || !outcome.ok) process.stdout.write(`${formatPushOutcome(outcome)}\n`);
       // Im Hook-Kontext darf ein Push-Problem den Commit nicht nachträglich als Fehler zeigen.
-      return has(args, 'auto') ? 0 : outcome.ok ? 0 : 1;
+      return automatic ? 0 : outcome.ok ? 0 : 1;
     }
 
     case 'finish': {
@@ -283,7 +261,7 @@ async function main(): Promise<number> {
           [
             `⛩️  Enforcement-Modus: ${config.gate.enforcement === 'strict' ? 'strict (Warnungen blockieren)' : 'advisory (nur Fehler)'}`,
             `   Quelle: ${source ?? 'Defaults (keine Override-Datei)'}`,
-            `   Setzen: node tools/shinon/cli.ts enforce <advisory|strict>`,
+            `   Setzen: node tools/shinon/hook-entry.mjs enforce <advisory|strict>`,
             '',
           ].join('\n'),
         );

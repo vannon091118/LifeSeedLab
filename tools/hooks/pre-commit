@@ -1,8 +1,5 @@
 #!/bin/sh
 # Shinon — erzeugt von `shinon install-hooks`. Nicht manuell pflegen.
 SHINON_ROOT="$(git rev-parse --show-toplevel)"
-# Custom changelog and version check
-echo "▶️  Running custom pre‑commit checks (changelog + version bump)…"
-node "$SHINON_ROOT/scripts/precommit.js"
 # Gate-Stufe: Modulgrenzen, Constraints, Typecheck, Tests
-exec node "$SHINON_ROOT/tools/shinon/cli.ts" gate --phase=pre-commit --quiet
+exec node "$SHINON_ROOT/tools/shinon/hook-entry.mjs" gate --phase=pre-commit --quiet

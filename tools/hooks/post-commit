@@ -2,4 +2,4 @@
 # Shinon — erzeugt von `shinon install-hooks`. Nicht manuell pflegen.
 SHINON_ROOT="$(git rev-parse --show-toplevel)"
 # Push-Stufe: automatisch nach grünem Gate (push.autoAfterCommit)
-exec node "$SHINON_ROOT/tools/shinon/cli.ts" push --auto --quiet
+exec node "$SHINON_ROOT/tools/shinon/hook-entry.mjs" push --auto --quiet

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createCheckContext } from './context.ts';
-import { buildChecks, codeLineCount } from './checks/index.ts';
+import { buildChecks, codeLineCount, validateCheckSelection } from './checks/index.ts';
 import { ShinonGate, formatGateReport, snapshotOf } from './gate.ts';
 import type { ShinonConfig } from './config.ts';
 import type { ShinonGitHelfer } from './git-helfer.ts';
@@ -180,18 +180,27 @@ export class ShinonStarter {
   }
 
   /** Aktualisiert die README und lässt anschließend das Gate im Preflight laufen. */
-  async prepare(options: { quiet?: boolean; runGate?: boolean; only?: string[] } = {}): Promise<PrepareResult> {
+  async prepare(options: { quiet?: boolean; runGate?: boolean; only?: string[]; dryRun?: boolean } = {}): Promise<PrepareResult> {
+    const selectedChecks = validateCheckSelection(this.config, options.only ?? []);
     const status = this.collect();
-    const readme = this.updateReadme(this.renderBlock(status));
+    const block = this.renderBlock(status);
+    const readme = options.dryRun === true
+      ? {
+          file: path.resolve(this.git.root, this.config.starter.readme),
+          updated: false,
+          mode: 'skipped' as const,
+          block,
+        }
+      : this.updateReadme(block);
 
     if (options.runGate === false) {
       return { status, readme, report: null };
     }
 
     const ctx = createCheckContext(this.git, this.config, { phase: 'preflight', quiet: options.quiet ?? false });
-    const gate = new ShinonGate(buildChecks(this.config, options.only ?? []));
+    const gate = new ShinonGate(buildChecks(this.config, selectedChecks));
     const report = await gate.run(ctx);
-    this.state.patch({ lastGate: snapshotOf(report) });
+    if (options.dryRun !== true) this.state.patch({ lastGate: snapshotOf(report) });
     return { status, readme, report };
   }
 }

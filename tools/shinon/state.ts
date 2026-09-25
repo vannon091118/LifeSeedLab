@@ -41,6 +41,50 @@ export interface ShinonState {
 
 export const STATE_RELATIVE_PATH = path.join('tools', '.shinon-state.json');
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isGateSnapshot(value: unknown): value is GateSnapshot {
+  return isRecord(value)
+    && typeof value.phase === 'string'
+    && typeof value.passed === 'boolean'
+    && isFiniteNumber(value.errors)
+    && isFiniteNumber(value.warnings)
+    && isFiniteNumber(value.durationMs)
+    && typeof value.ranAt === 'string'
+    && (value.enforcement === undefined || value.enforcement === 'advisory' || value.enforcement === 'strict');
+}
+
+function isCommitSnapshot(value: unknown): value is CommitSnapshot {
+  return isRecord(value)
+    && typeof value.hash === 'string'
+    && typeof value.subject === 'string'
+    && typeof value.at === 'string';
+}
+
+function isPushSnapshot(value: unknown): value is PushSnapshot {
+  return isRecord(value)
+    && typeof value.ok === 'boolean'
+    && typeof value.remote === 'string'
+    && typeof value.branch === 'string'
+    && typeof value.detail === 'string'
+    && typeof value.at === 'string';
+}
+
+function sanitizeState(value: unknown): ShinonState {
+  if (!isRecord(value)) return {};
+  const state: ShinonState = {};
+  if (isGateSnapshot(value.lastGate)) state.lastGate = value.lastGate;
+  if (isCommitSnapshot(value.lastCommit)) state.lastCommit = value.lastCommit;
+  if (isPushSnapshot(value.lastPush)) state.lastPush = value.lastPush;
+  return state;
+}
+
 export class ShinonStateStore {
   readonly file: string;
 
@@ -51,7 +95,7 @@ export class ShinonStateStore {
   read(): ShinonState {
     if (!fs.existsSync(this.file)) return {};
     try {
-      return JSON.parse(fs.readFileSync(this.file, 'utf8')) as ShinonState;
+      return sanitizeState(JSON.parse(fs.readFileSync(this.file, 'utf8')));
     } catch {
       return {};
     }
