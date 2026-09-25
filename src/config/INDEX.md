@@ -159,7 +159,6 @@ Pfad: `src/config/`
 | `STARTING_TILE_POOL` | const | `src/config/map.source.ts` | 64 |
 | `ShopPoolId` | type | `src/config/shop.source.ts` | 16 |
 | `VECTOR_ATTRACTOR_CONFIG` | const | `src/config/vector_logic.source.ts` | 83 |
-| `VECTOR_DIR_TABLE` | const | `src/config/vector_logic.source.ts` | 90 |
 | `VECTOR_DRIFT_CAP` | const | `src/config/vector_logic.source.ts` | 66 |
 | `VECTOR_DRIFT_STAR_WEIGHT` | const | `src/config/vector_logic.source.ts` | 67 |
 | `VECTOR_IDS` | const | `src/config/vector_logic.source.ts` | 38 |

@@ -4,7 +4,7 @@
 // Projektilstart, Vector-Deposit) wohnt in plantShot.ts (Regel-1-Split) — hier bleibt allein die
 // Verdrahtung und ihre Reihenfolge.
 
-import type { SimState } from './state';
+import type { SimObservation, SimState } from './state';
 import { GameClock, TICK_MS } from '../core/clock';
 import { EventBus } from '../bus/bus';
 import { CommandQueue, makeCommand, type Command } from '../bus/commands';
@@ -311,6 +311,25 @@ export class SimulationRoot {
   /** Defensive Kopie — der autoritative SimState verlässt NIE diese Klasse als Referenz. */
   getSnapshot(): SimState {
     return structuredClone(this.state);
+  }
+
+  /**
+   * Schmale Beobachtung für Tests: nur die benötigten Felder, jeweils frisch kopiert.
+   * Der Root bleibt der einzige Writer; die Kopie ist die Lesegrenze, kein zweiter State.
+   */
+  getObservation(): SimObservation {
+    const state = this.state;
+    return {
+      clock: { ...state.clock },
+      phase: state.phase,
+      cols: state.cols,
+      rows: state.rows,
+      currentRoute: state.currentRoute?.map(point => ({ ...point })) ?? null,
+      plants: state.plants.map(plant => ({ ...plant })),
+      enemies: state.enemies.map(enemy => ({ ...enemy })),
+      vectors: Object.fromEntries(Object.entries(state.vectors).map(([key, cells]) => [key, cells.map(cell => ({ ...cell }))])),
+      attractors: state.attractors.map(attractor => ({ ...attractor })),
+    };
   }
 
   /** P5: Route aus dem Map-Grid ableiten und an EnemySystem geben. R2: die Route ist das

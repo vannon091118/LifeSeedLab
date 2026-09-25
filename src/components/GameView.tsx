@@ -119,12 +119,10 @@ export function GameView({ seed, runId, loadout, savedVariants, bredStats, owned
   }, [measureRewardAnchor, hasHud, hudPhase]);
 
   const toggleFx = useCallback(() => {
-    setFxOn(v => {
-      const next = !v;
-      runtimeRef.current?.toggleFx(next);
-      return next;
-    });
-  }, []);
+    const next = !fxOn;
+    setFxOn(next);
+    runtimeRef.current?.toggleFx(next);
+  }, [fxOn]);
 
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;

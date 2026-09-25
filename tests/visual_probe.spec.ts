@@ -29,6 +29,10 @@ import { vectorForEffect } from '../src/config/vector_logic.source';
 // E2E-COVERAGE: src/observers/ src/visual/ src/render/ src/config/effects.source.ts src/config/vector_visual.source.ts src/config/vector_logic.source.ts src/simulation/
 const INK = '#2b2b26';
 
+// Canvas-Probes lesen und frieren denselben Browser-Frame. Sie bleiben deshalb in einer
+// deterministischen Reihenfolge; andere Specs dürfen weiterhin parallel laufen.
+test.describe.configure({ mode: 'serial' });
+
 test.describe('Visuelle Belege (Canvas-Sonde)', () => {
   test.setTimeout(120_000);
 
@@ -36,17 +40,6 @@ test.describe('Visuelle Belege (Canvas-Sonde)', () => {
   async function freezeSim(page: import('@playwright/test').Page, probe: CanvasProbe): Promise<void> {
     await page.getByRole('button', { name: /^pause$/i }).click();
     await probe.freeze();
-  }
-
-  /**
-   * Gegenstück zu `freezeSim`. Wichtig: `probe.resume()` gibt nur den Frame-Takt zurück — die SIM
-   * bleibt angehalten (der Pause-Knopf ist ein zweiter, eigener Zustand). Wer das übersieht,
-   * startet eine Welle, die nie taktet, und wartet dann auf Ereignisse, die nicht kommen können
-   * (genau daran ist der Treffer-Test zuerst gescheitert).
-   */
-  async function thawSim(page: import('@playwright/test').Page, probe: CanvasProbe): Promise<void> {
-    await probe.resume();
-    await page.getByRole('button', { name: /fortsetzen|resume/i }).click();
   }
 
   test('Belohnungsreise: die Dots wandern zum Zähler und LANDEN auf ihm', async ({ page }) => {

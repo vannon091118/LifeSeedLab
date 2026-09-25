@@ -1,6 +1,6 @@
 // Owner: VectorAttractor (attractors slice). LOC ≤ 300.
 // Einziger Writer von SimState.attractors. Gravity als State, wiederverwendbar
-// für Gegner/Projektile/Orbits. Richtung via DIR_TABLE (gebackene Literale, kein sin/cos in Sim).
+// für Gegner/Projektile; die Bewegung bleibt radial und deterministisch.
 // 8-Fragen: Existiert? nein · Owner VectorAttractor · Schicht Sim · Event? nein · Seed 'world' ·
 // Regel in Source? ja (vector_logic VECTOR_ATTRACTOR + VECTOR_ATTRACTOR_CONFIG · Cap 300 · Zweite Quelle? nein.
 
@@ -25,10 +25,8 @@ function pullAt(a: AttractorEntity, d: number): number {
 
 export class VectorAttractor {
   /** Pflanze/Projektil legt Attraktor (Gravity). Aufgerufen aus PlantSystem. */
-  spawn(state: SimState, x: number, y: number, strength: number, radius: number, ttl: number): AttractorEntity {
-    const e: AttractorEntity = { id: nextId('system'), x, y, strength, radius, ttl };
-    state.attractors.push(e);
-    return e;
+  spawn(state: SimState, x: number, y: number, strength: number, radius: number, ttl: number): void {
+    state.attractors.push({ id: nextId('system'), x, y, strength, radius, ttl });
   }
 
   /** Ein Tick: Attraktoren altern (TTL), Gegner/Projektile werden gezogen. Deterministisch. */

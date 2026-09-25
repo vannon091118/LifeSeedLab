@@ -208,3 +208,16 @@ export interface SimState {
   /** P6: mitgebrachte gezüchtete Specimen (Injektion wie bredStats). */
   beetles: import('../types').BeetleSpecimen[];
 }
+
+/** Schmale, frisch kopierte Beobachtungsprojektion für Tests und Leser ohne Snapshot-Pfad. */
+export interface SimObservation {
+  readonly clock: Readonly<ClockState>;
+  readonly phase: SimState['phase'];
+  readonly cols: number;
+  readonly rows: number;
+  readonly currentRoute: ReadonlyArray<Readonly<{ x: number; y: number }>> | null;
+  readonly plants: ReadonlyArray<Readonly<PlantEntity>>;
+  readonly enemies: ReadonlyArray<Readonly<EnemyEntity>>;
+  readonly vectors: Readonly<Record<string, ReadonlyArray<Readonly<VectorCell>>>>;
+  readonly attractors: ReadonlyArray<Readonly<AttractorEntity>>;
+}

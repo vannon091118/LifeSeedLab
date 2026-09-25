@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { EFFECTS_SOURCE, EFFECT_IDS, isValidEffect } from './effects.source';
-import { VECTOR_LOGIC_SOURCE, VECTOR_IDS, VECTOR_DIR_TABLE, vectorForEffect } from './vector_logic.source';
+import { VECTOR_LOGIC_SOURCE, VECTOR_IDS, vectorForEffect } from './vector_logic.source';
 import { VECTOR_VISUAL_SOURCE, VECTOR_VISUAL_IDS } from './vector_visual.source';
 import { GENE_EFFECTS } from './genes.source';
 import { GENE_POOL } from '../genome/pool';
@@ -144,15 +144,6 @@ describe('Phase 5 gate: source validation', () => {
         expect(s.conductivity).toBeGreaterThan(0);
         expect(s.conductivity).toBeLessThanOrEqual(1);
       }
-    }
-  });
-
-  it('Vector-DIR_TABLE: geschlossen, gebacken, keine Transzendente im Source', () => {
-    expect(VECTOR_DIR_TABLE.length).toBe(72);
-    for (const d of VECTOR_DIR_TABLE) {
-      const len2 = d.dx * d.dx + d.dy * d.dy;
-      expect(len2).toBeGreaterThan(0.98);
-      expect(len2).toBeLessThan(1.02);
     }
   });
 

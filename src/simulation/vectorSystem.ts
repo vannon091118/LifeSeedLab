@@ -5,8 +5,9 @@
 // Event/Command? nein (nur state.vectors + Ticks) · Seed 'world' (Gameplay-NS) · Regel in Source? ja
 // (vector_logic) · LOC-Cap 300 · Zweite Quelle? nein (einzige Vector-Truth neben Attr).
 
-import type { SimState, VectorCell } from './state';
+import type { SimObservation, SimState, VectorCell } from './state';
 import { VECTOR_LOGIC_SOURCE, VECTOR_DRIFT_CAP, VECTOR_DRIFT_STAR_WEIGHT } from '../config/vector_logic.source';
+import { isInsideWorld } from '../config/world.source';
 import { driftFor } from '../config/phenotype.source';
 import { deriveSeed, makeRng } from '../core/rng';
 import { fnv1a } from '../core/hash';
@@ -14,6 +15,7 @@ import { fnv1a } from '../core/hash';
 // sonst hinge der gewählte Blitzpfad an der Browsersprache.
 import { compareCodeUnits } from '../core/order';
 
+export type VectorTraceState = Pick<SimObservation, 'cols' | 'rows' | 'vectors'>;
 
 export class VectorSystem {
   /** Drift-Start aus erstem Genome-Hash (falls vorhanden) oder 0 — deterministisch. */
@@ -34,9 +36,15 @@ export class VectorSystem {
 
   /** Extern aufgerufen von PlantSystem/Projectile: Flag setzen auf Zelle (inkl. Nachbarn Radius). extraRadius aus Topf/Größe (violet 1.2 → +1). */
   deposit(state: SimState, gx: number, gy: number, vectorId: string, intensity: number, extraRadius = 0): void {
+    // ungültige Zahlen fail-closed: NaN darf keinen "NaN,NaN"-Key erzeugen, Infinity
+    // darf aus extraRadius keine Endlosschleife bauen.
+    if (!Number.isFinite(intensity) || intensity <= 0 || !Number.isFinite(extraRadius)) return;
     const src = VECTOR_LOGIC_SOURCE[vectorId as keyof typeof VECTOR_LOGIC_SOURCE];
     if (!src) return;
-    const r = src.radius + Math.max(0, Math.floor(extraRadius));
+    const r = Math.min(
+      src.radius + Math.max(0, Math.floor(extraRadius)),
+      Math.max(state.cols, state.rows),
+    );
     const ttl = src.ttl;
     // Nachbarschaft rein über Chebyshev-Distanz (max(|dx|,|dy|) ≤ r): Radius 1 = 8 Nachbarn,
     // Radius 2 = 5×5-Feld (24 Nachbarn). Deterministisch, keine sqrt, keine Sonderfälle.
@@ -45,8 +53,6 @@ export class VectorSystem {
         this.addCell(state, gx, gy, vectorId, intensity, ttl);
         continue;
       }
-      if (r === 0) continue;
-      if (Math.abs(dx) > r || Math.abs(dy) > r) continue;
       // Addition = Bridging: zwei Feuer flaggen Mitte, Summe überschreitet threshold
       this.addCell(state, gx + dx, gy + dy, vectorId, intensity * 0.6, ttl);
     }
@@ -58,8 +64,8 @@ export class VectorSystem {
    *  ohne Klemme wuchsen 2600 Ticks mit Deposits auf 4,97 Mio. Zellen (bis −19/37 · −24/38),
    *  Out-of-Bounds-Zellen sterben nie (TTL-Refresh) und frieren die Sim ein. */
   private addCell(state: SimState, gx: number, gy: number, vectorId: string, amount: number, ttl: number): void {
-    if (amount <= 0) return;
-    if (gx < 0 || gy < 0 || gx >= state.cols || gy >= state.rows) return;
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    if (!isInsideWorld(state.cols, state.rows, gx, gy)) return;
     const key = `${gx},${gy}`;
     const cell = state.vectors[key];
     const existing = cell?.find(c => c.vectorId === vectorId);
@@ -68,8 +74,11 @@ export class VectorSystem {
       existing.ttl = ttl; // refresh
     } else {
       const entry: VectorCell = { vectorId, intensity: amount, ttl };
-      if (cell) cell.push(entry);
-      else state.vectors[key] = [entry];
+      if (cell) {
+        cell.push(entry);
+        // Vector-Zellen sind eine Menge; die Reihenfolge darf nicht vom Deposit abhängen.
+        cell.sort((a, b) => compareCodeUnits(a.vectorId, b.vectorId));
+      } else state.vectors[key] = [entry];
     }
   }
 
@@ -102,10 +111,12 @@ export class VectorSystem {
         // Zündung: nur wenn Content-Schwelle erreicht UND Würfel trifft. Diffusion ist SCHWACH
         // (12% der Intensität) und vergänglich (ttl-6), damit nicht exponentiell explodiert.
         // Brücken tragen trotzdem: die Mitte addiert zwei 0.6 → 1.2 ≥ threshold, zündet einmalig.
-        if (src.radius > 0 && src.threshold !== null && cell.intensity >= src.threshold && roll < p) {
+        // Die letzten sechs TTL-Ticks diffusionieren nicht: ein Fallback auf 1 würde sonst
+        // eine endlose Kette ttl=1 erzeugen.
+        if (src.radius > 0 && src.threshold !== null && cell.intensity >= src.threshold && cell.ttl > 6 && roll < p) {
           const carry = cell.intensity * 0.12;
-          const carryTtl = cell.ttl > 6 ? cell.ttl - 6 : 1;
-          if (Number.isFinite(gx) && Number.isFinite(gy)) {
+          const carryTtl = cell.ttl - 6;
+          if (isInsideWorld(state.cols, state.rows, gx, gy)) {
             for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
               const nk = `${gx + dx},${gy + dy}`;
               (spread[nk] ??= []).push({ vectorId: cell.vectorId, amount: carry, ttl: carryTtl });
@@ -128,7 +139,7 @@ export class VectorSystem {
       // Dieselbe Klemme für Diffusions-Ziele: eine Rand-Zelle diffusionert sonst eine Zeile
       // außerhalb (gx+1 bei gx=cols−1) — dort würde sie nie zerfallen.
       const [sgx, sgy] = key.split(',').map(Number);
-      if (sgx < 0 || sgy < 0 || sgx >= state.cols || sgy >= state.rows) continue;
+      if (!isInsideWorld(state.cols, state.rows, sgx, sgy)) continue;
       for (const s of spread[key]!) {
         if (s.amount < 0.01) continue;
         const existing = next[key]?.find(c => c.vectorId === s.vectorId);
@@ -145,21 +156,16 @@ export class VectorSystem {
     for (const key of Object.keys(next)) {
       const filtered = next[key]!.filter(c => c.intensity >= 0.01 && c.ttl > 0);
       if (filtered.length === 0) delete next[key];
-      else next[key] = filtered;
+      else next[key] = filtered.sort((a, b) => compareCodeUnits(a.vectorId, b.vectorId));
     }
 
     state.vectors = next;
   }
 
-  /** Lesender Helfer: Flags unter Füßen einer Entität (für enemySystem/plantSystem). */
-  flagsAt(state: SimState, gx: number, gy: number): readonly VectorCell[] {
-    return state.vectors[`${gx},${gy}`] ?? [];
-  }
-
   /** Blitz-Trace: Dijkstra cost = 1 / conductivity (null → 10). Wasser (0.9 → 1.11) leitet → billigster Pfad nimmt Pfütze. Deterministisch. */
-  traceCharge(state: SimState, fromGx: number, fromGy: number, toGx: number, toGy: number): { path: { x: number; y: number }[]; cost: number } | null {
+  traceCharge(state: VectorTraceState, fromGx: number, fromGy: number, toGx: number, toGy: number): { path: { x: number; y: number }[]; cost: number } | null {
     const cols = state.cols, rows = state.rows;
-    const inBounds = (x: number, y: number): boolean => x >= 0 && x < cols && y >= 0 && y < rows;
+    const inBounds = (x: number, y: number): boolean => isInsideWorld(cols, rows, x, y);
     if (!inBounds(fromGx, fromGy) || !inBounds(toGx, toGy)) return null;
     const key = (x: number, y: number): string => `${x},${y}`;
     const cellCost = (x: number, y: number): number => {

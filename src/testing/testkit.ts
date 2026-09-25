@@ -10,7 +10,7 @@ import { loadMeta, resetMeta } from '../meta/store';
 import { resetIds } from '../core/ids';
 import { fnv1a, hashState, type HashableState } from '../core/hash';
 import { toHashable } from '../simulation/snapshot';
-import type { SimState } from '../simulation/state';
+import type { SimObservation, SimState } from '../simulation/state';
 import { SimulationRoot, type RootInit } from '../simulation/root';
 import { makeCommand, type CommandPayloads } from '../bus/commands';
 import { deriveSeed } from '../core/rng';
@@ -64,7 +64,7 @@ export interface VectorCellView {
 }
 
 export function vectorFieldCellsOf(root: SimulationRoot): VectorCellView[] {
-  const s: Pick<SimState, 'vectors'> = root.getSnapshot();
+  const s: Pick<SimObservation, 'vectors'> = root.getObservation();
   return Object.entries(s.vectors)
     .sort(([a], [b]) => (a < b ? -1 : 1))
     .flatMap(([key, cells]) => cells.map(c => ({ key, vectorId: c.vectorId, intensity: c.intensity, ttl: c.ttl })));

@@ -23,7 +23,7 @@ function stepN(root: SimulationRoot, n: number): void {
  *  y=0.5 — eine Mauer eine Zeile darunter hat Distanz ≈1.0 und liegt im Reichweiten-Fenster).
  *  (0,0)-Nachbarn sind oft 0.3 Felder verspätet — die Mitte der Route ist robuster. */
 function buildCellBesideRoute(root: SimulationRoot): { gx: number; gy: number } {
-  const s = root.getSnapshot();
+  const s = root.getObservation();
   const route = s.currentRoute;
   if (!route || route.length === 0) throw new Error('Szene braucht eine Route');
   // y=1 ist die erste Nicht-Weg-Zeile; Abstand Zellmitte→Route-Mitte = 1.0 ≤ 1.05
@@ -70,7 +70,7 @@ function tankScene(seed: number, extraVariants: string[] = []): { root: Simulati
     const gx = cell.gx + (i % 2 === 0 ? 1 : -1);
     const gy = cell.gy + 1;
     // nur setzen wenn Zelle bebaubar, sonst überspringen (Myzel-Szene)
-    const s2 = root.getSnapshot();
+    const s2 = root.getObservation();
     if (gx >= 0 && gy >= 0 && gx < s2.cols && gy < s2.rows) {
       root.commands.push(makeCommand(0, 'PLACE_PLANT', seq++, { variantId: v, gx, gy }));
     }
@@ -109,16 +109,16 @@ describe('P-26 Verhalten am SimulationRoot', () => {
     let pos = '';
     for (let i = 0; i < 2400 && held < 0; i++) {
       stepN(root, 10);
-      const s = root.getSnapshot();
+      const s = root.getObservation();
       const tank = s.enemies.find(e => e.typeId === 'tank');
       if (tank && tank.px > 0) {
         if (pos && pos !== `${tank.px.toFixed(4)},${tank.py.toFixed(4)}`) {
           // einmal bewegt, dann 30 Ticks still? — wir prüfen unten direkt.
         }
         pos = `${tank.px.toFixed(4)},${tank.py.toFixed(4)}`;
-        const before = root.getSnapshot().enemies.find(e => e.typeId === 'tank')!;
+        const before = tank;
         stepN(root, 30);
-        const after = root.getSnapshot().enemies.find(e => e.typeId === 'tank');
+        const after = root.getObservation().enemies.find(e => e.typeId === 'tank');
         if (after && Math.abs(after.px - before.px) < 1e-9 && Math.abs(after.py - before.py) < 1e-9) {
           held = i;
         }
@@ -135,7 +135,7 @@ describe('P-26 Verhalten am SimulationRoot', () => {
     stepN(root, 1);
 
     stepN(root, 1200); // 40 s — die alte Grunt-Fassung hatte hier die Mauer auf 270
-    const s = root.getSnapshot();
+    const s = root.getObservation();
     expect(s.plants.find(p => p.variantId === 'rootwall')?.hp).toBe(300);
   });
 
@@ -146,7 +146,7 @@ describe('P-26 Verhalten am SimulationRoot', () => {
     let checked = 0;
     for (let i = 0; i < 2000 && checked < 3; i++) {
       stepN(root, 1);
-      const s = root.getSnapshot();
+      const s = root.getObservation();
       const wall = s.plants.find(p => p.variantId === 'rootwall');
       if (!wall) break;
       const tank = s.enemies.find(e => e.typeId === 'tank');
@@ -172,7 +172,7 @@ describe('P-26 Verhalten am SimulationRoot', () => {
     let tankAtDeath: number | null = null;
     for (let i = 0; i < 3000; i++) {
       stepN(root, 1);
-      const s = root.getSnapshot();
+      const s = root.getObservation();
       const wall = s.plants.find(p => p.variantId === 'rootwall');
       if (wall && wall.hp < lastWallHp) {
         wallBites += (lastWallHp - wall.hp) / ENEMY_BITE.damage;
@@ -188,7 +188,7 @@ describe('P-26 Verhalten am SimulationRoot', () => {
     // Während die Wand lebte: Reflex-Bites == Wand-Bisse, modulo Spross-Beschuss (ungefähr).
     // Strenger Pin: Reflexanteil ist Vielfaches von 5 und nicht mehr als Wand-Bisse.
     const reflexPerBite = (PLANTS_SOURCE as Record<string, { stats: { damage: number } }>).rootwall.stats.damage;
-    const s = root.getSnapshot();
+    const s = root.getObservation();
     const tank = s.enemies.find(e => e.typeId === 'tank');
     if (tank) {
       const tankMax = Math.round(ENEMIES_SOURCE.tank.hp * (1 + 6 * 0.15));
@@ -205,7 +205,7 @@ describe('P-26 Verhalten am SimulationRoot', () => {
     let healed = false;
     for (let i = 0; i < 2400; i++) {
       stepN(root, 1);
-      const s = root.getSnapshot();
+      const s = root.getObservation();
       const wall = s.plants.find(p => p.variantId === 'rootwall');
       if (!wall) break;
       if (wall.hp < minHp) minHp = wall.hp;
@@ -221,7 +221,7 @@ describe('P-26 Verhalten am SimulationRoot', () => {
     let movedOn = false;
     for (let i = 0; i < 3000 && wallGone < 0; i++) {
       stepN(root, 1);
-      const s = root.getSnapshot();
+      const s = root.getObservation();
       if (!s.plants.some(p => p.variantId === 'rootwall')) {
         wallGone = i;
         const tank = s.enemies.find(e => e.typeId === 'tank');
@@ -232,7 +232,7 @@ describe('P-26 Verhalten am SimulationRoot', () => {
     // Nach dem Fressen läuft der Fresser weiter (kein Steckenbleiben an der leeren Zelle).
     for (let i = 0; i < 300 && !movedOn; i++) {
       stepN(root, 10);
-      const tank = root.getSnapshot().enemies.find(e => e.typeId === 'tank');
+      const tank = root.getObservation().enemies.find(e => e.typeId === 'tank');
       if (tank && `${tank.px.toFixed(4)},${tank.py.toFixed(4)}` !== tankAtDeath) movedOn = true;
     }
     expect(movedOn).toBe(true);
