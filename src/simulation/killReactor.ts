@@ -11,6 +11,7 @@ import type { SimState } from './state';
 import type { GameEvent } from '../bus/events';
 import type { EnemySystem } from './enemySystem';
 import { resolvePlantStats } from './plantSystem';
+import { chainSpecOf } from './effectSupport';
 
 interface KillReactorDeps {
   score: {
@@ -37,7 +38,14 @@ export function reactToKills(
   }
 }
 
-/** Chain-Nachbrand (B6): Kills von Ketten-Pflanzen arken 50 % Schaden auf den nächsten Gegner. */
+/** Chain-Nachbrand (B6): Kills von Ketten-Pflanzen arken 50 % des AUSLÖSENDEN Schadens auf den
+ *  nächsten Gegner. Anteils- und Reichweiten-Content kommen aus `config/effects.source.ts`
+ *  (`chainShare`/`chainRange`, gelesen über `effectSupport.chainSpecOf`) — hier keine Zahl.
+ *
+ *  Der Anteil, weil ein flacher Betrag die Mechanik entwertet: `50` absolut war gegen Schwarm und
+ *  Sprinter (15/25 HP) stärker als der Auslöser und gegen den Boss (800 HP) ein Getropse, ohne je
+ *  zu wirken. Jetzt trägt der Boss den Bogen, der zu ihm gehört, und die kleine Welle wird nicht
+ *  mehr überstarkt. */
 export function chainAftermath(
   state: SimState,
   killEvents: ReadonlyArray<Extract<GameEvent, { type: 'ENEMY_DIED' }>>,
@@ -48,7 +56,14 @@ export function chainAftermath(
       ? state.plants.find(p => p.id === e.payload.killerPlantId) : null;
     if (!plant) continue;
     const stats = resolvePlantStats(state, plant.variantId);
-    if (!stats || !stats.effects.includes('EFFECT_CHAIN')) continue;
-    enemies.chainFrom(state, e.payload.px, e.payload.py, 50, 2);
+    if (!stats) continue;
+    // Die Kette hängt an GENEN (`splash`/`lure` tragen EFFECT_CHAIN), nicht an der Pflanze als
+    // Ganzes — die Pflanzenvariante kennt keinen Effekt. Deshalb die Ableitung über die Gene.
+    const spec = chainSpecOf(stats.effects.find(id => chainSpecOf(id) !== null) ?? null);
+    if (!spec) continue;
+    // Auslöser-Deckel: ein DoT-Tod trägt den TICK-Schaden, ein Volltreffer den vollen. Beides ist
+    // der Schaden, der diesen Tod verursacht hat — mehr weiß das Ereignis nicht, und mehr soll es
+    // nicht erfinden.
+    enemies.chainFrom(state, e.payload.px, e.payload.py, e.payload.damage * spec.share, spec.range);
   }
 }

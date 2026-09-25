@@ -162,3 +162,25 @@ Offene steht in `docs/process/ROADMAP.md` §3.
   allein der Sim.
 
 - **Drei von vier Pflanzen tun nichts — also ließ ich die Gegner fressen (P-26, 20.09.2026).** Befund: Black-Box-Spieltest v0.0.71 (5 Läufe, beste Welle 5) — „3/4 Pflanzen machen einfach gar nichts" (Mauer `EFFECT_REFLECT` und Myzel `EFFECT_HEAL` als `visual-only`-Tags in `effectSupport.ts`, 300 HP nie berührt, Heil-Aura lief nur im `prep` ohne Wunden). Jetzt hält die Wurzelmauer auf: **Tank und Boss** (nicht Grunt/Fast/Swarm — Grunt-Fassung machte Welle 2 unspielbar) bleiben an einer Pflanze stehen und fressen sie (`stopsToEat` je Archetyp in `config/enemies.source.ts`, `ENEMY_BITE = {damage:10, cooldownTicks:30, reach:1.05, share:0.2}` als Content). Die Geometrie hat einen Eigentümer (`biteTarget` in `enemySystem.ts` — Beißen und Halten lesen denselben Ort, sonst zwei Wahrheiten; ist die Pflanze weg, läuft der Gegner weiter). Die Pflanze ist Writer (`plantSystem.receiveBite` — einziger Ort mit `PLANT_WITHERED`, Reflex = `resolved` Schaden bei `EFFECT_REFLECT`). `healTick` wirkt jetzt im Kampf (`wave`, `root.ts`) — im `prep` nicht mehr (Grenze: Resume in langer `prep` heilt dort nicht). **Alle Zahlen gemessen, EINE Quelle:** Seed `555010`, Mauer (5, 1) im Biss-Fenster, 1200 Ticks (40 s) → Welle 1: **300→300** (Grunt zieht vorbei), Welle 6: **300→0 in 30 Bissen, 472 stehende Ticks, Tod bei ~1168, Tank 285 HP (150×1.9)** — Details, Grenzen und Sonde: **Devlog 22** (`docs/process/devlog/2026-09-20_22_pflanzen-und-bericht.md`). Belege: `src/simulation/plant_defense.test.ts` (8 Pins: Content-Fahne, Grunt-Vorbei, Biss-Kadenz, Reflex-Gleichung, Myzel-Hilung, Halten+Weiterlaufen). Tank ab **Welle 6**, Boss ab Welle 10 — zum Audit-Hinweis „erst ab Welle 10": bewusst nicht alle Fresser auf 10, damit das Frühspiel nicht leer frisst (Entscheidung des Eigentümers, 20.09.2026). `ENEMY_BITE.share` und `healTick`-Umzug sind beabsichtigt (kein Revert).
+
+## B39. Die Effektkette schadet mit dem Anteil, nicht mit einem Festbetrag (Umsetzung von B6)
+
+### B39.1 Befund
+
+B6 verlangt seit jeher „50% damage" fuer `EFFECT_CHAIN`. `killReactor.ts` rechnete aber einen
+festen Betrag von 50 — die Prozentangabe im Vertrag war nie eingeloest. Beide Klassen Gegner
+sind damit falsch bedient worden, nur entgegengesetzt: gegen den Boss (800 HP) waren 50 ein
+Getropse, gegen Schwarm (15 HP) ueberstieg die Kette den ausloesenden Treffer. Der Kommentar
+`50 % Schaden` stand direkt ueber dem Code, der etwas anderes tat.
+
+### B39.2 Regel
+
+Der Anteil ist Content-Wahrheit und steht als `chainShare`/`chainRange` an `EFFECT_CHAIN` in
+`effects.source.ts`; die einzige Ableitung ist `chainSpecOf()` in `effectSupport.ts`, neben
+`statusTicksOf` und `statusDotOf`. `ENEMY_DIED` traegt dafuer das **ausloesende** `damage` in
+seinem Payload (nicht die Rest-HP) — beide Emit-Stellen in `enemySystem.ts` reichen es durch.
+Es stehen keine Zahlenliterale mehr im Reactor.
+
+Beleg: `chainEffect.test.ts` pinnt 400→200, 100→50, 40→20 und die Monotonie. Die Tests der
+Kette liegen in diesem eigenen Modul, nicht in `gateB.test.ts` — dort war das LOC-Cap (300)
+durch die Kette ueberschritten, und die Cap wird nicht erhoeht.

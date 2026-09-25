@@ -40,7 +40,7 @@ const SAMPLES: { [K in EventType]: EventPayloads[K] } = {
   PROJECTILE_HIT: { projectileId: 'pr1', enemyId: 'e1', damage: 15, critical: false, px: 3.5, py: 3.5, effectId: 'EFFECT_BURN' },
   DAMAGE_DEALT: { enemyId: 'e1', amount: 15, critical: false, hp: 30, px: 3.5, py: 3.5, effectId: null },
   CRITICAL_HIT: { enemyId: 'e1', amount: 30, px: 3.5, py: 3.5 },
-  ENEMY_DIED: { enemyId: 'e1', px: 3.5, py: 3.5, reward: 12, killerPlantId: 'p1' },
+  ENEMY_DIED: { enemyId: 'e1', px: 3.5, py: 3.5, reward: 12, killerPlantId: 'p1', damage: 30 },
   SCORE_CHANGED: { score: 120, delta: 10 },
   COMBO_CHANGED: { count: 3, multiplier: 1.5 },
   REWARD_GRANTED: { reward: 12, grantedNektar: 2, sourceId: 'e1', px: 3.5, py: 3.5 },

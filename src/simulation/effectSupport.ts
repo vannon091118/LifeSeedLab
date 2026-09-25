@@ -97,3 +97,21 @@ export const STATUS_EFFECT_OF: Record<StatusKind, EffectId> = {
   burn: 'EFFECT_BURN',
   poison: 'EFFECT_POISON',
 };
+
+/**
+ * Ketten-Parameter (B6): Anteil des auslösenden Schadens und Reichweite in Zellen.
+ *
+ * Gelesen aus der Content-Wahrheit (`effects.source.chainShare`/`chainRange`), nicht hier
+ * gepflegt — im Reactor standen dafür die Literale `50, 2`. Der Anteil ist der Vertrag: der Arc
+ * spiegelt den Treffer, der ihn ausgelöst hat.
+ *
+ * Ein Effekt ohne Chain-Parameter liefert `null`: es gibt dann keinen Arc, und das ist eine
+ * ehrliche Antwort statt einer erfundenen Null. `killReactor` behandelt `nullShare` deshalb als
+ * „kein Nachbrand", nicht als „Schaden 0".
+ */
+export function chainSpecOf(effectId: string | null): { share: number; range: number } | null {
+  if (!effectId) return null;
+  const entry = EFFECTS_SOURCE[effectId as EffectId];
+  if (!entry || entry.chainShare === null || entry.chainRange === null) return null;
+  return { share: entry.chainShare, range: entry.chainRange };
+}

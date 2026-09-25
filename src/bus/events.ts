@@ -110,7 +110,11 @@ export interface EventPayloads {
    *  DoT-Ticks (`damageDirect`) tragen `null` — ihre Wirkung wurde bereits beim Auftragen angekündigt. */
   DAMAGE_DEALT: { enemyId: string; amount: number; critical: boolean; hp: number; px: number; py: number; effectId: string | null };
   CRITICAL_HIT: { enemyId: string; amount: number; px: number; py: number };
-  ENEMY_DIED: { enemyId: string; px: number; py: number; reward: number; killerPlantId: string | null };
+  /** B6: `damage` ist der Schaden, der diesen Tod AUSGELÖST hat — nicht die verbleibenden HP.
+   *  Der Chain-Nachbrand spiegelt den auslösenden Treffer (`chainShare`), statt einen flachen
+   *  Betrag zu setzen: vorher war die Kette gegen schwache Gegner stärker als ihr Auslöser und
+   *  gegen starke wirkungslos, weil der Betrag am Ereignis nicht ablesbar war. */
+  ENEMY_DIED: { enemyId: string; px: number; py: number; reward: number; killerPlantId: string | null; damage: number };
   SCORE_CHANGED: { score: number; delta: number };
   COMBO_CHANGED: { count: number; multiplier: number };
   /** B5.1: Der Ursprung der Belohnung ist Teil des Faktums — die Reise (Quelle → Zähler) darf

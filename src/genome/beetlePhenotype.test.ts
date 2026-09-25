@@ -5,7 +5,7 @@ import { beetlePhenotypeOf, beetlePhenotypeKey, beetleMeasure } from './beetlePh
 import { ancestorOf, resolveAncestor, rollBrood, broodGenomeHash, beetlePower } from './beetle';
 import { descriptorDistance, nearestDistance } from './breeding';
 import { resolveBeetleVisual } from '../visual/beetleGenerator';
-import { BEETLE_AXES_BY_GENE, BEETLE_AXIS_RANGE, BEETLE_DESCRIPTOR_AXES } from '../config/beetlePhenotype.source';
+import { BEETLE_AXES_BY_GENE, BEETLE_AXIS_RANGE, BEETLE_DESCRIPTOR_AXES, BEETLE_DESCRIPTOR_WEIGHTS } from '../config/beetlePhenotype.source';
 
 // R3: „Eine Zuchtmaschine, zwei biologische Phänotyp-Sprachen" — hier die KÄFER-Seite.
 // Gepinnt wird: Determinismus, sichtbare Individualität, Kombinations-Neuheit und vor allem,
@@ -38,6 +38,21 @@ describe('Käfer-Phänotyp: Anatomie statt Farbpunkt', () => {
     expect(['solid', 'bands', 'spots', 'reticulated']).toContain(p.pigment.pattern);
     expect(['plated', 'scaled', 'studded', 'armoured']).toContain(p.dress);
     expect(['nimble', 'broad', 'hulking', 'sprawling']).toContain(p.bearing);
+  });
+
+  it('DESCRIPTOR-VERTRAG: Gewichte und Achsen sind längen- und positionsgleich', () => {
+    // `weightedDistance` paart positional und kappt auf die kürzeste Länge. Bei 27 Gewichten für
+    // 29 Achsen rutschte ab Index 17 der ganze Schwung um zwei nach links: `attack` trug das
+    // chitin-Gewicht, und `pronotum`/`jumpLegs` — die differenzierendsten Organe (hardshell,
+    // jumper) — fielen ganz aus dem Maß heraus. Längengleichheit ist hier Vertrag.
+    expect(BEETLE_DESCRIPTOR_WEIGHTS).toHaveLength(BEETLE_DESCRIPTOR_AXES.length);
+    expect(BEETLE_DESCRIPTOR_WEIGHTS.every(w => Number.isFinite(w) && w >= 0)).toBe(true);
+    // Pigment und die reinen Anzeige-Achsen wiegen 0 (Anzeige-Wahrheit, nie Balance — vgl.
+    // `pigmentFor`). Ein Gewicht > 0 dort würde das Neuheits-Maß auf Beleuchtung umbiegen.
+    for (const cosmetic of ['pattern', 'pigmentA', 'pigmentB', 'sheen', 'asymmetry'] as const) {
+      expect(BEETLE_DESCRIPTOR_WEIGHTS[BEETLE_DESCRIPTOR_AXES.indexOf(cosmetic)],
+        `${cosmetic} gewichtet — Anzeige-Achse darf das Neuheits-Maß nicht verschieben`).toBe(0);
+    }
   });
 
   it('jedes Käfer-Gen verschiebt mehrere Achsen (keine Ein-Extra-Gene)', () => {
@@ -152,5 +167,25 @@ describe('Käferzucht: Kandidaten und Kette', () => {
   it('Deskriptor-Vergleich bleibt symmetrisch und null bei Gleichheit', () => {
     const d = beetlePhenotypeOf({ genome: founderAncestor(A).genome, generation: 1 }).descriptor;
     expect(descriptorDistance(d, d)).toBe(0);
+  });
+
+  it('ORGAN-TAUSCH zählt als Neuheit (der Verschleiß, den 27 Gewichte nicht sahen)', () => {
+    // Zwei Tiere, die sich AUSSCHLIESSLICH in den Organen unterscheiden. Vor dem Fix kappt
+    // `weightedDistance` die letzten Achsen weg, also war dieser Tausch für die Zucht exakt 0 —
+    // `hardshell` und `jumper` konnten kein Tier neu machen. Das ist der eigentliche Schaden,
+    // nicht der verschobene Block davor.
+    const base = beetlePhenotypeOf({ genome: founderAncestor(A).genome, generation: 1 }).descriptor;
+    const organDiff = (axis: 'pronotum' | 'jumpLegs', value: number): number[] => {
+      const i = BEETLE_DESCRIPTOR_AXES.indexOf(axis);
+      const copy = [...base];
+      copy[i] = value;
+      return copy;
+    };
+    for (const axis of ['pronotum', 'jumpLegs'] as const) {
+      const other = organDiff(axis, base[BEETLE_DESCRIPTOR_AXES.indexOf(axis)]! >= 0.5 ? 0 : 1);
+      expect(beetleMeasure(base, other), `${axis}-Tausch zählt nicht als Neuheit`).toBeGreaterThan(0);
+      // Und die Richtung ist egal — das Maß ist symmetrisch.
+      expect(beetleMeasure(other, base)).toBe(beetleMeasure(base, other));
+    }
   });
 });

@@ -71,16 +71,24 @@ describe('B30 — Brut-Domäne', () => {
     // statt eines Einzelgens — sonst blieb `carapaceForm` bei allen auf `flat` und `dress` auf
     // `scaled`. Die IDs (Seed-abhängig) sind unverändert; die Genome dieser Brut ändern sich
     // EINMALIG. Keine Meta-Migration nötig: Specimen sind Daten, kein Nektar/Kontostand berührt.
-    // BRUT-VIELFALT (19.09.2026): die Neuheit der Brut prüft zusätzlich das KAMPFPROFIL
-    // (`distinct` in genome/beetle.ts) und sucht bei Zwillingen weiter (12 Versuche statt 6).
-    // Dieser Pin belegt die GRENZE des Eingriffs: diese Fachkreuzung hatte nie Zwillinge, wird
-    // also nicht anders gewürfelt — der Satz ist BITGLEICH zum Stand davor. Bewegt haben sich
-    // nur Bruten, die vorher zwei identische Profile trugen (0 von 72 statt 11 von 72;
-    // Messmenge: 3 Gründer, alle geordneten Paarungen × 8 Brut-Indizes).
+    // IDENTITÄTSBRUCH (26.09.2026, gemessen, nicht beiläufig): `BEETLE_DESCRIPTOR_WEIGHTS` führte
+    // 27 Gewichte für 29 Achsen. `weightedDistance` paart positional und kappt — ab Index 17
+    // trug jede Achse das Gewicht ihres Nachbarn, und `pronotum`/`jumpLegs` fielen ganz aus dem
+    // Maß. Genau diese beiden Organe entscheiden jetzt den Wurf: `hardshell` und `jumper` können
+    // ein Tier neu machen, vorher konnten sie es nicht (Tausch ergab exakt 0). Die IDs (Seed-
+    // abhängig) sind unverändert; die Genome dieser Brut ändern sich EINMALIG.
+    //
+    // Der Kommentar oben behauptet, dieser Wurf habe NIE Zwillinge gehabt und müsse bitgleich
+    // bleiben. Nachgemessen über alle 72 Bruten (3 Gründer × 9 Paarungen × 8 Indizes), vorher
+    // wie nachher: 0 Zwillinge — die Aussage hält. Verschoben hat sich nur, WELCHER Entwurf ab
+    // Versuch 2 die Schwelle 0,055 erreicht (hier attempt 2 → attempt 0, Distanz 0,0833 → 0,0628
+    // bzw. 0,0624 → 0,1279): das korrigierte Maß erkennt die besseren Entwürfe früher. Keine
+    // verschärfte Verschleiß-Regel, keine neue Balance — dieselbe Anzahl Kandidaten, anderer
+    // (näher begründeter) Gewinner.
     expect(rollBrood(A, B, 1).map(c => `${c.id}|${broodGenomeHash(c)}`)).toEqual([
       'brood_ez8xcp_0|hyb-8cd10b61',
-      'brood_ez8xcp_1|hyb-536bbdff',
-      'brood_ez8xcp_2|hyb-9c075925',
+      'brood_ez8xcp_1|hyb-892a4653',
+      'brood_ez8xcp_2|hyb-782c2e2d',
     ]);
 
     // Gegner-Domäne: unverändert (der Schnitt durfte hier nichts bewegen).

@@ -55,7 +55,30 @@ export function installHooks(git: ShinonGitHelfer, options: { setHooksPath?: boo
       changed = true;
     }
     fs.chmodSync(file, 0o755);
-    written.push(path.relative(git.root, file).split(path.sep).join('/'));
+    // Das Ausführ-Bit muss im INDEX stehen, nicht nur im Dateisystem: bei `core.fileMode=false`
+    // (Windows-Standard) ignoriert Git das Bit beim `add` und legt 100644 ab — der Hook wäre dann
+    // auf dieser Platte ausführbar, aber im Commit nicht, und damit auf jedem anderen Rechner tot.
+    // `update-index --add --chmod=+x` umgeht diese Einstellung und ist der einzige Ort, der das
+    // Bit wirklich schreibt; die Bedingung hält den Aufruf idempotent.
+    //
+    // Der Rückgabewert wird NICHT weggeworfen (Fehlerklasse, 4 von 4 Review-Agenten): ein
+    // gescheitertes `update-index` (EPERM, read-only Index, .git/index.lock) ließ diese Zeile
+    // trotzdem „Hooks installiert" melden — der Aufrufer glaubte, der Hook sei im Commit
+    // ausführbar, und er war es nicht. Der Zustand danach wird deshalb VERIFIZIERT statt
+    // geglaubt; `isExecutableInIndex` liest den Index und lügt nicht.
+    const relative = path.relative(git.root, file).split(path.sep).join('/');
+    if (!git.isExecutableInIndex(relative)) {
+      const marked = git.markExecutable(relative);
+      if (!marked || !git.isExecutableInIndex(relative)) {
+        throw new Error(
+          `Ausführ-Bit für ${relative} konnte nicht in den Index geschrieben werden. `
+          + `Der Hook wäre im Commit nicht ausführbar (100644) und damit auf jedem anderen `
+          + `Rechner tot. Bitte Index prüfen: kein .git/index.lock, Schreibrechte, `
+          + `core.fileMode.`,
+        );
+      }
+    }
+    written.push(relative);
   }
 
   const desired = HOOKS_RELATIVE_DIR.split(path.sep).join('/');

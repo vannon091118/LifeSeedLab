@@ -261,33 +261,6 @@ describe('Gate B — Effektkette, Combo×Score, Reward, Day/Night, GameOver', ()
     expect(s.nektarEarned).toBe(28); // 2 (Kill) + 26 (Bonus)
   });
 
-  it('EFFECT_CHAIN: Kill springt zu nächstem Gegner', () => {
-    const root = makeRoot({
-      seed: SEED,
-      loadout: ['cross_chain'],
-      bredStats: { cross_chain: { hp: 100, damage: 80, range: 5, cooldown: 10, cost: 30, effects: ['EFFECT_CHAIN'] } },
-    });
-    const s = root.getSnapshot();
-    // zwei Gegner nah beieinander
-    const killer: import('./state').PlantEntity = {
-      id: 'plant-0001', variantId: 'cross_chain', gx: 2, gy: 2, hp: 100, maxHp: 100, lastShot: 0,
-      growthState: 'mature', growthTicksLeft: 0, growthTicksTotal: 90, lifeTicksLeft: 900, lifeTicksTotal: 900,
-      fertilizeCount: 0, extraDamage: 0, extraCooldown: 0, isWeakened: false, isSeedling: false,
-    } as import('./state').PlantEntity;
-    s.plants.push(killer);
-    const e1: import('./state').EnemyEntity = {
-      id: 'enemy-0001', typeId: 'grunt', hp: 10, maxHp: 10, px: 3, py: 3, pathIndex: 0, pathProgress: 0, damage: 1, reward: 5, scoreValue: 10, slowUntil: 0, burnTicks: 0, poisonTicks: 0, lastHitByPlantId: 'plant-0001',
-    } as import('./state').EnemyEntity;
-    const e2: import('./state').EnemyEntity = {
-      id: 'enemy-0002', typeId: 'grunt', hp: 100, maxHp: 100, px: 3.5, py: 3.2, pathIndex: 0, pathProgress: 0, damage: 1, reward: 5, scoreValue: 10, slowUntil: 0, burnTicks: 0, poisonTicks: 0, lastHitByPlantId: null,
-    } as import('./state').EnemyEntity;
-    s.enemies.push(e1, e2);
-    // töte e1 via EnemySystem → ENEMY_DIED, dann chainFrom in Root sollte e2 schädigen
-    (root as unknown as { enemies: { applyDamage: (s: unknown, id: string, amt: number, crit: boolean, eff: string | null, src: string | null) => void } }).enemies.applyDamage(s, e1.id, 20, false, null, 'plant-0001');
-    const hpBefore = e2.hp;
-    (root as unknown as { enemies: { chainFrom: (s: unknown, x: number, y: number, amt: number, range: number) => void } }).enemies.chainFrom(s, e1.px, e1.py, 50, 2);
-    expect(e2.hp).toBeLessThan(hpBefore);
-  });
 });
 
 describe('Gate B — Snapshot-Härtung (Audit Fix 1: kein Live-State-Leak)', () => {

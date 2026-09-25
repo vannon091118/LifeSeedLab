@@ -84,7 +84,7 @@ describe('Phase 8: Visual Observer purity', () => {
   it('observer emits documented command types only', () => {
     const obs = new VisualObserver(new Camera(), true);
     obs.observe(makeEvent(1, 'ENEMY_DIED', 'enemy-0001', 1, {
-      enemyId: 'enemy-0001', px: 2, py: 3, reward: 10, killerPlantId: null,
+      enemyId: 'enemy-0001', px: 2, py: 3, reward: 10, killerPlantId: null, damage: 10,
     }));
     const cmds = obs.drain();
     expect(cmds.length).toBeGreaterThan(0);

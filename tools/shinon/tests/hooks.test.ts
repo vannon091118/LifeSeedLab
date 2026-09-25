@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { buildChecks } from '../checks/index.ts';
 import { ShinonGate } from '../gate.ts';
 import { defaultConfig } from '../config.ts';
+import { ShinonGitHelfer } from '../git-helfer.ts';
 import { HOOKS_RELATIVE_DIR, HOOK_ENTRY_RELATIVE_PATH, hookScripts, installHooks } from '../hooks.ts';
 import { PROJECT_ROOT as ROOT, contextFor, gitIt, initTempRepo, runEntry, tempDir, write } from './helpers.ts';
 import type { ShinonCheck } from '../checks/check.ts';
@@ -37,6 +38,10 @@ describe('Shinon-Hook-Vertrag', () => {
 
   it('installiert die drei Hooks lokal, setzt core.hooksPath und lässt globale Config unverändert', () => {
     const { dir, git } = initTempRepo('hooks-install');
+    // Der Windows-Realfall explizit: bei `core.fileMode=false` liest Git das Bit aus dem
+    // Dateisystem NICHT — der 100755-Assert unten beweist dann wirklich, dass `installHooks`
+    // den Index schreibt, und nicht dass die Platte zufällig kooperiert.
+    git.configSet('core.fileMode', 'false');
     const globalBefore = gitIt(dir, ['config', '--global', '--get', 'core.hooksPath']);
 
     const result = installHooks(git);
@@ -52,6 +57,19 @@ describe('Shinon-Hook-Vertrag', () => {
       expect(mode).toMatch(/^100755 /);
       expect(fs.readFileSync(path.join(dir, HOOKS_RELATIVE_DIR, name), 'utf8')).toBe(hookScripts()[name]);
     }
+  });
+
+  it('schlägt fail-closed fehl, wenn das Ausführ-Bit nicht in den Index wandert', () => {
+    // Der 100755-Test oben beweist nur den Erfolgsfall. Dieser Test nimmt den Fehlerfall: wenn
+    // `update-index` scheitert, meldet `installHooks` trotzdem „Hooks installiert" — der Aufrufer
+    // glaubt, der Hook sei im Commit ausführbar, und der Hook ist es nicht. `markExecutable`
+    // liefert genau dafür das `boolean`, das `installHooks` bis heute wegwirft.
+    const { dir, git } = initTempRepo('hooks-exec-bit-fails');
+    git.configSet('core.fileMode', 'false');
+    const helfer = new ShinonGitHelfer(dir);
+    helfer.markExecutable = () => false; // der Aufruf scheitert (EPERM, read-only Index, Lock)
+
+    expect(() => installHooks(helfer)).toThrow(/Ausführ-Bit/);
   });
 
   it('verweigert Hook-Installation außerhalb eines Git-Repositories vor jedem Schreibpfad', () => {

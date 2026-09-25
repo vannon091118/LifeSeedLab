@@ -15,7 +15,7 @@ describe('Phase 3.1/3.2 EventBus + contract', () => {
     bus.subscribe('ENEMY_DIED', e => seen.push(`b:${e.payload.enemyId}`));
 
     const e = makeEvent(10, 'ENEMY_DIED', 'enemy-0001', 1, {
-      enemyId: 'enemy-0001', px: 1, py: 2, reward: 5, killerPlantId: null,
+      enemyId: 'enemy-0001', px: 1, py: 2, reward: 5, killerPlantId: null, damage: 5,
     });
     bus.publish(e);
     expect(seen).toEqual(['a:enemy-0001', 'b:enemy-0001']);

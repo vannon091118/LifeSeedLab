@@ -1,0 +1,18 @@
+# Muss-Zeilenenden — nicht zur Diskussion.
+#
+# `text=auto` lässt Git nur für Dateien ein Git-Attribut `text` (oder `eol`) nachschlagen, die
+# im Arbeitsbaum vorliegen. Ein Generator, der `shinon install-hooks` schreibt, ist dafür keine
+# Quelle: die Datei entsteht nach dem Checkout neu und übernimmt beim nächsten `git add` die
+# Zeilenenden des Dateisystems.
+#
+# Deshalb steht hier ausdrücklich `eol=lf` für die Shell-Hooks. Ein POSIX-Skript mit CRLF ist
+# kaputt: die Shell liest `\r` als Teil des Befehls, `exec` findet den Pfad nicht, der Hook bricht
+# mit "command not found" ab — ohne verwertbare Fehlermeldung. `eol=lf` gilt in beide Richtungen:
+# es erzwingt LF im Arbeitsbaum beim Checkout UND im Blob beim Commit, unabhängig davon, was die
+# lokale Konfiguration (`core.autocrlf`, Editor-Einstellungen) tut.
+tools/hooks/* text eol=lf
+
+# Die Werkzeug-Entrypoints werden von `node` gelesen, nicht von der Shell — CRLF wäre dort
+# folgenlos, `eol=lf` hält die generierten Dateien aber trotzdem deckungsgleich mit dem Generator-
+# Output und macht `git diff` nach `install-hooks` ruhig.
+tools/shinon/hook-entry.mjs text eol=lf

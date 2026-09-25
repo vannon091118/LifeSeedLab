@@ -164,11 +164,25 @@ export const BEETLE_DESCRIPTOR_AXES: readonly (BeetleAxis | BeetleInteractionAxi
   'wings', 'pelage', 'stinger', 'pronotum', 'jumpLegs',
 ];
 
+/**
+ * GEWICHTE der Achsen im Vergleichsvektor — positionsgleich zu `BEETLE_DESCRIPTOR_AXES`.
+ *
+ * Die Längengleichheit ist VERTRAG, nicht Kosmetik: `weightedDistance` paart positional und kappt
+ * auf die kürzeste Länge. Fehlt ein Gewicht, rutscht der ganze Schwung nach links — jede Achse ab
+ * der Lücke trägt dann das Gewicht ihres Nachbarn, und die letzten Achsen fallen komplett heraus.
+ * Deshalb muss `beetlePhenotype.test.ts` beide Längen gleich pinnen.
+ *
+ * Die reinen Anzeige-Achsen wiegen 0: Pigment ist Anzeige-Wahrheit, nie Balance (Farbe), `sheen`
+ * (Glanzstufe, `render/beetles.ts`) und `asymmetry` (Körperseiten-Versatz, ebenda) ebenso. Der
+ * Spieler sieht diese Unterschiede ohnehin am Bild — im Neuheits-Maß wären sie nur derselbe Käfer,
+ * anders beleuchtet. Gleiches Recht wie bei der Pflanze (`phenotype.source.ts`).
+ */
 export const BEETLE_DESCRIPTOR_WEIGHTS: readonly number[] = [
   1.5, 1.5, 1.2, 1.0, 1.0,      // Körper
   1.2, 1.0, 1.3, 0.8,           // Panzer, Mandibeln
   0.9, 0.8, 1.2, 0.9, 0.9,      // Fühler, Beine, Decken
-  0, 0, 0, 0.3, 0.6,            // Pigment zählt nicht, Angriff/Schwarm schwach
+  0, 0, 0, 0, 0,               // Pigment zählt nicht (auch Glanz/Asymmetrie: Anzeige, nie Balance)
+  0.3, 0.6,                    // Angriff/Schwarm schwach
   0.5, 0.9, 0.7,                // Brut-Präsentation, chitin, bearing
   1.4, 1.5, 1.1, 1.0, 1.0,      // Flügel, Pelz, Stachel, Halschild, Sprungbeine —
                                 // hoch gewichtet: wer diese Organe tauscht, hat ein anderes Tier

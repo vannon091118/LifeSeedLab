@@ -335,3 +335,28 @@ weiterhin Offene steht in `docs/process/ROADMAP.md` §3.
   Garantie INNERHALB der Brut bräuchte eine SICHT-Bedingung in der Brut-Suche (wie `distinct` für
   die Stats) — bewusst nicht gebaut, sie kostet Suchbudget und ist eine Eigentümer-Entscheidung.
 
+
+## B31. Descriptor-Achsen und Gewichte muessen zeichengleich lang sein (Befund: GAP-Zucht→Neuheit)
+
+### B31.1 Befund
+
+`BEETLE_DESCRIPTOR_AXES` in `beetlePhenotype.source.ts` hatte 29 Eintraege, `BEETLE_DESCRIPTOR_WEIGHTS`
+nur 27. `weightedDistance` in `breeding.ts` paart die beiden Arrays **positionsweise** mit
+`n = Math.min(a.length, b.length, weights.length)` und bricht danach kommentarlos ab — eine
+stille Trunkierung, kein Fehler. Ab Index 17 trug jede Achse das Gewicht ihres Nachbarn, und die
+letzten beiden Achsen `pronotum` und `jumpLegs` fielen aus dem Mass ganz heraus. Gemessen an einem
+Organ-Tausch: **erwartet groesser als 0, erhalten 0** — der Tausch zaehlte exakt null Neuheit,
+`hardshell` und `jumper` konnten so gar kein neues Tier erzeugen.
+
+### B31.2 Regel
+
+Die Laengengleichheit der beiden Arrays ist Teil des Contracts, keine Formatfrage. Ein neu
+aufgenommenes Achsenpaar gehoert **gemeinsam** in beide Listen. Neu aufgenommen:
+
+- `sheen` (Glanz) und `asymmetry` (Asymmetrie) stehen auf **0**. Beide enden ausschliesslich im
+  Renderer (`observers/beetles.ts`, `globalAlpha` und Seitenversatz) und stehen dort unter
+  `beetlePhenotype.ts:71`: „Farbe ist Anzeige-Wahrheit, nie Balance". Ein Nullgewicht ist damit
+  keine Balanceentscheidung, sondern die Umsetzung dieser Regel — dieselbe Logik wie beim
+  Pigment der Pflanze (`phenotype.source.ts`).
+- Der Test `beetlePhenotype.test.ts` (`DESCRIPTOR-VERTRAG`) pinnt Laengengleichheit und die
+  Nullgewichte. `ORGAN-TAUSCH zaehlt als Neuheit` pinnt das Mass selbst.

@@ -233,6 +233,28 @@ export class ShinonGitHelfer {
     return this.git(['config', '--local', key, value]);
   }
 
+  /**
+   * Setzt das Ausführ-Bit einer Datei im INDEX und nimmt sie dabei gegebenenfalls neu auf.
+   *
+   * `fs.chmodSync` genügt nicht: bei `core.fileMode=false` (unter Windows der Normalfall, wenn die
+   * Konfiguration aus einer Nicht-Git-Umgebung stammt) liest Git das Bit im Arbeitsbaum nicht —
+   * `git add` legt dann `100644` an, egal was das Dateisystem meldet. Nur der Index entscheidet,
+   * und dort kann wiederum nur `update-index --chmod=+x` das Bit schreiben.
+   *
+   * Das `--add` ist kein Zusatz, sondern der entscheidende Teil: `installHooks` schreibt die Hooks
+   * in ein Repository, in dem sie meist noch untracked sind. Ohne `--add` wäre der Aufruf in
+   * genau diesem — dem Normalfall — wirkungslos, und der Modus fiele erst beim nächsten
+   * `git add` auf `100644` zurück. Mit `--add` steht der Modus sofort korrekt und bleibt es.
+   */
+  markExecutable(relativePath: string): boolean {
+    return this.git(['update-index', '--add', '--chmod=+x', '--', relativePath]).ok;
+  }
+
+  /** true ⇔ der Index führt die Datei mit gesetztem Ausführ-Bit (100755). */
+  isExecutableInIndex(relativePath: string): boolean {
+    return /^100755 /.test(this.git(['ls-files', '--stage', '--', relativePath]).stdout);
+  }
+
   diffStats(): { files: number; insertions: number; deletions: number } {
     const args = this.hasStagedChanges() ? ['diff', '--cached', '--numstat'] : ['diff', '--numstat'];
     let insertions = 0;

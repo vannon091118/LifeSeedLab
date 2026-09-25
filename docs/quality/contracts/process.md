@@ -235,3 +235,54 @@ die Lane maß 662 in 66 — und die Zahl war über 429/492/529/570 gewandert, ob
 CI-Zusammenfassung (`--summary`); `--check` **weist jede hartkodierte Testzahl in der README
 ab** (Exit 1). Geltung nur dort: `CHANGELOG.md` und ROADMAP tragen datierte Messwerte — das ist
 Chronik und darf sich nicht mitwachsen, dieselbe Ausnahme wie beim Doku-Referenz-Check.
+
+## B33. Das Ausfuehr-Bit der Hooks gehoert in den Index (Befund: Gate/Windows-Index)
+
+### B33.1 Befund
+
+`installHooks` setzte das Ausfuehr-Bit nur mit `fs.chmodSync`. Bei `core.fileMode=false` — dem
+Windows-Standard, wenn die Git-Konfiguration aus einer Nicht-Git-Umgebung stammt — liest Git das
+Bit im Arbeitsbaum nicht, und `git add` legte darum `100644` ab. Die Hooks waren auf dieser
+Platte ausfuehrbar, im Commit aber nicht, also auf jedem anderen Rechner tot. Der Test hat das
+im frischen Temp-Repo zuverlaessig reproduziert (`expected '100644 ...' to match /^100755 /`).
+
+Ein zweiter, davon unabhaengiger Befund: `core.autocrlf=true` materialisiert die Shell-Skripte
+beim Checkout mit CRLF. Ein POSIX-Skript mit CRLF bricht unter `/bin/sh` mit „command not found"
+ab. Eine `.gitattributes` allein genuegt dem Bericht nach nicht — sie greift nicht bei Dateien,
+die der Generator **nach** dem Checkout neu schreibt.
+
+### B33.2 Regel
+
+`installHooks` schreibt das Bit in den Index: `git.update-index --add --chmod=+x`. Das `--add`
+ist nicht Beiwerk — die Hooks sind beim Installieren meist untracked, und ohne `--add` waere der
+Aufruf genau im Normalfall wirkungslos. Der Aufruf ist idempotent geklammert.
+
+`.gitattributes` sichert die Zeilenenden dauerhaft ab: `tools/hooks/* text eol=lf` erzwingt LF
+beim Checkout **und** beim Commit, unabhaengig von `core.autocrlf` und von Editor-Einstellungen.
+Wer eine generierte Datei hinzufuegt, muss beide Haelften bedenken — Index-Modus und Zeilenenden
+sind zwei verschiedene Ursachen mit zwei verschiedenen Orten.
+
+Hinweis fuers Umstellen: `eol=lf` im selben Commit, der die Datei einbringt, materialisiert erst
+ab dem naechsten Checkout. Bis dahin muss die Arbeitsbaum-Datei einmal physisch neu geschrieben
+werden (loeschen und aus dem Index auschecken) — `checkout-index` ueberspringt unveraenderte
+Dateien, und `git hash-object` meldet sie bereits als LF-konform, obwohl CRLF auf der Platte
+liegen.
+
+### B33.3 Der Modus wird verifiziert, nicht geglaubt (Review 26.09.2026, 4/4 Agenten)
+
+`markExecutable()` lieferte einen `boolean`, und `installHooks` warf ihn weg. Ein gescheitertes
+`update-index` — EPERM, read-only Index, `.git/index.lock` — liess die Zeile danach trotzdem in
+`written` landen und `describeHookInstall` trotzdem „Hooks installiert" melden. Das ist die
+teuerste Fehlerklasse des Werkzeugs: der Aufrufer glaubt, der Gate-Zwang sei im Commit aktiv,
+und er ist es nicht; der naechste Commit laeuft an einem vorbei, der zu laufen glaubt.
+
+Regel: der Zustand wird **gelesen**, nicht angenommen — nach `markExecutable` prueft
+`installHooks` `isExecutableInIndex()` erneut und wirft, wenn der Index weiterhin `100644`
+fuehrt. Fail-closed, mit einer Meldung, die die Ursache benennt (Index-Lock, Schreibrechte,
+`core.fileMode`) statt nur „fehlgeschlagen". Beide `installHooks`-Aufrufer (`init`, `cli
+install-hooks`) behandeln den Wurf als Abbruch — es gibt keinen Pfad, auf dem die Installation
+als erfolgreich gemeldet wird, obwohl der Bit fehlt.
+
+Beide Testhaelften gehoeren zusammen: der `100755`-Test pinnt den Erfolgsfall unter
+`core.fileMode=false` (der Windows-Realfall, nicht der Zufall einer kooperativen Platte), der
+Fail-closed-Test pinnt den Fehlerfall ueber ein `markExecutable`, das `false` liefert.

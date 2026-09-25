@@ -187,6 +187,7 @@ export class EnemySystem {
     if (e.hp <= 0) {
       this.emit(makeEvent(state.clock.tick, 'ENEMY_DIED', e.id, ++this.seq, {
         enemyId: e.id, px: e.px, py: e.py, reward: e.reward, killerPlantId: e.lastHitByPlantId,
+        damage: amount,
       }));
       return { died: true };
     }
@@ -235,6 +236,9 @@ export class EnemySystem {
     if (e.hp <= 0) {
       this.emit(makeEvent(state.clock.tick, 'ENEMY_DIED', e.id, ++this.seq, {
         enemyId: e.id, px: e.px, py: e.py, reward: e.reward, killerPlantId: e.lastHitByPlantId,
+        // DoT-Tode tragen den TICK-Schaden als Auslöser — sonst bekäme ein von Gift gestorbener
+        // Gegner keinen Nachbrand, obwohl dieselbe Pflanze ihn mit einem Volltreffer getötet hätte.
+        damage: amount,
       }));
     }
   }

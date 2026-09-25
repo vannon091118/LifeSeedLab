@@ -225,13 +225,13 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 
 | Kennzahl | Stand |
 |---|---|
-| Branch | `main` · Upstream: `origin/main` (+4/-0) |
-| HEAD | `fd5bae6` — refactor(sim): Vektor-Engine bekommt eine Lesegrenze statt einer Kopie |
-| Arbeitsbaum | 0 gestaged, 8 geändert, 3 neu |
+| Branch | `main` · Upstream: `origin/main` (+0/-0) |
+| HEAD | `83038bb` — docs(tooling): Werkzeug-Doku zeigt auf den Einstieg, den es gibt |
+| Arbeitsbaum | 24 gestaged, 0 geändert, 0 neu |
 | Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `fd5bae6` refactor(sim): Vektor-Engine bekommt eine Lesegrenze statt einer Kopie |
+| Letzter Shinon-Commit | noch keiner |
 | Letzter Push | noch keiner |
-| LOC-Hotspots | `src/persistence/storage.ts` 184/200 (92 %)<br>`src/simulation/plantSystem.ts` 261/300 (87 %)<br>`src/simulation/enemySystem.ts` 256/300 (85 %)<br>`src/meta/run.ts` 159/200 (80 %)<br>`src/components/GameView.tsx` 313/400 (78 %) |
+| LOC-Hotspots | `src/persistence/storage.ts` 184/200 (92 %)<br>`src/simulation/plantSystem.ts` 261/300 (87 %)<br>`src/simulation/enemySystem.ts` 258/300 (86 %)<br>`src/meta/run.ts` 159/200 (80 %)<br>`src/components/GameView.tsx` 313/400 (78 %) |
 <!-- SHINON:STATUS:END -->
 ->

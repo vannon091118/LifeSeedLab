@@ -7,7 +7,15 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ---
 
-## Unreleased (Arbeitsstand 19.–24.09.2026)
+## Unreleased (Arbeitsstand 19.–25.09.2026)
+
+- [Genome/Beetle] `BEETLE_DESCRIPTOR_WEIGHTS` erhält die zwei fehlenden Gewichte für `sheen` und `asymmetry` (je 0 — Farbe ist Anzeige, nie Balance). Vorher hatte das Array 27 statt 29 Einträge, wodurch `weightedDistance` ab Index 17 positionsversetzt rechnete und `pronotum`/`jumpLegs` vollständig aus dem Neuheits-Maß fielen: ein Organ-Tausch zählte exakt 0. Belege: `src/config/beetlePhenotype.source.ts`, `src/genome/beetlePhenotype.test.ts` und die vermessenen Brut-Pins in `src/meta/brood_domain.test.ts`.
+
+- [Sim/Chain] `EFFECT_CHAIN` schadet nicht mehr mit einem festen Betrag von 50, sondern mit dem in `effects.source.ts` hinterlegten Anteil (50 %) des auslösenden Treffers; `ENEMY_DIED` trägt dafür das auslösende `damage`. Gegen einen Boss mit 800 HP war 50 ein Getropse, gegen Schwarm mit 15 HP stärker als der Auslöser. Belege: `src/simulation/killReactor.ts`, `src/simulation/effectSupport.ts`, `src/simulation/enemySystem.ts`, `src/bus/events.ts`, `src/config/effects.source.ts` und `src/simulation/chainEffect.test.ts`.
+
+- [Shinon/Hooks] `install-hooks` verwirft den Rückgabewert von `update-index --chmod=+x` nicht mehr: scheitert das Schreiben des Ausführ-Bits, prüft `installHooks` den Index erneut und wirft, statt „Hooks installiert" zu melden. Der Fehlerklasse, die 4 von 4 Review-Agenten unabhängig benannt haben — der Aufrufer glaubte, der Gate-Zwang sei im Commit aktiv, während der Hook als `100644` reise. Der bestehende `100755`-Test pinnt den Erfolgsfall jetzt ausdrücklich unter `core.fileMode=false`; ein zweiter Test pinnt den Fehlerfall. Belege: `tools/shinon/hooks.ts`, `tools/shinon/tests/hooks.test.ts` und Contract B33.3 in `docs/quality/contracts/process.md`.
+
+- [Shinon/Hooks] `install-hooks` schreibt das Ausführ-Bit in den Git-Index (`update-index --add --chmod=+x`) statt es nur im Dateisystem zu setzen. Bei `core.fileMode=false` — dem Windows-Standard — legte `git add` sonst `100644` ab, die Hooks waren lokal ausführbar, aber im Commit nicht. Eine neue `.gitattributes` erzwingt `eol=lf` für `tools/hooks/*`: `core.autocrlf=true` materialisierte die Shell-Skripte mit CRLF, was sie unter `/bin/sh` mit „command not found" tötete. Belege: `tools/shinon/hooks.ts`, `tools/shinon/git-helfer.ts`, `.gitattributes` und `tools/shinon/tests/hooks.test.ts`.
 
 - [Shinon/Entry] Der Shinon-Einstieg wird als Plain-Node-Grenze mit zentraler Argument-, Phase- und Check-Auswahl fail-closed ausgeführt; Hooks, Changelog-Prüfung und State-Sanitizing greifen auf dieselben Regeln zu. Belege: `tools/shinon/hook-entry.mjs`, `tools/shinon/cli-args.ts`, `tools/shinon/checks/`, `tools/shinon/state.ts` und die zugehörigen Tooling-Tests.
 
