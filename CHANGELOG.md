@@ -11,6 +11,8 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 - [Shinon/Entry] Der Shinon-Einstieg wird als Plain-Node-Grenze mit zentraler Argument-, Phase- und Check-Auswahl fail-closed ausgeführt; Hooks, Changelog-Prüfung und State-Sanitizing greifen auf dieselben Regeln zu. Belege: `tools/shinon/hook-entry.mjs`, `tools/shinon/cli-args.ts`, `tools/shinon/checks/`, `tools/shinon/state.ts` und die zugehörigen Tooling-Tests.
 
+- [Shinon/Pipeline] Die Pipeline prüft den tatsächlich gestagten Index, unterdrückt den Post-Commit-Hook während des eigenen Push-Pfads und behandelt Remote-Divergenz, Upstream und Dry-Run als getrennte Verträge. Belege: `tools/shinon/pipeline.ts`, `tools/shinon/push-executor.ts`, `tools/shinon/git-helfer.ts`, `tools/shinon/tests/pipeline.test.ts` und `tools/shinon/tests/entry-push.test.ts`.
+
 - [Worktree/Source] Die verbleibenden lokalen Änderungen werden übernommen: Versionswahrheit 0.0.99, entfernte ungenutzte Dependencies, lokale-only Discovery-Dokumentation, bereinigte Test-Helfer und die vom Shinon-Status erzeugte README-Zeile. Dadurch bleibt der Arbeitsbaum nach dem Abschluss tatsächlich sauber.
 
 - [Worktree/Index] Die lokale Arbeitskopie wird vollständig konsolidiert: generierte Index-Ausgaben, Versionswahrheit `0.0.99`, Index-Skripte und die bereinigten Source-/Testverweise werden in getrennten Shinon-Slices übernommen. Fremde/generated Änderungen werden nicht mehr absichtlich im Worktree stehen gelassen.

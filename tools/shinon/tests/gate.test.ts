@@ -9,6 +9,11 @@ function check(id: string, findings: Finding[], expensive = false): ShinonCheck 
 }
 
 describe('ShinonGate', () => {
+  it('lehnt eine ungültige Phase ab, bevor Repository-Zustand gelesen wird', () => {
+    const { git, config } = initTempRepo('gate-invalid-phase');
+    expect(() => contextFor(git, config, { phase: 'not-a-phase' as never })).toThrow('Ungültige Gate-Phase');
+  });
+
   it('sammelt Befunde aller Prüfklassen und öffnet das Gate bei grüner Lage', async () => {
     const { git, config } = initTempRepo('gate-open');
     const gate = new ShinonGate([

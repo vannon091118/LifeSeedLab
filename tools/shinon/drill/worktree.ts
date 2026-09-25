@@ -112,14 +112,13 @@ export function worktreeAnlegen(root: string): string {
   const wt = mkdtempSync(join(tmpdir(), 'lsl-mut-'));
   execSync(`git worktree add "${wt}" ${head}`, { cwd: root, encoding: 'utf8', stdio: 'pipe' });
   try {
-    // Golden-Hash-Anker: `tools/.tmp` ist gitignored und fehlt im frischen Checkout. Zeile 1
-    // genügt (v1-Semantik auf dem HEAD-Stand); liegt ein v2-Anker vor, bringt die Spiegelung
-    // der Testdateien die passende Semantik mit.
+    // Golden-Hash-Anker: `tools/.tmp` ist gitignored und fehlt im frischen Checkout.
+    // Der vollständige Anker wird kopiert: v1 bleibt einzeilig, v2 behält seine
+    // Feldprojektion für die Driftdiagnose im isolierten Worktree.
     const anker = join(root, 'tools', '.tmp', 'vector_golden_hash.txt');
     if (existsSync(anker)) {
       mkdirSync(join(wt, 'tools', '.tmp'), { recursive: true });
-      writeFileSync(join(wt, 'tools', '.tmp', 'vector_golden_hash.txt'),
-        readFileSync(anker, 'utf8').split('\n')[0]);
+      writeFileSync(join(wt, 'tools', '.tmp', 'vector_golden_hash.txt'), readFileSync(anker, 'utf8'));
     }
     const diff = execSync('git diff HEAD', { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
     if (diff.trim()) {

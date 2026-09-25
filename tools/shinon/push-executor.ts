@@ -68,7 +68,7 @@ export class ShinonPushExecutor {
       findings.push(finding('PSH001', `Remote „${remote}" ist nicht konfiguriert — Push nicht möglich`));
     }
 
-    const aheadBehind = this.git.aheadBehind(remote, branch);
+    const aheadBehind = this.git.aheadBehindLocalBranch(remote, branch);
     if (aheadBehind.upstream === null) {
       findings.push(
         finding(
@@ -114,9 +114,13 @@ export class ShinonPushExecutor {
       };
     }
 
-    if (ahead === 0 && upstream !== null) {
+    // Divergenz ist kein „nichts zu tun“: Nur wenn der Ziel-Branch
+    // existiert und weder vor- noch zurückliegt, darf der Push entfallen.
+    if (upstream !== null && this.git.remoteBranchMatchesLocal(remote, branch)) {
       return {
         ...base,
+        ahead: 0,
+        behind: 0,
         ok: true,
         pushed: false,
         skipped: true,
@@ -131,9 +135,13 @@ export class ShinonPushExecutor {
       setUpstream: options.setUpstream ?? (this.config.push.setUpstream && upstream === null),
     });
 
-    this.state.patch({
-      lastPush: { ok: result.ok, remote, branch, detail: result.detail, at: nowIso() },
-    });
+    // Ein Probelauf ist read-only: darf keinen Push-Snapshot in den
+    // persistenten State schreiben (CLI-Vertrag --dry-run).
+    if (!options.dryRun) {
+      this.state.patch({
+        lastPush: { ok: result.ok, remote, branch, detail: result.detail, at: nowIso() },
+      });
+    }
 
     return { ...base, ok: result.ok, pushed: result.pushed, skipped: false, detail: result.detail };
   }
