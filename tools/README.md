@@ -1,28 +1,34 @@
-# git-noir — Shinon (lokales Git-Tooling)
+# tools — Shinon (Git-Tooling)
 
-Dieses Verzeichnis ist **lokales Agent-Tooling** und bewusst in `.gitignore` (Zeile `git-noir/`):
-es ist Werkzeug, nicht Inhalt. Deswegen darf es auch nichts am Projekt selbst verändern —
-insbesondere keine `package.json`-Dependencies. Node 24 führt die TypeScript-Module direkt aus
-(Type-Stripping), es braucht also kein `ts-node` und kein `tsx`.
+Dieses Verzeichnis enthält das lokale Agent-Tooling des Projekts. Die TypeScript-Implementierung
+wird über den kleinen Plain-Node-Loader `shinon/hook-entry.mjs` ausgeführt; dadurch bleiben die
+Hooks ohne globale `ts-node`-/`tsx`-Runtime ausführbar.
 
 ## Einstieg
 
 ```bash
-node git-noir/shinon/cli.ts prepare        # Status + README-Block + Gate (Preflight)
-node git-noir/shinon/cli.ts gate --json    # nur prüfen, maschinenlesbar
-node git-noir/shinon/cli.ts finish --all   # Vorbereitung → Gate → Commit → Push
-node git-noir/shinon/cli.ts install-hooks  # Hooks schreiben, core.hooksPath setzen
+node tools/shinon/hook-entry.mjs prepare        # Status + README-Block + Gate (Preflight)
+node tools/shinon/hook-entry.mjs gate --json    # nur prüfen, maschinenlesbar
+node tools/shinon/hook-entry.mjs finish --all   # Vorbereitung → Gate → Commit → Push
+node tools/shinon/hook-entry.mjs install-hooks  # Hooks schreiben, core.hooksPath setzen
 ```
+
+Der direkte Start von `shinon/cli.ts` unter plain Node ist nicht der unterstützte Einstieg; der
+Loader in `hook-entry.mjs` ist die ausführbare Grenze. `--dry-run` bleibt auf den prüfenden und
+vorbereitenden Stufen read-only; Schreibbefehle wie `init` oder `install-hooks` werden damit nicht
+still akzeptiert.
 
 Vollständige Beschreibung: [`docs/setup/script-readme.md`](../docs/setup/script-readme.md).
 
 ## Struktur
 
 ```
-git-noir/
+tools/
 ├── hooks/                pre-commit, commit-msg, post-commit (core.hooksPath zeigt hierher)
 ├── shinon/
-│   ├── cli.ts            Einstieg für alle Stufen
+│   ├── hook-entry.mjs    Plain-Node-Einstieg für alle Stufen
+│   ├── hook-loader.mjs   lokaler TypeScript-Loader für den Einstieg
+│   ├── cli.ts            CLI-Implementierung und Orchestrierung
 │   ├── runner.ts         Prozessausführung (Argumente ohne Shell, Windows-Shims via cmd.exe)
 │   ├── git-helfer.ts     ShinonGitHelfer — Fassade für git + gh
 │   ├── github-helfer.ts  GitHub-CLI-Teil (Auth, repo view/create, slug)
@@ -37,7 +43,7 @@ git-noir/
 │   ├── config.ts         Defaults (LifeSeedLab-Profil) + Overrides
 │   ├── context.ts        Aufbau des Prüfkontexts aus dem echten Repository-Zustand
 │   ├── state.ts          letzter Gate-/Commit-/Push-Stand
-│   └── tests/            23 Tests des Toolings
+│   └── tests/            Tooling-Tests
 ├── types/node-min.d.ts   minimale Ambient-Typen der genutzten Node-APIs
 ├── tsconfig.json         Typecheck des Toolings (unabhängig von src/)
 ├── vitest.config.ts      eigene Testsuite (unabhängig von der Projekt-Suite)
@@ -47,8 +53,8 @@ git-noir/
 ## Verifikation
 
 ```bash
-npx tsc -p git-noir/tsconfig.json                  # 0 Fehler
-npx vitest run --config git-noir/vitest.config.ts  # 23 Tests grün
+node node_modules/typescript/bin/tsc -p tools/tsconfig.json
+node node_modules/vitest/vitest.mjs run --config tools/vitest.config.ts
 ```
 
 ## Randbedingungen
@@ -61,5 +67,5 @@ npx vitest run --config git-noir/vitest.config.ts  # 23 Tests grün
   ausschließlich über `starter.ts`, Commits ausschließlich über `commit-komponist.ts`.
 - **Modulgrenzen:** jede Datei bleibt unter dem Cap von 300 Zeilen (Verantwortung splitten, nicht
   Cap erhöhen).
-- **Zustand bleibt aus dem Commit:** `git-noir/` nicht versionieren (in fremden Projekten also
-  entweder ignorieren oder `core.hooksPath`/Nachrichtenpfad entsprechend konfigurieren).
+- **Zustand bleibt aus dem Commit:** `tools/.shinon-state.json` und `tools/.tmp/` sind Laufzeit-
+  bzw. Scratch-Zustand und gehören nicht in den Commit.

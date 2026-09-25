@@ -14,7 +14,7 @@
 - **Qualitäts-Gate (Shinon):**
   - Gate-Modus: `enforcement=strict`; **Gate OFFEN: 0 Fehler, 0 Warnungen** (Lauf 20.09.2026, nach der Quarantäne). `finish --all` ist damit technisch wieder frei.
   - Test-Lane: Ausführung relevanter Tests (`vitest related`) im Commit-Pfad ≤ 10 s; letzter Lauf **6,8 s** bei 26 berührten Dateien — im Budget.
-  - Git-Abschluss: Ausschließliche Ausführung über `node tools/shinon/cli.ts finish --all`
+  - Git-Abschluss: Ausschließliche Ausführung über `node tools/shinon/hook-entry.mjs finish --all`
 - **Spielerlebnis & Onboarding:**
   - **Krix-Tutorial (B21):** Vollständiges Strichmännchen-Onboarding über 3 Screens (Start → Hub → Feld), jetzt als 10 Prompt/Reaktion-Paare; P-21 (Textmenge) ist behoben, die Ereignis- und Karten-Overl Locks sind unit- und E2E-gebunden.
   - **Spieler-Feedback (B22–B25):** Aufbauphase vor erster Welle, optische Ablehnungsgründe (`FieldToast`), Haltbarkeitsanzeige am Feld, einheitlicher Loadout-Zähler, honest Codex.

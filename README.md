@@ -225,13 +225,13 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 
 | Kennzahl | Stand |
 |---|---|
-| Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `9dc37f6` — fix(ci): E2E-Lane-Vertrag aus dem frischen Checkout laden |
-| Arbeitsbaum | 20 gestaged, 52 geändert, 0 neu |
-| Letztes Gate | ✅ offen (preflight, 0 Fehler, 0 Warnungen) |
+| Branch | `main` · Upstream: `origin/main` (+4/-0) |
+| HEAD | `fd5bae6` — refactor(sim): Vektor-Engine bekommt eine Lesegrenze statt einer Kopie |
+| Arbeitsbaum | 0 gestaged, 8 geändert, 3 neu |
+| Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `9dc37f6` fix(ci): E2E-Lane-Vertrag aus dem frischen Checkout laden |
-| Letzter Push | ✅ origin/main |
-| LOC-Hotspots | `src/persistence/storage.ts` 184/200 (92 %)<br>`src/simulation/plantSystem.ts` 261/300 (87 %)<br>`src/simulation/enemySystem.ts` 256/300 (85 %)<br>`src/meta/run.ts` 159/200 (80 %)<br>`src/components/GameView.tsx` 315/400 (79 %) |
+| Letzter Shinon-Commit | `fd5bae6` refactor(sim): Vektor-Engine bekommt eine Lesegrenze statt einer Kopie |
+| Letzter Push | noch keiner |
+| LOC-Hotspots | `src/persistence/storage.ts` 184/200 (92 %)<br>`src/simulation/plantSystem.ts` 261/300 (87 %)<br>`src/simulation/enemySystem.ts` 256/300 (85 %)<br>`src/meta/run.ts` 159/200 (80 %)<br>`src/components/GameView.tsx` 313/400 (78 %) |
 <!-- SHINON:STATUS:END -->
 ->

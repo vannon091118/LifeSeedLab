@@ -1,0 +1,38 @@
+{
+  "skill_name": "lifeseedlab-commit-slicer",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Der Worktree enthält einen großen Vector- und UI-Fix: mehrere Dateien in simulation, render, components, docs und CHANGELOG. Der User sagt: 'Mach daraus bitte saubere Commit-Slices, aber fasse noch nichts an.' Der Plan muss den Ownership-Zusammenhang, die Reihenfolge, die 25-Dateien-Grenze und die passenden Tests nennen.",
+      "expected_output": "Ein read-only Commit-Slice-Plan auf Deutsch mit maximal 25 Dateien pro Slice, Abhängigkeiten, Owner, Tests, Dokumentation und Changelog-Zuordnung; keine Git-Schreiboperation.",
+      "expectations": [
+        "Gibt die Abschnitte Ausgangslage, Blocker, Slices, Reihenfolge und Abschluss-Check aus.",
+        "Beachtet die 25-Dateien-Grenze und trennt Gameplay, Präsentation und Doku nach ihrem Vertrag.",
+        "Nennt Owner, Tests, Changelog und dass keine Git-Schreiboperation ausgeführt wurde."
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Bei der Analyse zeigt sich: persistence/runSave.ts und meta/economy.ts sind staged, ein neuer regressionstest ist untracked, und eine alte UI-Änderung liegt unstaged vor. Der User fragt nach dem Commit-Text. Der Skill soll die Inkonsistenz stoppen, aber trotzdem einen reparierbaren Slice-Plan liefern.",
+      "expected_output": "Die staged/unstaged/untracked-Lücke wird als Blocker markiert; kein Commit wird als kohärent behauptet. Der Plan trennt Persistenz/Meta, Test und UI sinnvoll und liefert nur einen unverbindlichen Committext-Entwurf.",
+      "expectations": [
+        "Markiert die staged/unstaged/untracked-Lücke ausdrücklich als Blocker.",
+        "Behauptet keinen kohärenten Commit und führt keinen Git-Schreibbefehl aus.",
+        "Trennt Persistenz/Meta, Regressionstest und UI in nachvollziehbare Slices und liefert einen Entwurf, keinen Commit."
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Eine neue Datei wurde hinzugefügt und eine bestehende Dokumentdatei verschoben. Der User sagt: 'Prüfe, ob die Doku und der Index für den nächsten Commit stimmen.' Der Skill soll keine Produktänderung erfinden und insbesondere die generierte Index-Wahrheit nicht mit dem Feature vermischen.",
+      "expected_output": "Ein separater Index-/Doku-Slice mit Track-Status, Index-Build/Check, Linkprüfung und Abhängigkeit zum Feature; klare Aussage, dass ohne tatsächlichen Diff keine Datei-Änderung behauptet wird.",
+      "expectations": [
+        "Trennt Index-/Doku-Wahrheit vom Produktfeature.",
+        "Prüft Track-Status, Index-Build/Check und Doku-Linkprüfung als Übergabepunkte.",
+        "Erfindet keinen tatsächlichen Diff und behauptet keine ausgeführte Änderung."
+      ],
+      "files": []
+    }
+  ]
+}

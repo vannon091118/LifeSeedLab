@@ -12,19 +12,20 @@ entscheidet und führt aus.
 
 ```
 Agent arbeitet
-  → ShinonStarter  liest den realen Projektstatus, aktualisiert die README, startet das Preflight-Gate
-  → ShinonGate     lädt die Prüfklassen, sammelt Befunde, entscheidet (offen / geschlossen)
+  → ShinonStarter  liest den realen Projektstatus und aktualisiert die README
+  → Staging         `finish --all` committet erst danach den vollständigen Zielzustand (`git add -A`)
+  → ShinonGate      prüft den tatsächlichen Index (Pre-Commit) und entscheidet (offen / geschlossen)
   → ShinonCommitKomponist  liest commit_msg.txt und führt `git commit -F -` mit genau diesem Inhalt aus
   → ShinonPushExecutor     prüft Vorbedingungen und Authentifizierung, pusht den Branch
 ```
 
-Reihenfolge ist bindend: **ohne grünes Gate kein Commit, ohne Commit kein Push.**
+Reihenfolge ist bindend: **erst stagen, dann das Gate auf den tatsächlichen Index anwenden; ohne grünes Gate kein Commit, ohne Commit kein Push.** `--dry-run` ist für `prepare`, `gate`, `commit`, `push` und `finish` read-only und verändert weder README noch State; die schreibenden Befehle `init`, `install-hooks` und `enforce <modus>` lehnen den Probelauf fail-closed ab.
 
 ## Module
 
 | Modul | Verantwortung |
 |---|---|
-| `tools/shinon/cli.ts` | Einziger Einstieg (alle Stufen, `--json`, `--quiet`, `--dry-run`) |
+| `tools/shinon/hook-entry.mjs` | Einziger ausführbarer Einstieg (lokal registrierter TypeScript-Loader; alle Stufen, `--json`, `--quiet`, `--dry-run`) |
 | `tools/shinon/config.ts` | Konfiguration + Defaults (LifeSeedLab-Profil), Override über `shinon.config.json` |
 | `tools/shinon/git-helfer.ts` | ShinonGitHelfer: Git **und** `gh` — Status, Init, Remote, Auth, Commit, Push |
 | `tools/shinon/checks/` | Spezialisierte Prüfklassen (Nachricht, LOC-Caps, Constraints, Typecheck, Tests, Build) |
@@ -40,15 +41,15 @@ Reihenfolge ist bindend: **ohne grünes Gate kein Commit, ohne Commit kein Push.
 ## Befehle
 
 ```bash
-node tools/shinon/cli.ts status         # nur lesen: Branch, HEAD, Arbeitsbaum, LOC-Hotspots
-node tools/shinon/cli.ts prepare        # Status + README aktualisieren + Gate (preflight)
-node tools/shinon/cli.ts gate           # nur prüfen (--phase=pre-commit, --only=<ids>, --json)
-node tools/shinon/cli.ts commit         # Komponist: commit_msg.txt → git commit -F -
-node tools/shinon/cli.ts push           # Push-Executor (--dry-run möglich)
-node tools/shinon/cli.ts finish --all   # kompletter Ablauf inkl. Staging und Push
-node tools/shinon/cli.ts init --slug=owner/repo   # Einrichtung, ohne Push
-node tools/shinon/cli.ts install-hooks  # Hooks schreiben, core.hooksPath setzen
-node tools/shinon/cli.ts enforce        # Enforcement-Modus anzeigen / setzen (advisory|strict)
+node tools/shinon/hook-entry.mjs status         # nur lesen: Branch, HEAD, Arbeitsbaum, LOC-Hotspots
+node tools/shinon/hook-entry.mjs prepare        # Status + README aktualisieren + Gate (preflight)
+node tools/shinon/hook-entry.mjs gate           # nur prüfen (--phase=pre-commit, --only=<ids>, --json)
+node tools/shinon/hook-entry.mjs commit         # Komponist: commit_msg.txt → git commit -F -
+node tools/shinon/hook-entry.mjs push           # Push-Executor (--dry-run read-only)
+node tools/shinon/hook-entry.mjs finish --all   # kompletter Ablauf inkl. Staging und Push
+node tools/shinon/hook-entry.mjs init --slug=owner/repo   # Einrichtung, ohne Push
+node tools/shinon/hook-entry.mjs install-hooks  # Hooks schreiben, core.hooksPath setzen
+node tools/shinon/hook-entry.mjs enforce        # Enforcement-Modus anzeigen / setzen (advisory|strict)
 ```
 
 ## Hooks
@@ -60,7 +61,7 @@ auf:
 |---|---|
 | `pre-commit` | Gate-Stufe (Nachricht, Modulgrenzen, Constraints, Typecheck, Tests) |
 | `commit-msg` | dieselbe Nachrichtenregel, die der Komponist anwendet |
-| `post-commit` | Push-Stufe — automatisch, abschaltbar über `push.autoAfterCommit` |
+| `post-commit` | Push-Stufe für normale Git-Commits — automatisch, abschaltbar über `push.autoAfterCommit`; `finish` unterdrückt den Hook, damit die Pipeline genau einmal pusht |
 
 ## Konfiguration
 
@@ -94,9 +95,9 @@ zweiter Weg am Gate vorbei. Weil die Entscheidung in `shinon.config.json` im Rep
 sie für die CLI **und** für die Hooks — und bleibt es auch nach einem frischen Clone.
 
 ```bash
-node tools/shinon/cli.ts enforce            # aktuellen Modus + Quelle anzeigen
-node tools/shinon/cli.ts enforce strict     # Enforcement aktivieren (schreibt shinon.config.json)
-node tools/shinon/cli.ts enforce advisory   # zurück auf advisory
+node tools/shinon/hook-entry.mjs enforce            # aktuellen Modus + Quelle anzeigen
+node tools/shinon/hook-entry.mjs enforce strict     # Enforcement aktivieren (schreibt shinon.config.json)
+node tools/shinon/hook-entry.mjs enforce advisory   # zurück auf advisory
 ```
 
 Die Blockier-Regel lebt an **einer** Stelle (`checks/check.ts`: `isBlocking`) und wird von Fail-Fast,
@@ -114,7 +115,7 @@ in `checks.test.ts` als exakte Liste gelockt, damit sie nicht still wächst.
 ```bash
 node scripts/quality-register.mjs           # ID-Tabelle des Registers aus den Contracts schreiben
 node scripts/quality-register.mjs --check   # nur prüfen (Exit 1 bei Abweichung) — läuft in CI
-node scripts/test-lane.mjs                  # Commit-Lane: nur berührte Tests (Ziel ≤ 10 s)
+node scripts/test-lane.mjs                  # Commit-Lane: berührte Projekt- und Tooling-Tests (Ziel ≤ 10 s)
 node scripts/test-lane.mjs --full           # Sprintende: komplette Suite
 ```
 
@@ -182,5 +183,6 @@ node node_modules/vitest/vitest.mjs run --config tools/vitest.config.ts   # Gate
 ```
 
 Die Projekt-Suite (`node node_modules/vitest/vitest.mjs run`) bleibt unberührt und prüft weiterhin
-ausschließlich `src/**`. Kein `npx`/`npm run` — das npm-Startup kostet auf dieser Maschine ~3 s pro
-Kommando (siehe AGENTS.md, Verifizierung).
+ausschließlich `src/**`; die getrennte Tooling-Suite läuft mit `tools/vitest.config.ts`. Die Commit-Lane
+wählt für Projekt- und Tooling-Änderungen automatisch die passende Konfiguration. Kein `npx`/`npm run` —
+das npm-Startup kostet auf dieser Maschine ~3 s pro Kommando (siehe AGENTS.md, Verifizierung).

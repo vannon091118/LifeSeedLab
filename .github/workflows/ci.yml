@@ -1,6 +1,6 @@
 name: CI
 
-# Die lokale Wahrheit bleibt Shinon (tools/shinon/cli.ts): sein Gate umfasst Typecheck,
+# Die lokale Wahrheit bleibt Shinon (tools/shinon/hook-entry.mjs): sein Gate umfasst Typecheck,
 # Tests, LOC-Caps, Architektur-Constraints, Changelog-Pflicht und Doku-Links, und er
 # entscheidet über Commit und Push. Diese Action beweist nur, dass ein FRISCHER Klon
 # dieselben Kernprüfungen besteht — das war vor dem Versionieren des Tooling nicht

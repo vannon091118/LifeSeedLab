@@ -33,11 +33,11 @@ bun.lock
 commit_msg.txt
 
 # Agent / Dev tooling — nicht ins Repo (lokal nur)
-# Ausnahme: Onboarding-Skill bleibt bewusst oeffentlich
+# Ausnahme: projektspezifische Skills bleiben bewusst öffentlich
 .agents/**
 !.agents/skills/
-!.agents/skills/lifeseedlab-onboarding/
-!.agents/skills/lifeseedlab-onboarding/**
+!.agents/skills/lifeseedlab-commit-slicer/
+!.agents/skills/lifeseedlab-commit-slicer/**
 .claude/
 .freebuff/
 memory/
@@ -92,3 +92,10 @@ shinon-spawner-skill*/
 shinon-spawner-skill-workspace/
 LifeSeedLab/
 Falsify_Me/
+
+# Persoenliche Scratch-Dokumente des Eigentuemers (LibreOffice/OpenDocument, Notizen).
+# Sie liegen im Repo-Root, sind KEIN Projektinhalt und tragen im Zweifel Schluessel/Kontakte —
+# deshalb global ignoriert, nicht pro Datei freigeschaltet.
+*.odt
+*.odp
+*.ods
