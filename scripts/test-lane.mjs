@@ -12,12 +12,16 @@
 
 import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { fullBudgetVerdict, ladePrevState, MS_PER_TEST_BUDGET, TEST_BUDGET } from './test-lane-verdict.mjs';
+import { fullBudgetVerdict, ladePrevState, currentLoadBand, MS_PER_TEST_BUDGET, STATE_VERSION, TEST_BUDGET } from './test-lane-verdict.mjs';
 
 // (Die alte Wanduhr-Konstante BUDGET_MS ist gestrichen — die Schwelle liegt deterministisch
 // in test-lane-verdict.mjs: ms/Test-Norm, Wiederholungs-Marker, Struktur-Budget.)
 const full = process.argv.includes('--full');
 const VITEST = 'node_modules/vitest/vitest.mjs';
+
+function gitRevision() {
+  return gitLines(['rev-parse', 'HEAD'])[0] ?? null;
+}
 
 function gitLines(args) {
   try {
@@ -28,9 +32,10 @@ function gitLines(args) {
   }
 }
 
-function runVitest(args) {
+function runVitest(args, config) {
   const started = Date.now();
-  const r = spawnSync(process.execPath, [VITEST, ...args], { encoding: 'utf8' });
+  const commandArgs = config === undefined ? args : ['--config', config, ...args];
+  const r = spawnSync(process.execPath, [VITEST, ...commandArgs], { encoding: 'utf8' });
   const out = `${r.stdout ?? ''}${r.stderr ?? ''}`;
   process.stdout.write(out);
   return { code: r.status ?? 1, ms: Date.now() - started, out };
@@ -60,6 +65,42 @@ function testsRun(out) {
   return m ? Number(m[1] ?? m[2]) : -1;
 }
 
+function splitChangedFiles(files) {
+  return {
+    project: files.filter((file) => !file.startsWith('tools/')),
+    tooling: files.filter((file) => file.startsWith('tools/')).map((file) => file.slice('tools/'.length)),
+  };
+}
+
+function runRelatedLane(label, files, config) {
+  const related = runVitest(['related', ...files, '--run', '--coverage=false'], config);
+  const ran = filesRun(related.out);
+  // Vitest liefert bei "keine related Tests" Exit 1. Das ist eine Eskalation, kein roter
+  // Testlauf; ein echter Testfehler bleibt dagegen bei ran !== 0 rot.
+  if (related.code !== 0 && ran !== 0) {
+    return { code: related.code, ms: related.ms, tests: testsRun(related.out), escalated: false };
+  }
+  if (ran === 0) {
+    process.stdout.write(`[test-lane] kein Test hängt an ${label} — Eskalation auf die Voll-Suite\n`);
+    const full = runVitest(['run'], config);
+    return { code: full.code, ms: full.ms, tests: testsRun(full.out), escalated: true };
+  }
+  return { code: 0, ms: related.ms, tests: testsRun(related.out), escalated: false };
+}
+
+function combineLaneResults(results) {
+  const failure = results.find((result) => result.code !== 0);
+  const tests = results.every((result) => result.tests >= 0)
+    ? results.reduce((sum, result) => sum + result.tests, 0)
+    : -1;
+  return {
+    code: failure?.code ?? 0,
+    ms: results.reduce((sum, result) => sum + result.ms, 0),
+    tests,
+    escalated: results.some((result) => result.escalated),
+  };
+}
+
 const STATE_PATH = 'tools/.tmp/test-lane-state.json';
 
 function verdict(label, ms, tests = -1) {
@@ -67,15 +108,18 @@ function verdict(label, ms, tests = -1) {
   // Information, die Schwelle liegt auf ms/Test-Norm + Wiederholung + Suite-Größe.
   // Genau wie beim Alten gilt: Melden, nicht blockieren (Kalt-Cache blockiert nicht).
   const prevState = ladePrevState(STATE_PATH);
-  const v = fullBudgetVerdict({ ms, tests, prevState });
+  const revision = gitRevision();
+  const load = currentLoadBand();
+  const v = fullBudgetVerdict({ ms, tests, prevState, revision, load });
   const zeit = `${(ms / 1000).toFixed(1)} s`;
   const norm = v.perTest > 0 ? `, ${v.perTest.toFixed(1)} ms/Test (Norm ${MS_PER_TEST_BUDGET})` : '';
+  const lastInfo = v.load === 'quiet' ? '' : `, Lastband ${v.load}`;
   if (v.repeatOver) {
     process.stdout.write(`\n[test-lane] ${label} — ANHALTEND LANGSAM: ${zeit}${norm} — erneut über der ms/Test-Norm bei gleicher Suite (${tests}). Beleg sammeln, nicht ignorieren.\n`);
   } else if (v.timeOver) {
-    process.stdout.write(`\n[test-lane] ${label} — ${zeit}${norm} (über Norm — Information; unter Last ist das kein Befund)\n`);
+    process.stdout.write(`\n[test-lane] ${label} — ${zeit}${norm}${lastInfo} (über Norm — Information; unter Last ist das kein Befund)\n`);
   } else {
-    process.stdout.write(`\n[test-lane] ${label} — ${zeit}${norm}\n`);
+    process.stdout.write(`\n[test-lane] ${label} — ${zeit}${norm}${lastInfo}\n`);
   }
   if (v.sizeOver) {
     process.stdout.write(`[test-lane] STRUKTUR-BEFUND: ${tests} Tests > Budget ${TEST_BUDGET} — Suite wächst statt reift (maschinenunabhängig).\n`);
@@ -83,7 +127,7 @@ function verdict(label, ms, tests = -1) {
   // Vorher-Befund persistieren (tools/.tmp ist gitignored) für den Wiederholungs-Marker.
   try {
     mkdirSync('tools/.tmp', { recursive: true });
-    writeFileSync(STATE_PATH, JSON.stringify({ over: v.timeOver, tests }));
+    writeFileSync(STATE_PATH, JSON.stringify({ version: STATE_VERSION, over: v.timeOver, tests, revision, load }));
   } catch { /* Best-Effort: ohne State fällt der Marker auf null zurück */ }
 }
 
@@ -91,29 +135,27 @@ function verdict(label, ms, tests = -1) {
 const changed = [
   ...gitLines(['diff', '--name-only', 'HEAD']),
   ...gitLines(['ls-files', '--others', '--exclude-standard']),
-].filter((f) => /\.(ts|tsx|mts|cts)$/.test(f));
+].filter((file) => /\.(ts|tsx|mts|cts|mjs)$/.test(file) || file.startsWith('tools/hooks/'));
 
 if (full) {
-  const r = runVitest(['run']);
-  verdict('VOLL (Sprintende)', r.ms, testsRun(r.out));
-  finish(r.code);
+  const result = combineLaneResults([
+    { ...runVitest(['run']), escalated: false },
+    { ...runVitest(['run'], 'tools/vitest.config.ts'), escalated: false },
+  ]);
+  verdict('VOLL (Sprintende)', result.ms, result.tests);
+  finish(result.code);
 } else if (changed.length === 0) {
-  process.stdout.write('[test-lane] keine TS/TSX-Änderung gegenüber HEAD — kein Testlauf nötig\n');
+  process.stdout.write('[test-lane] keine TS/TSX/MJS-Änderung gegenüber HEAD — kein Testlauf nötig\n');
   finish(0);
 } else {
-  const related = runVitest(['related', ...changed, '--run', '--coverage=false']);
-  if (related.code !== 0) {
-    verdict(`IMPACTED (${changed.length} berührte Dateien)`, related.ms);
-    finish(related.code);
-  } else {
-    const ran = filesRun(related.out);
-    if (ran === 0) {
-      process.stdout.write('[test-lane] kein Test hängt an der Änderung — Eskalation auf die Voll-Suite\n');
-      const r = runVitest(['run']);
-      verdict('VOLL (Eskalation: kein zugeordneter Test)', r.ms, testsRun(r.out));
-      finish(r.code);
-    } else {
-      verdict(`IMPACTED (${changed.length} berührte Dateien)`, related.ms);
-    }
-  }
+  const lanes = splitChangedFiles(changed);
+  const results = [];
+  if (lanes.project.length > 0) results.push(runRelatedLane('Projekt', lanes.project));
+  if (lanes.tooling.length > 0) results.push(runRelatedLane('Tooling', lanes.tooling, 'tools/vitest.config.ts'));
+  const result = combineLaneResults(results);
+  const label = result.escalated
+    ? 'VOLL (Eskalation: kein zugeordneter Test)'
+    : `IMPACTED (${changed.length} berührte Dateien)`;
+  verdict(label, result.ms, result.tests);
+  finish(result.code);
 }
