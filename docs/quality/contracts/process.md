@@ -286,3 +286,69 @@ als erfolgreich gemeldet wird, obwohl der Bit fehlt.
 Beide Testhaelften gehoeren zusammen: der `100755`-Test pinnt den Erfolgsfall unter
 `core.fileMode=false` (der Windows-Realfall, nicht der Zufall einer kooperativen Platte), der
 Fail-closed-Test pinnt den Fehlerfall ueber ein `markExecutable`, das `false` liefert.
+### B39 Der Gate-Zwang ist eine Behauptung, bis der Hook haengt (Review 26.09.2026)
+
+Zwei Befunde aus derselben Ursache: das Gate wird nicht durch **Entscheidung** erzwungen,
+sondern durch einen `pre-commit`-Hook — und dieser Hook haengt in keiner frischen Klonkopie.
+
+**B39.1 Regel 0 beschreibt einen Bump, den es nicht gibt.** `AGENTS.md` Regel 0 sagt, der
+pre-commit-Hook hebe die Patch-Version an (`package.json`/`src/version.ts` bleiben absichtlich
++1 uncommitted). `hookScripts()` (`tools/shinon/hooks.ts:29-31`) ruft ausschliesslich
+`hook-entry.mjs gate` auf — eine Zeile, kein Versionsschritt. Eine Suche ueber `tools/` und
+`scripts/` nach jeder Bump-Form (`patchVersion|raiseVersion|incrementVersion|bumpVersion|version\+\+`)
+liefert **0 Treffer**. Die Version steht seit `d924a17` auf `0.0.96`; `package.json` wurde
+seit drei Commits nicht angefasst. Regel 0 beschreibt damit einen Zustand, den es nicht gibt,
+und `package.json`/`src/version.ts` sind seit diesem Commit **nicht** die Versions-Wahrheit
+des laufenden Commits.
+
+**B39.2 `VersionFilesCheck` erzwingt die Umkehrung und meldet Erfolg ohne Bump.** Der Check
+(`checks/version-files-check.ts:33-40`) gibt `VRF000` „Vorsprung intakt" aus, **sobald die
+Dateien nicht im Index stehen** — unabhaengig davon, ob je ein Bump stattgefunden hat. Die
+Meldung behauptet also einen Vorsprung, den sie nie geprueft hat: `VRF000` feuert auch dann,
+wenn `src/version.ts` exakt `0.0.96` sagt. `VRF001` (Datei steht im Index) blockiert jede
+Bump-Aenderung, die Regel 0 verlangt. Der Kommentar nennt `--allow-version-files` als
+Ausnahme; die Option existiert nicht (nur Kommentar). Wer Regel 0 heute *befolgen* will, bekommt
+vom Gate ein `VRF001` und muss den Bump liegen lassen.
+
+**Beleg (B39.1 + B39.2).** `git ls-remote`-Paritaet: `origin/main` == `419ee03` == HEAD.
+`rg`-Suche: 0 Bump-Treffer. `VRF000`-Pfad: `hits.length === 0` genuegt fuer „Vorsprung intakt".
+
+**Regel:** eine Doku-Regel und eine Gate-Regel duerfen sich nicht widersprechen. Wer eine
+automatische Aenderung beschreibt, gehoert dazu **entweder** in den Hook **oder** in den
+Check — nicht in beide mit umgekehrter Vorzeichenrichtung. Bis zur Entscheidung gilt:
+`0.0.96` ist **nicht** als Bump fuer `419ee03` zu behandeln, und ein `VRF000` ist kein Beleg
+fuer einen Vorsprung, sondern nur die Abwesenheit eines Konflikts. Entscheidung Eigentuemer
+noetig: (a) Regel 0 korrigieren, sodass Versionsdateien **im** Index bleiben und `VRF001`
+entfaellt, oder (b) den Bump wiederherstellen (Commit-Hook plus `VersionFilesCheck`, der ihn
+verifiziert statt behauptet). Regel 2 zwingt: eine Wahrheit ueber die Versionsnummer, nicht
+eine Doku-Wahrheit und eine Gate-Wahrheit mit umgekehrter Vorzeichenrichtung.
+
+### B39.3 `core.hooksPath` ist nicht gesetzt — der Gate-Zwang ist lokal inaktiv (Review 26.09.2026)
+
+`installHooks` setzt `core.hooksPath` auf `tools/hooks` (`hooks.ts:80-83`). Der Pfad ist im
+Arbeitsverzeichnis **nicht** gesetzt (`git config --get core.hooksPath` → leer, Exit 1) und
+`.git/hooks` enthaelt ausschliesslich `.sample`-Dateien. Ein einfaches `git commit` umgeht
+das Gate damit **vollstaendig** — es laeuft kein Modulgrenzen-Check, kein Typecheck, kein
+`CHANGELOG`-Nachweis, keine Nachrichtenregel. B33.3 verlangt Verifikation ueber den Index,
+aber diese Verifikation schuetzt nur den Aufrufer von `installHooks`; sie stellt nicht sicher,
+dass der installierte Hook ueberhaupt haengt.
+
+**Beleg (gemessen, nicht geraten).** In einer Wegwerf-Klonkopie (`git clone --no-hardlinks`,
+`user.name`/`user.email` lokal gesetzt) wurde `probe.txt` committet. Ausgabe: exakt die
+drei Zeilen Standard-`git-commit` (`[main b6708b0] chore: bypass probe in clone`, 1 file
+changed, create mode 100644) — **kein** Gate-Trace, kein shinon, kein `VRF`, kein
+`CHANGELOG`-Hinweis, Exit 0. Der Klon ist danach geloescht.
+
+`installHooks` ist ausschliesslich ueber `init.ts:91-92` und den manuellen CLI-Befehl
+`install-hooks` (`cli.ts:241-242`) erreichbar; Starter und Pipeline rufen es nie auf. Die drei
+Hook-Dateien stehen korrekt als `100755` im Index (das ist der Gegenstand von B33.3 und
+bleibt richtig) — nur die **Verdrahtung** zum Git-Ereignis fehlt lokal.
+
+**Regel:** „Gate gruen" ist eine Eigenschaft des Commits, nicht des Werkzeugs. Vor jedem
+Abschluss ist `core.hooksPath` zu **pruefen** (`git config --get core.hooksPath`, erwartet
+`tools/hooks`), nicht aus demuccessful `install-hooks` frueherer Tage abzuleiten. Der
+Nachweis gehoert an den Commit-Pfad, nicht an eine einmalige Setup-Aktion: solange ein
+`git commit` ohne Gate durchlaeuft, ist `enforcement=strict` eine Behauptung. Empfohlene
+Umsetzung (Eigentuemer-Entscheidung): `init`/Pipeline setzt `core.hooksPath` und
+`install-hooks` prueft es nach dem Schreiben zurueck, damit derselbe fail-closed-Pfad wie
+in B33.3 auch hier gilt.
