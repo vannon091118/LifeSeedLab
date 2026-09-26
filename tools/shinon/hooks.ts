@@ -16,6 +16,33 @@ import type { ShinonGitHelfer } from './git-helfer.ts';
 export const HOOKS_RELATIVE_DIR = path.join('tools', 'hooks');
 export const HOOK_ENTRY_RELATIVE_PATH = path.join('tools', 'shinon', 'hook-entry.mjs');
 
+/**
+ * Die sechs installierten Hooks und was jeder davon schützt (sieben Hook-Punkte wurden gemessen,
+ * `post-rewrite` taucht unten nur als Ausschlussgrund auf).
+ *
+ * Gemessen an git 2.53.0.windows.4 mit echten Hook-Dateien (Wegwerf-Probe), nicht aus der
+ * Git-Doku abgeleitet — diese Tabelle ist der Grund, warum es sechs sind:
+ *
+ *   pre-commit         `git commit`           feuert bei merge/rebase NICHT
+ *   commit-msg         `git commit`, `merge`  feuert bei rebase NICHT; argc 1 (s. u.)
+ *   post-commit        nach `git commit`      —
+ *   pre-merge-commit   nur `git merge`        der Merge-Commit, mit Nachricht
+ *   pre-rebase         nur `git rebase`       1 Argument: Upstream; feuert VOR Rebase-Start,
+ *                                            also aus der aktuellen Worktree heraus — liegt
+ *                                            `tools/hooks/pre-rebase` dort nicht auf Platte
+ *                                            (nur im Zielbaum committet), springt Git den
+ *                                            Hook still über. Gemessen, kein Git-Handbuch.
+ *   post-rewrite       `merge`, `rebase`      NICHT installiert: feuert nach dem Rebase,
+ *                                            also zu spät für ein Gate (nachgemessen)
+ *   pre-push           `git push`             argc 2: <remote> <url>
+ *
+ * `commit-msg` unterscheidet Merge und Commit über `$1`, die Nachrichtendatei — NICHT über `$2`.
+ * Die Git-Doku nennt `$2` als Quelltyp (`message`, `template`, `merge`, …); gemessen an
+ * git 2.53.0.windows.4 kommt er aber nicht an: Merge, Squash und normaler Commit rufen den Hook
+ * alle mit `argc=1` auf. Ein Aufruf auf `$2` wäre damit still falsch — er schickt jeden Merge an
+ * die 200-Wort-Commitregel (MSG007) und blockiert ihn. Gemessen und verwendet ist stattdessen:
+ * `$1` ist `.git/MERGE_MSG` bei Merge und Squash, `.git/COMMIT_EDITMSG` sonst.
+ */
 export function hookScripts(): Record<string, string> {
   const header = '#!/bin/sh\n# Shinon — erzeugt von `shinon install-hooks`. Nicht manuell pflegen.\n';
   const root = 'SHINON_ROOT="$(git rev-parse --show-toplevel)"\n';
@@ -26,10 +53,36 @@ export function hookScripts(): Record<string, string> {
       `# Gate-Stufe: Modulgrenzen, Constraints, Typecheck, Tests\nexec node "$SHINON_ROOT/${entry}" gate --phase=pre-commit --quiet\n`,
     'commit-msg':
       `${header}${root}` +
-      `# Nachrichtenregel: genau diese Nachricht wird der Komponist commiten\nexec node "$SHINON_ROOT/${entry}" message --file="$1" --quiet\n`,
+      `# Nachrichtenregel. Die Unterscheidung Merge/Commit erfolgt ueber $1 (die Nachrichten-\n` +
+      `# datei), NICHT ueber $2: gemessen an git 2.53.0.windows.4 uebergibt Git dem commit-msg\n` +
+      `# bei Merge, Squash und normalem Commit IMMER genau ein Argument — $2 kommt nicht an.\n` +
+      `# Ein Aufruf auf $2 waere still falsch und wuerde jeden Merge an die 200-Wort-Commitregel\n` +
+      `# schicken, also jeden Merge blockieren. $1 ist .git/MERGE_MSG bei Merge und Squash,\n` +
+      `# .git/COMMIT_EDITMSG sonst — beides gemessen, nicht angenommen.\n` +
+      `case "$1" in\n` +
+      `  */MERGE_MSG) exec node "$SHINON_ROOT/${entry}" merge-message --file="$1" --quiet ;;\n` +
+      `  *) exec node "$SHINON_ROOT/${entry}" message --file="$1" --quiet ;;\n` +
+      `esac\n`,
     'post-commit':
       `${header}${root}` +
       `# Push-Stufe: automatisch nach grünem Gate (push.autoAfterCommit)\nexec node "$SHINON_ROOT/${entry}" push --auto --quiet\n`,
+    'pre-push':
+      `${header}${root}` +
+      `# Letzte Instanz vor dem Verlassen des Rechners: der Code ist danach öffentlich lesbar.\n` +
+      `# $1 = Remote, $2 = URL; die Ref-Liste kommt auf stdin und wird nicht ausgewertet —\n` +
+      `# das Gate prüft den Zustand des Branches, nicht die einzelne Ref.\n` +
+      `exec node "$SHINON_ROOT/${entry}" gate --phase=pre-push --quiet\n`,
+    'pre-merge-commit':
+      `${header}${root}` +
+      `# Merge-Stufe. $1 ist die Datei, aus der Git den Merge-Titel liest — der Pflicht-Body\n` +
+      `# (MSG010) wird genau hier geprüft, weil dies der letzte Moment vor dem Merge-Commit ist.\n` +
+      `exec node "$SHINON_ROOT/${entry}" gate --phase=pre-merge --message-file="$1" --quiet\n`,
+    'pre-rebase':
+      `${header}${root}` +
+      `# Rebase-Vorbereitung. $1 ist der Upstream. ` +
+      `git rebase feuert weder pre-commit noch commit-msg —\n` +
+      `# ohne diesen Hook liefe die umgeschriebene Kette durch kein Gate.\n` +
+      `exec node "$SHINON_ROOT/${entry}" gate --phase=pre-rebase --quiet\n`,
   };
 }
 

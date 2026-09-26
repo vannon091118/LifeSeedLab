@@ -72,6 +72,15 @@ interface GateChecks {
    * ein Fehler (Befund 21.09.2026, Commit `d924a17` hatte beide im Index).
    */
   versionFiles: boolean;
+  /**
+   * Pflicht-Body der Merge-/Squash-Nachricht (MSG010).
+   *
+   * Default AN, obwohl die anderen indexgebundenen Checks default aus sind — siehe
+   * `merge-message-check.ts`: Gits Einzeiler-Merge besteht keine Nachrichtenregel, und genau
+   * deshalb wird der Body hier zur Pflicht. Ein ausgeschalteter Check, dessen Wegfall genau die
+   * Lücke schafft, die er schließen soll, wäre eine Regel mit Klappe im Rücken.
+   */
+  mergeMessage: boolean;
 }
 
 /**
@@ -129,6 +138,45 @@ interface PushConfig {
   requireAuth: boolean;
 }
 
+/**
+ * Workflow-Konfiguration für die Aktionen, die früher am Gate vorbeikamen: Merge, Rebase,
+ * Push und Pull-Request. Jede Stufe hat ihr eigenes Gate (Phase aus `ShinonPhase`), damit
+ * „commit gate" für alle vier dieselbe Regel bedeutet und nicht viermal neu erfunden wird.
+ */
+interface WorkflowConfig {
+  /** `git merge` nur nach grüner Merge-Nachricht (inkl. Pflicht-Body) zulassen. */
+  merge: {
+    enabled: boolean;
+    /** true ⇒ `git merge --no-commit` + Komponist, damit Shinon die Nachricht besitzt. */
+    composed: boolean;
+    /** Branch, gegen den gemergt wird, wenn kein Ziel genannt ist. */
+    base: string;
+  };
+  /** `git rebase` nur nach grüner Pre-Rebase-Prüfung (Konfliktfreiheit) zulassen. */
+  rebase: {
+    enabled: boolean;
+    /** true ⇒ der rebase läuft über `git rebase --exec` mit Gate je Commit. */
+    perCommit: boolean;
+  };
+  /** Gate vor `git push` — der Push ist die erste Stelle, an der der Code den Rechner verlässt. */
+  push: {
+    /** true ⇒ `pre-push` installiert den Gate-Lauf vor dem eigentlichen Push. */
+    gate: boolean;
+    /** `gh`-Authentifizierung vor dem Push erzwingen. */
+    requireAuth: boolean;
+  };
+  /** Pull-Request: Erstellung und Merge laufen beide durchs Gate. */
+  pr: {
+    enabled: boolean;
+    /** Pflicht-Body-Kopfzeile für den PR — ohne sie ist die Zusammenfassung wertlos. */
+    bodyTemplate: string;
+    /** true ⇒ `gh pr merge` erst nach grüner Pre-Push-Stufe auf dem Ziel-Branch. */
+    requireGreenBranch: boolean;
+    /** Standard-Merge-Methode, wenn `--method` nicht gesetzt ist. */
+    defaultMethod: string;
+  };
+}
+
 interface StarterConfig {
   readme: string;
   /** Überschrift, falls die Marker noch nicht in der README stehen (Anhänge-Fall). */
@@ -144,6 +192,7 @@ export interface ShinonConfig {
   commit: CommitConfig;
   gate: GateConfig;
   push: PushConfig;
+  workflow: WorkflowConfig;
   starter: StarterConfig;
 }
 
@@ -175,6 +224,7 @@ export function defaultConfig(root: string): ShinonConfig {
         docLinks: true,
         commitSize: true,
         versionFiles: true,
+        mergeMessage: true,
       },
       failFast: true,
       enforcement: 'strict',
@@ -273,6 +323,17 @@ export function defaultConfig(root: string): ShinonConfig {
       autoAfterCommit: true,
       setUpstream: true,
       requireAuth: true,
+    },
+    workflow: {
+      merge: { enabled: true, composed: true, base: 'main' },
+      rebase: { enabled: true, perCommit: false },
+      push: { gate: true, requireAuth: true },
+      pr: {
+        enabled: true,
+        bodyTemplate: '## Was\n\n## Warum\n\n## Verifikation\n\n## Grenzen',
+        requireGreenBranch: true,
+        defaultMethod: 'squash',
+      },
     },
     starter: {
       readme: 'README.md',

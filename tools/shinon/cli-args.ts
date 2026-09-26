@@ -7,16 +7,18 @@ export interface ParsedArgs {
 
 const VALUE_OPTIONS = new Set([
   'phase', 'only', 'message-file', 'message', 'file', 'url', 'slug', 'description', 'branch', 'remote', 'root',
+  'upstream', 'base', 'title', 'body', 'method', 'subcommand', 'pr',
 ]);
 const BOOLEAN_OPTIONS = new Set([
   'gate', 'all', 'no-prepare', 'no-push', 'dry-run', 'auto', 'quiet', 'json', 'public', 'write-config', 'self-test', 'no-hooks',
+  'squash', 'abort', 'no-gate', 'draft', 'delete-branch',
 ]);
 const KNOWN_OPTIONS = new Set([...VALUE_OPTIONS, ...BOOLEAN_OPTIONS]);
 const DRY_RUN_COMMANDS = new Set([
-  'help', 'status', 'prepare', 'gate', 'commit', 'push', 'finish', 'message', 'checks',
+  'help', 'status', 'prepare', 'gate', 'commit', 'push', 'finish', 'message', 'merge-message', 'merge', 'rebase', 'pr', 'checks',
 ]);
-const CHECK_SELECTION_COMMANDS = new Set(['prepare', 'gate', 'finish']);
-const POSITIONAL_LIMITS: Record<string, number> = { message: 1, enforce: 1 };
+const CHECK_SELECTION_COMMANDS = new Set(['prepare', 'gate', 'finish', 'merge', 'rebase']);
+const POSITIONAL_LIMITS: Record<string, number> = { message: 1, 'merge-message': 1, enforce: 1, pr: 1 };
 
 function parseFlags(argv: string[]): { flags: Map<string, string | true>; positional: string[]; first: string | null } {
   const flags = new Map<string, string | true>();

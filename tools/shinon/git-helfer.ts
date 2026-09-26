@@ -344,6 +344,11 @@ export class ShinonGitHelfer {
     return this.github.createRepo(options);
   }
 
+  /** Der GitHub-Helfer selbst — Eigentümer aller `gh`-Aufrufe, an PrHelfer durchgereicht. */
+  ghHelfer(): GitHubHelfer {
+    return this.github;
+  }
+
   static slugFromRemote(url: string | null): string | null {
     return GitHubHelfer.slugFromRemote(url);
   }

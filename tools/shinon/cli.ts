@@ -13,6 +13,13 @@ import { ShinonPipeline, formatPipelineResult } from './pipeline.ts';
 import { ShinonInit, describeInitReport } from './init.ts';
 import { describeHookInstall, installHooks } from './hooks.ts';
 import { allowedForms, readMessage, runMessageSelfTest, validateMessage } from './checks/commit-message-check.ts';
+import {
+  MIN_MERGE_BODY_WORDS,
+  runMergeMessageSelfTest,
+  validateMergeMessage,
+} from './checks/merge-message-check.ts';
+import { MergeExecutor, formatWorkflowResult } from './merge-helfer.ts';
+import { PrHelfer, formatPrResult } from './pr-helfer.ts';
 import { isBlocking } from './checks/check.ts';
 import { has, parseCliArgs, text } from './cli-args.ts';
 import type { ShinonPhase } from './checks/check.ts';
@@ -36,7 +43,11 @@ Befehle
   commit          Komponist: commit_msg.txt prüfen und committen (einziger Commit-Pfad)
   push            Push-Executor: Pushen (Vorbedingungen + Auth-Prüfung)
   finish          Voller Ablauf: Vorbereitung → Gate → Commit → Push
+  merge           Merge gegen --branch mit Gate (Phase pre-merge), --abort nimmt zurück
+  rebase          Rebase auf --upstream mit Gate (Phase pre-rebase)
+  pr              Pull-Request: 'pr create' / 'pr merge' — beide mit Body- und Standprüfung
   message         Commit-Nachricht prüfen (--file, --message, stdin) oder --self-test
+  merge-message   Merge-Nachricht prüfen (Pflicht-Body MSG010) oder --self-test
   init            Repository, Remote, GitHub-Repository und Hooks einrichten (ohne Push)
   install-hooks   Hooks schreiben und core.hooksPath setzen
   checks          Registrierte Prüfklassen auflisten
@@ -44,11 +55,22 @@ Befehle
   help            Diese Hilfe
 
 Optionen
-  --phase=<preflight|pre-commit|pre-push>   Phase des Gate-Laufs (Default: preflight)
+  --phase=<preflight|pre-commit|pre-push|pre-merge|pre-rebase>   Phase des Gate-Laufs
   --only=<id,id>        Nur diese Prüfklassen ausführen
   --message-file=<pfad> Nachrichtendatei für Commit (Default aus der Konfiguration)
   --message=<text>      Nachricht direkt übergeben (nur CLI, nicht für Hooks)
   --file=<pfad>         Nachrichtendatei für 'message' (Hook-Aufruf)
+  --upstream=<name>     Rebase-Ziel (Default: workflow.merge.base)
+  --base=<name>         Ziel-Branch für 'merge' und 'pr create'
+  --title=<text>        PR-Titel
+  --body=<text>         PR-Body
+  --method=<merge|squash|rebase>  PR-Merge-Methode
+  --subcommand=<create|merge>     Aktion für 'pr' (Default: create)
+  --pr=<nummer>         PR-Nummer für 'pr merge'
+  --draft              PR als Draft anlegen
+  --delete-branch      Ziel-Branch nach 'pr merge' löschen
+  --abort              Laufenden Merge abbrechen ('merge --abort')
+  --no-gate            Gate überspringen (nur 'rebase'; nicht für Commit/Push)
   --gate                Vor dem Commit das Preflight-Gate ausführen
   --all                 Vor dem Commit alles stagen (git add -A)
   --no-prepare          Ohne Starter/Gate-Preflight arbeiten
@@ -155,6 +177,90 @@ async function main(): Promise<number> {
       process.stdout.write(
         `${failed.map((item) => `${item.severity === 'error' ? '❌' : '⚠️'} ${item.code}: ${item.message}`).join('\n')}\n` +
           `${enforcementNote}Erlaubt ist: ${allowedForms(config)}\n`,
+      );
+      return 1;
+    }
+
+    case 'merge': {
+      const result = await new MergeExecutor(git, config, state).merge({
+        branch: text(args, 'branch') ?? text(args, 'base'),
+        message: text(args, 'message'),
+        messageFile: text(args, 'message-file'),
+        squash: has(args, 'squash'),
+        abort: has(args, 'abort'),
+        dryRun,
+        quiet,
+        only,
+      });
+      process.stdout.write(`${json ? JSON.stringify(result, null, 2) : formatWorkflowResult(result, { quiet })}\n`);
+      return result.ok ? 0 : 1;
+    }
+
+    case 'rebase': {
+      const result = await new MergeExecutor(git, config, state).rebase({
+        upstream: text(args, 'upstream'),
+        message: text(args, 'message'),
+        noGate: has(args, 'no-gate'),
+        dryRun,
+        quiet,
+        only,
+      });
+      process.stdout.write(`${json ? JSON.stringify(result, null, 2) : formatWorkflowResult(result, { quiet })}\n`);
+      return result.ok ? 0 : 1;
+    }
+
+    case 'pr': {
+      const pr = new PrHelfer(git, config, git.ghHelfer());
+      const sub = text(args, 'subcommand') ?? args.positional[0] ?? 'create';
+      if (sub === 'create') {
+        const created = await pr.create({
+          base: text(args, 'base'),
+          title: text(args, 'title'),
+          body: text(args, 'body'),
+          draft: has(args, 'draft'),
+          dryRun,
+          quiet,
+        });
+        process.stdout.write(`${json ? JSON.stringify(created, null, 2) : formatPrResult(created)}\n`);
+        return created.ok ? 0 : 1;
+      }
+      if (sub === 'merge') {
+        const merged = await pr.merge({
+          number: text(args, 'pr'),
+          method: text(args, 'method'),
+          deleteBranch: has(args, 'delete-branch'),
+          dryRun,
+          quiet,
+        });
+        process.stdout.write(`${json ? JSON.stringify(merged, null, 2) : formatPrResult(merged)}\n`);
+        return merged.ok ? 0 : 1;
+      }
+      process.stdout.write(`Unbekannte PR-Aktion: ${sub} — erlaubt: create | merge\n`);
+      return 2;
+    }
+
+    case 'merge-message': {
+      if (has(args, 'self-test')) {
+        const result = runMergeMessageSelfTest(config);
+        process.stdout.write(
+          result.failed.length === 0
+            ? `✅ Selbsttest der Merge-Regel: ${result.total} Fälle bestanden\n`
+            : `🛑 Selbsttest der Merge-Regel fehlgeschlagen:\n${result.failed.map((line) => `   ${line}`).join('\n')}\n`,
+        );
+        return result.failed.length === 0 ? 0 : 1;
+      }
+      const file = text(args, 'file') ?? text(args, 'message-file');
+      const content = text(args, 'message') ?? (file ? (readMessage(file).content ?? '') : readStdin());
+      const findings = validateMergeMessage(content, config);
+      const failed = findings.filter((item) => isBlocking(item, config.gate.enforcement));
+      if (failed.length === 0) {
+        if (!quiet) process.stdout.write('✅ Merge-Nachricht enthält den verpflichtenden Body.\n');
+        return 0;
+      }
+      process.stdout.write(
+        `${failed.map((item) => `${item.severity === 'error' ? '❌' : '⚠️'} ${item.code}: ${item.message}`).join('\n')}\n` +
+          `Pflicht: mindestens ${MIN_MERGE_BODY_WORDS} Wörter im Body. ` +
+          'Der Titel darf Git schreiben, die Begründung nicht.\n',
       );
       return 1;
     }

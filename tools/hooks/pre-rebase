@@ -1,0 +1,6 @@
+#!/bin/sh
+# Shinon — erzeugt von `shinon install-hooks`. Nicht manuell pflegen.
+SHINON_ROOT="$(git rev-parse --show-toplevel)"
+# Rebase-Vorbereitung. $1 ist der Upstream. git rebase feuert weder pre-commit noch commit-msg —
+# ohne diesen Hook liefe die umgeschriebene Kette durch kein Gate.
+exec node "$SHINON_ROOT/tools/shinon/hook-entry.mjs" gate --phase=pre-rebase --quiet

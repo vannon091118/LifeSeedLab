@@ -1,5 +1,13 @@
 #!/bin/sh
 # Shinon — erzeugt von `shinon install-hooks`. Nicht manuell pflegen.
 SHINON_ROOT="$(git rev-parse --show-toplevel)"
-# Nachrichtenregel: genau diese Nachricht wird der Komponist commiten
-exec node "$SHINON_ROOT/tools/shinon/hook-entry.mjs" message --file="$1" --quiet
+# Nachrichtenregel. Die Unterscheidung Merge/Commit erfolgt ueber $1 (die Nachrichten-
+# datei), NICHT ueber $2: gemessen an git 2.53.0.windows.4 uebergibt Git dem commit-msg
+# bei Merge, Squash und normalem Commit IMMER genau ein Argument — $2 kommt nicht an.
+# Ein Aufruf auf $2 waere still falsch und wuerde jeden Merge an die 200-Wort-Commitregel
+# schicken, also jeden Merge blockieren. $1 ist .git/MERGE_MSG bei Merge und Squash,
+# .git/COMMIT_EDITMSG sonst — beides gemessen, nicht angenommen.
+case "$1" in
+  */MERGE_MSG) exec node "$SHINON_ROOT/tools/shinon/hook-entry.mjs" merge-message --file="$1" --quiet ;;
+  *) exec node "$SHINON_ROOT/tools/shinon/hook-entry.mjs" message --file="$1" --quiet ;;
+esac

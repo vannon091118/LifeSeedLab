@@ -68,6 +68,48 @@ export class GitHubHelfer {
     return this.run(args);
   }
 
+  /**
+   * PR-Aktionen. Sie liegen hier, nicht in `pr-helfer.ts`, weil sie denselben `gh`-Runner
+   * benutzen und sonst ein zweiter Ort entstünde, von dem aus `gh` aufgerufen wird.
+   */
+  prCreate(args: string[]): CommandResult {
+    return this.run(args);
+  }
+
+  prMerge(args: string[]): CommandResult {
+    return this.run(args);
+  }
+
+  /** Roh-Ausgabe von `gh pr view` für den Branch (z. B. die PR-URL). */
+  prView(branch: string): CommandResult {
+    return this.run(['pr', 'view', branch, '--json', 'number,mergeable,mergeStateStatus,url']);
+  }
+
+  /**
+   * Merge-Status eines PRs — die beiden `gh`-Felder sind getrennt, weil sie verschiedene
+   * Wertmengen tragen: `mergeable` (MERGEABLE / CONFLICTING / UNKNOWN) sagt, ob der Merge
+   * geometrisch möglich ist, `mergeStateStatus` (CLEAN / DIRTY / BEHIND / UNSTABLE / UNKNOWN)
+   * sagt, ob der Ziel-Branch auf einem sauberen Stand liegt. Beide sind `null`, wenn `gh`
+   * nichts geliefert hat — `null` ist bewusst KEIN grünes Signal.
+   *
+   * Hier gemessener Bug-Fix: die frühere Variante hat `mergeable ?? mergeStateStatus` in
+   * einem Feld vermischt und das Ergebnis dann mit `CLEAN` verglichen — die Werte passen nie
+   * zusammen, und jeder PR (auch CLEAN) ist so blockiert worden.
+   */
+  prStatus(number: string): { mergeable: string | null; mergeStateStatus: string | null } {
+    const result = this.run(['pr', 'view', number, '--json', 'mergeable,mergeStateStatus']);
+    if (!result.ok) return { mergeable: null, mergeStateStatus: null };
+    try {
+      const parsed = JSON.parse(result.stdout) as { mergeable?: string; mergeStateStatus?: string };
+      return {
+        mergeable: parsed.mergeable !== undefined ? String(parsed.mergeable) : null,
+        mergeStateStatus: parsed.mergeStateStatus !== undefined ? String(parsed.mergeStateStatus) : null,
+      };
+    } catch {
+      return { mergeable: null, mergeStateStatus: null };
+    }
+  }
+
   /** `owner/repo` aus einer GitHub-Remote-URL (ssh oder https). */
   static slugFromRemote(url: string | null): string | null {
     if (url === null) return null;

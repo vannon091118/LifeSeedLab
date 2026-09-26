@@ -1,0 +1,7 @@
+#!/bin/sh
+# Shinon — erzeugt von `shinon install-hooks`. Nicht manuell pflegen.
+SHINON_ROOT="$(git rev-parse --show-toplevel)"
+# Letzte Instanz vor dem Verlassen des Rechners: der Code ist danach öffentlich lesbar.
+# $1 = Remote, $2 = URL; die Ref-Liste kommt auf stdin und wird nicht ausgewertet —
+# das Gate prüft den Zustand des Branches, nicht die einzelne Ref.
+exec node "$SHINON_ROOT/tools/shinon/hook-entry.mjs" gate --phase=pre-push --quiet

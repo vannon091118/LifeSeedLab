@@ -10,6 +10,7 @@ import { ChangelogCheck } from './changelog-check.ts';
 import { DocLinkCheck } from './doc-link-check.ts';
 import { CommitSizeCheck } from './commit-size-check.ts';
 import { VersionFilesCheck } from './version-files-check.ts';
+import { MergeMessageCheck } from './merge-message-check.ts';
 import type { ShinonCheck } from './check.ts';
 import type { ShinonConfig } from '../config.ts';
 
@@ -17,6 +18,13 @@ export type { CheckContext, Finding, Severity, ShinonCheck, ShinonPhase } from '
 export { finding, hasErrors, countBySeverity, targetFiles, lineCount, codeLineCount, tail } from './check.ts';
 export { CommitSizeCheck } from './commit-size-check.ts';
 export { VersionFilesCheck } from './version-files-check.ts';
+export {
+  MergeMessageCheck,
+  validateMergeMessage,
+  runMergeMessageSelfTest,
+  mergeBodyWords,
+  MIN_MERGE_BODY_WORDS,
+} from './merge-message-check.ts';
 
 /**
  * Registry: die Reihenfolge ist die Gate-Reihenfolge (billig vor teuer). Neue Prüfklassen
@@ -36,6 +44,7 @@ function enabledCheckIds(config: ShinonConfig): Record<string, boolean> {
     'doc-links': config.gate.checks.docLinks,
     'commit-size': config.gate.checks.commitSize,
     'version-files': config.gate.checks.versionFiles,
+    'merge-message': config.gate.checks.mergeMessage,
   };
 }
 
@@ -68,6 +77,7 @@ export function buildChecks(config: ShinonConfig, only: string[] = []): ShinonCh
     new DocLinkCheck(),
     new CommitSizeCheck(),
     new VersionFilesCheck(),
+    new MergeMessageCheck(),
   ];
 
   const enabled = enabledCheckIds(config);
@@ -89,5 +99,6 @@ export function knownCheckIds(): string[] {
     'doc-links',
     'commit-size',
     'version-files',
+    'merge-message',
   ];
 }

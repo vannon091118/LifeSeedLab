@@ -20,6 +20,19 @@ export class CommitSizeCheck implements ShinonCheck {
   readonly title = 'Commit-Größe (Slice-Regel)';
 
   run(ctx: CheckContext): Finding[] {
+    // Die Slice-Regel misst genau das, was EIN Commit einführt — das ist der Index, und der
+    // Index ist nur in der Commit-Phase der Gegenstand. In den Merge-/Rebase-/Push-Phasen ist
+    // der Index bereits gefüllt (Merge) bzw. nicht die Aussage (Push); dort würde die Datei-
+    // zahl eines fremden Zusammenfügens als „unzulässig großer Commit" gemeldet und der Merge
+    // würde an einer Regel scheitern, die für ihn gar nicht geschrieben wurde.
+    if (ctx.phase !== 'pre-commit') {
+      return [
+        finding(this.id, 'CSZ000', `Slice-Grenze gilt nur im Index (Phase ${ctx.phase}) — nicht geprüft`, {
+          severity: 'info',
+        }),
+      ];
+    }
+
     // Kein Sortierzwang für das Urteil, aber eine stabile Reihenfolge im Bericht — Code-Units,
     // weil die Reihenfolge hier nur Darstellung ist und nichts entscheiden darf.
     const files = [...ctx.stagedFiles].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));

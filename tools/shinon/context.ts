@@ -14,7 +14,13 @@ interface ContextOptions {
   quiet?: boolean;
 }
 
-const GATE_PHASES = new Set<ShinonPhase>(['preflight', 'pre-commit', 'pre-push']);
+const GATE_PHASES = new Set<ShinonPhase>([
+  'preflight',
+  'pre-commit',
+  'pre-push',
+  'pre-merge',
+  'pre-rebase',
+]);
 
 export function createCheckContext(
   git: ShinonGitHelfer,

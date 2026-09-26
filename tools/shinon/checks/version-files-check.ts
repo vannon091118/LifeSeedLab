@@ -23,6 +23,19 @@ export class VersionFilesCheck implements ShinonCheck {
   readonly title = 'Versions-Wahrheit bleibt uncommittet (Regel-0-Vorsprung)';
 
   run(ctx: CheckContext): Finding[] {
+    // Der Versions-Vorsprung ist eine Eigenschaft des Commits, den man SCHREIBT — nicht des
+    // Zustands, den man zusammenführt. Bei einem Merge steht `package.json` zwangsläufig im
+    // Index, sobald die Gegenseite sie angefasst hat; VRF001 würde daraus einen Fehler machen
+    // und jeden Merge blockieren, der die Versionsdatei einbringt. Deshalb ausschließlich in der
+    // Commit-Phase — dort ist der Index genau die beabsichtigte Änderung.
+    if (ctx.phase !== 'pre-commit') {
+      return [
+        finding(this.id, 'VRF000', `Versions-Vorsprung wird nur im Index geprüft (Phase ${ctx.phase})`, {
+          severity: 'info',
+        }),
+      ];
+    }
+
     const files = [...ctx.stagedFiles].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
     const hits = files.filter((f) => VERSION_FILES.has(f.replace(/\\/g, '/')));
 

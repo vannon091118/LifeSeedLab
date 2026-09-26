@@ -1,0 +1,6 @@
+#!/bin/sh
+# Shinon — erzeugt von `shinon install-hooks`. Nicht manuell pflegen.
+SHINON_ROOT="$(git rev-parse --show-toplevel)"
+# Merge-Stufe. $1 ist die Datei, aus der Git den Merge-Titel liest — der Pflicht-Body
+# (MSG010) wird genau hier geprüft, weil dies der letzte Moment vor dem Merge-Commit ist.
+exec node "$SHINON_ROOT/tools/shinon/hook-entry.mjs" gate --phase=pre-merge --message-file="$1" --quiet

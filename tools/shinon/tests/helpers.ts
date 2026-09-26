@@ -91,3 +91,54 @@ export function write(dir: string, relative: string, content: string): string {
 export function makeLines(count: number): string {
   return Array.from({ length: count }, (_, index) => `const line${index} = ${index};`).join('\n');
 }
+
+/**
+ * Commit ohne Hooks — ausschliesslich für Fixture-Commits in Wegwerf-Repos.
+ *
+ * Ein Wegwerf-Repo kann die volle `pre-commit`-Stufe strukturell nicht bestehen: kein
+ * `tsconfig.json` (CMD001), keine `CHANGELOG.md` (Regel 0). Ein Test, der dort echte Hooks
+ * installiert und dann Commits als Testvorbereitung setzt, scheitert also an der Typecheck-Stufe
+ * und meldet das als „Commit abgelehnt" — die Nachrichtenregel sieht nie eine Zeile.
+ *
+ * Darum: Fixture-Commits laufen mit leerem `core.hooksPath`, der zu prüfende Vorgang (Merge,
+ * Push, Rebase) mit den installierten echten Hooks. Das ist keine Schwächung des Tests, sondern
+ * seine Trennschärfe — der Test prüft die Nachrichtenregel, nicht die Typecheck-Stufe.
+ */
+export function commitFixture(
+  dir: string,
+  args: string[],
+): { ok: boolean; stdout: string; stderr: string } {
+  const noHooks = path.join(dir, '.no-hooks');
+  fs.mkdirSync(noHooks, { recursive: true });
+  return gitIt(dir, ['-c', `core.hooksPath=${noHooks}`, ...args, '--no-gpg-sign']);
+}
+
+/**
+ * Legt den echten Einstieg in ein Wegwerf-Repo, sodass die installierten Hooks dort laufen.
+ *
+ * Das ist keine Kosmetik, sondern eine Bedingung: `core.hooksPath` zeigt auf `tools/hooks`, und die
+ * Hooks rufen `node $SHINON_ROOT/tools/shinon/hook-entry.mjs` auf. In einem frischen Wegwerf-Repo
+ * existiert diese Datei nicht — der Hook stirbt mit `Cannot find module`, und **jeder** Commit
+ * scheitert. Genau das ist geschehen: der Test meldete `basis` als nicht committet, obwohl die
+ * Nachrichtenregel nie eine Zeile gesehen hatte.
+ *
+ * Der Shim leitet an den echten Einstieg im Projekt weiter und setzt `--root` auf das Wegwerf-Repo.
+ * Damit läuft die echte CLI, nicht ein Attrappen-Skript — der Test prüft das Gate, nicht den Shim.
+ */
+export function shimRealEntry(dir: string): string {
+  const real = path.join(PROJECT_ROOT, 'tools', 'shinon', 'hook-entry.mjs');
+  return write(
+    dir,
+    path.join('tools', 'shinon', 'hook-entry.mjs'),
+    [
+      `import { spawnSync } from 'node:child_process';`,
+      `const real = ${JSON.stringify(real)};`,
+      `const args = process.argv.slice(2).filter((a) => !a.startsWith('--root='));`,
+      `const r = spawnSync(process.argv[0], [real, ...args, '--root=' + process.cwd()], {`,
+      `  stdio: 'inherit',`,
+      `  cwd: process.cwd(),`,
+      `});`,
+      `process.exit(r.status ?? 1);`,
+    ].join('\n'),
+  );
+}

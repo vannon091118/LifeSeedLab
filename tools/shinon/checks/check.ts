@@ -9,7 +9,32 @@ import type { ShinonGitHelfer } from '../git-helfer.ts';
  * Erst ShinonGate wertet die gesammelten Befunde aus.
  */
 
-export type ShinonPhase = 'preflight' | 'pre-commit' | 'pre-push';
+/**
+ * Gate-Phasen. Jede Phase entspricht einem Git-Hook, der das Gate tatsächlich aufruft:
+ *
+ *   preflight     Starter (prepare) — Arbeitsbaum, ungetrackte Quellen
+ *   pre-commit    git commit         — der Index ist das, was committet würde
+ *   pre-push      git push           — der Branch verlässt den Rechner
+ *   pre-merge     git merge          — der Merge-Commit entsteht
+ *   pre-rebase    git rebase         — die Kette wird umgeschrieben
+ *
+ * Die Phasen sind nicht synonym: `pre-commit` ist die EINZIGE Phase, in der der Index die
+ * Aussage „das würde committet" trägt. In allen anderen Phasen ist der Index bereits gefüllt
+ * (Merge) oder gar nicht der Gegenstand (Push, Preflight) — indexgebundene Prüfungen wie
+ * `commit-size` und `version-files` schalten sich dort ab, statt zu false-positiven.
+ *
+ * Gemessen an git 2.53: bei `git merge` feuert `pre-commit` NICHT, bei `git rebase` weder
+ * `pre-commit` noch `commit-msg` — beide Aktionen liefen damit durch kein Gate.
+ */
+export type ShinonPhase = 'preflight' | 'pre-commit' | 'pre-push' | 'pre-merge' | 'pre-rebase';
+
+/** Phasen, in denen Git einen Merge- oder Rebase-Vorgang vorbereitet. */
+export const MERGE_PHASES: ReadonlySet<ShinonPhase> = new Set<ShinonPhase>(['pre-merge', 'pre-rebase']);
+
+/** true ⇔ in dieser Phase beschreibt der Index genau den beabsichtigten Commit. */
+export function isCommitPhase(phase: ShinonPhase): boolean {
+  return phase === 'pre-commit';
+}
 
 export type Severity = 'error' | 'warn' | 'info';
 
