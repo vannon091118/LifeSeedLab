@@ -17,7 +17,10 @@ export default defineConfig({
   test: {
     include: ['shinon/**/*.test.ts', 'indexer/**/*.test.ts'],
     environment: 'node',
-    testTimeout: 30_000,
-    hookTimeout: 30_000,
+    // Gemessen: die rebase-Verzweigung des Hook-Vertrags-Tests dauert unter Last 30 s und
+    // mehr (eigene Spawns + rebase + Hooks); die 30 s erzeugten eine Flake im Gate-Lauf
+    // (1 von 127 Tests, belegt). Das Default wird auf 120 s erhöht.
+    testTimeout: 120_000,
+    hookTimeout: 120_000,
   },
 });

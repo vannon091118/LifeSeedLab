@@ -228,7 +228,7 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 | Branch | `main` · Upstream: `origin/main` (+0/-0) |
 | HEAD | `fe2cbd8` — docs(process): Regel 0 und der Versions-Check widersprechen sich |
 | Arbeitsbaum | 25 gestaged, 1 geändert, 0 neu |
-| Letztes Gate | 🛑 geschlossen (pre-commit, 1 Fehler, 0 Warnungen) |
+| Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
 | Letzter Shinon-Commit | `fe2cbd8` docs(process): Regel 0 und der Versions-Check widersprechen sich |
 | Letzter Push | ✅ origin/main |
