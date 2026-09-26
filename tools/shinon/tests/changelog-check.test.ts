@@ -92,5 +92,20 @@ describe('Changelog-Prüfung', () => {
     expect(findings[0].code).toBe('CHG000');
     expect(findings[0].severity).toBe('info');
   });
+
+  it('schaltet die Pflicht in den Phasen ab, in denen der Eintrag bereits im Commit steht (CHG003, info)', () => {
+    for (const phase of ['pre-push', 'pre-merge', 'pre-rebase'] as const) {
+      const { git, config } = initTempRepo(`changelog-${phase}`);
+      write(git.root, 'CHANGELOG.md', '# Log\n\n- [Gate] schon im Commit\n');
+      git.git(['add', 'CHANGELOG.md']);
+      git.git(['commit', '-m', 'init', '--no-gpg-sign']);
+
+      const findings = new ChangelogCheck().run(contextFor(git, config, { phase, quiet: true }));
+
+      expect(findings, phase).toHaveLength(1);
+      expect(findings[0].code, phase).toBe('CHG003');
+      expect(findings[0].severity, phase).toBe('info');
+    }
+  });
 });
 

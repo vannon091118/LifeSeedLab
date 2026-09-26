@@ -225,12 +225,12 @@ _Automatisch von Shinon aus dem realen Repository-Status erzeugt — nicht manue
 
 | Kennzahl | Stand |
 |---|---|
-| Branch | `main` · Upstream: `origin/main` (+0/-0) |
-| HEAD | `fe2cbd8` — docs(process): Regel 0 und der Versions-Check widersprechen sich |
-| Arbeitsbaum | 25 gestaged, 1 geändert, 0 neu |
-| Letztes Gate | ✅ offen (pre-commit, 0 Fehler, 0 Warnungen) |
+| Branch | `main` · Upstream: `origin/main` (+1/-0) |
+| HEAD | `3f29210` — feat(shinon): PR, Merge, Rebase und Push laufen jetzt durch das Gate |
+| Arbeitsbaum | 3 gestaged, 1 geändert, 0 neu |
+| Letztes Gate | 🛑 geschlossen (pre-commit, 0 Fehler, 1 Warnungen) |
 | Gate-Modus | 🔒 Enforcement — Warnungen blockieren wie Fehler |
-| Letzter Shinon-Commit | `fe2cbd8` docs(process): Regel 0 und der Versions-Check widersprechen sich |
+| Letzter Shinon-Commit | `3f29210` feat(shinon): PR, Merge, Rebase und Push laufen jetzt durch das Gate |
 | Letzter Push | ✅ origin/main |
 | LOC-Hotspots | `src/persistence/storage.ts` 184/200 (92 %)<br>`src/simulation/plantSystem.ts` 261/300 (87 %)<br>`src/simulation/enemySystem.ts` 258/300 (86 %)<br>`src/meta/run.ts` 159/200 (80 %)<br>`src/components/GameView.tsx` 313/400 (78 %) |
 <!-- SHINON:STATUS:END -->

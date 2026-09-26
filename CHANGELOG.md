@@ -9,6 +9,13 @@ Pre-Release — die Versionszählung läuft bewusst in kleinen Schritten (v0.0.x
 
 ## Unreleased (Arbeitsstand 19.–25.09.2026)
 
+- [Shinon/Tooling] Pre-Push-CHG003: Der Changelog-Check ist in den Phasen Pre-Push, Pre-Merge und
+  Pre-Rebase deaktiviert — dort steht der Eintrag bereits in den geschriebenen Commits, und ein
+  sauberer Worktree lieferte ein false-positive CHG001, das jeden sauberen Push blockierte
+  (gemessen 25.09.2026: der neue Pre-Push-Hook fiel im Gate auf CHG001, während die Push selbst
+  nichts mehr veränderten). Der Pflicht-Sitz bleibt die Pre-Commit-Phase am Index.
+  Beleg: `tools/shinon/checks/changelog-check.ts` (CHG003) und `tools/shinon/tests/changelog-check.test.ts`.
+
 - [Shinon/Tooling] Die globale Vitest-Timeout-Schwelle des Tools-Suits steigt von 30 auf 120 s: die 30 s schlugen unter Machine-Load einen echten Flake im Gate-Lauf (ein Pipeline-Test an der eigenen 30-s-Grenze, belegte 1-von-127-Fehlrate bei 1254 ms/Test Last). Die Zeitmessung steht als Kommentar über der neuen Konfiguration; die expliziten 120_000-Einzel-Timeouts in `hooks.test.ts` behalten ihre Bedeutung. Beleg: `tools/vitest.config.ts` und der Gate-Ausfall vom 25.09. (CMD001, Test-Lane grüner im Nachlauf).
 
 - [Shinon/Workflow] PR, Branch-Merge, Rebase und Push laufen jetzt **durch** den Gate-Workflow statt drumherum: drei neue Git-Hooks (`pre-merge-commit` mit `merge-check.sh`, `pre-rebase` mit `post-rebase.sh`-Aufräumlogik — `post-rewrite` wurde gemessen, bleibt aber bewusst nicht installiert) ergänzen die sechs installierten Hooks; `MergeExecutor` und `PrHelfer` blockieren fail-closed (dirty Worktree, getrennte `mergeable`/`mergeStateStatus`-Prüfung statt des mischenden `mergeableState`, das jeden CLEAN-PR fälschlich blockierte; fixiert und per Fake-`gh`-Tests belegt), und `MSG010` macht den PR-/Merge-Body (Was/Warum/Verifikation/Grenzen) zur Pflicht. Gemessene Präkondition: `pre-rebase` feuert nur, wenn die Hook-Dateien auch im Worktree des **Source-Branches** existieren — dokumentiert in `hooks.ts`, belegt in `hooks.test.ts` (Merge-vor-Rebase-Fixtur). Belege: `tools/shinon/hooks.ts`, `tools/shinon/merge-helfer.ts`, `tools/shinon/pr-helfer.ts`, `tools/shinon/github-helfer.ts`, `tools/shinon/checks/merge-message-check.ts`, `tools/hooks/*`, `tools/shinon/tests/hooks.test.ts` und `tools/shinon/tests/workflow-helfer.test.ts`.

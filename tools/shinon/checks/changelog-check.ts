@@ -6,6 +6,11 @@ import type { CheckContext, Finding, ShinonCheck } from './check.ts';
  * wurde. Im Preflight darf der Arbeitsbaum den Einstieg vorbereiten; im Pre-Commit zählt nur der
  * Index, sonst würde ein ungestagter Worktree-Eintrag einen Commit ohne Changelog freigeben.
  *
+ * Gemessen am 25.09.2026: in Pre-Push, Pre-Merge und Pre-Rebase ist der Eintrag bereits IN den
+ * geschriebenen Commits (das Pre-Commit-Gate hat ihn am Index gezwungen) — ein `diff HEAD`
+ * auf einem aufgeräumten Worktree liefert dort Exit 0 und blockierte jeden sauberen Push.
+ * Die Pflicht schaltet sich in diesen Phasen ab (CHG003, info), nicht mit CHG001.
+ *
  * Ausführung über den GitHelfer (spawnSync, keine Shell) statt `execSync`: execSync baut pro
  * Lauf eine Shell auf und warf den Exit-Code 1 als Exception — gemessen 16.09.2026 costete das
  * ~120 ms je Lauf (Shell + Throw), der GitHelfer-Lauf liegt bei ~75 ms. `allowFailure: true`
@@ -29,6 +34,26 @@ export class ChangelogCheck implements ShinonCheck {
             ? 'CHANGELOG.md wurde geändert – Eintrag vorhanden.'
             : 'CHANGELOG.md wurde nicht geändert. Bitte vor dem Commit einen Eintrag hinzufügen.',
           { severity: changed ? 'info' : 'error', file: 'CHANGELOG.md' },
+        ),
+      ];
+    }
+
+    // Gemessen am 25.09.2026: die Pre-Push-Phase lieferte auf einem aufgeräumten
+    // Worktree den Klassiker dieses Gates — der Changelog-Eintrag steht bereits IN den
+    // zu pushenden Commits (geprüft im Pre-Commit-Gate am Index), und ein `diff HEAD`
+    // ohne lokale Änderung würde einen sauberen Push blockieren (belegte Push-
+    // Abbrecher im Pipeline-Lauf). Die Pflicht greift deshalb nur, wo der Changelog
+    // noch geschrieben wird: Preflight (Arbeitsbaum) und Pre-Commit (Index). Alle
+    // anderen Phasen haben Commits bereits geschrieben — dort ist das Fehlen einer
+    // lokalen CHANGELOG-Änderung kein Befund.
+    if (ctx.phase === 'pre-push' || ctx.phase === 'pre-merge' || ctx.phase === 'pre-rebase') {
+      return [
+        finding(
+          this.id,
+          'CHG003',
+          `Changelog-Pflicht greift in der Pre-Commit-Phase (Index) — in Phase ${ctx.phase} ` +
+            'steht der Eintrag bereits in den Commits, es wird nicht geprüft.',
+          { severity: 'info', file: 'CHANGELOG.md' },
         ),
       ];
     }
